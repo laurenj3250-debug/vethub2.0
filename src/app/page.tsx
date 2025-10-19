@@ -48,6 +48,12 @@ export default function VetPatientTracker() {
   }, [firestore, user]);
   const { data: commonComments, isLoading: isLoadingCommonComments } = useCollection(commonCommentsQuery);
 
+  const commonMedicationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonMedications`));
+  }, [firestore, user]);
+  const { data: commonMedications, isLoading: isLoadingCommonMedications } = useCollection(commonMedicationsQuery);
+
   const [newPatient, setNewPatient] = useState({ name: '', type: 'Surgery' });
   const [expandedPatients, setExpandedPatients] = useState({});
   const [showMorningOverview, setShowMorningOverview] = useState(false);
@@ -155,6 +161,13 @@ export default function VetPatientTracker() {
     if (!newComment.trim() || !firestore || !user) return;
     if (!(commonComments || []).some(c => c.name === newComment.trim())) {
       addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonComments`), { name: newComment.trim() });
+    }
+  };
+
+  const addCommonMedication = (newMedication) => {
+    if (!newMedication.trim() || !firestore || !user) return;
+    if (!(commonMedications || []).some(m => m.name === newMedication.trim())) {
+      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonMedications`), { name: newMedication.trim() });
     }
   };
 
@@ -365,11 +378,13 @@ export default function VetPatientTracker() {
     }
 
     try {
+      // Use the new regex-based parser
       const result = parseSignalment(detailsText);
       console.log('Parser Diagnostics:', result.diagnostics);
       
       const parsedInfo = result.data;
       
+      // Use a more standard signalment order: Age Breed Sex
       let signalmentParts = [];
       if (parsedInfo.age) signalmentParts.push(parsedInfo.age);
       if (parsedInfo.breed) signalmentParts.push(parsedInfo.breed);
@@ -408,6 +423,18 @@ export default function VetPatientTracker() {
       }
       
       updatePayload.detailsInput = '';
+
+      // Also try to get therapeutics with AI
+      try {
+        const aiResult = await parsePatientInfoFromText({ text: detailsText });
+        if (aiResult.therapeutics) {
+          updatePayload.roundingData.therapeutics = aiResult.therapeutics;
+        }
+      } catch (aiError) {
+        console.error("AI portion of parsing failed, but signalment was extracted:", aiError);
+        // Don't alert, just log. The main part succeeded.
+      }
+
 
       updatePatientData(patientId, updatePayload);
 
@@ -591,7 +618,7 @@ export default function VetPatientTracker() {
     setExpandedPatients(newExpandedState);
   };
 
-  if (isUserLoading || isLoadingPatients || isLoadingGeneralTasks || isLoadingCommonProblems || isLoadingCommonComments) {
+  if (isUserLoading || isLoadingPatients || isLoadingGeneralTasks || isLoadingCommonProblems || isLoadingCommonComments || isLoadingCommonMedications) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="text-center">
@@ -1249,7 +1276,7 @@ export default function VetPatientTracker() {
                               >
                                 Extract Patient Info
                               </button>
-                              <p className="text-xs text-gray-600 mt-1 italic">Will auto-fill fields below</p>
+                              <p className="text-xs text-gray-600 mt-1 italic">Will auto-fill signalment, weight, and therapeutics</p>
                             </div>
                             
                             <div className="grid grid-cols-2 gap-3">
@@ -1418,13 +1445,85 @@ export default function VetPatientTracker() {
                               rows="3"
                               className="col-span-2 px-3 py-2 text-sm border rounded-lg"
                             />
-                            <textarea
-                              value={patient.roundingData.therapeutics}
-                              onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
-                              placeholder="Current Therapeutics"
-                              rows="2"
-                              className="col-span-2 px-3 py-2 text-sm border rounded-lg"
-                            />
+                            
+                            <div className="col-span-2 p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+                              <h5 className="text-sm font-bold text-cyan-900 mb-2">Current Therapeutics</h5>
+                              
+                              <div className="mb-2">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Add Medications</label>
+                                <div className="flex flex-wrap gap-1 mb-2">
+                                  {(commonMedications || []).slice(0, 8).map(med => (
+                                    <button
+                                      key={med.id}
+                                      onClick={() => {
+                                        const current = patient.roundingData.therapeutics || '';
+                                        const newValue = current ? current + '\n' + med.name : med.name;
+                                        updateRoundingData(patient.id, 'therapeutics', newValue);
+                                      }}
+                                      className="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded hover:bg-cyan-200 transition"
+                                    >
+                                      + {med.name}
+                                    </button>
+                                  ))}
+                                </div>
+                                
+                                <div className="flex gap-2 mb-2">
+                                  <select
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        const current = patient.roundingData.therapeutics || '';
+                                        const newValue = current ? current + '\n' + e.target.value : e.target.value;
+                                        updateRoundingData(patient.id, 'therapeutics', newValue);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                    className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
+                                  >
+                                    <option value="">Select from all medications...</option>
+                                    {(commonMedications || []).map(med => (
+                                      <option key={med.id} value={med.name}>{med.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Add new medication to list..."
+                                    className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter' && e.target.value.trim()) {
+                                        addCommonMedication(e.target.value);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      const input = e.target.previousElementSibling as HTMLInputElement;
+                                      if (input.value.trim()) {
+                                        addCommonMedication(input.value);
+                                        input.value = '';
+                                      }
+                                    }}
+                                    className="px-2 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700"
+                                  >
+                                    Save to List
+                                  </button>
+                                </div>
+                                <p className="text-xs text-cyan-700 mt-1 italic">New medications are saved for all patients</p>
+                              </div>
+                              
+                              <textarea
+                                value={patient.roundingData.therapeutics}
+                                onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
+                                placeholder="Current Therapeutics (can also type directly here)"
+                                rows="3"
+                                className="w-full px-3 py-2 text-sm border border-cyan-300 rounded-lg"
+                              />
+                            </div>
+
+
                             <input
                               type="text"
                               value={patient.roundingData.replaceIVC}

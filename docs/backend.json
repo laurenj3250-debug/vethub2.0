@@ -102,6 +102,15 @@
         "name": { "type": "string" }
       },
       "required": ["name"]
+    },
+    "CommonMedication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommonMedication",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
     }
   },
   "auth": {
@@ -147,6 +156,15 @@
           "entityName": "CommonComment",
           "schema": {
             "$ref": "#/backend/entities/CommonComment"
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/commonMedications/{commonMedicationId}",
+        "definition": {
+          "entityName": "CommonMedication",
+          "schema": {
+            "$ref": "#/backend/entities/CommonMedication"
           }
         }
       }
