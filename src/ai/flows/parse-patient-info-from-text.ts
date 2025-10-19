@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent for parsing patient information from text.
@@ -40,11 +41,7 @@ export async function parsePatientInfoFromText(input: ParsePatientInfoFromTextIn
   return parsePatientInfoFromTextFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'parsePatientInfoFromTextPrompt',
-  input: {schema: ParsePatientInfoFromTextInputSchema},
-  output: {schema: ParsePatientInfoFromTextOutputSchema},
-  prompt: `You are an expert veterinary assistant. You will be provided with patient details in a raw text format. 
+const prompt = `You are an expert veterinary assistant. You will be provided with patient details in a raw text format. 
 Your goal is to extract structured information from this text. Look for key-value pairs (like "Patient ID: 12345") to identify the following fields if they are present:
 - Patient ID
 - Client ID
@@ -62,8 +59,7 @@ Additionally, extract any lines that appear to be medications, fluids, or other 
 
 Return the extracted information in JSON format. If a piece of information is not found, leave it blank. Focus primarily on the patient info and therapeutics fields.
 
-Patient Details Text: {{{text}}}`,
-});
+Patient Details Text: {{{text}}}`;
 
 const parsePatientInfoFromTextFlow = ai.defineFlow(
   {
@@ -72,11 +68,9 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
     outputSchema: ParsePatientInfoFromTextOutputSchema,
   },
   async input => {
-    const llm = googleAI.model('gemini-1.5-flash');
-    const {output} = await llm.generate({
-      prompt: {
-        input: input,
-      },
+    const {output} = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash'),
+      prompt: [{text: prompt, context: input}],
       output: {
         format: 'json',
         schema: ParsePatientInfoFromTextOutputSchema,

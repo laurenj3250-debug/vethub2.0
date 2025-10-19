@@ -1,3 +1,4 @@
+
 // src/ai/flows/analyze-blood-work-for-abnormalities.ts
 'use server';
 
@@ -29,11 +30,7 @@ export async function analyzeBloodWork(input: AnalyzeBloodWorkInput): Promise<An
   return analyzeBloodWorkFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeBloodWorkPrompt',
-  input: {schema: AnalyzeBloodWorkInputSchema},
-  output: {schema: AnalyzeBloodWorkOutputSchema},
-  prompt: `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
+const prompt = `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
 
 WBC: 6-17
 RBC: 5.5-8.5
@@ -65,8 +62,7 @@ Blood Work Results:
 {{bloodWorkText}}
 
 Output the abnormal values:
-`,
-});
+`;
 
 const analyzeBloodWorkFlow = ai.defineFlow(
   {
@@ -75,11 +71,9 @@ const analyzeBloodWorkFlow = ai.defineFlow(
     outputSchema: AnalyzeBloodWorkOutputSchema,
   },
   async input => {
-    const llm = googleAI.model('gemini-1.5-flash');
-    const {output} = await llm.generate({
-      prompt: {
-        input: input,
-      },
+    const {output} = await ai.generate({
+      model: googleAI.model('gemini-1.5-flash'),
+      prompt: [{text: prompt, context: input}],
       output: {
         format: 'json',
         schema: AnalyzeBloodWorkOutputSchema,
