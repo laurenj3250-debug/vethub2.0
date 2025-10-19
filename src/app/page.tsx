@@ -148,9 +148,10 @@ export default function VetPatientTracker() {
     csv += 'NOTIFY IF THERE IS A PROBLEM OR DEATH IN ANY OF OUR PATIENTS\n\n';
     
     const headers = [
+      'It\'s A-> N',
       'Signalment',
       'Location',
-      'If in ICU does patient meet criteria?',
+      'If in ICU, does patient meet criteria?',
       'Code Status',
       'Problems',
       'Relevant diagnostic findings',
@@ -167,22 +168,26 @@ export default function VetPatientTracker() {
     
     patients.forEach(patient => {
       const r = patient.roundingData || {};
-      csv += '"' + (r.signalment || '') + '",';
-      csv += '"' + (r.location || '') + '",';
-      csv += '"' + (r.icuCriteria || '') + '",';
-      csv += '"' + (r.codeStatus || 'Yellow') + '",';
-      csv += '"' + (r.problems || '') + '",';
-      csv += '"' + (r.diagnosticFindings || '') + '",';
-      csv += '"' + (r.therapeutics || '') + '",';
-      csv += '"' + (r.replaceIVC || '') + '",';
-      csv += '"' + (r.replaceFluids || '') + '",';
-      csv += '"' + (r.replaceCRI || '') + '",';
-      csv += '"' + (r.overnightDiagnostics || '') + '",';
-      csv += '"' + (r.overnightConcerns || '') + '",';
-      csv += '"' + (r.additionalComments || '') + '"\n';
+      const row = [
+        '', // Placeholder for 'It's A-> N'
+        r.signalment || '',
+        r.location || '',
+        r.icuCriteria || '',
+        r.codeStatus || 'Yellow',
+        r.problems || '',
+        r.diagnosticFindings || '',
+        r.therapeutics || '',
+        r.replaceIVC || '',
+        r.replaceFluids || '',
+        r.replaceCRI || '',
+        r.overnightDiagnostics || '',
+        r.overnightConcerns || '',
+        r.additionalComments || ''
+      ];
+      csv += row.map(val => `"${val.replace(/"/g, '""')}"`).join(',') + '\n';
     });
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
