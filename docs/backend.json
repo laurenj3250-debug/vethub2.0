@@ -1,0 +1,475 @@
+{
+  "entities": {
+    "Patient": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Patient",
+      "type": "object",
+      "description": "Represents a patient in the VetCare Hub, including their details, status, and associated rounding data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Patient entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The patient's name."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of procedure the patient is undergoing (e.g., Surgery, MRI)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the patient (e.g., New Admit, Pre-procedure)."
+        },
+        "patientInfoId": {
+          "type": "string",
+          "description": "Reference to PatientInfo. (Relationship: Patient 1:1 PatientInfo)"
+        },
+        "roundingDataId": {
+          "type": "string",
+          "description": "Reference to RoundingData. (Relationship: Patient 1:1 RoundingData)"
+        },
+        "mriDataId": {
+          "type": "string",
+          "description": "Reference to MRIData. (Relationship: Patient 1:1 MRIData)"
+        },
+        "tasks": {
+          "type": "array",
+          "description": "References to Task. (Relationship: Patient 1:N Task)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "addedTime": {
+          "type": "string",
+          "description": "The time the patient was added to the system."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "status",
+        "patientInfoId",
+        "roundingDataId",
+        "tasks",
+        "addedTime"
+      ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task associated with a patient.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to Patient. (Relationship: Patient 1:N Task)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the task."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether the task is completed."
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "name",
+        "completed"
+      ]
+    },
+    "PatientInfo": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PatientInfo",
+      "type": "object",
+      "description": "Stores detailed information about a patient, including IDs, owner details, and physical characteristics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the PatientInfo entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to Patient. (Relationship: Patient 1:1 PatientInfo)"
+        },
+        "clientId": {
+          "type": "string",
+          "description": "The client ID associated with the patient."
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "The name of the patient's owner."
+        },
+        "ownerPhone": {
+          "type": "string",
+          "description": "The phone number of the patient's owner."
+        },
+        "species": {
+          "type": "string",
+          "description": "The species of the patient (e.g., Canine, Feline)."
+        },
+        "breed": {
+          "type": "string",
+          "description": "The breed of the patient."
+        },
+        "color": {
+          "type": "string",
+          "description": "The color of the patient."
+        },
+        "sex": {
+          "type": "string",
+          "description": "The sex of the patient."
+        },
+        "weight": {
+          "type": "string",
+          "description": "The weight of the patient."
+        },
+        "dob": {
+          "type": "string",
+          "description": "The date of birth of the patient."
+        },
+        "age": {
+          "type": "string",
+          "description": "The age of the patient."
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "clientId",
+        "ownerName",
+        "ownerPhone",
+        "species",
+        "breed",
+        "color",
+        "sex",
+        "weight",
+        "dob",
+        "age"
+      ]
+    },
+    "RoundingData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RoundingData",
+      "type": "object",
+      "description": "Stores data relevant for patient rounding, including signalment, diagnostics, and therapeutics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RoundingData entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to Patient. (Relationship: Patient 1:1 RoundingData)"
+        },
+        "signalment": {
+          "type": "string",
+          "description": "The signalment of the patient."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location of the patient."
+        },
+        "icuCriteria": {
+          "type": "string",
+          "description": "ICU criteria for the patient."
+        },
+        "codeStatus": {
+          "type": "string",
+          "description": "The code status of the patient (e.g., Yellow, Red)."
+        },
+        "diagnosticFindings": {
+          "type": "string",
+          "description": "Diagnostic findings for the patient."
+        },
+        "therapeutics": {
+          "type": "string",
+          "description": "Current therapeutics for the patient."
+        },
+        "replaceIVC": {
+          "type": "string",
+          "description": "Indication of whether to replace the IVC."
+        },
+        "replaceFluids": {
+          "type": "string",
+          "description": "Indication of whether to replace fluids."
+        },
+        "replaceCRI": {
+          "type": "string",
+          "description": "Indication of whether to replace CRI."
+        },
+        "overnightDiagnostics": {
+          "type": "string",
+          "description": "Overnight diagnostics required for the patient."
+        },
+        "overnightConcerns": {
+          "type": "string",
+          "description": "Overnight concerns/alerts for the patient."
+        },
+        "additionalComments": {
+          "type": "string",
+          "description": "Additional comments for the patient."
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "signalment",
+        "location",
+        "icuCriteria",
+        "codeStatus",
+        "diagnosticFindings",
+        "therapeutics",
+        "replaceIVC",
+        "replaceFluids",
+        "replaceCRI",
+        "overnightDiagnostics",
+        "overnightConcerns",
+        "additionalComments"
+      ]
+    },
+    "MRIData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MRIData",
+      "type": "object",
+      "description": "Stores data specific to MRI procedures, including weight, scan type, and calculated drug doses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MRIData entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "Reference to Patient. (Relationship: Patient 1:1 MRIData)"
+        },
+        "weight": {
+          "type": "string",
+          "description": "The weight of the patient for MRI calculations."
+        },
+        "weightUnit": {
+          "type": "string",
+          "description": "The unit of weight (e.g., kg, lbs)."
+        },
+        "scanType": {
+          "type": "string",
+          "description": "The type of MRI scan (e.g., Brain, TL)."
+        },
+        "preMedDrug": {
+          "type": "string",
+          "description": "The pre-medication drug used for the MRI procedure."
+        },
+        "preMedDose": {
+          "type": "string",
+          "description": "The dose of the pre-medication drug."
+        },
+        "preMedVolume": {
+          "type": "string",
+          "description": "The volume of the pre-medication drug."
+        },
+        "valiumDose": {
+          "type": "string",
+          "description": "The dose of Valium used for the MRI procedure."
+        },
+        "valiumVolume": {
+          "type": "string",
+          "description": "The volume of Valium used for the MRI procedure."
+        },
+        "contrastVolume": {
+          "type": "string",
+          "description": "The volume of contrast used for the MRI procedure."
+        },
+        "calculated": {
+          "type": "boolean",
+          "description": "Indicates whether the drug doses have been calculated."
+        },
+        "weightKg": {
+          "type": "string",
+          "description": "Weight in kg for the purpose of calculation."
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "weight",
+        "weightUnit",
+        "scanType",
+        "preMedDrug",
+        "preMedDose",
+        "preMedVolume",
+        "valiumDose",
+        "valiumVolume",
+        "contrastVolume",
+        "calculated"
+      ]
+    },
+    "GeneralTask": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GeneralTask",
+      "type": "object",
+      "description": "Represents a general task not associated with a specific patient.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the GeneralTask entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the general task."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether the general task is completed."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "completed"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/patients/{patientId}",
+        "definition": {
+          "entityName": "Patient",
+          "schema": {
+            "$ref": "#/backend/entities/Patient"
+          },
+          "description": "Stores patient data. Includes denormalized fields if patient-level authorization is needed beyond ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the patient."
+            },
+            {
+              "name": "patientId",
+              "description": "The unique ID of the patient."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/patients/{patientId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores tasks associated with a specific patient. Includes denormalized 'userId' and 'patientId' for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the patient and task."
+            },
+            {
+              "name": "patientId",
+              "description": "The unique ID of the patient to whom the task belongs."
+            },
+            {
+              "name": "taskId",
+              "description": "The unique ID of the task."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/patientInfo/{patientInfoId}",
+        "definition": {
+          "entityName": "PatientInfo",
+          "schema": {
+            "$ref": "#/backend/entities/PatientInfo"
+          },
+          "description": "Stores detailed information about a patient. Includes denormalized 'userId' for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the patient info."
+            },
+            {
+              "name": "patientInfoId",
+              "description": "The unique ID of the patient info."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/roundingData/{roundingDataId}",
+        "definition": {
+          "entityName": "RoundingData",
+          "schema": {
+            "$ref": "#/backend/entities/RoundingData"
+          },
+          "description": "Stores rounding data for a patient. Includes denormalized 'userId' for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the rounding data."
+            },
+            {
+              "name": "roundingDataId",
+              "description": "The unique ID of the rounding data."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/mriData/{mriDataId}",
+        "definition": {
+          "entityName": "MRIData",
+          "schema": {
+            "$ref": "#/backend/entities/MRIData"
+          },
+          "description": "Stores MRI data for a patient. Includes denormalized 'userId' for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the MRI data."
+            },
+            {
+              "name": "mriDataId",
+              "description": "The unique ID of the MRI data."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/generalTasks/{generalTaskId}",
+        "definition": {
+          "entityName": "GeneralTask",
+          "schema": {
+            "$ref": "#/backend/entities/GeneralTask"
+          },
+          "description": "Stores general tasks not associated with a specific patient. Includes denormalized 'userId' for authorization.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The ID of the user who owns the general task."
+            },
+            {
+              "name": "generalTaskId",
+              "description": "The unique ID of the general task."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage patient information, tasks, and related data for the VetCare Hub application. It prioritizes authorization independence through denormalization and structural segregation for enhanced security and scalability. User data is stored separately from patient data. Tasks are handled at the patient level, with a separate collection for general tasks not tied to specific patients. Related entities like PatientInfo, RoundingData, and MRIData are stored as separate collections, linked by IDs to maintain data integrity and facilitate targeted queries. This structure supports the application's core features including patient management, task management, rounding sheet export, MRI sheet generation, and data parsing for patient information and blood work analysis. The use of subcollections ensures clear ownership and simplifies security rules."
+  }
+}
