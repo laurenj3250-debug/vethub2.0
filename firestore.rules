@@ -1,202 +1,131 @@
 /**
- * @file VetCare Hub Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for all patient data and associated information within the VetCare Hub application.
+ * @fileoverview Firestore Security Rules for VetCare Hub.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model, where each user can only access data explicitly associated with their user ID.
  *
  * Data Structure:
- * All data is nested under the /users/{userId} path, ensuring that each user has their own private data tree.
- * - /users/{userId}/patients/{patientId}: Stores patient information.
- * - /users/{userId}/patients/{patientId}/tasks/{taskId}: Stores tasks related to a specific patient.
- * - /users/{userId}/patientInfo/{patientInfoId}: Stores detailed patient information.
- * - /users/{userId}/roundingData/{roundingDataId}: Stores patient rounding data.
- * - /users/{userId}/mriData/{mriDataId}: Stores MRI data for patients.
- * - /users/{userId}/generalTasks/{generalTaskId}: Stores general tasks not associated with a specific patient.
+ * All data is nested under /users/{userId}, ensuring clear ownership.  Patients, general tasks, common problems, and common comments are stored
+ * under this structure.
  *
  * Key Security Decisions:
- * - Strict User Ownership: Only the authenticated user (owner) can create, read, update, or delete data within their /users/{userId} tree.
- * - No Listing of Other Users' Data: Listing operations are restricted to the user's own data.
- * - Denormalization for Authorization:  Data required for authorization (e.g., userId) is denormalized onto the documents being secured.
+ * - User listing is disallowed to protect privacy.
+ * - All write operations require a verified user ID.
+ * - Data validation is relaxed during prototyping to accelerate development.
+ *
+ * Denormalization for Authorization:
+ *  N/A - The current data structure inherently supports ownership-based rules, negating the need for denormalization.
+ *
+ * Structural Segregation:
+ *  N/A - All data is currently private and user-specific.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Enforces user-ownership for patient documents.
-     * @path /users/{userId}/patients/{patientId}
-     * @allow (create) User A can create a patient document under their own user ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.id: "user_a"
-     * @allow (get) User A can read a patient document under their own user ID.
-     *   - auth.uid: "user_a"
-     * @deny (create) User A cannot create a patient document under User B's ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.id: "user_b"
-     * @deny (update) User A cannot update a patient document that does not exist.
-     *   - auth.uid: "user_a"
-     * @principle Enforces document ownership for all operations.
+     * @description Checks if the current user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
      */
-    match /users/{userId}/patients/{patientId} {
-      // Allow the user to read their own patients
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-
-      // Only allow the user to create a patient if they are the owner
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Allow the user to update/delete only if they are the owner and the document exists
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces user-ownership for task documents within a patient.
-     * @path /users/{userId}/patients/{patientId}/tasks/{taskId}
-     * @allow (create) User A can create a task document under their own user ID and patient ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_x"
-     * @allow (get) User A can read a task document under their own user ID and patient ID.
-     *   - auth.uid: "user_a"
-     * @deny (create) User A cannot create a task document under User B's ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_y"
-     * @deny (update) User A cannot update a task document that does not exist.
-     *   - auth.uid: "user_a"
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/patients/{patientId}/tasks/{taskId} {
-      // Allow the user to read their own tasks
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-
-      // Only allow the user to create a task if they are the owner
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Allow the user to update/delete only if they are the owner and the document exists
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces user-ownership for patient info documents.
-     * @path /users/{userId}/patientInfo/{patientInfoId}
-     * @allow (create) User A can create a patient info document under their own user ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_x"
-     * @allow (get) User A can read a patient info document under their own user ID.
-     *   - auth.uid: "user_a"
-     * @deny (create) User A cannot create a patient info document under User B's ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_y"
-     * @deny (update) User A cannot update a patient info document that does not exist.
-     *   - auth.uid: "user_a"
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/patientInfo/{patientInfoId} {
-      // Allow the user to read their own patient info
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-
-      // Only allow the user to create a patient info if they are the owner
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Allow the user to update/delete only if they are the owner and the document exists
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces user-ownership for rounding data documents.
-     * @path /users/{userId}/roundingData/{roundingDataId}
-     * @allow (create) User A can create a rounding data document under their own user ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_x"
-     * @allow (get) User A can read a rounding data document under their own user ID.
-     *   - auth.uid: "user_a"
-     * @deny (create) User A cannot create a rounding data document under User B's ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_y"
-     * @deny (update) User A cannot update a rounding data document that does not exist.
-     *   - auth.uid: "user_a"
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/roundingData/{roundingDataId} {
-      // Allow the user to read their own rounding data
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-
-      // Only allow the user to create rounding data if they are the owner
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Allow the user to update/delete only if they are the owner and the document exists
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces user-ownership for MRI data documents.
-     * @path /users/{userId}/mriData/{mriDataId}
-     * @allow (create) User A can create a MRI data document under their own user ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_x"
-     * @allow (get) User A can read a MRI data document under their own user ID.
-     *   - auth.uid: "user_a"
-     * @deny (create) User A cannot create a MRI data document under User B's ID.
-     *   - auth.uid: "user_a"
-     *   - request.resource.data.patientId: "patient_y"
-     * @deny (update) User A cannot update a MRI data document that does not exist.
-     *   - auth.uid: "user_a"
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/mriData/{mriDataId} {
-      // Allow the user to read their own MRI data
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-
-      // Only allow the user to create MRI data if they are the owner
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Allow the user to update/delete only if they are the owner and the document exists
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    /**
-     * @description Enforces user-ownership for general task documents.
-     * @path /users/{userId}/generalTasks/{generalTaskId}
-     * @allow (create) User A can create a general task document under their own user ID.
-     *   - auth.uid: "user_a"
-     * @allow (get) User A can read a general task document under their own user ID.
-     *   - auth.uid: "user_a"
-     * @deny (create) User A cannot create a general task document under User B's ID.
-     *   - auth.uid: "user_a"
-     * @deny (update) User A cannot update a general task document that does not exist.
-     *   - auth.uid: "user_a"
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/generalTasks/{generalTaskId} {
-      // Allow the user to read their own general tasks
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-
-      // Only allow the user to create a general task if they are the owner
-      allow create: if isSignedIn() && isOwner(userId);
-
-      // Allow the user to update/delete only if they are the owner and the document exists
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
-
-    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
+    /**
+     * @description Checks if the current user is the owner of the resource.
+     * @param {string} userId - The user ID to compare with the request's auth UID.
+     * @return {boolean} True if the user is the owner, false otherwise.
+     */
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
+     /**
+      * @description Checks if the current user is the owner of the resource and that the resource exists.
+      * @param {string} userId - The user ID to compare with the request's auth UID.
+      * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
+      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && exists(resource);
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for user-specific data.
+     * @path /users/{userId}
+     * @allow (create) - User 'abc' can create their own user document if request.auth.uid == 'abc'.
+     * @deny (create) - User 'def' cannot create a document under /users/abc.
+     * @principle Enforces user-ownership for data at the root user level.
+     */
+    match /users/{userId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Rules for patient data nested under a user.
+     * @path /users/{userId}/patients/{patientId}
+     * @allow (read)  - User 'abc' can read a patient document under /users/abc/patients/123.
+     * @allow (write) - User 'abc' can create, update, or delete a patient document under /users/abc/patients/123.
+     * @deny (write)  - User 'def' cannot create, update, or delete a patient document under /users/abc/patients/123.
+     * @principle Enforces document ownership for reads and writes within the /patients subcollection.
+     */
+    match /users/{userId}/patients/{patientId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for general tasks nested under a user.
+     * @path /users/{userId}/generalTasks/{generalTaskId}
+     * @allow (read)  - User 'abc' can read a general task under /users/abc/generalTasks/456.
+     * @allow (write) - User 'abc' can create, update, or delete a general task under /users/abc/generalTasks/456.
+     * @deny (write)  - User 'def' cannot create, update, or delete a general task under /users/abc/generalTasks/456.
+     * @principle Enforces document ownership for reads and writes within the /generalTasks subcollection.
+     */
+    match /users/{userId}/generalTasks/{generalTaskId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+       /**
+     * @description Rules for common problems nested under a user.
+     * @path /users/{userId}/commonProblems/{commonProblemId}
+     * @allow (read)  - User 'abc' can read a common problem under /users/abc/commonProblems/xyz.
+     * @allow (write) - User 'abc' can create, update, or delete a common problem under /users/abc/commonProblems/xyz.
+     * @deny (write)  - User 'def' cannot create, update, or delete a common problem under /users/abc/commonProblems/xyz.
+     * @principle Enforces document ownership for reads and writes within the /commonProblems subcollection.
+     */
+    match /users/{userId}/commonProblems/{commonProblemId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+           /**
+     * @description Rules for common comments nested under a user.
+     * @path /users/{userId}/commonComments/{commonCommentId}
+     * @allow (read)  - User 'abc' can read a common comment under /users/abc/commonComments/xyz.
+     * @allow (write) - User 'abc' can create, update, or delete a common comment under /users/abc/commonComments/xyz.
+     * @deny (write)  - User 'def' cannot create, update, or delete a common comment under /users/abc/commonComments/xyz.
+     * @principle Enforces document ownership for reads and writes within the /commonComments subcollection.
+     */
+    match /users/{userId}/commonComments/{commonCommentId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
