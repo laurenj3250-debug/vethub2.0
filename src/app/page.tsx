@@ -47,7 +47,7 @@ export default function VetPatientTracker() {
     'Check Comms',
     'Check Emails',
     'Draw Up Contrast',
-    'Check Vet Radar'
+    'Rounding'
   ];
 
   const admitTasks = {
@@ -191,47 +191,6 @@ export default function VetPatientTracker() {
     window.URL.revokeObjectURL(url);
   };
 
-  const exportMRISheet = () => {
-    const mriPts = patients.filter(p => p.type === 'MRI' && p.mriData && p.mriData.calculated);
-    
-    if (mriPts.length === 0) {
-      alert('No MRI patients with calculated doses');
-      return;
-    }
-
-    let csv = '';
-    
-    mriPts.forEach((patient, index) => {
-      const m = patient.mriData;
-      const lbs = (parseFloat(m.weightKg) * 2.20462).toFixed(2);
-      const clientId = patient.patientInfo.clientId || '';
-      
-      csv += `"${patient.name}","${clientId}","${m.weightKg}","${lbs}","${m.scanType}"\n`;
-      csv += '"Client, patient","CID #","kg","lb",\n';
-      
-      csv += `"${m.preMedDrug}","${m.preMedDose}","${m.preMedVolume}",,,\n`;
-      csv += '"pre-med","mg","mL",,,\n';
-      
-      csv += `"Valium","${m.valiumDose}","${m.valiumVolume}",,,\n`;
-      csv += ',"mg","mL",,,\n';
-      
-      csv += `"Contrast","${m.contrastVolume}",,,,,\n`;
-      csv += ',"mL",,,,,\n';
-      
-      if (index < mriPts.length - 1) {
-        csv += '\n';
-      }
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'mri-anesthesia.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   const addPatient = () => {
     if (newPatient.name.trim()) {
       const patient = {
@@ -277,7 +236,8 @@ export default function VetPatientTracker() {
           weight: '',
           weightUnit: 'kg',
           scanType: 'Brain',
-          calculated: false
+          calculated: false,
+          copyableString: ''
         } : null,
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       };
@@ -317,7 +277,8 @@ export default function VetPatientTracker() {
             weight: '',
             weightUnit: 'kg',
             scanType: 'Brain',
-            calculated: false
+            calculated: false,
+            copyableString: ''
           };
         }
         return updatedPatient;
@@ -554,7 +515,7 @@ export default function VetPatientTracker() {
   const updateMRIData = (patientId, field, value) => {
     setPatients(patients.map(p => 
       p.id === patientId && p.mriData
-        ? { ...p, mriData: { ...p.mriData, [field]: value, calculated: false } }
+        ? { ...p, mriData: { ...p.mriData, [field]: value, calculated: false, copyableString: '' } }
         : p
     ));
   };
@@ -567,6 +528,7 @@ export default function VetPatientTracker() {
     if (patient.mriData.weightUnit === 'lbs') {
       weightKg = weightKg / 2.20462;
     }
+    const weightLbs = weightKg * 2.20462;
 
     const isBrain = patient.mriData.scanType === 'Brain';
     const preMedDose = weightKg * 0.2;
@@ -574,6 +536,12 @@ export default function VetPatientTracker() {
     const valiumDose = weightKg * 0.25;
     const valiumVolume = valiumDose / 5;
     const contrastVolume = weightKg * 0.22;
+    const preMedDrug = isBrain ? 'Butorphanol' : 'Methadone';
+    
+    const line1 = `${patient.name}\t${patient.patientInfo.clientId || ''}\t${weightKg.toFixed(1)}\t${weightLbs.toFixed(1)}\t${patient.mriData.scanType}`;
+    const line2 = `Client, patient\tCID #\tkg\tlb\tLocation`;
+
+    const copyableString = `${line1}\n${line2}`;
 
     setPatients(patients.map(p => 
       p.id === patientId 
@@ -582,13 +550,14 @@ export default function VetPatientTracker() {
             mriData: { 
               ...p.mriData, 
               weightKg: weightKg.toFixed(1),
-              preMedDrug: isBrain ? 'Butorphanol' : 'Methadone',
+              preMedDrug: preMedDrug,
               preMedDose: preMedDose.toFixed(2),
               preMedVolume: preMedVolume.toFixed(2),
               valiumDose: valiumDose.toFixed(2),
               valiumVolume: valiumVolume.toFixed(2),
               contrastVolume: contrastVolume.toFixed(1),
-              calculated: true
+              calculated: true,
+              copyableString: copyableString
             } 
           }
         : p
@@ -711,6 +680,14 @@ export default function VetPatientTracker() {
     };
     return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
+  
+  const toggleAll = (expand) => {
+    const newExpandedState = {};
+    patients.forEach(p => {
+      newExpandedState[p.id] = expand;
+    });
+    setExpandedPatients(newExpandedState);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
@@ -725,19 +702,23 @@ export default function VetPatientTracker() {
               {patients.length > 0 && (
                 <>
                   <button
+                    onClick={() => toggleAll(false)}
+                    className="px-6 py-2 rounded-lg font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
+                  >
+                    Collapse All
+                  </button>
+                  <button
+                    onClick={() => toggleAll(true)}
+                    className="px-6 py-2 rounded-lg font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
+                  >
+                    Expand All
+                  </button>
+                  <button
                     onClick={() => setShowMorningOverview(!showMorningOverview)}
                     className={'px-6 py-2 rounded-lg font-semibold transition ' + (showMorningOverview ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-800 hover:bg-orange-200')}
                   >
                     {showMorningOverview ? 'Hide' : 'Show'} Morning Overview
                   </button>
-                  {patients.some(p => p.type === 'MRI') && (
-                    <button
-                      onClick={exportMRISheet}
-                      className="px-6 py-2 rounded-lg font-semibold bg-purple-600 text-white hover:bg-purple-700 transition"
-                    >
-                      Export MRI Sheet
-                    </button>
-                  )}
                   <button
                     onClick={exportToCSV}
                     className="px-6 py-2 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700 transition"
@@ -1076,7 +1057,8 @@ export default function VetPatientTracker() {
 
                     {isExpanded && (
                       <div className="p-5">
-                        <div className="border-t pt-4 mb-4">
+                        <div className="grid md:grid-cols-2 gap-6">
+                        <div>
                           {patient.status === 'New Admit' && (
                             <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                               <h4 className="text-sm font-semibold text-amber-900 mb-2">
@@ -1096,6 +1078,154 @@ export default function VetPatientTracker() {
                               <p className="text-xs text-amber-700 mt-2 italic">Change status to hide these</p>
                             </div>
                           )}
+
+                          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 className="text-sm font-semibold text-blue-900 mb-3">Daily Tasks</h4>
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                              <button
+                                onClick={() => addMorningTasks(patient.id)}
+                                className="px-3 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
+                              >
+                                Add Morning Tasks
+                              </button>
+                              <button
+                                onClick={() => addEveningTasks(patient.id)}
+                                className="px-3 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium"
+                              >
+                                Add Evening Tasks
+                              </button>
+                            </div>
+                            <button
+                                onClick={() => resetDailyTasks(patient.id)}
+                                className="w-full px-3 py-1 text-xs bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium"
+                              >
+                                Clear All Daily Tasks
+                              </button>
+                          </div>
+
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Additional Tasks:</h4>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {commonTasks.map(task => (
+                                <button
+                                  key={task}
+                                  onClick={() => addTaskToPatient(patient.id, task)}
+                                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                                >
+                                  + {task}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 mb-3">
+                            <input
+                              type="text"
+                              value={patient.customTask}
+                              onChange={(e) => setPatients(patients.map(p => 
+                                p.id === patient.id ? { ...p, customTask: e.target.value } : p
+                              ))}
+                              onKeyPress={(e) => e.key === 'Enter' && addCustomTask(patient.id)}
+                              placeholder="Add custom task..."
+                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                            />
+                            <button
+                              onClick={() => addCustomTask(patient.id)}
+                              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+                            >
+                              Add
+                            </button>
+                          </div>
+
+                          {patient.tasks.length === 0 ? (
+                            <p className="text-gray-400 text-sm italic py-4">No tasks yet</p>
+                          ) : (
+                            <div className="space-y-3">
+                               <div>
+                                <h4 className="text-xs font-bold text-orange-600 mb-1">☀️ Morning Tasks</h4>
+                                <div className="space-y-2">
+                                  {patient.tasks.filter(t => morningTasks.includes(t.name)).map(task => (
+                                      <div
+                                      key={task.id}
+                                      className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-orange-50 border-orange-300')}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={task.completed}
+                                        onChange={() => toggleTask(patient.id, task.id)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                      />
+                                      <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-orange-800')}>
+                                        {task.name}
+                                      </span>
+                                      <button
+                                        onClick={() => removeTask(patient.id, task.id)}
+                                        className="text-gray-400 hover:text-red-600 transition"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-bold text-indigo-600 mb-1">🌙 Evening Tasks</h4>
+                                <div className="space-y-2">
+                                  {patient.tasks.filter(t => eveningTasks.includes(t.name)).map(task => (
+                                      <div
+                                      key={task.id}
+                                      className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-indigo-50 border-indigo-300')}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={task.completed}
+                                        onChange={() => toggleTask(patient.id, task.id)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                      />
+                                      <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-indigo-800')}>
+                                        {task.name}
+                                      </span>
+                                      <button
+                                        onClick={() => removeTask(patient.id, task.id)}
+                                        className="text-gray-400 hover:text-red-600 transition"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                               <div>
+                                <h4 className="text-xs font-bold text-gray-600 mb-1">Other Tasks</h4>
+                                <div className="space-y-2">
+                                  {patient.tasks.filter(t => !morningTasks.includes(t.name) && !eveningTasks.includes(t.name)).map(task => (
+                                    <div
+                                      key={task.id}
+                                      className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={task.completed}
+                                        onChange={() => toggleTask(patient.id, task.id)}
+                                        className="w-4 h-4 text-blue-600 rounded"
+                                      />
+                                      <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
+                                        {task.name}
+                                      </span>
+                                      <button
+                                        onClick={() => removeTask(patient.id, task.id)}
+                                        className="text-gray-400 hover:text-red-600 transition"
+                                      >
+                                        <X size={16} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div>
 
                           {patient.type === 'MRI' && patient.mriData && (
                             <div className="mb-4 p-4 bg-purple-50 border-2 border-purple-300 rounded-lg">
@@ -1149,6 +1279,7 @@ export default function VetPatientTracker() {
                               </button>
 
                               {patient.mriData.calculated && (
+                                <>
                                 <div className="bg-white p-3 rounded-lg border border-purple-200">
                                   <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div className="col-span-2 bg-purple-100 p-2 rounded font-semibold text-purple-900">
@@ -1172,109 +1303,25 @@ export default function VetPatientTracker() {
                                     </div>
                                   </div>
                                 </div>
+                                {patient.mriData.copyableString && (
+                                  <div className="mt-3">
+                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Copy to MRI Sheet</label>
+                                    <textarea
+                                      readOnly
+                                      value={patient.mriData.copyableString}
+                                      rows="2"
+                                      className="w-full px-3 py-2 text-sm font-mono border bg-gray-50 rounded-lg"
+                                      onClick={(e) => e.target.select()}
+                                    />
+                                  </div>
+                                )}
+                                </>
                               )}
                             </div>
                           )}
 
-                          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 className="text-sm font-semibold text-blue-900 mb-3">Daily Tasks</h4>
-                            
-                            <div className="grid grid-cols-2 gap-2 mb-2">
-                              <button
-                                onClick={() => addMorningTasks(patient.id)}
-                                className="px-3 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium"
-                              >
-                                Add Morning Tasks
-                              </button>
-                              <button
-                                onClick={() => addEveningTasks(patient.id)}
-                                className="px-3 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium"
-                              >
-                                Add Evening Tasks
-                              </button>
-                            </div>
-                            
-                            <button
-                              onClick={() => resetDailyTasks(patient.id)}
-                              className="w-full px-3 py-1 text-xs bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium"
-                            >
-                              Clear Daily Tasks
-                            </button>
-                            
-                            <p className="text-xs text-blue-700 mt-2 italic">
-                              Morning: Owner Called, Daily SOAP, Vet Radar, MRI Findings
-                              <br/>
-                              Evening: Vet Radar Done, Rounding Sheet, Sticker, Owner Update
-                            </p>
-                          </div>
-
-                          <div className="mb-3">
-                            <h4 className="text-sm font-semibold text-gray-700 mb-2">Additional Tasks:</h4>
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {commonTasks.map(task => (
-                                <button
-                                  key={task}
-                                  onClick={() => addTaskToPatient(patient.id, task)}
-                                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                                >
-                                  + {task}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 mb-3">
-                            <input
-                              type="text"
-                              value={patient.customTask}
-                              onChange={(e) => setPatients(patients.map(p => 
-                                p.id === patient.id ? { ...p, customTask: e.target.value } : p
-                              ))}
-                              onKeyPress={(e) => e.key === 'Enter' && addCustomTask(patient.id)}
-                              placeholder="Add custom task..."
-                              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
-                            />
-                            <button
-                              onClick={() => addCustomTask(patient.id)}
-                              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
-                            >
-                              Add
-                            </button>
-                          </div>
-
-                          {patient.tasks.length === 0 ? (
-                            <p className="text-gray-400 text-sm italic py-4">No tasks yet</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {patient.tasks.map(task => (
-                                <div
-                                  key={task.id}
-                                  className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={task.completed}
-                                    onChange={() => toggleTask(patient.id, task.id)}
-                                    className="w-4 h-4 text-blue-600 rounded"
-                                  />
-                                  <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
-                                    {task.name}
-                                  </span>
-                                  <button
-                                    onClick={() => removeTask(patient.id, task.id)}
-                                    className="text-gray-400 hover:text-red-600 transition"
-                                  >
-                                    <X size={16} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="border-t pt-4">
-                          <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                            <h4 className="text-sm font-bold text-purple-900 mb-3">Patient Info (for stickers)</h4>
+                          <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                            <h4 className="text-sm font-bold text-gray-900 mb-3">Rounding Sheet Info</h4>
                             
                             <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                               <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import - Paste Patient Details</label>
@@ -1297,94 +1344,12 @@ export default function VetPatientTracker() {
                             </div>
                             
                             <div className="grid grid-cols-2 gap-3">
-                              <input
-                                type="text"
-                                value={patient.patientInfo.patientId}
-                                onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
-                                placeholder="Patient ID"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.clientId}
-                                onChange={(e) => updatePatientInfo(patient.id, 'clientId', e.target.value)}
-                                placeholder="Client ID"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.ownerName}
-                                onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
-                                placeholder="Owner Name"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.ownerPhone}
-                                onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
-                                placeholder="Owner Phone"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <select
-                                value={patient.patientInfo.species}
-                                onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              >
-                                <option>Canine</option>
-                                <option>Feline</option>
-                              </select>
-                              <input
-                                type="text"
-                                value={patient.patientInfo.breed}
-                                onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
-                                placeholder="Breed"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.color}
-                                onChange={(e) => updatePatientInfo(patient.id, 'color', e.target.value)}
-                                placeholder="Color"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.sex}
-                                onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
-                                placeholder="Sex"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.weight}
-                                onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
-                                placeholder="Weight"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.dob}
-                                onChange={(e) => updatePatientInfo(patient.id, 'dob', e.target.value)}
-                                placeholder="DOB"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                              <input
-                                type="text"
-                                value={patient.patientInfo.age}
-                                onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
-                                placeholder="Age"
-                                className="px-3 py-2 text-sm border rounded-lg"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
                             <input
                               type="text"
                               value={patient.roundingData.signalment}
                               onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
                               placeholder="Signalment"
-                              className="px-3 py-2 text-sm border rounded-lg"
+                              className="col-span-2 px-3 py-2 text-sm border rounded-lg"
                             />
                             <input
                               type="text"
@@ -1669,7 +1634,9 @@ export default function VetPatientTracker() {
                                 className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg"
                               />
                             </div>
+                            </div>
                           </div>
+                        </div>
                         </div>
                       </div>
                     )}
