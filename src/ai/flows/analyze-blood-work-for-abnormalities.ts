@@ -1,30 +1,30 @@
 'use server';
 
 /**
- * @fileOverview Analyzes blood work results to identify and flag abnormal values.
- *
- * - analyzeBloodWork - A function that analyzes blood work results and returns a list of abnormal values.
- * - AnalyzeBloodWorkInput - The input type for the analyzeBloodWork function.
- * - AnalyzeBloodWorkOutput - The return type for the analyzeBloodWork function.
+ * @fileOverview Analyzes blood work results and returns ONLY the abnormal items,
+ * formatted as "<NAME> <VALUE>" (no reference ranges in the output).
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
 const AnalyzeBloodWorkInputSchema = z.object({
-  bloodWorkText: z
-    .string()
-    .describe('The blood work results as a text string.'),
+  bloodWorkText: z.string().describe('The blood work results as a text string.'),
 });
 export type AnalyzeBloodWorkInput = z.infer<typeof AnalyzeBloodWorkInputSchema>;
 
 const AnalyzeBloodWorkOutputSchema = z.object({
-  abnormalValues: z.array(z.string()).describe('A list of abnormal blood work values.'),
+  abnormalValues: z
+    .array(z.string())
+    .describe('Abnormal items as "<NAME> <VALUE>" only.'),
 });
-export type AnalyzeBloodWorkOutput = z.infer<typeof AnalyzeBloodWorkOutputSchema>;
+export type AnalyzeBloodWorkOutput = z.infer<
+  typeof AnalyzeBloodWorkOutputSchema
+>;
 
-export async function analyzeBloodWork(input: AnalyzeBloodWorkInput): Promise<AnalyzeBloodWorkOutput> {
+export async function analyzeBloodWork(
+  input: AnalyzeBloodWorkInput
+): Promise<AnalyzeBloodWorkOutput> {
   return analyzeBloodWorkFlow(input);
 }
 
@@ -34,9 +34,16 @@ const analyzeBloodWorkFlow = ai.defineFlow(
     inputSchema: AnalyzeBloodWorkInputSchema,
     outputSchema: AnalyzeBloodWorkOutputSchema,
   },
-  async input => {
-    const prompt = `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
+  async (input) => {
+    const system = `You are a veterinary expert.
+Return ONLY a JSON object matching this schema:
+{
+  "abnormalValues": string[]
+}
 
+Task:
+1) Parse the provided blood work text.
+2) Compare each value against these reference ranges (assume generic canine/feline lab ranges):
 WBC: 6-17
 RBC: 5.5-8.5
 HGB: 12-18
@@ -61,25 +68,32 @@ NA: 144-160
 K: 3.5-5.8
 CL: 109-122
 
-Identify any values that fall outside of these ranges and return them in a list.
+Output rules:
+- Include ONLY the items that are outside range.
+- Format each item EXACTLY as "<NAME> <VALUE>" (preserve original units if present, e.g., "K 3.3 mmol/L").
+- Do NOT include words like "high"/"low".
+- Do NOT include reference ranges or explanations.
+- If none are abnormal, return: { "abnormalValues": [] }
+- Output JSON only. No Markdown or backticks.`;
 
-Blood Work Results:
-${input.bloodWorkText}
-`;
+    const user = `Blood Work Results:
+${input.bloodWorkText}`;
 
     const response = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash'),
-      prompt: prompt,
+      model: 'gpt-4o',
+      temperature: 0,
+      prompt: `${system}\n\n${user}`,
       output: {
         format: 'json',
         schema: AnalyzeBloodWorkOutputSchema,
       },
     });
-    
-    const output = response.output; 
+
+    const output = response.output;
     if (!output) {
-      throw new Error("AI returned an empty response.");
+      throw new Error('AI returned an empty response.');
     }
+    
     return output as AnalyzeBloodWorkOutput;
   }
 );
