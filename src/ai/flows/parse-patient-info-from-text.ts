@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {generate, z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 const ParsePatientInfoFromTextInputSchema = z.object({
@@ -68,7 +68,7 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
     outputSchema: ParsePatientInfoFromTextOutputSchema,
   },
   async input => {
-    const {output} = await ai.generate({
+    const response = await generate({
       model: googleAI.model('gemini-1.5-flash'),
       prompt: [{text: prompt, context: input}],
       output: {
@@ -76,6 +76,10 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
         schema: ParsePatientInfoFromTextOutputSchema,
       },
     });
-    return output!;
+    const output = response.output();
+    if (!output) {
+      throw new Error("AI returned an empty response.");
+    }
+    return output;
   }
 );
