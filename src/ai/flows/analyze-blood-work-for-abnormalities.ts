@@ -28,7 +28,14 @@ export async function analyzeBloodWork(input: AnalyzeBloodWorkInput): Promise<An
   return analyzeBloodWorkFlow(input);
 }
 
-const prompt = `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
+const analyzeBloodWorkFlow = ai.defineFlow(
+  {
+    name: 'analyzeBloodWorkFlow',
+    inputSchema: AnalyzeBloodWorkInputSchema,
+    outputSchema: AnalyzeBloodWorkOutputSchema,
+  },
+  async input => {
+    const prompt = `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
 
 WBC: 6-17
 RBC: 5.5-8.5
@@ -57,29 +64,19 @@ CL: 109-122
 Identify any values that fall outside of these ranges and return them in a list.
 
 Blood Work Results:
-{{{bloodWorkText}}}
+${input.bloodWorkText}
 `;
 
-const analyzeBloodWorkFlow = ai.defineFlow(
-  {
-    name: 'analyzeBloodWorkFlow',
-    inputSchema: AnalyzeBloodWorkInputSchema,
-    outputSchema: AnalyzeBloodWorkOutputSchema,
-  },
-  async input => {
     const response = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash'),
-      
+      model: googleAI.model('gemini-1.5-flash-latest'),
       prompt: prompt,
-      context: input,
-      
       output: {
         format: 'json',
         schema: AnalyzeBloodWorkOutputSchema,
       },
     });
     
-    const output = response.output(); 
+    const output = response.output; 
     if (!output) {
       throw new Error("AI returned an empty response.");
     }
