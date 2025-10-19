@@ -26,9 +26,7 @@ export const commonGeneralTasks: string[] = [
   'Check Comms',
   'Check Emails',
   'Draw Up Contrast',
-  'Check Vet Radar',
-  'Stock Check',
-  'Equipment Check'
+  'Rounding'
 ];
 
 export const admitTasks: Record<ProcedureType, string[]> = {
