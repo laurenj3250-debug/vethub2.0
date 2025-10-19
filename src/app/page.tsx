@@ -365,37 +365,51 @@ export default function VetPatientTracker() {
     }
 
     try {
-      // Use the new deterministic parser
       const result = parseSignalment(detailsText);
       console.log('Parser Diagnostics:', result.diagnostics);
       
       const parsedInfo = result.data;
       
-      // Create a signalment string in the standard format: Age Breed Sex
       let signalmentParts = [];
       if (parsedInfo.age) signalmentParts.push(parsedInfo.age);
       if (parsedInfo.breed) signalmentParts.push(parsedInfo.breed);
       if (parsedInfo.sex) signalmentParts.push(parsedInfo.sex);
       const signalment = signalmentParts.join(' ');
       
-      // Merge new data with existing patient data
+      const updatePayload: any = {};
+
       const newPatientInfo = { ...patient.patientInfo };
       for (const key in parsedInfo) {
         if (parsedInfo[key]) {
           newPatientInfo[key] = parsedInfo[key];
         }
       }
+      updatePayload.patientInfo = newPatientInfo;
       
-      const newRoundingData = { 
+      updatePayload.roundingData = { 
         ...patient.roundingData, 
         signalment: signalment.trim(),
       };
       
-      updatePatientData(patientId, {
-        patientInfo: newPatientInfo,
-        roundingData: newRoundingData,
-        detailsInput: '' // Clear the input field
-      });
+      if (patient.type === 'MRI' && patient.mriData && parsedInfo.weight) {
+        const weightMatch = parsedInfo.weight.match(/(\d+(?:\.\d+)?)\s*(kg|lbs)/i);
+        if (weightMatch) {
+          const weightValue = weightMatch[1];
+          const weightUnit = weightMatch[2].toLowerCase();
+          
+          updatePayload.mriData = {
+            ...patient.mriData,
+            weight: weightValue,
+            weightUnit: weightUnit,
+            calculated: false,
+            copyableString: ''
+          };
+        }
+      }
+      
+      updatePayload.detailsInput = '';
+
+      updatePatientData(patientId, updatePayload);
 
     } catch (error) {
       console.error("Error parsing patient details:", error);
