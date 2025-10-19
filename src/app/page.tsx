@@ -500,7 +500,7 @@ export default function VetPatientTracker() {
     const contrastVolume = weightKg * 0.22;
     const preMedDrug = isBrain ? 'Butorphanol' : 'Methadone';
     
-    const line1 = `${patient.name}\t${patient.patientInfo.clientId || ''}\t${weightKg.toFixed(1)}\t\t${patient.mriData.scanType}`;
+    const line1 = `${patient.name}\t${patient.patientInfo.patientId || ''}\t${weightKg.toFixed(1)}\t\t${patient.mriData.scanType}`;
     const line2 = `FirstName LastName\tID\t(kg)\t\tArea Scanned`;
 
     const copyableString = `${line1}\n${line2}`;
@@ -1500,7 +1500,7 @@ export default function VetPatientTracker() {
                                   />
                                   <button
                                     onClick={(e) => {
-                                      const input = e.target.previousElementSibling as HTMLInputElement;
+                                      const input = e.target.previousElementSibling;
                                       if (input.value.trim()) {
                                         addCommonMedication(input.value);
                                         input.value = '';
@@ -1638,7 +1638,6 @@ export default function VetPatientTracker() {
                             </div>
                             </div>
                           </div>
-                        </div>
                         </div>
                       </div>
                     )}
