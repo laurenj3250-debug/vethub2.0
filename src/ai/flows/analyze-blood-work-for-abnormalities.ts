@@ -79,7 +79,7 @@ const analyzeBloodWorkFlow = ai.defineFlow(
       },
     });
     
-    const output = response.output; 
+    const output = response.output(); 
     if (!output) {
       throw new Error("AI returned an empty response.");
     }

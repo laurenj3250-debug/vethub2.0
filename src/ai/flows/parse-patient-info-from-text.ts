@@ -83,8 +83,8 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
       },
     });
     
-    // Accessing 'response.output' as a property instead of calling a function 
-    const output = response.output;
+    // Reverting to the standard Genkit function call for structured output: response.output().
+    const output = response.output();
     if (!output) {
       throw new Error("AI returned an empty response.");
     }
