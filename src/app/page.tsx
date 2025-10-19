@@ -143,11 +143,10 @@ export default function VetPatientTracker() {
   };
 
   const exportToCSV = () => {
-    let csv = 'Text/call BOTH Neuro Residents for any transfers (group text!) Sheen: 908-907-7259, Johnston: 848-303-4277 (if they don\'t answer you, text/call again)\n';
-    csv += 'Vocera during the day/on call Sunday: Lauren Johnston Monday: Lauren Johnston Tuesday: Ashley & Lauren Wednesday: Ashley & Lauren Thursday: Ashley & Lauren Friday: Ashley Sheen Saturday: Ashley Sheen\n';
-    csv += 'NOTIFY IF THERE IS A PROBLEM OR DEATH IN ANY OF OUR PATIENTS\n\n';
+    let csv = '';
     
     const headers = [
+      'Name',
       'It\'s A-> N',
       'Signalment',
       'Location',
@@ -169,6 +168,7 @@ export default function VetPatientTracker() {
     patients.forEach(patient => {
       const r = patient.roundingData || {};
       const row = [
+        patient.name,
         '', // Placeholder for 'It's A-> N'
         r.signalment || '',
         r.location || '',
@@ -184,7 +184,7 @@ export default function VetPatientTracker() {
         r.overnightConcerns || '',
         r.additionalComments || ''
       ];
-      csv += row.map(val => `"${val.replace(/"/g, '""')}"`).join(',') + '\n';
+      csv += row.map(val => `"${(val || '').replace(/"/g, '""')}"`).join(',') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -337,7 +337,7 @@ export default function VetPatientTracker() {
     
     lines.forEach(line => {
       Object.keys(ranges).forEach(param => {
-        const regex = new RegExp(param, 'i');
+        const regex = new RegExp(`^\\s*${param}\\s`, 'i');
         if (regex.test(line)) {
           const numbers = line.match(/[\d.]+/g);
           if (numbers && numbers.length > 0) {
@@ -434,31 +434,45 @@ export default function VetPatientTracker() {
     }
     
     const treatments = [];
-    
-    const treatmentsMatch = text.match(/TREATMENTS:[:\s]*\n([^\n]+(?:\n(?![\n])[^\n]+)*)/i);
-    if (treatmentsMatch) {
-      const treatmentLines = treatmentsMatch[1].split('\n').filter(l => l.trim());
-      treatments.push(...treatmentLines.map(l => l.trim()));
-    }
-    
-    const medicationsMatch = text.match(/Medications:[:\s]*\n([^\n]+(?:\n(?![A-Z][a-z]+:)[^\n]+)*)/i);
-    if (medicationsMatch) {
-      const medLines = medicationsMatch[1].split('\n').filter(l => l.trim() && !l.match(/^\d+[-\/]/));
-      treatments.push(...medLines.map(l => l.trim()));
-    }
-    
-    const currentMedsMatch = text.match(/Current\s+Medications[:\s]*\n([^\n]+(?:\n(?![A-Z][a-z]+:)[^\n]+)*)/i);
-    if (currentMedsMatch) {
-      const medLines = currentMedsMatch[1].split('\n').filter(l => l.trim());
-      treatments.push(...medLines.map(l => l.trim()));
-    }
-    
-    const fluidsMatch = text.match(/Fluids:[:\s]*\n([^\n]+)/i);
-    if (fluidsMatch) {
-      treatments.push(fluidsMatch[1].trim());
-    }
-    
-    const therapeutics = treatments.filter(t => t && t.length > 2).join('\n');
+    const therapeuticSections = ['TREATMENTS:', 'Medications:', 'Current Medications:', 'Fluids:'];
+    const stopKeywords = ['Referred By', 'Presenting Problem', 'History', 'Tags', 'Interested Contacts'];
+
+    therapeuticSections.forEach(section => {
+      const regex = new RegExp(`^${section}`, 'im');
+      const match = text.match(regex);
+      if (match) {
+        let startIndex = match.index + match[0].length;
+        // Find the end of the section, which is either the start of another major section or a double newline.
+        let endIndex = text.length;
+        
+        // Find next section start to limit the current section's text
+        const subsequentText = text.substring(startIndex);
+        let nearestStopIndex = -1;
+
+        for (const stopWord of stopKeywords) {
+            const stopRegex = new RegExp(`^${stopWord}`, 'im');
+            const stopMatch = subsequentText.match(stopRegex);
+            if (stopMatch && (nearestStopIndex === -1 || stopMatch.index < nearestStopIndex)) {
+                nearestStopIndex = stopMatch.index;
+            }
+        }
+        
+        const doubleNewlineIndex = subsequentText.indexOf('\n\n');
+        if (doubleNewlineIndex !== -1 && (nearestStopIndex === -1 || doubleNewlineIndex < nearestStopIndex)) {
+          nearestStopIndex = doubleNewlineIndex;
+        }
+
+        if (nearestStopIndex !== -1) {
+          endIndex = startIndex + nearestStopIndex;
+        }
+
+        const sectionText = text.substring(startIndex, endIndex).trim();
+        const lines = sectionText.split('\n').filter(l => l.trim() && !l.match(/^\d+[-\/]/) && l.length > 2);
+        treatments.push(...lines.map(l => l.trim()));
+      }
+    });
+
+    const therapeutics = treatments.join('\n');
     
     setPatients(currentPatients => currentPatients.map(p => {
       if (p.id === patientId) {
