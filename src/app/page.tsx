@@ -206,23 +206,18 @@ export default function VetPatientTracker() {
       const lbs = (parseFloat(m.weightKg) * 2.20462).toFixed(2);
       const clientId = patient.patientInfo.clientId || '';
       
-      // Header row with patient info
-      csv += patient.name + ',' + clientId + ',' + m.weightKg + ',' + lbs + ',' + m.scanType + '\n';
-      csv += 'Client, patient,CID #,kg,lb,\n';
+      csv += `"${patient.name}","${clientId}","${m.weightKg}","${lbs}","${m.scanType}"\n`;
+      csv += '"Client, patient","CID #","kg","lb",\n';
       
-      // Pre-med drug row
-      csv += m.preMedDrug + ',' + m.preMedDose + ',' + m.preMedVolume + ',,,\n';
-      csv += 'pre-med,mg,mL,,,\n';
+      csv += `"${m.preMedDrug}","${m.preMedDose}","${m.preMedVolume}",,,\n`;
+      csv += '"pre-med","mg","mL",,,\n';
       
-      // Valium row
-      csv += 'Valium,' + m.valiumDose + ',' + m.valiumVolume + ',,,\n';
-      csv += ',mg,mL,,,\n';
+      csv += `"Valium","${m.valiumDose}","${m.valiumVolume}",,,\n`;
+      csv += ',"mg","mL",,,\n';
       
-      // Contrast row
-      csv += 'Contrast,' + m.contrastVolume + ',,,,\n';
-      csv += ',mL,,,,\n';
+      csv += `"Contrast","${m.contrastVolume}",,,,,\n`;
+      csv += ',"mL",,,,,\n';
       
-      // Add blank line between patients
       if (index < mriPts.length - 1) {
         csv += '\n';
       }
