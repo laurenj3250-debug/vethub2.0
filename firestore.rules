@@ -1,76 +1,40 @@
-/**
- * @fileoverview Firestore Security Rules for VetCare Hub.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model, where each user can only access data explicitly associated with their user ID.
- *
- * Data Structure:
- * All data is nested under /users/{userId}, ensuring clear ownership.  Patients, general tasks, common problems, and common comments are stored
- * under this structure.
- *
- * Key Security Decisions:
- * - User listing is disallowed to protect privacy.
- * - All write operations require a verified user ID.
- * - Data validation is relaxed during prototyping to accelerate development.
- *
- * Denormalization for Authorization:
- *  N/A - The current data structure inherently supports ownership-based rules, negating the need for denormalization.
- *
- * Structural Segregation:
- *  N/A - All data is currently private and user-specific.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Checks if the current user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * @description Checks if the current user is the owner of the resource.
-     * @param {string} userId - The user ID to compare with the request's auth UID.
-     * @return {boolean} True if the user is the owner, false otherwise.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-     /**
-      * @description Checks if the current user is the owner of the resource and that the resource exists.
-      * @param {string} userId - The user ID to compare with the request's auth UID.
-      * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
-      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
+      return isSignedIn() && request.auth.uid == userId && resource.data != null;
     }
 
     /**
-     * @description Rules for user-specific data.
+     * @description Secures access to user documents. Only the owner can read or write their own document.
      * @path /users/{userId}
-     * @allow (create) - User 'abc' can create their own user document if request.auth.uid == 'abc'.
-     * @deny (create) - User 'def' cannot create a document under /users/abc.
-     * @principle Enforces user-ownership for data at the root user level.
+     * @allow (create) User with UID 'user123' can create their own user document with id == 'user123'.
+     * @deny (create) User with UID 'user123' cannot create a user document with id == 'user456'.
+     * @principle Enforces user-ownership for all data access.
      */
     match /users/{userId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if false;
-      allow delete: if false;
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is not permitted.
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for patient data nested under a user.
+     * @description Secures access to patient documents. Only the owner can read or write patients under their user ID.
      * @path /users/{userId}/patients/{patientId}
-     * @allow (read)  - User 'abc' can read a patient document under /users/abc/patients/123.
-     * @allow (write) - User 'abc' can create, update, or delete a patient document under /users/abc/patients/123.
-     * @deny (write)  - User 'def' cannot create, update, or delete a patient document under /users/abc/patients/123.
-     * @principle Enforces document ownership for reads and writes within the /patients subcollection.
+     * @allow (create) User with UID 'user123' can create a patient document under their user ID.
+     * @deny (create) User with UID 'user13' cannot create a patient document under user ID 'user456'.
+     * @principle Enforces user-ownership for all data access.
      */
     match /users/{userId}/patients/{patientId} {
       allow get: if isOwner(userId);
@@ -81,12 +45,11 @@ service cloud.firestore {
     }
 
     /**
-     * @description Rules for general tasks nested under a user.
+     * @description Secures access to general task documents. Only the owner can read or write general tasks under their user ID.
      * @path /users/{userId}/generalTasks/{generalTaskId}
-     * @allow (read)  - User 'abc' can read a general task under /users/abc/generalTasks/456.
-     * @allow (write) - User 'abc' can create, update, or delete a general task under /users/abc/generalTasks/456.
-     * @deny (write)  - User 'def' cannot create, update, or delete a general task under /users/abc/generalTasks/456.
-     * @principle Enforces document ownership for reads and writes within the /generalTasks subcollection.
+     * @allow (create) User with UID 'user123' can create a general task document under their user ID.
+     * @deny (create) User with UID 'user13' cannot create a general task document under user ID 'user456'.
+     * @principle Enforces user-ownership for all data access.
      */
     match /users/{userId}/generalTasks/{generalTaskId} {
       allow get: if isOwner(userId);
@@ -96,13 +59,12 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-       /**
-     * @description Rules for common problems nested under a user.
+    /**
+     * @description Secures access to common problem documents. Only the owner can read or write common problems under their user ID.
      * @path /users/{userId}/commonProblems/{commonProblemId}
-     * @allow (read)  - User 'abc' can read a common problem under /users/abc/commonProblems/xyz.
-     * @allow (write) - User 'abc' can create, update, or delete a common problem under /users/abc/commonProblems/xyz.
-     * @deny (write)  - User 'def' cannot create, update, or delete a common problem under /users/abc/commonProblems/xyz.
-     * @principle Enforces document ownership for reads and writes within the /commonProblems subcollection.
+     * @allow (create) User with UID 'user123' can create a common problem document under their user ID.
+     * @deny (create) User with UID 'user13' cannot create a common problem document under user ID 'user456'.
+     * @principle Enforces user-ownership for all data access.
      */
     match /users/{userId}/commonProblems/{commonProblemId} {
       allow get: if isOwner(userId);
@@ -112,15 +74,29 @@ service cloud.firestore {
       allow delete: if isExistingOwner(userId);
     }
 
-           /**
-     * @description Rules for common comments nested under a user.
+    /**
+     * @description Secures access to common comment documents. Only the owner can read or write common comments under their user ID.
      * @path /users/{userId}/commonComments/{commonCommentId}
-     * @allow (read)  - User 'abc' can read a common comment under /users/abc/commonComments/xyz.
-     * @allow (write) - User 'abc' can create, update, or delete a common comment under /users/abc/commonComments/xyz.
-     * @deny (write)  - User 'def' cannot create, update, or delete a common comment under /users/abc/commonComments/xyz.
-     * @principle Enforces document ownership for reads and writes within the /commonComments subcollection.
+     * @allow (create) User with UID 'user123' can create a common comment document under their user ID.
+     * @deny (create) User with UID 'user13' cannot create a common comment document under user ID 'user456'.
+     * @principle Enforces user-ownership for all data access.
      */
     match /users/{userId}/commonComments/{commonCommentId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+   /**
+     * @description Secures access to common medication documents. Only the owner can read or write common medications under their user ID.
+     * @path /users/{userId}/commonMedications/{commonMedicationId}
+     * @allow (list) User with UID 'clWMcmcznjeyFw9wrKJbpKMc4Xd2' can list common medications under their user ID.
+     * @deny (create) User with UID 'user13' cannot create a common medication document under user ID 'user456'.
+     * @principle Enforces user-ownership for all data access.
+     */
+    match /users/{userId}/commonMedications/{commonMedicationId} {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId);
