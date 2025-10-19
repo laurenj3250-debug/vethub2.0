@@ -5,13 +5,39 @@ import { Patient, Task } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X } from 'lucide-react';
+import { X, Sun, Moon } from 'lucide-react';
 import { admitTasks, morningTasks, eveningTasks, commonTasks } from '@/lib/constants';
 
 type PatientTasksProps = {
   patient: Patient;
   onUpdatePatientField: <K extends keyof Patient>(id: number, field: K, value: Patient[K]) => void;
 };
+
+const TaskListItem: React.FC<{ task: Task; patientId: number; onToggle: (id: number) => void; onRemove: (id: number) => void }> = ({ task, patientId, onToggle, onRemove }) => (
+  <div
+    className={`flex items-center gap-3 p-2 rounded-md border transition-colors ${task.completed ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-card'}`}
+  >
+    <Checkbox
+      id={`${patientId}-${task.id}`}
+      checked={task.completed}
+      onCheckedChange={() => onToggle(task.id)}
+    />
+    <label
+      htmlFor={`${patientId}-${task.id}`}
+      className={`flex-1 text-sm font-medium cursor-pointer ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}
+    >
+      {task.name}
+    </label>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+      onClick={() => onRemove(task.id)}
+    >
+      <X className="h-4 w-4" />
+    </Button>
+  </div>
+);
 
 const PatientTasks: React.FC<PatientTasksProps> = ({ patient, onUpdatePatientField }) => {
   const addTask = (taskName: string) => {
@@ -50,6 +76,10 @@ const PatientTasks: React.FC<PatientTasksProps> = ({ patient, onUpdatePatientFie
     const allDailyTasks = new Set([...morningTasks, ...eveningTasks]);
     onUpdatePatientField(patient.id, 'tasks', patient.tasks.filter(t => !allDailyTasks.has(t.name)));
   };
+
+  const patientMorningTasks = patient.tasks.filter(t => morningTasks.includes(t.name));
+  const patientEveningTasks = patient.tasks.filter(t => eveningTasks.includes(t.name));
+  const otherTasks = patient.tasks.filter(t => !morningTasks.includes(t.name) && !eveningTasks.includes(t.name));
 
   return (
     <div className="space-y-6 pt-4">
@@ -102,38 +132,50 @@ const PatientTasks: React.FC<PatientTasksProps> = ({ patient, onUpdatePatientFie
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h4 className="text-sm font-semibold text-foreground">Task List</h4>
+      <div className="space-y-4">
+        <h4 className="text-lg font-semibold text-foreground border-b pb-2">Task List</h4>
         {patient.tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-4 text-center">No tasks for this patient yet.</p>
         ) : (
-          <div className="space-y-2">
-            {patient.tasks.map(task => (
-              <div
-                key={task.id}
-                className={`flex items-center gap-3 p-2 rounded-md border transition-colors ${task.completed ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-card'}`}
-              >
-                <Checkbox
-                  id={`${patient.id}-${task.id}`}
-                  checked={task.completed}
-                  onCheckedChange={() => toggleTask(task.id)}
-                />
-                <label
-                  htmlFor={`${patient.id}-${task.id}`}
-                  className={`flex-1 text-sm font-medium cursor-pointer ${task.completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}
-                >
-                  {task.name}
-                </label>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                  onClick={() => removeTask(task.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+          <div className="space-y-4">
+            {patientMorningTasks.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="flex items-center gap-2 text-md font-semibold text-orange-600">
+                  <Sun size={18} />
+                  Morning Tasks
+                </h5>
+                <div className="space-y-2">
+                  {patientMorningTasks.map(task => (
+                    <TaskListItem key={task.id} task={task} patientId={patient.id} onToggle={toggleTask} onRemove={removeTask} />
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
+            
+            {patientEveningTasks.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="flex items-center gap-2 text-md font-semibold text-indigo-600">
+                  <Moon size={18} />
+                  Evening Tasks
+                </h5>
+                <div className="space-y-2">
+                  {patientEveningTasks.map(task => (
+                    <TaskListItem key={task.id} task={task} patientId={patient.id} onToggle={toggleTask} onRemove={removeTask} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {otherTasks.length > 0 && (
+              <div className="space-y-2">
+                <h5 className="text-md font-semibold text-gray-600">Other Tasks</h5>
+                <div className="space-y-2">
+                  {otherTasks.map(task => (
+                    <TaskListItem key={task.id} task={task} patientId={patient.id} onToggle={toggleTask} onRemove={removeTask} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
