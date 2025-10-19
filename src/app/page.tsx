@@ -464,7 +464,6 @@ export default function VetPatientTracker() {
     if (patient.mriData.weightUnit === 'lbs') {
       weightKg = weightKg / 2.20462;
     }
-    const weightLbs = weightKg * 2.20462;
 
     const isBrain = patient.mriData.scanType === 'Brain';
     const preMedDose = weightKg * 0.2;
@@ -474,8 +473,8 @@ export default function VetPatientTracker() {
     const contrastVolume = weightKg * 0.22;
     const preMedDrug = isBrain ? 'Butorphanol' : 'Methadone';
     
-    const line1 = `${patient.name}\t${patient.patientInfo.clientId || ''}\t${weightKg.toFixed(1)}\t${weightLbs.toFixed(1)}\t${patient.mriData.scanType}`;
-    const line2 = `Client, patient\tCID #\tkg\tlb\tLocation`;
+    const line1 = `${patient.name}\t${patient.patientInfo.clientId || ''}\t${weightKg.toFixed(1)}\t\t${patient.mriData.scanType}`;
+    const line2 = `FirstName LastName\tID\t(kg)\t\tArea Scanned`;
 
     const copyableString = `${line1}\n${line2}`;
 
