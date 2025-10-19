@@ -1,52 +1,60 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { parsePatientInfoFromText } from '@/ai/flows/parse-patient-info-from-text';
 import { analyzeBloodWork } from '@/ai/flows/analyze-blood-work-for-abnormalities';
-
+import {
+  useFirebase,
+  useCollection,
+  useMemoFirebase,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+  initiateAnonymousSignIn,
+} from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 
 export default function VetPatientTracker() {
-  const [patients, setPatients] = useState([]);
+  const { firestore, auth, user, isUserLoading } = useFirebase();
+
+  useEffect(() => {
+    if (!user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
+
+  const patientsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/patients`));
+  }, [firestore, user]);
+  const { data: patients, isLoading: isLoadingPatients } = useCollection(patientsQuery);
+
+  const generalTasksQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/generalTasks`));
+  }, [firestore, user]);
+  const { data: generalTasks, isLoading: isLoadingGeneralTasks } = useCollection(generalTasksQuery);
+  
+  const commonProblemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonProblems`));
+  }, [firestore, user]);
+  const { data: commonProblems, isLoading: isLoadingCommonProblems } = useCollection(commonProblemsQuery);
+
+  const commonCommentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonComments`));
+  }, [firestore, user]);
+  const { data: commonComments, isLoading: isLoadingCommonComments } = useCollection(commonCommentsQuery);
+
   const [newPatient, setNewPatient] = useState({ name: '', type: 'Surgery' });
   const [expandedPatients, setExpandedPatients] = useState({});
   const [showMorningOverview, setShowMorningOverview] = useState(false);
-  const [generalTasks, setGeneralTasks] = useState([]);
   const [newGeneralTask, setNewGeneralTask] = useState('');
-  const [commonProblems, setCommonProblems] = useState([
-    'HBC - C2 fracture',
-    'T13-L1 disc herniation',
-    'Post-op hemilaminectomy',
-    'Vestibular disease',
-    'Cervical IVDD',
-    'Thoracolumbar IVDD',
-    'Seizures',
-    'FCE',
-    'Meningoencephalitis',
-    'Status epilepticus',
-    'Head trauma',
-    'Spinal trauma',
-    'Wobbler syndrome',
-    'GME',
-    'Brain tumor',
-    'Spinal tumor'
-  ]);
-  const [commonComments, setCommonComments] = useState([
-    'can increase gaba tram prn, traz prn',
-    'let ketamine run out when finished',
-    'assess fentanyl at 12am, can continue if painful otherwise d/c',
-    'if has a seizure give 0.5mg/kg of diazepam IV. If has >3 seizures start a diazepam CRI at 0.3mg/kg/hr',
-    'watch for apnea or respiratory distress',
-    'do not skip trazodone unless ZONKED',
-    'goal is to keep relatively calm',
-    'fentanyl CRI can be changed if needed',
-    'CARE WITH NECK',
-    'try to replace bandage if falls off',
-    'can have methadone if painful'
-  ]);
 
   const procedureTypes = ['Surgery', 'MRI', 'Medical', 'Other'];
 
-  const commonGeneralTasks = [
+  const commonGeneralTasksTemplates = [
     'Check Comms',
     'Check Emails',
     'Draw Up Contrast',
@@ -118,30 +126,34 @@ export default function VetPatientTracker() {
   ];
 
   const addGeneralTask = (taskName) => {
-    if (!taskName.trim()) return;
-    setGeneralTasks([...generalTasks, { id: Date.now(), name: taskName, completed: false }]);
+    if (!taskName.trim() || !firestore || !user) return;
+    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { name: taskName, completed: false });
     setNewGeneralTask('');
   };
 
-  const toggleGeneralTask = (taskId) => {
-    setGeneralTasks(generalTasks.map(t => 
-      t.id === taskId ? { ...t, completed: !t.completed } : t
-    ));
+  const toggleGeneralTask = (taskId, completed) => {
+    if (!firestore || !user) return;
+    const taskRef = doc(firestore, `users/${user.uid}/generalTasks`, taskId);
+    updateDocumentNonBlocking(taskRef, { completed: !completed });
   };
 
   const removeGeneralTask = (taskId) => {
-    setGeneralTasks(generalTasks.filter(t => t.id !== taskId));
+    if (!firestore || !user) return;
+    const taskRef = doc(firestore, `users/${user.uid}/generalTasks`, taskId);
+    deleteDocumentNonBlocking(taskRef);
   };
-
+  
   const addCommonProblem = (newProblem) => {
-    if (newProblem.trim() && !commonProblems.includes(newProblem.trim())) {
-      setCommonProblems([...commonProblems, newProblem.trim()]);
+    if (!newProblem.trim() || !firestore || !user) return;
+    if (!(commonProblems || []).some(p => p.name === newProblem.trim())) {
+      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonProblems`), { name: newProblem.trim() });
     }
   };
 
   const addCommonComment = (newComment) => {
-    if (newComment.trim() && !commonComments.includes(newComment.trim())) {
-      setCommonComments([...commonComments, newComment.trim()]);
+    if (!newComment.trim() || !firestore || !user) return;
+    if (!(commonComments || []).some(c => c.name === newComment.trim())) {
+      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonComments`), { name: newComment.trim() });
     }
   };
 
@@ -168,7 +180,7 @@ export default function VetPatientTracker() {
     
     csv += headers.join(',') + '\n';
     
-    patients.forEach(patient => {
+    (patients || []).forEach(patient => {
       const r = patient.roundingData || {};
       const row = [
         patient.name,
@@ -200,9 +212,8 @@ export default function VetPatientTracker() {
   };
 
   const addPatient = () => {
-    if (newPatient.name.trim()) {
-      const patient = {
-        id: Date.now(),
+    if (newPatient.name.trim() && firestore && user) {
+      const patientData = {
         name: newPatient.name,
         type: newPatient.type,
         status: 'New Admit',
@@ -249,14 +260,24 @@ export default function VetPatientTracker() {
         } : null,
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       };
-      setPatients([...patients, patient]);
-      setExpandedPatients({...expandedPatients, [patient.id]: true});
+      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/patients`), patientData).then(docRef => {
+        if(docRef) setExpandedPatients({...expandedPatients, [docRef.id]: true});
+      });
+      
       setNewPatient({ name: '', type: 'Surgery' });
     }
   };
+  
+  const getPatientRef = (patientId) => {
+    if (!firestore || !user) return null;
+    return doc(firestore, `users/${user.uid}/patients`, patientId);
+  }
 
   const removePatient = (id) => {
-    setPatients(patients.filter(p => p.id !== id));
+    const patientRef = getPatientRef(id);
+    if (!patientRef) return;
+    deleteDocumentNonBlocking(patientRef);
+
     const newExpanded = {...expandedPatients};
     delete newExpanded[id];
     setExpandedPatients(newExpanded);
@@ -269,42 +290,49 @@ export default function VetPatientTracker() {
     });
   };
 
+  const updatePatientField = (patientId, field, value) => {
+    const patientRef = getPatientRef(patientId);
+    if (!patientRef) return;
+    updateDocumentNonBlocking(patientRef, { [field]: value });
+  }
+
+  const updatePatientData = (patientId, data) => {
+    const patientRef = getPatientRef(patientId);
+    if (!patientRef) return;
+    updateDocumentNonBlocking(patientRef, data);
+  }
+
   const updateStatus = (patientId, newStatus) => {
-    setPatients(patients.map(p => 
-      p.id === patientId ? { ...p, status: newStatus } : p
-    ));
+    updatePatientField(patientId, 'status', newStatus);
   };
 
   const updatePatientType = (patientId, newType) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        const updatedPatient = { ...p, type: newType };
-        // If changing to MRI and no MRI data exists, add it
-        if (newType === 'MRI' && !p.mriData) {
-          updatedPatient.mriData = {
-            weight: '',
-            weightUnit: 'kg',
-            scanType: 'Brain',
-            calculated: false,
-            copyableString: ''
-          };
-        }
-        return updatedPatient;
-      }
-      return p;
-    }));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+
+    const updateData = { type: newType };
+    if (newType === 'MRI' && !patient.mriData) {
+      updateData.mriData = {
+        weight: '',
+        weightUnit: 'kg',
+        scanType: 'Brain',
+        calculated: false,
+        copyableString: ''
+      };
+    }
+    updatePatientData(patientId, updateData);
   };
 
   const updateRoundingData = (patientId, field, value) => {
-    setPatients(patients.map(p => 
-      p.id === patientId 
-        ? { ...p, roundingData: { ...p.roundingData, [field]: value } }
-        : p
-    ));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if(!patient) return;
+    const newRoundingData = { ...patient.roundingData, [field]: value };
+    updatePatientField(patientId, 'roundingData', newRoundingData);
   };
 
   const parseBloodWork = async (patientId, bwText) => {
-    if (!bwText.trim()) {
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient || !bwText.trim()) {
       alert('Please paste blood work results first');
       return;
     }
@@ -313,21 +341,15 @@ export default function VetPatientTracker() {
       const result = await analyzeBloodWork({ bloodWorkText: bwText });
       const abnormals = result.abnormalValues;
       
-      setPatients(currentPatients => currentPatients.map(p => {
-        if (p.id === patientId) {
-          const currentDx = p.roundingData.diagnosticFindings || '';
-          const bwLine = abnormals.length > 0 
-            ? 'CBC/CHEM: ' + abnormals.join(', ')
-            : 'CBC/CHEM: NAD';
-          const newDx = currentDx ? currentDx + '\n' + bwLine : bwLine;
-          return {
-            ...p,
-            roundingData: { ...p.roundingData, diagnosticFindings: newDx },
-            bwInput: ''
-          };
-        }
-        return p;
-      }));
+      const currentDx = patient.roundingData.diagnosticFindings || '';
+      const bwLine = abnormals.length > 0 
+        ? 'CBC/CHEM: ' + abnormals.join(', ')
+        : 'CBC/CHEM: NAD';
+      const newDx = currentDx ? currentDx + '\n' + bwLine : bwLine;
+      
+      updateRoundingData(patientId, 'diagnosticFindings', newDx);
+      updatePatientField(patientId, 'bwInput', '');
+
     } catch (error) {
       console.error("Error analyzing blood work:", error);
       alert("AI analysis of blood work failed. Please check the results manually.");
@@ -335,7 +357,8 @@ export default function VetPatientTracker() {
   };
 
   const parsePatientDetails = async (patientId, detailsText) => {
-    if (!detailsText.trim()) {
+     const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient || !detailsText.trim()) {
       alert('Please paste patient details first');
       return;
     }
@@ -351,31 +374,29 @@ export default function VetPatientTracker() {
         signalment += ' ' + patientInfo.breed;
       }
 
-      setPatients(currentPatients => currentPatients.map(p => {
-        if (p.id === patientId) {
-          return {
-            ...p,
-            patientInfo: {
-              ...p.patientInfo,
-              ...patientInfo
-            },
-            roundingData: {
-              ...p.roundingData,
-              signalment: signalment.trim(),
-              therapeutics: therapeutics || p.roundingData.therapeutics
-            },
-            detailsInput: ''
-          };
-        }
-        return p;
-      }));
-    } catch (error) {
-      console.error("Error parsing patient details:", error);
-      alert("AI parsing of patient details failed. Please enter the information manually.");
+      const newPatientInfo = { ...patient.patientInfo, ...patientInfo };
+      const newRoundingData = { 
+        ...patient.roundingData, 
+        signalment: signalment.trim(),
+        therapeutics: therapeutics || patient.roundingData.therapeutics
+      };
+
+      updatePatientData(patientId, {
+        patientInfo: newPatientInfo,
+        roundingData: newRoundingData,
+        detailsInput: ''
+      });
+
+    } catch (error)      {
+        console.error("Error parsing patient details:", error);
+        alert("AI parsing of patient details failed. Please enter the information manually.");
     }
   };
 
   const addChestXray = (patientId, xrayStatus, otherText) => {
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    
     let xrayLine = 'CXR: ';
     
     if (xrayStatus === 'NSF') {
@@ -390,38 +411,29 @@ export default function VetPatientTracker() {
       xrayLine += otherText;
     }
     
-    setPatients(currentPatients => currentPatients.map(p => {
-      if (p.id === patientId) {
-        const currentDx = p.roundingData.diagnosticFindings || '';
-        const newDx = currentDx ? currentDx + '\n' + xrayLine : xrayLine;
-        return {
-          ...p,
-          roundingData: { ...p.roundingData, diagnosticFindings: newDx },
-          xrayOther: ''
-        };
-      }
-      return p;
-    }));
+    const currentDx = patient.roundingData.diagnosticFindings || '';
+    const newDx = currentDx ? currentDx + '\n' + xrayLine : xrayLine;
+
+    updateRoundingData(patientId, 'diagnosticFindings', newDx);
+    updatePatientField(patientId, 'xrayOther', '');
   };
 
   const updatePatientInfo = (patientId, field, value) => {
-    setPatients(patients.map(p => 
-      p.id === patientId 
-        ? { ...p, patientInfo: { ...p.patientInfo, [field]: value } }
-        : p
-    ));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if(!patient) return;
+    const newPatientInfo = { ...patient.patientInfo, [field]: value };
+    updatePatientField(patientId, 'patientInfo', newPatientInfo);
   };
 
   const updateMRIData = (patientId, field, value) => {
-    setPatients(patients.map(p => 
-      p.id === patientId && p.mriData
-        ? { ...p, mriData: { ...p.mriData, [field]: value, calculated: false, copyableString: '' } }
-        : p
-    ));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if(!patient || !patient.mriData) return;
+    const newMriData = { ...patient.mriData, [field]: value, calculated: false, copyableString: '' };
+    updatePatientField(patientId, 'mriData', newMriData);
   };
 
   const calculateMRIDrugs = (patientId) => {
-    const patient = patients.find(p => p.id === patientId);
+    const patient = (patients || []).find(p => p.id === patientId);
     if (!patient || !patient.mriData || !patient.mriData.weight) return;
 
     let weightKg = parseFloat(patient.mriData.weight);
@@ -443,126 +455,93 @@ export default function VetPatientTracker() {
 
     const copyableString = `${line1}\n${line2}`;
 
-    setPatients(patients.map(p => 
-      p.id === patientId 
-        ? { 
-            ...p, 
-            mriData: { 
-              ...p.mriData, 
-              weightKg: weightKg.toFixed(1),
-              preMedDrug: preMedDrug,
-              preMedDose: preMedDose.toFixed(2),
-              preMedVolume: preMedVolume.toFixed(2),
-              valiumDose: valiumDose.toFixed(2),
-              valiumVolume: valiumVolume.toFixed(2),
-              contrastVolume: contrastVolume.toFixed(1),
-              calculated: true,
-              copyableString: copyableString
-            } 
-          }
-        : p
-    ));
+    const newMriData = { 
+      ...patient.mriData, 
+      weightKg: weightKg.toFixed(1),
+      preMedDrug: preMedDrug,
+      preMedDose: preMedDose.toFixed(2),
+      preMedVolume: preMedVolume.toFixed(2),
+      valiumDose: valiumDose.toFixed(2),
+      valiumVolume: valiumVolume.toFixed(2),
+      contrastVolume: contrastVolume.toFixed(1),
+      calculated: true,
+      copyableString: copyableString
+    };
+    updatePatientField(patientId, 'mriData', newMriData);
   };
 
   const addTaskToPatient = (patientId, taskName) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        const taskExists = p.tasks.some(t => t.name === taskName);
-        if (!taskExists) {
-          return {
-            ...p,
-            tasks: [...p.tasks, { name: taskName, completed: false, id: Date.now() + Math.random() }]
-          };
-        }
-      }
-      return p;
-    }));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    const taskExists = patient.tasks.some(t => t.name === taskName);
+    if (!taskExists) {
+      const newTasks = [...patient.tasks, { name: taskName, completed: false, id: Date.now() + Math.random() }];
+      updatePatientField(patientId, 'tasks', newTasks);
+    }
   };
 
   const addMorningTasks = (patientId) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        const newTasks = [...p.tasks];
-        morningTasks.forEach(taskName => {
-          const taskExists = p.tasks.some(t => t.name === taskName);
-          if (!taskExists) {
-            newTasks.push({ name: taskName, completed: false, id: Date.now() + Math.random() });
-          }
-        });
-        return { ...p, tasks: newTasks };
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    const newTasks = [...patient.tasks];
+    morningTasks.forEach(taskName => {
+      if (!patient.tasks.some(t => t.name === taskName)) {
+        newTasks.push({ name: taskName, completed: false, id: Date.now() + Math.random() });
       }
-      return p;
-    }));
+    });
+    updatePatientField(patientId, 'tasks', newTasks);
   };
 
   const addEveningTasks = (patientId) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        const newTasks = [...p.tasks];
-        eveningTasks.forEach(taskName => {
-          const taskExists = p.tasks.some(t => t.name === taskName);
-          if (!taskExists) {
-            newTasks.push({ name: taskName, completed: false, id: Date.now() + Math.random() });
-          }
-        });
-        return { ...p, tasks: newTasks };
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    const newTasks = [...patient.tasks];
+    eveningTasks.forEach(taskName => {
+      if (!patient.tasks.some(t => t.name === taskName)) {
+        newTasks.push({ name: taskName, completed: false, id: Date.now() + Math.random() });
       }
-      return p;
-    }));
+    });
+    updatePatientField(patientId, 'tasks', newTasks);
   };
 
   const addMorningTasksToAll = () => {
-    patients.forEach(p => addMorningTasks(p.id));
+    (patients || []).forEach(p => addMorningTasks(p.id));
   };
 
   const resetDailyTasks = (patientId) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        const allDailyTasks = [...morningTasks, ...eveningTasks];
-        const filteredTasks = p.tasks.filter(t => !allDailyTasks.includes(t.name));
-        return { ...p, tasks: filteredTasks };
-      }
-      return p;
-    }));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    const allDailyTasks = [...morningTasks, ...eveningTasks];
+    const filteredTasks = patient.tasks.filter(t => !allDailyTasks.includes(t.name));
+    updatePatientField(patientId, 'tasks', filteredTasks);
   };
 
   const addCustomTask = (patientId) => {
-    const patient = patients.find(p => p.id === patientId);
+    const patient = (patients || []).find(p => p.id === patientId);
     if (patient && patient.customTask.trim()) {
       addTaskToPatient(patientId, patient.customTask.trim());
-      setPatients(patients.map(p => 
-        p.id === patientId ? { ...p, customTask: '' } : p
-      ));
+      updatePatientField(patientId, 'customTask', '');
     }
   };
 
   const removeTask = (patientId, taskId) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        return {
-          ...p,
-          tasks: p.tasks.filter(t => t.id !== taskId)
-        };
-      }
-      return p;
-    }));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    const newTasks = patient.tasks.filter(t => t.id !== taskId);
+    updatePatientField(patientId, 'tasks', newTasks);
   };
 
   const toggleTask = (patientId, taskId) => {
-    setPatients(patients.map(p => {
-      if (p.id === patientId) {
-        return {
-          ...p,
-          tasks: p.tasks.map(t => 
-            t.id === taskId ? { ...t, completed: !t.completed } : t
-          )
-        };
-      }
-      return p;
-    }));
+    const patient = (patients || []).find(p => p.id === patientId);
+    if (!patient) return;
+    const newTasks = patient.tasks.map(t => 
+      t.id === taskId ? { ...t, completed: !t.completed } : t
+    );
+    updatePatientField(patientId, 'tasks', newTasks);
   };
 
   const getCompletionStatus = (patient) => {
+    if (!patient || !patient.tasks) return { completed: 0, total: 0, percentage: 0 };
     const total = patient.tasks.length;
     const completed = patient.tasks.filter(t => t.completed).length;
     return { completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
@@ -583,11 +562,22 @@ export default function VetPatientTracker() {
   
   const toggleAll = (expand) => {
     const newExpandedState = {};
-    patients.forEach(p => {
+    (patients || []).forEach(p => {
       newExpandedState[p.id] = expand;
     });
     setExpandedPatients(newExpandedState);
   };
+
+  if (isUserLoading || isLoadingPatients || isLoadingGeneralTasks || isLoadingCommonProblems || isLoadingCommonComments) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center">
+          <p className="text-xl font-semibold text-gray-700">Loading your VetCare Hub...</p>
+          <p className="text-gray-500">Please wait a moment.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
@@ -599,7 +589,7 @@ export default function VetPatientTracker() {
               <p className="text-gray-600">Track tasks and prepare rounding sheets</p>
             </div>
             <div className="flex gap-2">
-              {patients.length > 0 && (
+              {(patients || []).length > 0 && (
                 <>
                   <button
                     onClick={() => toggleAll(false)}
@@ -663,7 +653,7 @@ export default function VetPatientTracker() {
           <h2 className="text-xl font-bold text-gray-800 mb-3">General Tasks (Not Patient-Specific)</h2>
           
           <div className="flex flex-wrap gap-2 mb-3">
-            {commonGeneralTasks.map(task => (
+            {commonGeneralTasksTemplates.map(task => (
               <button
                 key={task}
                 onClick={() => addGeneralTask(task)}
@@ -691,11 +681,11 @@ export default function VetPatientTracker() {
             </button>
           </div>
 
-          {generalTasks.length === 0 ? (
+          {(generalTasks || []).length === 0 ? (
             <p className="text-gray-400 text-sm italic py-2">No general tasks yet. Click quick-add buttons or type a custom task.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {generalTasks.map(task => (
+              {(generalTasks || []).map(task => (
                 <div
                   key={task.id}
                   className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
@@ -703,7 +693,7 @@ export default function VetPatientTracker() {
                   <input
                     type="checkbox"
                     checked={task.completed}
-                    onChange={() => toggleGeneralTask(task.id)}
+                    onChange={() => toggleGeneralTask(task.id, task.completed)}
                     className="w-4 h-4 text-indigo-600 rounded"
                   />
                   <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
@@ -721,7 +711,7 @@ export default function VetPatientTracker() {
           )}
         </div>
 
-        {patients.length === 0 ? (
+        {(patients || []).length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <p className="text-gray-500 text-lg">No patients added yet. Add your first patient above!</p>
           </div>
@@ -740,11 +730,11 @@ export default function VetPatientTracker() {
                 </div>
                 
                 {/* General Tasks */}
-                {generalTasks.length > 0 && (
+                {(generalTasks || []).length > 0 && (
                   <div className="mb-4 p-4 bg-indigo-50 border-2 border-indigo-300 rounded-lg">
                     <h3 className="font-bold text-indigo-900 mb-3 text-lg">General Tasks</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {generalTasks.map(task => (
+                      {(generalTasks || []).map(task => (
                         <label
                           key={task.id}
                           className={'flex items-center gap-2 p-2 rounded text-sm cursor-pointer ' + (task.completed ? 'bg-green-100 text-green-800' : 'bg-white text-indigo-900 border border-indigo-200')}
@@ -752,7 +742,7 @@ export default function VetPatientTracker() {
                           <input
                             type="checkbox"
                             checked={task.completed}
-                            onChange={() => toggleGeneralTask(task.id)}
+                            onChange={() => toggleGeneralTask(task.id, task.completed)}
                             className="w-4 h-4"
                           />
                           <span className={task.completed ? 'line-through' : ''}>
@@ -767,11 +757,11 @@ export default function VetPatientTracker() {
                 {/* Patient Tasks */}
                 <h3 className="font-bold text-orange-900 mb-3 text-lg">Patient Tasks</h3>
                 <div className="space-y-3">
-                  {patients.map(patient => {
-                    const patientMorningTasks = patient.tasks.filter(t => morningTasks.includes(t.name));
-                    const patientEveningTasks = patient.tasks.filter(t => eveningTasks.includes(t.name));
-                    const otherTasks = patient.tasks.filter(t => !morningTasks.includes(t.name) && !eveningTasks.includes(t.name));
-                    const allPatientTasks = patient.tasks;
+                  {(patients || []).map(patient => {
+                    const patientMorningTasks = (patient.tasks || []).filter(t => morningTasks.includes(t.name));
+                    const patientEveningTasks = (patient.tasks || []).filter(t => eveningTasks.includes(t.name));
+                    const otherTasks = (patient.tasks || []).filter(t => !morningTasks.includes(t.name) && !eveningTasks.includes(t.name));
+                    const allPatientTasks = patient.tasks || [];
                     const completedTasks = allPatientTasks.filter(t => t.completed).length;
                     const totalTasks = allPatientTasks.length;
                     
@@ -865,7 +855,7 @@ export default function VetPatientTracker() {
             )}
 
             <div className="grid gap-4">
-              {patients.map(patient => {
+              {(patients || []).map(patient => {
                 const { completed, total, percentage } = getCompletionStatus(patient);
                 const isExpanded = expandedPatients[patient.id];
                 
@@ -1022,9 +1012,7 @@ export default function VetPatientTracker() {
                             <input
                               type="text"
                               value={patient.customTask}
-                              onChange={(e) => setPatients(patients.map(p => 
-                                p.id === patient.id ? { ...p, customTask: e.target.value } : p
-                              ))}
+                              onChange={(e) => updatePatientField(patient.id, 'customTask', e.target.value)}
                               onKeyPress={(e) => e.key === 'Enter' && addCustomTask(patient.id)}
                               placeholder="Add custom task..."
                               className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
@@ -1037,14 +1025,14 @@ export default function VetPatientTracker() {
                             </button>
                           </div>
 
-                          {patient.tasks.length === 0 ? (
+                          {(patient.tasks || []).length === 0 ? (
                             <p className="text-gray-400 text-sm italic py-4">No tasks yet</p>
                           ) : (
                             <div className="space-y-3">
                                <div>
                                 <h4 className="text-xs font-bold text-orange-600 mb-1">☀️ Morning Tasks</h4>
                                 <div className="space-y-2">
-                                  {patient.tasks.filter(t => morningTasks.includes(t.name)).map(task => (
+                                  {(patient.tasks || []).filter(t => morningTasks.includes(t.name)).map(task => (
                                       <div
                                       key={task.id}
                                       className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-orange-50 border-orange-300')}
@@ -1071,7 +1059,7 @@ export default function VetPatientTracker() {
                               <div>
                                 <h4 className="text-xs font-bold text-indigo-600 mb-1">🌙 Evening Tasks</h4>
                                 <div className="space-y-2">
-                                  {patient.tasks.filter(t => eveningTasks.includes(t.name)).map(task => (
+                                  {(patient.tasks || []).filter(t => eveningTasks.includes(t.name)).map(task => (
                                       <div
                                       key={task.id}
                                       className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-indigo-50 border-indigo-300')}
@@ -1098,7 +1086,7 @@ export default function VetPatientTracker() {
                                <div>
                                 <h4 className="text-xs font-bold text-gray-600 mb-1">Other Tasks</h4>
                                 <div className="space-y-2">
-                                  {patient.tasks.filter(t => !morningTasks.includes(t.name) && !eveningTasks.includes(t.name)).map(task => (
+                                  {(patient.tasks || []).filter(t => !morningTasks.includes(t.name) && !eveningTasks.includes(t.name)).map(task => (
                                     <div
                                       key={task.id}
                                       className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
@@ -1227,9 +1215,7 @@ export default function VetPatientTracker() {
                               <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import - Paste Patient Details</label>
                               <textarea
                                 value={patient.detailsInput}
-                                onChange={(e) => setPatients(patients.map(p => 
-                                  p.id === patient.id ? { ...p, detailsInput: e.target.value } : p
-                                ))}
+                                onChange={(e) => updatePatientField(patient.id, 'detailsInput', e.target.value)}
                                 placeholder="Paste patient info from eVetPractice, Easy Vet, etc..."
                                 rows="4"
                                 className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
@@ -1280,17 +1266,17 @@ export default function VetPatientTracker() {
                               <div className="mb-2">
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Add Common Problems</label>
                                 <div className="flex flex-wrap gap-1 mb-2">
-                                  {commonProblems.slice(0, 8).map(problem => (
+                                  {(commonProblems || []).slice(0, 8).map(problem => (
                                     <button
-                                      key={problem}
+                                      key={problem.id}
                                       onClick={() => {
                                         const current = patient.roundingData.problems || '';
-                                        const newValue = current ? current + '\n' + problem : problem;
+                                        const newValue = current ? current + '\n' + problem.name : problem.name;
                                         updateRoundingData(patient.id, 'problems', newValue);
                                       }}
                                       className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 transition"
                                     >
-                                      + {problem}
+                                      + {problem.name}
                                     </button>
                                   ))}
                                 </div>
@@ -1308,8 +1294,8 @@ export default function VetPatientTracker() {
                                     className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
                                   >
                                     <option value="">Select from all problems...</option>
-                                    {commonProblems.map(problem => (
-                                      <option key={problem} value={problem}>{problem}</option>
+                                    {(commonProblems || []).map(problem => (
+                                      <option key={problem.id} value={problem.name}>{problem.name}</option>
                                     ))}
                                   </select>
                                 </div>
@@ -1358,9 +1344,7 @@ export default function VetPatientTracker() {
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Work (paste results)</label>
                                 <textarea
                                   value={patient.bwInput}
-                                  onChange={(e) => setPatients(patients.map(p => 
-                                    p.id === patient.id ? { ...p, bwInput: e.target.value } : p
-                                  ))}
+                                  onChange={(e) => updatePatientField(patient.id, 'bwInput', e.target.value)}
                                   placeholder="Paste full blood work results here..."
                                   rows="3"
                                   className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
@@ -1378,9 +1362,7 @@ export default function VetPatientTracker() {
                                 <div className="flex gap-2 mb-2">
                                   <select
                                     value={patient.xrayStatus}
-                                    onChange={(e) => setPatients(patients.map(p => 
-                                      p.id === patient.id ? { ...p, xrayStatus: e.target.value } : p
-                                    ))}
+                                    onChange={(e) => updatePatientField(patient.id, 'xrayStatus', e.target.value)}
                                     className="px-3 py-2 text-sm border rounded-lg"
                                   >
                                     <option>NSF</option>
@@ -1391,9 +1373,7 @@ export default function VetPatientTracker() {
                                     <input
                                       type="text"
                                       value={patient.xrayOther}
-                                      onChange={(e) => setPatients(patients.map(p => 
-                                        p.id === patient.id ? { ...p, xrayOther: e.target.value } : p
-                                      ))}
+                                      onChange={(e) => updatePatientField(patient.id, 'xrayOther', e.target.value)}
                                       placeholder="Describe findings..."
                                       className="flex-1 px-3 py-2 text-sm border rounded-lg"
                                     />
@@ -1464,17 +1444,17 @@ export default function VetPatientTracker() {
                               <div className="mb-2">
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Add Common Comments</label>
                                 <div className="flex flex-wrap gap-1 mb-2">
-                                  {commonComments.slice(0, 6).map(comment => (
+                                  {(commonComments || []).slice(0, 6).map(comment => (
                                     <button
-                                      key={comment}
+                                      key={comment.id}
                                       onClick={() => {
                                         const current = patient.roundingData.additionalComments || '';
-                                        const newValue = current ? current + '\n' + comment : comment;
+                                        const newValue = current ? current + '\n' + comment.name : comment.name;
                                         updateRoundingData(patient.id, 'additionalComments', newValue);
                                       }}
                                       className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition"
                                     >
-                                      + {comment.length > 40 ? comment.substring(0, 40) + '...' : comment}
+                                      + {comment.name.length > 40 ? comment.name.substring(0, 40) + '...' : comment.name}
                                     </button>
                                   ))}
                                 </div>
@@ -1492,8 +1472,8 @@ export default function VetPatientTracker() {
                                     className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
                                   >
                                     <option value="">Select from all comments...</option>
-                                    {commonComments.map(comment => (
-                                      <option key={comment} value={comment}>{comment}</option>
+                                    {(commonComments || []).map(comment => (
+                                      <option key={comment.id} value={comment.name}>{comment.name}</option>
                                     ))}
                                   </select>
                                 </div>
