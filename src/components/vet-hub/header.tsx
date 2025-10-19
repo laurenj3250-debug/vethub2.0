@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, LayoutGrid, ListTodo } from 'lucide-react';
+import { Download, LayoutGrid, ListTodo, Minimize2, Maximize2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 type HeaderProps = {
@@ -12,6 +12,7 @@ type HeaderProps = {
   onExportMri: () => void;
   showMorningOverview: boolean;
   setShowMorningOverview: (show: boolean) => void;
+  onToggleAllCollapse: (collapse: boolean) => void;
 };
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -20,7 +21,8 @@ const Header: React.FC<HeaderProps> = ({
   onExportRounding, 
   onExportMri,
   showMorningOverview,
-  setShowMorningOverview
+  setShowMorningOverview,
+  onToggleAllCollapse
 }) => {
   return (
     <Card className="mb-6 shadow-lg">
@@ -33,6 +35,20 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
             {patientCount > 0 && (
               <>
+                <Button
+                  variant="outline"
+                  onClick={() => onToggleAllCollapse(true)}
+                >
+                  <Minimize2 />
+                  Collapse All
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => onToggleAllCollapse(false)}
+                >
+                  <Maximize2 />
+                  Expand All
+                </Button>
                 <Button
                   variant={showMorningOverview ? "secondary" : "outline"}
                   onClick={() => setShowMorningOverview(!showMorningOverview)}

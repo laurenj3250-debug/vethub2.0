@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { Patient, GeneralTask, ProcedureType, PatientStatus } from '@/lib/types';
+import type { Patient, ProcedureType, PatientStatus } from '@/lib/types';
 import { parsePatientInfoFromText } from '@/ai/flows/parse-patient-info-from-text';
 import { analyzeBloodWork } from '@/ai/flows/analyze-blood-work-for-abnormalities';
 import Header from '@/components/vet-hub/header';
@@ -16,12 +16,14 @@ export default function VetPatientTracker() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [generalTasks, setGeneralTasks] = useState<GeneralTask[]>([]);
   const [showMorningOverview, setShowMorningOverview] = useState(false);
+  const [collapsedPatients, setCollapsedPatients] = useState<Record<number, boolean>>({});
   const { toast } = useToast();
 
   const addPatient = (name: string, type: ProcedureType) => {
     if (name.trim()) {
+      const newPatientId = Date.now();
       const patient: Patient = {
-        id: Date.now(),
+        id: newPatientId,
         name,
         type,
         status: 'New Admit',
@@ -46,6 +48,7 @@ export default function VetPatientTracker() {
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       };
       setPatients(prev => [...prev, patient]);
+      setCollapsedPatients(prev => ({...prev, [newPatientId]: false}));
       toast({
         title: "Patient Added",
         description: `${name} has been added to the tracker.`,
@@ -55,6 +58,11 @@ export default function VetPatientTracker() {
 
   const removePatient = (id: number) => {
     setPatients(patients.filter(p => p.id !== id));
+    setCollapsedPatients(prev => {
+      const newCollapsed = {...prev};
+      delete newCollapsed[id];
+      return newCollapsed;
+    });
   };
   
   const updatePatient = (id: number, updatedPatient: Partial<Patient>) => {
@@ -93,6 +101,18 @@ export default function VetPatientTracker() {
   
   const removeGeneralTask = (taskId: number) => {
     setGeneralTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+  
+  const togglePatientCollapse = (patientId: number) => {
+    setCollapsedPatients(prev => ({...prev, [patientId]: !prev[patientId]}));
+  };
+
+  const toggleAllPatientsCollapse = (collapse: boolean) => {
+    const newCollapsedState: Record<number, boolean> = {};
+    patients.forEach(p => {
+      newCollapsedState[p.id] = collapse;
+    });
+    setCollapsedPatients(newCollapsedState);
   };
 
   const handleParsePatientDetails = async (patientId: number, detailsText: string) => {
@@ -246,6 +266,7 @@ export default function VetPatientTracker() {
           onExportMri={exportMRISheet}
           showMorningOverview={showMorningOverview}
           setShowMorningOverview={setShowMorningOverview}
+          onToggleAllCollapse={toggleAllPatientsCollapse}
         />
         
         <AddPatientForm onAddPatient={addPatient} />
@@ -289,6 +310,8 @@ export default function VetPatientTracker() {
                 <PatientCard 
                   key={patient.id}
                   patient={patient}
+                  isCollapsed={collapsedPatients[patient.id]}
+                  onToggleCollapse={togglePatientCollapse}
                   onRemove={removePatient}
                   onUpdateStatus={updateStatus}
                   onUpdateRoundingData={updateRoundingData}
