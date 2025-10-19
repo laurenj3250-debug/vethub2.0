@@ -68,7 +68,7 @@ ${input.bloodWorkText}
 `;
 
     const response = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-latest'),
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: prompt,
       output: {
         format: 'json',

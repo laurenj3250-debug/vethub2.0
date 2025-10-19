@@ -64,7 +64,7 @@ ${input.text}`;
 
     // Use ai.generate() to perform the generation.
     const response = await ai.generate({
-      model: googleAI.model('gemini-1.5-flash-latest'), // Updated to latest stable model
+      model: googleAI.model('gemini-1.5-flash'),
       prompt: prompt,
       output: {
         format: 'json',
