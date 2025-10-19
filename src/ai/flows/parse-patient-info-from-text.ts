@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { openai } from '@/ai/openaiClient';
 import { ai } from '@/ai/genkit';
+import { withRetry } from '@/ai/retry';
 
 const ParsePatientInfoFromTextInputSchema = z.object({
   text: z
@@ -59,7 +60,7 @@ Rules:
 
   const user = `Patient Details Text:\n${input.text}`;
 
-  const resp = await openai.chat.completions.create({
+  const resp = await withRetry(() => openai.chat.completions.create({
     model: 'gpt-4o-mini',
     temperature: 0,
     response_format: { type: 'json_object' },
@@ -67,6 +68,10 @@ Rules:
       { role: 'system', content: system },
       { role: 'user', content: user },
     ],
+  }), {
+    onRetry: (e, attempt, delay) => {
+      console.log(`Retrying patient info parsing... (attempt ${attempt}, delay ${delay}ms)`);
+    }
   });
 
   const raw = resp.choices[0]?.message?.content ?? '';

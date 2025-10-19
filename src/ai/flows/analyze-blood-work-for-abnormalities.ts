@@ -6,7 +6,7 @@
 
 import { z } from 'zod';
 import { openai } from '@/ai/openaiClient';
-import { ai } from '@/ai/genkit'; 
+import { withRetry } from '@/ai/retry';
 
 const AnalyzeBloodWorkInputSchema = z.object({
   bloodWorkText: z.string().describe('The blood work results as a text string.'),
@@ -63,7 +63,7 @@ Output rules:
 ${input.bloodWorkText}`;
 
     // Use OpenAI SDK directly (no Genkit OpenAI provider)
-    const resp = await openai.chat.completions.create({
+    const resp = await withRetry(() => openai.chat.completions.create({
       model: 'gpt-4o-mini',
       temperature: 0,
       response_format: { type: 'json_object' },
@@ -71,6 +71,10 @@ ${input.bloodWorkText}`;
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
+    }), {
+      onRetry: (e, attempt, delay) => {
+        console.log(`Retrying blood work analysis... (attempt ${attempt}, delay ${delay}ms)`);
+      }
     });
 
     const raw = resp.choices[0]?.message?.content ?? '';
