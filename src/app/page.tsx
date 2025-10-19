@@ -13,6 +13,7 @@ import {
   initiateAnonymousSignIn,
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
+import { parseSignalment } from '@/lib/parseSignalment';
 
 export default function VetPatientTracker() {
   const { firestore, auth, user, isUserLoading } = useFirebase();
@@ -357,44 +358,48 @@ export default function VetPatientTracker() {
   };
 
   const parsePatientDetails = async (patientId, detailsText) => {
-     const patient = (patients || []).find(p => p.id === patientId);
+    const patient = (patients || []).find(p => p.id === patientId);
     if (!patient || !detailsText.trim()) {
       alert('Please paste patient details first');
       return;
     }
-    
+
     try {
-      const result = await parsePatientInfoFromText({ text: detailsText });
-      const { patientInfo, therapeutics } = result;
-
-      let signalmentParts = [];
-      if (patientInfo.age) {
-        // Just take the first part of the age string (e.g., "7" from "7 years...")
-        const ageNum = patientInfo.age.split(' ')[0];
-        const ageSuffix = patientInfo.age.includes('year') ? 'y' : 'mo';
-        signalmentParts.push(`${ageNum}${ageSuffix}`);
-      }
-      if (patientInfo.breed) signalmentParts.push(patientInfo.breed);
-      if (patientInfo.sex) signalmentParts.push(patientInfo.sex);
+      // Use the new deterministic parser
+      const result = parseSignalment(detailsText);
+      console.log('Parser Diagnostics:', result.diagnostics);
       
+      const parsedInfo = result.data;
+      
+      // Create a signalment string in the standard format: Age Breed Sex
+      let signalmentParts = [];
+      if (parsedInfo.age) signalmentParts.push(parsedInfo.age);
+      if (parsedInfo.breed) signalmentParts.push(parsedInfo.breed);
+      if (parsedInfo.sex) signalmentParts.push(parsedInfo.sex);
       const signalment = signalmentParts.join(' ');
-
-      const newPatientInfo = { ...patient.patientInfo, ...patientInfo };
+      
+      // Merge new data with existing patient data
+      const newPatientInfo = { ...patient.patientInfo };
+      for (const key in parsedInfo) {
+        if (parsedInfo[key]) {
+          newPatientInfo[key] = parsedInfo[key];
+        }
+      }
+      
       const newRoundingData = { 
         ...patient.roundingData, 
         signalment: signalment.trim(),
-        therapeutics: therapeutics || patient.roundingData.therapeutics
       };
-
+      
       updatePatientData(patientId, {
         patientInfo: newPatientInfo,
         roundingData: newRoundingData,
-        detailsInput: ''
+        detailsInput: '' // Clear the input field
       });
 
     } catch (error) {
-        console.error("Error parsing patient details:", error);
-        alert("AI parsing of patient details failed. Please enter the information manually.");
+      console.error("Error parsing patient details:", error);
+      alert("Parsing of patient details failed. Please enter the information manually.");
     }
   };
 
@@ -1229,7 +1234,7 @@ export default function VetPatientTracker() {
                                 onClick={() => parsePatientDetails(patient.id, patient.detailsInput)}
                                 className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
                               >
-                                Extract Patient Info with AI
+                                Extract Patient Info
                               </button>
                               <p className="text-xs text-gray-600 mt-1 italic">Will auto-fill fields below</p>
                             </div>
