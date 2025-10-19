@@ -1,5 +1,3 @@
-
-// src/ai/flows/analyze-blood-work-for-abnormalities.ts
 'use server';
 
 /**
@@ -11,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {generate, z} from 'genkit';
+import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 const AnalyzeBloodWorkInputSchema = z.object({
@@ -60,8 +58,6 @@ Identify any values that fall outside of these ranges and return them in a list.
 
 Blood Work Results:
 {{{bloodWorkText}}}
-
-Output the abnormal values:
 `;
 
 const analyzeBloodWorkFlow = ai.defineFlow(
@@ -71,18 +67,22 @@ const analyzeBloodWorkFlow = ai.defineFlow(
     outputSchema: AnalyzeBloodWorkOutputSchema,
   },
   async input => {
-    const response = await generate({
-      model: googleAI.model('gemini-1.5-flash'),
-      prompt: [{text: prompt, context: input}],
+    const response = await ai.generate({
+      model: googleAI.model('gemini-2.5-flash'),
+      
+      prompt: prompt,
+      context: input,
+      
       output: {
         format: 'json',
         schema: AnalyzeBloodWorkOutputSchema,
       },
     });
-    const output = response.output();
-     if (!output) {
+    
+    const output = response.output; 
+    if (!output) {
       throw new Error("AI returned an empty response.");
     }
-    return output;
+    return output as AnalyzeBloodWorkOutput;
   }
 );

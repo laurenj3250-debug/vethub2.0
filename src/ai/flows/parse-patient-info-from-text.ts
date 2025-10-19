@@ -1,5 +1,5 @@
-
 'use server';
+
 /**
  * @fileOverview An AI agent for parsing patient information from text.
  *
@@ -9,7 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {generate, z} from 'genkit';
+import {z} from 'genkit'; // Removed 'generate' from this import
 import {googleAI} from '@genkit-ai/google-genai';
 
 const ParsePatientInfoFromTextInputSchema = z.object({
@@ -59,7 +59,7 @@ Additionally, extract any lines that appear to be medications, fluids, or other 
 
 Return the extracted information in JSON format. If a piece of information is not found, leave it blank. Focus primarily on the patient info and therapeutics fields.
 
-Patient Details Text: {{{text}}}`;
+Patient Details Text: {{{text}}}`; // The '{{{text}}}' template key corresponds to the 'text' property in the input object.
 
 const parsePatientInfoFromTextFlow = ai.defineFlow(
   {
@@ -68,18 +68,27 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
     outputSchema: ParsePatientInfoFromTextOutputSchema,
   },
   async input => {
-    const response = await generate({
-      model: googleAI.model('gemini-1.5-flash'),
-      prompt: [{text: prompt, context: input}],
+    // Use ai.generate() to resolve the module import issue and 
+    // Use the stable 'gemini-2.5-flash' model.
+    const response = await ai.generate({
+      model: googleAI.model('gemini-2.5-flash'),
+      
+      // Pass the prompt template string and the input object (context) separately.
+      prompt: prompt,
+      context: input,
+
       output: {
         format: 'json',
         schema: ParsePatientInfoFromTextOutputSchema,
       },
     });
-    const output = response.output();
+    
+    // Accessing 'response.output' as a property instead of calling a function 
+    const output = response.output;
     if (!output) {
       throw new Error("AI returned an empty response.");
     }
-    return output;
+    // The output is already parsed and validated against ParsePatientInfoFromTextOutputSchema
+    return output as ParsePatientInfoFromTextOutput;
   }
 );
