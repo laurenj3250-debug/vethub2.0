@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp } from 'lucide-react';
 
