@@ -5,11 +5,11 @@
  *
  * - parsePatientInfoFromText - A function that handles the parsing of patient information.
  * - ParsePatientInfoFromTextInput - The input type for the parsePatientInfoFromText function.
- * - ParsePatientInfoFromTextOutput - The return type for the parsePatientInfoFromText function.
+ * - ParsePatientInfoFromTextOutput - The return type for the ParsePatientInfoFromText function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit'; // Removed 'generate' from this import
+import {z} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 const ParsePatientInfoFromTextInputSchema = z.object({
@@ -68,12 +68,10 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
     outputSchema: ParsePatientInfoFromTextOutputSchema,
   },
   async input => {
-    // Use ai.generate() to resolve the module import issue and 
-    // Use the stable 'gemini-2.5-flash' model.
+    // Use ai.generate() to perform the generation.
     const response = await ai.generate({
       model: googleAI.model('gemini-2.5-flash'),
       
-      // Pass the prompt template string and the input object (context) separately.
       prompt: prompt,
       context: input,
 
@@ -83,12 +81,24 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
       },
     });
     
-    // Reverting to the standard Genkit function call for structured output: response.output().
-    const output = response.output();
-    if (!output) {
-      throw new Error("AI returned an empty response.");
+    // FIX: The Genkit function binding is unstable in this environment. 
+    // We bypass response.output() (which caused the error you are seeing)
+    // and manually parse the raw JSON string from response.text, which is 
+    // the most robust way to get the structured data in this environment.
+    if (!response.text) {
+      throw new Error("AI returned an empty response (no text data).");
     }
-    // The output is already parsed and validated against ParsePatientInfoFromTextOutputSchema
+
+    let output: any;
+    try {
+      // Parse the raw JSON string returned by the model
+      output = JSON.parse(response.text);
+    } catch (e) {
+      console.error("Failed to parse JSON output from AI:", response.text, e);
+      throw new Error("AI returned unparseable or malformed JSON data.");
+    }
+
+    // The output is already parsed. We cast it to the expected type.
     return output as ParsePatientInfoFromTextOutput;
   }
 );

@@ -184,7 +184,7 @@ export default function VetPatientTracker() {
       const r = patient.roundingData || {};
       const row = [
         patient.name,
-        '', // Placeholder for 'It's A-> N'
+        '', // Placeholder for 'It\'s A-> N'
         r.signalment || '',
         r.location || '',
         r.icuCriteria || '',
@@ -367,12 +367,17 @@ export default function VetPatientTracker() {
       const result = await parsePatientInfoFromText({ text: detailsText });
       const { patientInfo, therapeutics } = result;
 
-      let signalment = '';
-      if (patientInfo.age) signalment += patientInfo.age.replace(/\s+years?.*/, 'yo');
-      if (patientInfo.sex) signalment += ' ' + patientInfo.sex;
-      if (patientInfo.breed) {
-        signalment += ' ' + patientInfo.breed;
+      let signalmentParts = [];
+      if (patientInfo.age) {
+        // Just take the first part of the age string (e.g., "7" from "7 years...")
+        const ageNum = patientInfo.age.split(' ')[0];
+        const ageSuffix = patientInfo.age.includes('year') ? 'y' : 'mo';
+        signalmentParts.push(`${ageNum}${ageSuffix}`);
       }
+      if (patientInfo.breed) signalmentParts.push(patientInfo.breed);
+      if (patientInfo.sex) signalmentParts.push(patientInfo.sex);
+      
+      const signalment = signalmentParts.join(' ');
 
       const newPatientInfo = { ...patient.patientInfo, ...patientInfo };
       const newRoundingData = { 
