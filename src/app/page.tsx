@@ -11,6 +11,7 @@ import PatientCard from '@/components/vet-hub/patient-card';
 import TaskOverview from '@/components/vet-hub/task-overview';
 import { useToast } from "@/hooks/use-toast";
 import { Stethoscope } from 'lucide-react';
+import type { GeneralTask } from '@/lib/types';
 
 export default function VetPatientTracker() {
   const [patients, setPatients] = useState<Patient[]>([]);
