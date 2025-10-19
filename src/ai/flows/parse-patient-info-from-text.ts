@@ -44,7 +44,6 @@ const prompt = ai.definePrompt({
   name: 'parsePatientInfoFromTextPrompt',
   input: {schema: ParsePatientInfoFromTextInputSchema},
   output: {schema: ParsePatientInfoFromTextOutputSchema},
-  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are an expert veterinary assistant. You will be provided with patient details in a raw text format. 
 Your goal is to extract structured information from this text. Look for key-value pairs (like "Patient ID: 12345") to identify the following fields if they are present:
 - Patient ID
@@ -73,7 +72,16 @@ const parsePatientInfoFromTextFlow = ai.defineFlow(
     outputSchema: ParsePatientInfoFromTextOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const llm = googleAI.model('gemini-1.5-flash');
+    const {output} = await llm.generate({
+      prompt: {
+        input: input,
+      },
+      output: {
+        format: 'json',
+        schema: ParsePatientInfoFromTextOutputSchema,
+      },
+    });
     return output!;
   }
 );

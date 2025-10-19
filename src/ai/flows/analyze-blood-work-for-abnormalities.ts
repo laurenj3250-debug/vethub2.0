@@ -33,7 +33,6 @@ const prompt = ai.definePrompt({
   name: 'analyzeBloodWorkPrompt',
   input: {schema: AnalyzeBloodWorkInputSchema},
   output: {schema: AnalyzeBloodWorkOutputSchema},
-  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
 
 WBC: 6-17
@@ -76,7 +75,16 @@ const analyzeBloodWorkFlow = ai.defineFlow(
     outputSchema: AnalyzeBloodWorkOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const llm = googleAI.model('gemini-1.5-flash');
+    const {output} = await llm.generate({
+      prompt: {
+        input: input,
+      },
+      output: {
+        format: 'json',
+        schema: AnalyzeBloodWorkOutputSchema,
+      },
+    });
     return output!;
   }
 );
