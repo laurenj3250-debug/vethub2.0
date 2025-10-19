@@ -2,14 +2,11 @@
 
 /**
  * @fileOverview An AI agent for parsing patient information from text.
- *
- * - parsePatientInfoFromText - A function that handles the parsing of patient information.
- * - ParsePatientInfoFromTextInput - The input type for the parsePatientInfoFromText function.
- * - ParsePatientInfoFromTextOutput - The return type for the parsePatientInfoFromText function.
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { openai } from '@/ai/openaiClient';
+import { ai } from '@/ai/genkit';
 
 const ParsePatientInfoFromTextInputSchema = z.object({
   text: z
@@ -52,7 +49,7 @@ export async function parsePatientInfoFromText(
   return parsePatientInfoFromTextFlow(input);
 }
 
-const parsePatientInfoFromTextFlow = ai.defineFlow(
+export const parsePatientInfoFromTextFlow = ai.defineFlow(
   {
     name: 'parsePatientInfoFromTextFlow',
     inputSchema: ParsePatientInfoFromTextInputSchema,
@@ -72,29 +69,36 @@ Return ONLY a JSON object that matches this schema:
 Rules:
 - Output JSON only (no Markdown, no backticks).
 - Extract only what is present. Do NOT invent values.
-- "therapeutics" is meds/fluids/treatments; array or single string are fine.`;
+- "therapeutics" is meds/fluids/treatments; if multiple are present, combine them into a single string separated by newlines.`;
 
     const user = `Patient Details Text:\n${input.text}`;
 
-    const response = await ai.generate({
-      model: 'gpt-4o',
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       temperature: 0,
-      prompt: `${system}\n\n${user}`,
-      output: {
-        format: 'json',
-        schema: ParsePatientInfoFromTextOutputSchema,
-      },
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
     });
 
-    const output = response.output;
-    if (!output) {
-      throw new Error('AI returned an empty response.');
+    const raw = resp.choices[0]?.message?.content ?? '';
+    if (!raw) throw new Error('AI returned an empty response.');
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error('AI returned non-JSON output.');
     }
     
+    const validated = ParsePatientInfoFromTextOutputSchema.parse(parsed);
+
     // Normalize therapeutics to a single string
-    if (Array.isArray(output.therapeutics)) {
-      return { ...output, therapeutics: output.therapeutics.join('\n') };
+    if (Array.isArray(validated.therapeutics)) {
+      return { ...validated, therapeutics: validated.therapeutics.join('\n') };
     }
-    return output as ParsePatientInfoFromTextOutput;
+    return validated;
   }
 );

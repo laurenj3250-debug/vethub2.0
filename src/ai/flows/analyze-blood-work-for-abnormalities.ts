@@ -1,12 +1,12 @@
 'use server';
 
 /**
- * @fileOverview Analyzes blood work results and returns ONLY the abnormal items,
- * formatted as "<NAME> <VALUE>" (no reference ranges in the output).
+ * Analyze blood work and return ONLY abnormal items as "<NAME> <VALUE>".
  */
 
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { openai } from '@/ai/openaiClient';
+import { ai } from '@/ai/genkit'; 
 
 const AnalyzeBloodWorkInputSchema = z.object({
   bloodWorkText: z.string().describe('The blood work results as a text string.'),
@@ -14,13 +14,9 @@ const AnalyzeBloodWorkInputSchema = z.object({
 export type AnalyzeBloodWorkInput = z.infer<typeof AnalyzeBloodWorkInputSchema>;
 
 const AnalyzeBloodWorkOutputSchema = z.object({
-  abnormalValues: z
-    .array(z.string())
-    .describe('Abnormal items as "<NAME> <VALUE>" only.'),
+  abnormalValues: z.array(z.string()).describe('Abnormal items as "<NAME> <VALUE>" only.'),
 });
-export type AnalyzeBloodWorkOutput = z.infer<
-  typeof AnalyzeBloodWorkOutputSchema
->;
+export type AnalyzeBloodWorkOutput = z.infer<typeof AnalyzeBloodWorkOutputSchema>;
 
 export async function analyzeBloodWork(
   input: AnalyzeBloodWorkInput
@@ -28,7 +24,7 @@ export async function analyzeBloodWork(
   return analyzeBloodWorkFlow(input);
 }
 
-const analyzeBloodWorkFlow = ai.defineFlow(
+export const analyzeBloodWorkFlow = ai.defineFlow(
   {
     name: 'analyzeBloodWorkFlow',
     inputSchema: AnalyzeBloodWorkInputSchema,
@@ -36,14 +32,11 @@ const analyzeBloodWorkFlow = ai.defineFlow(
   },
   async (input) => {
     const system = `You are a veterinary expert.
-Return ONLY a JSON object matching this schema:
-{
-  "abnormalValues": string[]
-}
+Return ONLY a JSON object with this schema: { "abnormalValues": string[] }
 
 Task:
 1) Parse the provided blood work text.
-2) Compare each value against these reference ranges (assume generic canine/feline lab ranges):
+2) Compare each value against these reference ranges (internal use only):
 WBC: 6-17
 RBC: 5.5-8.5
 HGB: 12-18
@@ -69,31 +62,38 @@ K: 3.5-5.8
 CL: 109-122
 
 Output rules:
-- Include ONLY the items that are outside range.
-- Format each item EXACTLY as "<NAME> <VALUE>" (preserve original units if present, e.g., "K 3.3 mmol/L").
+- Include ONLY items outside range.
+- Format each item EXACTLY as "<NAME> <VALUE>" (preserve original units if provided).
 - Do NOT include words like "high"/"low".
-- Do NOT include reference ranges or explanations.
-- If none are abnormal, return: { "abnormalValues": [] }
-- Output JSON only. No Markdown or backticks.`;
+- Do NOT include reference ranges or extra text.
+- If none are abnormal, return { "abnormalValues": [] }.
+- Output JSON only.`;
 
     const user = `Blood Work Results:
 ${input.bloodWorkText}`;
 
-    const response = await ai.generate({
-      model: 'gpt-4o',
+    // Use OpenAI SDK directly (no Genkit OpenAI provider)
+    const resp = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       temperature: 0,
-      prompt: `${system}\n\n${user}`,
-      output: {
-        format: 'json',
-        schema: AnalyzeBloodWorkOutputSchema,
-      },
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
     });
 
-    const output = response.output;
-    if (!output) {
-      throw new Error('AI returned an empty response.');
+    const raw = resp.choices[0]?.message?.content ?? '';
+    if (!raw) throw new Error('AI returned an empty response.');
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      throw new Error('AI returned non-JSON output.');
     }
-    
-    return output as AnalyzeBloodWorkOutput;
+
+    const validated = AnalyzeBloodWorkOutputSchema.parse(parsed);
+    return validated;
   }
 );

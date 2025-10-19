@@ -1,10 +1,6 @@
 import { ai } from '@genkit-ai/ai';
-import { openAI } from 'genkitx-openai';
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY');
-}
-
-ai.use(openAI({ apiKey: process.env.OPENAI_API_KEY }));
+// This file is now empty as we are not using any genkit plugins.
+// The `ai` object from genkit is still used for flow definition.
 
 export { ai };
