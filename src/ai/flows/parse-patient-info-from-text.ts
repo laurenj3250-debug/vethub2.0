@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 
 const ParsePatientInfoFromTextInputSchema = z.object({
   text: z
@@ -43,6 +44,7 @@ const prompt = ai.definePrompt({
   name: 'parsePatientInfoFromTextPrompt',
   input: {schema: ParsePatientInfoFromTextInputSchema},
   output: {schema: ParsePatientInfoFromTextOutputSchema},
+  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are an expert veterinary assistant. You will be provided with patient details in a raw text format. 
 Your goal is to extract structured information from this text. Look for key-value pairs (like "Patient ID: 12345") to identify the following fields if they are present:
 - Patient ID

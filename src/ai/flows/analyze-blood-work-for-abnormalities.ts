@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 
 const AnalyzeBloodWorkInputSchema = z.object({
   bloodWorkText: z
@@ -32,6 +33,7 @@ const prompt = ai.definePrompt({
   name: 'analyzeBloodWorkPrompt',
   input: {schema: AnalyzeBloodWorkInputSchema},
   output: {schema: AnalyzeBloodWorkOutputSchema},
+  model: googleAI.model('gemini-1.5-flash-latest'),
   prompt: `You are a veterinary expert. You will analyze the provided blood work results and identify any abnormal values based on the following ranges:
 
 WBC: 6-17
