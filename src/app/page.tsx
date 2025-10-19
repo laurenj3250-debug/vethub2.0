@@ -1,6 +1,9 @@
 'use client';
 import React, { useState } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { parsePatientInfoFromText } from '@/ai/flows/parse-patient-info-from-text';
+import { analyzeBloodWork } from '@/ai/flows/analyze-blood-work-for-abnormalities';
+
 
 export default function VetPatientTracker() {
   const [patients, setPatients] = useState([]);
@@ -300,198 +303,76 @@ export default function VetPatientTracker() {
     ));
   };
 
-  const parseBloodWork = (patientId, bwText) => {
+  const parseBloodWork = async (patientId, bwText) => {
     if (!bwText.trim()) {
       alert('Please paste blood work results first');
       return;
     }
     
-    const abnormals = [];
-    const lines = bwText.split('\n');
-    
-    const ranges = {
-      'WBC': [6, 17],
-      'RBC': [5.5, 8.5],
-      'HGB': [12, 18],
-      'HCT': [37, 55],
-      'PLT': [200, 500],
-      'NEUT': [3, 12],
-      'LYMPH': [1, 5],
-      'MONO': [0.2, 1.5],
-      'EOS': [0, 1],
-      'BUN': [7, 27],
-      'CREAT': [0.5, 1.8],
-      'GLU': [70, 143],
-      'ALT': [10, 125],
-      'AST': [0, 50],
-      'ALP': [23, 212],
-      'TBIL': [0, 0.9],
-      'ALB': [2.3, 4.0],
-      'TP': [5.2, 8.2],
-      'CA': [9, 11.3],
-      'PHOS': [2.5, 6.8],
-      'NA': [144, 160],
-      'K': [3.5, 5.8],
-      'CL': [109, 122]
-    };
-    
-    lines.forEach(line => {
-      Object.keys(ranges).forEach(param => {
-        const regex = new RegExp(`^\\s*${param}\\s`, 'i');
-        if (regex.test(line)) {
-          const numbers = line.match(/[\d.]+/g);
-          if (numbers && numbers.length > 0) {
-            const value = parseFloat(numbers[0]);
-            const [low, high] = ranges[param];
-            if (value < low || value > high) {
-              abnormals.push(param + ' ' + value);
-            }
-          }
+    try {
+      const result = await analyzeBloodWork({ bloodWorkText: bwText });
+      const abnormals = result.abnormalValues;
+      
+      setPatients(currentPatients => currentPatients.map(p => {
+        if (p.id === patientId) {
+          const currentDx = p.roundingData.diagnosticFindings || '';
+          const bwLine = abnormals.length > 0 
+            ? 'CBC/CHEM: ' + abnormals.join(', ')
+            : 'CBC/CHEM: NAD';
+          const newDx = currentDx ? currentDx + '\n' + bwLine : bwLine;
+          return {
+            ...p,
+            roundingData: { ...p.roundingData, diagnosticFindings: newDx },
+            bwInput: ''
+          };
         }
-      });
-    });
-    
-    setPatients(currentPatients => currentPatients.map(p => {
-      if (p.id === patientId) {
-        const currentDx = p.roundingData.diagnosticFindings || '';
-        const bwLine = abnormals.length > 0 
-          ? 'CBC/CHEM: ' + abnormals.join(', ')
-          : 'CBC/CHEM: NAD';
-        const newDx = currentDx ? currentDx + '\n' + bwLine : bwLine;
-        return {
-          ...p,
-          roundingData: { ...p.roundingData, diagnosticFindings: newDx },
-          bwInput: ''
-        };
-      }
-      return p;
-    }));
+        return p;
+      }));
+    } catch (error) {
+      console.error("Error analyzing blood work:", error);
+      alert("AI analysis of blood work failed. Please check the results manually.");
+    }
   };
 
-  const parsePatientDetails = (patientId, detailsText) => {
+  const parsePatientDetails = async (patientId, detailsText) => {
     if (!detailsText.trim()) {
       alert('Please paste patient details first');
       return;
     }
     
-    const text = detailsText;
-    const extractedInfo = {};
-    
-    // Try multiple patterns for Patient ID - now accepts letters, numbers, underscores, hyphens
-    let patientIdMatch = text.match(/Patient\s*ID[:\s]+([A-Z0-9_-]+)/i);
-    if (!patientIdMatch) patientIdMatch = text.match(/PatientID[:\s]+([A-Z0-9_-]+)/i);
-    if (!patientIdMatch) patientIdMatch = text.match(/Patient[:\s]+([A-Z0-9_-]+)/i);
-    if (!patientIdMatch) patientIdMatch = text.match(/ID[:\s]+([A-Z0-9_-]+)/i);
-    if (patientIdMatch) extractedInfo.patientId = patientIdMatch[1];
-    
-    // Try multiple patterns for Client ID - now accepts letters, numbers, underscores, hyphens
-    let clientIdMatch = text.match(/Client\s*ID[:\s]+([A-Z0-9_-]+)/i);
-    if (!clientIdMatch) clientIdMatch = text.match(/ClientID[:\s]+([A-Z0-9_-]+)/i);
-    if (!clientIdMatch) clientIdMatch = text.match(/Client[:\s]+([A-Z0-9_-]+)/i);
-    if (clientIdMatch) extractedInfo.clientId = clientIdMatch[1];
-    
-    const weightMatch = text.match(/([\d.]+)\s*(kg|lb|lbs)/i);
-    if (weightMatch) {
-      extractedInfo.weight = weightMatch[1] + weightMatch[2].toUpperCase();
-    }
-    
-    const dobMatch = text.match(/Date\s+of\s+Birth[:\s]+([\d-\/]+)/i);
-    if (dobMatch) extractedInfo.dob = dobMatch[1];
-    
-    const ageMatch = text.match(/(\d+\s+years?(?:\s+\d+\s+months?)?(?:\s+\d+\s+days?)?)/i);
-    if (ageMatch) extractedInfo.age = ageMatch[1];
-    
-    const speciesBreedMatch = text.match(/(Canine|Feline)\s*-\s*([^\n\r]+)/i);
-    if (speciesBreedMatch) {
-      extractedInfo.species = speciesBreedMatch[1];
-      extractedInfo.breed = speciesBreedMatch[2].trim();
-    }
-    
-    let sex = '';
-    if (text.match(/\(M\)/i) || text.match(/\bMN\b/i) || text.match(/\bMale\b/i)) {
-      sex = text.match(/\bMN\b/i) ? 'MN' : 'M';
-    } else if (text.match(/\(F\)/i) || text.match(/\bFS\b/i) || text.match(/\bFemale\b/i)) {
-      sex = text.match(/\bFS\b/i) ? 'FS' : 'F';
-    }
-    if (sex) extractedInfo.sex = sex;
-    
-    const ownerMatch = text.match(/Owner[:\s]+([^\n]+)/i);
-    if (ownerMatch) {
-      extractedInfo.ownerName = ownerMatch[1].trim();
-    }
-    
-    const phoneMatches = text.match(/Ph[:\s]+(\d{3}[-.\s]?\d{3}[-.\s]?\d{4}(?:\s*#?\d+)?)/gi);
-    if (phoneMatches && phoneMatches.length > 0) {
-      const phones = phoneMatches.map(p => p.replace(/Ph[:\s]+/i, '').trim());
-      extractedInfo.ownerPhone = phones.slice(0, 3).join(', ');
-    }
-    
-    let signalment = '';
-    if (ageMatch) signalment += ageMatch[1].replace(/\s+years?.*/, 'yo');
-    if (sex) signalment += ' ' + sex;
-    if (speciesBreedMatch) {
-      signalment += ' ' + speciesBreedMatch[2].trim();
-    }
-    
-    const treatments = [];
-    const therapeuticSections = ['TREATMENTS:', 'Medications:', 'Current Medications:', 'Fluids:'];
-    const stopKeywords = ['Referred By', 'Presenting Problem', 'History', 'Tags', 'Interested Contacts'];
+    try {
+      const result = await parsePatientInfoFromText({ text: detailsText });
+      const { patientInfo, therapeutics } = result;
 
-    therapeuticSections.forEach(section => {
-      const regex = new RegExp(`^${section}`, 'im');
-      const match = text.match(regex);
-      if (match) {
-        let startIndex = match.index + match[0].length;
-        // Find the end of the section, which is either the start of another major section or a double newline.
-        let endIndex = text.length;
-        
-        // Find next section start to limit the current section's text
-        const subsequentText = text.substring(startIndex);
-        let nearestStopIndex = -1;
-
-        for (const stopWord of stopKeywords) {
-            const stopRegex = new RegExp(`^${stopWord}`, 'im');
-            const stopMatch = subsequentText.match(stopRegex);
-            if (stopMatch && (nearestStopIndex === -1 || stopMatch.index < nearestStopIndex)) {
-                nearestStopIndex = stopMatch.index;
-            }
-        }
-        
-        const doubleNewlineIndex = subsequentText.indexOf('\n\n');
-        if (doubleNewlineIndex !== -1 && (nearestStopIndex === -1 || doubleNewlineIndex < nearestStopIndex)) {
-          nearestStopIndex = doubleNewlineIndex;
-        }
-
-        if (nearestStopIndex !== -1) {
-          endIndex = startIndex + nearestStopIndex;
-        }
-
-        const sectionText = text.substring(startIndex, endIndex).trim();
-        const lines = sectionText.split('\n').filter(l => l.trim() && !l.match(/^\d+[-\/]/) && l.length > 2);
-        treatments.push(...lines.map(l => l.trim()));
+      let signalment = '';
+      if (patientInfo.age) signalment += patientInfo.age.replace(/\s+years?.*/, 'yo');
+      if (patientInfo.sex) signalment += ' ' + patientInfo.sex;
+      if (patientInfo.breed) {
+        signalment += ' ' + patientInfo.breed;
       }
-    });
 
-    const therapeutics = treatments.join('\n');
-    
-    setPatients(currentPatients => currentPatients.map(p => {
-      if (p.id === patientId) {
-        return {
-          ...p,
-          patientInfo: {
-            ...p.patientInfo,
-            ...extractedInfo
-          },
-          roundingData: {
-            ...p.roundingData,
-            signalment: signalment.trim(),
-            therapeutics: therapeutics || p.roundingData.therapeutics
-          },
-          detailsInput: ''
-        };
-      }
-      return p;
-    }));
+      setPatients(currentPatients => currentPatients.map(p => {
+        if (p.id === patientId) {
+          return {
+            ...p,
+            patientInfo: {
+              ...p.patientInfo,
+              ...patientInfo
+            },
+            roundingData: {
+              ...p.roundingData,
+              signalment: signalment.trim(),
+              therapeutics: therapeutics || p.roundingData.therapeutics
+            },
+            detailsInput: ''
+          };
+        }
+        return p;
+      }));
+    } catch (error) {
+      console.error("Error parsing patient details:", error);
+      alert("AI parsing of patient details failed. Please enter the information manually.");
+    }
   };
 
   const addChestXray = (patientId, xrayStatus, otherText) => {
@@ -1357,7 +1238,7 @@ export default function VetPatientTracker() {
                                 onClick={() => parsePatientDetails(patient.id, patient.detailsInput)}
                                 className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
                               >
-                                Extract Patient Info
+                                Extract Patient Info with AI
                               </button>
                               <p className="text-xs text-gray-600 mt-1 italic">Will auto-fill fields below</p>
                             </div>
@@ -1488,7 +1369,7 @@ export default function VetPatientTracker() {
                                   onClick={() => parseBloodWork(patient.id, patient.bwInput)}
                                   className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
                                 >
-                                  Extract Abnormals to Findings
+                                  Extract Abnormals to Findings with AI
                                 </button>
                               </div>
                               
