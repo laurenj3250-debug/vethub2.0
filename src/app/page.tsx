@@ -387,7 +387,7 @@ export default function VetPatientTracker() {
         detailsInput: ''
       });
 
-    } catch (error)      {
+    } catch (error) {
         console.error("Error parsing patient details:", error);
         alert("AI parsing of patient details failed. Please enter the information manually.");
     }

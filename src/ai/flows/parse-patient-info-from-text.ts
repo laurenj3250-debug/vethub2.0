@@ -44,7 +44,7 @@ const prompt = ai.definePrompt({
   input: {schema: ParsePatientInfoFromTextInputSchema},
   output: {schema: ParsePatientInfoFromTextOutputSchema},
   prompt: `You are an expert veterinary assistant. You will be provided with patient details in a raw text format. 
-Your goal is to extract structured information from this text. You must identify and extract the following fields if they are present:
+Your goal is to extract structured information from this text. Look for key-value pairs (like "Patient ID: 12345") to identify the following fields if they are present:
 - Patient ID
 - Client ID
 - Owner Name
@@ -56,9 +56,10 @@ Your goal is to extract structured information from this text. You must identify
 - Weight
 - DOB
 - Age
-- Therapeutics
 
-Return the extracted information in JSON format. If a piece of information is not found, leave it blank. Focus primarily on the therapeutics, and patient info fields.
+Additionally, extract any lines that appear to be medications, fluids, or other treatments under the "therapeutics" field. Combine these into a single string, with each item on a new line.
+
+Return the extracted information in JSON format. If a piece of information is not found, leave it blank. Focus primarily on the patient info and therapeutics fields.
 
 Patient Details Text: {{{text}}}`,
 });
