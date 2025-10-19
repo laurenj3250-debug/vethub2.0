@@ -1,6 +1,6 @@
 import { ai } from '@genkit-ai/ai';
 
-// This file is now empty as we are not using any genkit plugins.
-// The `ai` object from genkit is still used for flow definition.
+// This file is now primarily for exporting the core 'ai' object from Genkit.
+// The OpenAI provider is no longer configured here, as we are using the SDK directly.
 
 export { ai };

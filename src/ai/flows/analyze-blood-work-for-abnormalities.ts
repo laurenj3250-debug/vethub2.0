@@ -21,16 +21,6 @@ export type AnalyzeBloodWorkOutput = z.infer<typeof AnalyzeBloodWorkOutputSchema
 export async function analyzeBloodWork(
   input: AnalyzeBloodWorkInput
 ): Promise<AnalyzeBloodWorkOutput> {
-  return analyzeBloodWorkFlow(input);
-}
-
-export const analyzeBloodWorkFlow = ai.defineFlow(
-  {
-    name: 'analyzeBloodWorkFlow',
-    inputSchema: AnalyzeBloodWorkInputSchema,
-    outputSchema: AnalyzeBloodWorkOutputSchema,
-  },
-  async (input) => {
     const system = `You are a veterinary expert.
 Return ONLY a JSON object with this schema: { "abnormalValues": string[] }
 
@@ -95,5 +85,4 @@ ${input.bloodWorkText}`;
 
     const validated = AnalyzeBloodWorkOutputSchema.parse(parsed);
     return validated;
-  }
-);
+}
