@@ -10,11 +10,13 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
   initiateAnonymousSignIn,
+  signOutUser,
 } from '@/firebase';
-import { signInWithGoogle, signOutUser } from '@/firebase/auth';
+import { signInWithGoogle } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
-
+// ⛔️ Removed AI import. We use the local parser below.
+// import { analyzeBloodWork } from '@/ai/flows/analyze-blood-work-for-abnormalities';
 
 /* -----------------------------------------------------------
    Helpers: safe guards and formatting
@@ -45,41 +47,14 @@ const getPriorityColor = (patient: any) => {
 };
 
 const roundKgToInt = (kg: number) => Math.round(kg);
-const kgToLbs1 = (kg: number) => (kg * 2.20462);
-
-/* -----------------------------------------------------------
-   Regex Parsers (no AI)
------------------------------------------------------------ */
-
-// Map long sex to short codes
-const normalizeSex = (s: string) => {
-  const t = s.toLowerCase();
-  if (/male/.test(t) && /neut/.test(t)) return 'MN';
-  if (/female/.test(t) && /spay|spayed/.test(t)) return 'FS';
-  if (/male/.test(t)) return 'MI';
-  if (/female/.test(t)) return 'FI';
-  if (/mn\b|neutered male/i.test(s)) return 'MN';
-  if (/fs\b|spayed female/i.test(s)) return 'FS';
-  if (/mi\b|intact male/i.test(s)) return 'MI';
-  if (/fi\b|intact female/i.test(s)) return 'FI';
-  if (/^\(M\)$/.test(s.trim())) return 'MI';
-  if (/^\(F\)$/.test(s.trim())) return 'FI';
-  return '';
-};
-
-const speciesAliases: Record<string, string> = {
-  canine: 'Canine',
-  dog: 'Canine',
-  feline: 'Feline',
-  cat: 'Feline',
-};
+const kgToLbs1 = (kg: number) => kg * 2.20462;
 
 /* -----------------------------------------------------------
    Bloodwork parser (no AI): extract abnormals only
    Uses simple reference ranges (dog defaults). Only outputs "TEST value".
 ----------------------------------------------------------- */
 
-type RefRange = { lo: number, hi: number };
+type RefRange = { lo: number; hi: number };
 const REF_RANGES: Record<string, RefRange> = {
   WBC: { lo: 6, hi: 17 },
   RBC: { lo: 5.5, hi: 8.5 },
@@ -106,19 +81,50 @@ const REF_RANGES: Record<string, RefRange> = {
   CL: { lo: 109, hi: 122 },
 };
 
+function normalizeKey(k: string): keyof typeof REF_RANGES {
+  const map: Record<string, keyof typeof REF_RANGES> = {
+    WBC: 'WBC',
+    RBC: 'RBC',
+    HGB: 'HGB',
+    HCT: 'HCT',
+    PLT: 'PLT',
+    NEU: 'NEUT',
+    NEUT: 'NEUT',
+    LYMPH: 'LYMPH',
+    MONO: 'MONO',
+    EOS: 'EOS',
+    BUN: 'BUN',
+    CREA: 'CREAT',
+    CREAT: 'CREAT',
+    GLU: 'GLU',
+    ALT: 'ALT',
+    AST: 'AST',
+    ALP: 'ALP',
+    TBIL: 'TBIL',
+    ALB: 'ALB',
+    TP: 'TP',
+    CA: 'CA',
+    PHOS: 'PHOS',
+    NA: 'NA',
+    K: 'K',
+    CL: 'CL',
+  };
+  return map[k] || (k as any);
+}
+
 function parseBloodworkAbnormals(text: string): string[] {
   // capture tokens like "WBC 18.2", "ALP: 345", "K=6.2"
   const re = /\b([A-Za-z]{2,5})\s*[:=]?\s*(-?\d+(?:\.\d+)?)/g;
   const results: string[] = [];
   const seen = new Set<string>();
-  let m;
+  let m: RegExpExecArray | null;
   while ((m = re.exec(text)) !== null) {
     const rawKey = m[1].toUpperCase();
     const val = parseFloat(m[2]);
     const key = normalizeKey(rawKey);
     if (!REF_RANGES[key]) continue;
+    if (Number.isNaN(val)) continue;
     const { lo, hi } = REF_RANGES[key];
-    if (isNaN(val)) continue;
     if (val < lo || val > hi) {
       const label = `${key} ${val}`;
       if (!seen.has(label)) {
@@ -128,17 +134,6 @@ function parseBloodworkAbnormals(text: string): string[] {
     }
   }
   return results;
-}
-
-function normalizeKey(k: string): keyof typeof REF_RANGES {
-  const map: Record<string, keyof typeof REF_RANGES> = {
-    WBC: 'WBC', RBC: 'RBC', HGB: 'HGB', HCT: 'HCT', PLT: 'PLT',
-    NEU: 'NEUT', NEUT: 'NEUT', LYMPH: 'LYMPH', MONO: 'MONO', EOS: 'EOS',
-    BUN: 'BUN', CREA: 'CREAT', CREAT: 'CREAT', GLU: 'GLU', ALT: 'ALT',
-    AST: 'AST', ALP: 'ALP', TBIL: 'TBIL', ALB: 'ALB', TP: 'TP',
-    CA: 'CA', PHOS: 'PHOS', NA: 'NA', K: 'K', CL: 'CL'
-  };
-  return (map[k] || (k as any));
 }
 
 /* -----------------------------------------------------------
@@ -153,12 +148,33 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 
   return (
     <svg width={size} height={size} className="transform -rotate-90 text-blue-600">
-      <circle cx={size / 2} cy={size / 2} r={radius} stroke="currentColor" className="text-gray-200"
-              strokeWidth={strokeWidth} fill="none" />
-      <circle cx={size / 2} cy={size / 2} r={radius} stroke="currentColor" className="text-blue-600"
-              strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} fill="none" />
-      <text x="50%" y="50%" className="transform rotate-90 origin-center text-[10px] font-semibold fill-gray-700"
-            textAnchor="middle" dominantBaseline="middle">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="currentColor"
+        className="text-gray-200"
+        strokeWidth={strokeWidth}
+        fill="none"
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        stroke="currentColor"
+        className="text-blue-600"
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={offset}
+        fill="none"
+      />
+      <text
+        x="50%"
+        y="50%"
+        className="transform rotate-90 origin-center text-[10px] font-semibold fill-gray-700"
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
         {Math.round(pct)}%
       </text>
     </svg>
@@ -175,8 +191,6 @@ export default function VetPatientTracker() {
   // Try to sign in anonymously only if truly not logged in yet.
   useEffect(() => {
     if (!user && !isUserLoading) {
-      // Prefer Google sign-in; we still allow anon so the UI loads,
-      // but your data is tied to account only when Google-signed-in.
       initiateAnonymousSignIn(auth);
     }
   }, [user, isUserLoading, auth]);
@@ -225,10 +239,8 @@ export default function VetPatientTracker() {
   // UI State
   const [newPatient, setNewPatient] = useState({ name: '', type: 'Surgery' });
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
-  const [showMorningOverview, setShowMorningOverview] = useState(false);
   const [newGeneralTask, setNewGeneralTask] = useState('');
-
-  const [viewMode, setViewMode] = useState<'full'|'compact'>('full');
+  const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
   const toggleSection = (patientId: string, section: string) => {
@@ -253,8 +265,7 @@ export default function VetPatientTracker() {
       switch (e.key.toLowerCase()) {
         case 'n':
           e.preventDefault();
-          const el = document.getElementById('new-patient-input') as HTMLInputElement | null;
-          el?.focus();
+          (document.getElementById('new-patient-input') as HTMLInputElement | null)?.focus();
           break;
         case 'e':
           e.preventDefault();
@@ -285,10 +296,10 @@ export default function VetPatientTracker() {
 
   // Admit task menus (not auto-added)
   const admitTasks: Record<string, string[]> = {
-    Surgery: ['Surgery Slip','Written on Board','Print 4 Large Stickers','Print 2 Sheets Small Stickers','Print Surgery Sheet'],
-    MRI: ['Blood Work','Chest X-rays','MRI Anesthesia Sheet','NPO','Black Book','Print 5 Stickers','Print 1 Sheet Small Stickers'],
-    Medical: ['Admission SOAP','Treatment Sheet Created','Owner Admission Call'],
-    Other: ['Admission SOAP','Owner Admission Call']
+    Surgery: ['Surgery Slip', 'Written on Board', 'Print 4 Large Stickers', 'Print 2 Sheets Small Stickers', 'Print Surgery Sheet'],
+    MRI: ['Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'NPO', 'Black Book', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers'],
+    Medical: ['Admission SOAP', 'Treatment Sheet Created', 'Owner Admission Call'],
+    Other: ['Admission SOAP', 'Owner Admission Call']
   };
 
   const morningTasks = [
@@ -304,18 +315,6 @@ export default function VetPatientTracker() {
     'Rounding Sheet Done',
     'Sticker on Daily Sheet',
     // No phone call in evening (per your spec)
-  ];
-
-  const commonTasks = [
-    'SOAP Note',
-    'Call Owner',
-    'Discharge',
-    'Discharge Instructions',
-    'Recheck Exam',
-    'Lab Results Review',
-    'Medication Dispensed',
-    'Treatment Sheet Update',
-    'Pain Assessment'
   ];
 
   const statusOptions = [
@@ -369,7 +368,7 @@ export default function VetPatientTracker() {
       addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonMedications`), { name: name.trim() });
     }
   };
-  const deleteCommonItem = (col: 'commonProblems'|'commonComments'|'commonMedications', id: string) => {
+  const deleteCommonItem = (col: 'commonProblems' | 'commonComments' | 'commonMedications', id: string) => {
     if (!firestore || !user) return;
     const ref = doc(firestore, `users/${user.uid}/${col}`, id);
     deleteDocumentNonBlocking(ref);
@@ -548,19 +547,17 @@ export default function VetPatientTracker() {
   const calculateMRIDrugs = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !patient.mriData || !patient.mriData.weight) return;
-  
+
     let weightKg = parseFloat(patient.mriData.weight);
     if (patient.mriData.weightUnit === 'lbs') weightKg = weightKg / 2.20462;
-  
+
     const kgRounded = roundKgToInt(weightKg);
-  
+
+    const name = patient.name || '';
     const id = safeStr(patient.patientInfo?.patientId);
-  
-    // New format: FirstName Last name -> ID -> (kg) -> leave blank -> area scanned
-    const line1 = `${patient.name}\t${id}\t${kgRounded}\t\t${patient.mriData.scanType}`;
-    const line2 = `Pre-med: ${patient.mriData.scanType === 'Brain' ? 'Butorphanol' : 'Methadone'} ${weightKg * 0.2 / 10}mL, Valium ${weightKg * 0.25 / 5}mL, Contrast ${weightKg * 0.22}mL`;
-    const copyableString = `${line1}\n${line2}`;
-  
+    const scanType = patient.mriData.scanType || '';
+    const copyableString = `${name}\t${id}\t${kgRounded}\t\t${scanType}`;
+
     const isBrain = patient.mriData.scanType === 'Brain';
     const preMedDrug = isBrain ? 'Butorphanol' : 'Methadone';
     const preMedDose = weightKg * 0.2;
@@ -568,10 +565,10 @@ export default function VetPatientTracker() {
     const valiumDose = weightKg * 0.25;
     const valiumVolume = valiumDose / 5;
     const contrastVolume = weightKg * 0.22;
-  
+
     const newMriData = {
       ...patient.mriData,
-      weightKg: kgRounded.toString(),
+      weightKg: kgRounded.toString(), // display rounded
       preMedDrug,
       preMedDose: preMedDose.toFixed(2),
       preMedVolume: preMedVolume.toFixed(2),
@@ -579,11 +576,12 @@ export default function VetPatientTracker() {
       valiumVolume: valiumVolume.toFixed(2),
       contrastVolume: contrastVolume.toFixed(1),
       calculated: true,
-      copyableString,
+      copyableString
     };
     updatePatientField(patientId, 'mriData', newMriData);
   };
 
+  // Parse patient details (no AI) and fill info + signalment
   const parsePatientDetails = (patientId: string, detailsText: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !detailsText.trim()) {
@@ -591,18 +589,15 @@ export default function VetPatientTracker() {
       return;
     }
     try {
-      const result = parseSignalment(detailsText);
-      const data = result.data;
+      const { data } = parseSignalment(detailsText);
 
       const newInfo: any = { ...(patient.patientInfo || {}) };
-      if (data.patientId) newInfo.patientId = data.patientId;
-      if (data.ownerName) newInfo.ownerName = data.ownerName;
-      if (data.ownerPhone) newInfo.ownerPhone = data.ownerPhone;
-      if (data.species) newInfo.species = data.species;
-      if (data.breed) newInfo.breed = data.breed;
-      if (data.sex) newInfo.sex = data.sex;
-      if (data.weight) newInfo.weight = data.weight;
-      if (data.age) newInfo.age = data.age;
+      Object.keys(data).forEach(key => {
+        const value = (data as any)[key];
+        if (value !== undefined) {
+          newInfo[key] = value;
+        }
+      });
 
       const newRounding = { ...(patient.roundingData || {}) };
       const parts: string[] = [];
@@ -610,33 +605,31 @@ export default function VetPatientTracker() {
       if (data.sex) parts.push(data.sex);
       if (data.breed) parts.push(data.breed);
       newRounding.signalment = parts.join(' ');
-      
-      const updateData: any = {
+
+      let updates: any = {
         patientInfo: newInfo,
         roundingData: newRounding,
         detailsInput: '',
       };
-  
+
       if (patient.type === 'MRI' && data.weight) {
-        const weightMatch = data.weight.match(/(\d+(?:\.\d+)?)\s*(kg|lb)s?/i);
+        const weightMatch = data.weight.match(/(\d+(?:\.\d+)?)\s*(kg|lbs)/i);
         if (weightMatch) {
-          updateData.mriData = {
-            ...(patient.mriData || {}),
-            weight: weightMatch[1],
-            weightUnit: weightMatch[2].toLowerCase() as 'kg' | 'lbs',
-          };
+          const newMriData = { ...(patient.mriData || {}) };
+          newMriData.weight = weightMatch[1];
+          newMriData.weightUnit = weightMatch[2].toLowerCase();
+          updates.mriData = newMriData;
         }
       }
 
-      updatePatientData(patientId, updateData);
-
+      updatePatientData(patientId, updates);
     } catch (err) {
       console.error(err);
-      alert('Parsing of patient details failed. Please enter the information manually.');
+      alert('Parsing of patient details failed. Please check the log or enter the information manually.');
     }
   };
 
-  // Parse bloodwork (no AI)
+  // Parse bloodwork (LOCAL, no AI)
   const parseBloodWork = (patientId: string, bwText: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !bwText.trim()) {
@@ -644,16 +637,16 @@ export default function VetPatientTracker() {
       return;
     }
     try {
-      const abnormals = parseBloodworkAbnormals(bwText);
+      const abnormalValues = parseBloodworkAbnormals(bwText);
       const currentDx = safeStr(patient.roundingData?.diagnosticFindings);
-      const bwLine = abnormals.length > 0 ? 'CBC/CHEM: ' + abnormals.join(', ') : 'CBC/CHEM: NAD';
+      const bwLine = abnormalValues.length > 0 ? 'CBC/CHEM: ' + abnormalValues.join(', ') : 'CBC/CHEM: NAD';
       const newDx = currentDx ? currentDx + '\n' + bwLine : bwLine;
 
-      updateRoundingData(patientId, 'diagnosticFindings', newDx);
-      updatePatientField(patientId, 'bwInput', '');
+      updateRoundingData(patient.id, 'diagnosticFindings', newDx);
+      updatePatientField(patient.id, 'bwInput', '');
     } catch (e) {
       console.error(e);
-      alert('Analysis failed. Please check the results manually.');
+      alert('Bloodwork parsing failed. Please check the results manually.');
     }
   };
 
@@ -671,11 +664,11 @@ export default function VetPatientTracker() {
     return base;
   };
 
-  // RER (dogs/cats same formula). Show based on species in patientInfo.
-  const calcRER = (species: string, weightStr: string) => {
+  // RER (same formula for canine/feline); shown if species is set.
+  const calcRER = (_species: string, weightStr: string) => {
     const m = weightStr.match(/(\d+(?:\.\d+)?)\s*kg/i);
     const kg = m ? parseFloat(m[1]) : NaN;
-    if (!kg || isNaN(kg)) return '';
+    if (!kg || Number.isNaN(kg)) return '';
     const rer = 70 * Math.pow(kg, 0.75);
     return `${Math.round(rer)} kcal/day`;
   };
@@ -730,9 +723,20 @@ export default function VetPatientTracker() {
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <button onClick={() => toggleAll(true)} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">Expand All</button>
-                <button onClick={() => toggleAll(false)} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">Collapse All</button>
+                <button
+                  onClick={() => toggleAll(true)}
+                  className="px-3 py-1 rounded-md text-sm border bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                >
+                  Expand All
+                </button>
+                <button
+                  onClick={() => toggleAll(false)}
+                  className="px-3 py-1 rounded-md text-sm border bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                >
+                  Collapse All
+                </button>
               </div>
+
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">View:</span>
                 <button
@@ -749,15 +753,15 @@ export default function VetPatientTracker() {
                 </button>
               </div>
 
-              {user && auth ? (
+              {user ? (
                 <button onClick={() => signOutUser(auth)} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">
                   Sign Out
                 </button>
-              ) : auth ? (
+              ) : (
                 <button onClick={() => signInWithGoogle(auth)} className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm">
                   Sign in with Google
                 </button>
-              ): null}
+              )}
             </div>
           </div>
 
@@ -857,11 +861,11 @@ export default function VetPatientTracker() {
               Add
             </button>
           </div>
-          {(generalTasks || []).length === 0 ? (
+          {(generalTasks ?? []).length === 0 ? (
             <p className="text-gray-400 text-sm italic py-2">No general tasks yet. Click quick-add or type a custom task.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {(generalTasks || []).map((task: any) => (
+              {generalTasks.map((task: any) => (
                 <div
                   key={task.id}
                   className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
@@ -885,23 +889,23 @@ export default function VetPatientTracker() {
         </div>
 
         {/* Patients */}
-        {(patients || []).length === 0 ? (
+        {patients.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <p className="text-gray-500 text-lg">No patients added yet. Add your first patient above!</p>
           </div>
         ) : (
           <div className="grid gap-4">
-            {(patients || []).map((patient: any) => {
+            {patients.map((patient: any) => {
               const { completed, total, percentage } = getCompletionStatus(patient);
               const isExpanded = !!expandedPatients[patient.id];
 
               // sort tasks: incomplete first
               const tasksSorted = [...(patient.tasks || [])].sort((a, b) => Number(a.completed) - Number(b.completed));
-              const morningSet = new Set(morningTasks);
-              const eveningSet = new Set(eveningTasks);
-              const patientMorningTasks = tasksSorted.filter(t => morningSet.has(t.name));
-              const patientEveningTasks = tasksSorted.filter(t => eveningSet.has(t.name));
-              const otherTasks = tasksSorted.filter(t => !morningSet.has(t.name) && !eveningSet.has(t.name));
+              const morningTasksSet = new Set(morningTasks);
+              const eveningTasksSet = new Set(eveningTasks);
+              const patientMorningTasks = tasksSorted.filter(t => morningTasksSet.has(t.name));
+              const patientEveningTasks = tasksSorted.filter(t => eveningTasksSet.has(t.name));
+              const otherTasks = tasksSorted.filter(t => !morningTasksSet.has(t.name) && !eveningTasksSet.has(t.name));
 
               const tabs = getTabsForPatient(patient);
               const curTab = activeTab[patient.id] ?? tabs[0];
@@ -1163,9 +1167,9 @@ export default function VetPatientTracker() {
                                   />
                                   <button onClick={() => parsePatientDetails(patient.id, safeStr(patient.detailsInput))}
                                           className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
-                                    Extract Basics (Signalment, Weight, ID, Owner, Possible Meds)
+                                    Extract Basics (Signalment, Weight, ID, Owner)
                                   </button>
-                                  <p className="text-xs text-gray-600 mt-1 italic">No AI — regex only.</p>
+                                  <p className="text-xs text-gray-600 mt-1 italic">Uses non-AI parser for speed and reliability.</p>
                                 </div>
 
                                 {/* Signalment / Location / ICU / Code */}
@@ -1291,7 +1295,7 @@ export default function VetPatientTracker() {
                                       onClick={() => parseBloodWork(patient.id, safeStr(patient.bwInput))}
                                       className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
                                     >
-                                      Extract Abnormals (no ref ranges in output)
+                                      Extract Abnormals
                                     </button>
                                   </div>
                                   <div>
