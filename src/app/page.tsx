@@ -231,6 +231,7 @@ export default function VetPatientTracker() {
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState('');
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
+  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
   const toggleSection = (patientId: string, section: string) => {
@@ -876,6 +877,121 @@ export default function VetPatientTracker() {
             </div>
           )}
         </div>
+ {/* All Tasks Overview Dropdown */}
+ <div className="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
+          <button
+            onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition"
+          >
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-gray-800">All Patient Tasks Overview</h2>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                {patients.reduce((acc, p) => acc + (p.tasks || []).length, 0)} total tasks
+              </span>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                {patients.reduce((acc, p) => acc + (p.tasks || []).filter((t: any) => t.completed).length, 0)} completed
+              </span>
+            </div>
+            <ChevronDown 
+              className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`} 
+              size={24} 
+            />
+          </button>
+
+          {showAllTasksDropdown && (
+            <div className="border-t p-4 bg-gray-50">
+              {patients.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No patients added yet</p>
+              ) : (
+                <div className="space-y-4">
+                  {patients.map((patient: any) => {
+                    const tasksSorted = [...(patient.tasks || [])].sort((a, b) => 
+                      Number(a.completed) - Number(b.completed)
+                    );
+                    const completedCount = tasksSorted.filter(t => t.completed).length;
+                    const totalCount = tasksSorted.length;
+                    const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+                    return (
+                      <div 
+                        key={patient.id} 
+                        className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10">
+                              <ProgressRing percentage={Math.round(percentage)} size={40} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-gray-900">{patient.name}</h3>
+                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                                  {patient.type}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
+                                  {patient.status}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-600 mt-0.5">
+                                {completedCount}/{totalCount} tasks completed
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
+                              setShowAllTasksDropdown(false);
+                              setTimeout(() => {
+                                const element = document.getElementById(`patient-${patient.id}`);
+                                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }, 100);
+                            }}
+                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                          >
+                            Go to Patient
+                          </button>
+                        </div>
+
+                        {totalCount === 0 ? (
+                          <p className="text-gray-400 text-sm italic p-3">No tasks yet</p>
+                        ) : (
+                          <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {tasksSorted.map((task: any) => (
+                              <div
+                                key={task.id}
+                                className={`flex items-center gap-2 p-2 rounded-lg border transition ${
+                                  task.completed 
+                                    ? 'bg-green-50 border-green-300' 
+                                    : 'bg-white border-gray-300'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={task.completed}
+                                  onChange={() => toggleTask(patient.id, task.id)}
+                                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                                />
+                                <span 
+                                  className={`flex-1 text-sm font-medium ${
+                                    task.completed 
+                                      ? 'text-green-800 line-through' 
+                                      : 'text-gray-700'
+                                  }`}
+                                >
+                                  {task.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Patients */}
         {patients.length === 0 ? (
@@ -902,7 +1018,7 @@ export default function VetPatientTracker() {
               const rer = calcRER(safeStr(patient.patientInfo?.species), safeStr(patient.patientInfo?.weight));
 
               return (
-                <div key={patient.id} className={`bg-white rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden`}>
+                <div key={patient.id} id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden`}>
                   {/* Header */}
                   <div className="flex justify-between items-center p-4 border-b">
                     <div className="flex items-center gap-3">
