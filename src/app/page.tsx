@@ -8,7 +8,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { signOutUser, signInWithGoogle } from '@/firebase/auth';
+import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 /* -----------------------------------------------------------
@@ -707,18 +707,12 @@ export default function VetPatientTracker() {
   }
 
   if (!user) {
-    const handleAuth = async (e: React.FormEvent) => {
+    const handleAuth = (e: React.FormEvent) => {
       e.preventDefault();
-      try {
-        if (isSignUp) {
-          const { createUserWithEmailAndPassword } = await import('firebase/auth');
-          await createUserWithEmailAndPassword(auth, email, password);
-        } else {
-          const { signInWithEmailAndPassword } = await import('firebase/auth');
-          await signInWithEmailAndPassword(auth, email, password);
-        }
-      } catch (error: any) {
-        alert(error.message);
+      if (isSignUp) {
+        initiateEmailSignUp(auth, email, password);
+      } else {
+        initiateEmailSignIn(auth, email, password);
       }
     };
 
@@ -803,11 +797,7 @@ export default function VetPatientTracker() {
                 <button onClick={() => signOutUser(auth)} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">
                   Sign Out
                 </button>
-              ) : (
-                <button onClick={() => signInWithGoogle(auth)} className="px-3 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm">
-                  Sign in with Google
-                </button>
-              )}
+              ) : null}
             </div>
           </div>
           {/* Add patient */}
@@ -1807,3 +1797,5 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    

@@ -48,9 +48,19 @@ export async function signOutUser(authInstance: Auth): Promise<void> {
 }
 
 export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  createUserWithEmailAndPassword(authInstance, email, password);
+  createUserWithEmailAndPassword(authInstance, email, password)
+    .catch(error => {
+      console.error("❌ Sign-up error", error);
+      alert(`Account creation failed: ${error.message}`);
+    });
 }
 
 export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  signInWithEmailAndPassword(authInstance, email, password);
+  signInWithEmailAndPassword(authInstance, email, password)
+    .catch(error => {
+      console.error("❌ Sign-in error", error);
+      alert(`Sign-in failed: ${error.message}`);
+    });
 }
+
+    
