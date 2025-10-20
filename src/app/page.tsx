@@ -2,14 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
-import { useUser } from '@/firebase';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { initializeFirebase, useMemoFirebase } from '@/firebase';
 import { signOutUser, signInWithGoogle } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
@@ -181,7 +179,8 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 ----------------------------------------------------------- */
 
 export default function VetPatientTracker() {
-  const { auth, firestore } = initializeFirebase();
+  const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
 
@@ -877,8 +876,8 @@ export default function VetPatientTracker() {
             </div>
           )}
         </div>
- {/* All Tasks Overview Dropdown */}
- <div className="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
+        {/* All Tasks Overview Dropdown */}
+        <div className="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
           <button
             onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
             className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition"
