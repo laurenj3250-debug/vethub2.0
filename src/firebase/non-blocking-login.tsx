@@ -1,10 +1,7 @@
 'use client';
 import {
   Auth, // Import Auth type for type hinting
-  GoogleAuthProvider,
   signInAnonymously,
-  signInWithPopup,
-  signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   // Assume getAuth and app are initialized elsewhere
@@ -29,30 +26,4 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
   // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
   signInWithEmailAndPassword(authInstance, email, password);
   // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
-}
-
-/**
- * Google sign-in with durable browser session.
- * Call like: signInWithGoogle(auth)
- */
-export async function signInWithGoogle(authInstance: Auth): Promise<void> {
-  const provider = new GoogleAuthProvider();
-  try {
-    await signInWithPopup(authInstance, provider);
-  } catch (error) {
-    // Don’t crash UI – just log (and you can toast if you want)
-    console.error('Google sign-in error', error);
-  }
-}
-
-/**
- * Sign out current user.
- * Call like: signOutUser(auth)
- */
-export async function signOutUser(authInstance: Auth): Promise<void> {
-  try {
-    await signOut(authInstance);
-  } catch (error) {
-    console.error('Sign-out error', error);
-  }
 }

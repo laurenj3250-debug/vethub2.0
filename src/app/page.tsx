@@ -9,9 +9,8 @@ import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
-  signOutUser,
-  signInWithGoogle,
 } from '@/firebase';
+import { signOutUser, signInWithGoogle } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 /* -----------------------------------------------------------
