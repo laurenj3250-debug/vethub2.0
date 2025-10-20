@@ -3,6 +3,7 @@
 import {
   Auth,
   GoogleAuthProvider,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
   setPersistence,
@@ -11,41 +12,45 @@ import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
 
-/**
- * Google sign-in with redirect (works everywhere).
- */
 export async function signInWithGoogle(authInstance: Auth): Promise<void> {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
 
   try {
-    // This is crucial for web to keep the user signed in.
     await setPersistence(authInstance, browserLocalPersistence);
-    await signInWithRedirect(authInstance, provider);
-  } catch (error) {
-    console.error('Google sign-in error', error);
-    // Using alert for visibility in demo environments
-    alert(`Sign-in failed: ${(error as Error).message}`);
+    console.log('🔄 Attempting popup sign-in...');
+    await signInWithPopup(authInstance, provider);
+    console.log('✅ Popup sign-in successful');
+  } catch (error: any) {
+    console.error('❌ Popup failed:', error.code);
+    
+    if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+      console.log('🔀 Switching to redirect...');
+      try {
+        await signInWithRedirect(authInstance, provider);
+      } catch (redirectError) {
+        console.error('❌ Redirect also failed:', redirectError);
+        alert('Sign-in failed. Please try again.');
+      }
+    } else {
+      alert(`Sign-in failed: ${error.message}`);
+    }
   }
 }
 
-/**
- * Sign out current user.
- */
 export async function signOutUser(authInstance: Auth): Promise<void> {
   try {
     await signOut(authInstance);
+    console.log('✅ Sign-out successful');
   } catch (error) {
-    console.error('Sign-out error', error);
+    console.error('❌ Sign-out error', error);
   }
 }
 
-/** Email/password sign-up */
 export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
   createUserWithEmailAndPassword(authInstance, email, password);
 }
 
-/** Email/password sign-in */
 export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
   signInWithEmailAndPassword(authInstance, email, password);
 }

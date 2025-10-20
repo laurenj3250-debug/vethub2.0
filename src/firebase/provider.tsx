@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -64,51 +64,36 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    // Set loading state at the start
-    setUserAuthState(prev => ({ ...prev, isUserLoading: true, userError: null }));
+    let unsubscribe: (() => void) | null = null;
 
-    // This handles the result from a redirect sign-in flow.
     getRedirectResult(auth)
       .then((result) => {
         if (result) {
-          // User successfully signed in via redirect.
-          const user = result.user;
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          console.log('✅ Redirect sign-in successful:', user.email);
-          if (credential) {
-            console.log('Credential obtained from redirect.');
-          }
-          // onAuthStateChanged will handle setting the user state.
+          console.log('✅ Got redirect result:', result.user.email);
         } else {
-          // This block runs on initial page load when there's no redirect.
-          // We check if there's already a signed-in user.
-          if (auth.currentUser) {
-             setUserAuthState({ user: auth.currentUser, isUserLoading: false, userError: null });
-          }
+          console.log('ℹ️ No redirect result found');
         }
+        
+        unsubscribe = onAuthStateChanged(
+          auth,
+          (firebaseUser) => {
+            console.log('👤 Auth state:', firebaseUser?.email || 'not signed in');
+            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+          },
+          (error) => {
+            console.error("❌ Auth error:", error);
+            setUserAuthState({ user: null, isUserLoading: false, userError: error });
+          }
+        );
       })
       .catch((error) => {
-        console.error('Redirect result error:', error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      })
-      .finally(() => {
-        // Only set loading to false if onAuthStateChanged hasn't already
-        setUserAuthState(prev => ({ ...prev, isUserLoading: false }));
+        console.error('❌ Redirect error:', error);
+        setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
       });
 
-
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (firebaseUser) => {
-        console.log('Auth state changed. User:', firebaseUser?.email || 'null');
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-      },
-      (error) => {
-        console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
-      }
-    );
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [auth]);
 
   const contextValue = useMemo((): FirebaseContextState => {

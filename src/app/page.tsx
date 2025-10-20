@@ -233,6 +233,11 @@ export default function VetPatientTracker() {
   const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
+  
+  // Add these three new ones:
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -690,12 +695,63 @@ export default function VetPatientTracker() {
 
   /* --------------------- UI --------------------- */
 
-  if (isUserLoading || isLoadingPatients || isLoadingGeneralTasks || isLoadingCommonProblems || isLoadingCommonComments || isLoadingCommonMedications) {
+  if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="text-center">
           <p className="text-xl font-semibold text-gray-700">Loading your VetCare Hub...</p>
           <p className="text-gray-500">One sec.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    const handleAuth = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        if (isSignUp) {
+          const { createUserWithEmailAndPassword } = await import('firebase/auth');
+          await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+          const { signInWithEmailAndPassword } = await import('firebase/auth');
+          await signInWithEmailAndPassword(auth, email, password);
+        }
+      } catch (error: any) {
+        alert(error.message);
+      }
+    };
+
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4 text-center">RBVH Patient Task Manager</h1>
+          <p className="text-gray-600 mb-6 text-center">{isSignUp ? 'Create Account' : 'Sign In'}</p>
+          <form onSubmit={handleAuth} className="space-y-4">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              required
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password (min 6 characters)"
+              required
+              minLength={6}
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+            <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+              {isSignUp ? 'Sign Up' : 'Sign In'}
+            </button>
+          </form>
+          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-sm text-blue-600">
+            {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+          </button>
         </div>
       </div>
     );
