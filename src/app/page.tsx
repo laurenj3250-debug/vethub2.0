@@ -9,7 +9,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase, useMemoFirebase } from '@/firebase';
 import { signOutUser, signInWithGoogle } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
@@ -186,7 +186,7 @@ export default function VetPatientTracker() {
 
 
   // Firestore queries scoped to user
-  const patientsQuery = useMemo(() => {
+  const patientsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/patients`));
   }, [firestore, user]);
@@ -194,7 +194,7 @@ export default function VetPatientTracker() {
   const patients = patientsRes?.data ?? [];
   const isLoadingPatients = patientsRes?.isLoading ?? false;
 
-  const generalTasksQuery = useMemo(() => {
+  const generalTasksQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/generalTasks`));
   }, [firestore, user]);
@@ -202,7 +202,7 @@ export default function VetPatientTracker() {
   const generalTasks = generalTasksRes?.data ?? [];
   const isLoadingGeneralTasks = generalTasksRes?.isLoading ?? false;
 
-  const commonProblemsQuery = useMemo(() => {
+  const commonProblemsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/commonProblems`));
   }, [firestore, user]);
@@ -210,7 +210,7 @@ export default function VetPatientTracker() {
   const commonProblems = commonProblemsRes?.data ?? [];
   const isLoadingCommonProblems = commonProblemsRes?.isLoading ?? false;
 
-  const commonCommentsQuery = useMemo(() => {
+  const commonCommentsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/commonComments`));
   }, [firestore, user]);
@@ -218,7 +218,7 @@ export default function VetPatientTracker() {
   const commonComments = commonCommentsRes?.data ?? [];
   const isLoadingCommonComments = commonCommentsRes?.isLoading ?? false;
 
-  const commonMedicationsQuery = useMemo(() => {
+  const commonMedicationsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/commonMedications`));
   }, [firestore, user]);
