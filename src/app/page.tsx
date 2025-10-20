@@ -9,15 +9,11 @@ import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
-  initiateAnonymousSignIn,
   signOutUser,
+  signInWithGoogle,
 } from '@/firebase';
-import { signInWithGoogle } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
-// ⛔️ Removed AI import. We use the local parser below.
-// import { analyzeBloodWork } from '@/ai/flows/analyze-blood-work-for-abnormalities';
-
 /* -----------------------------------------------------------
    Helpers: safe guards and formatting
 ----------------------------------------------------------- */
@@ -188,12 +184,6 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 export default function VetPatientTracker() {
   const { firestore, auth, user, isUserLoading } = useFirebase();
 
-  // Try to sign in anonymously only if truly not logged in yet.
-  useEffect(() => {
-    if (!user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
-    }
-  }, [user, isUserLoading, auth]);
 
   // Firestore queries scoped to user
   const patientsQuery = useMemoFirebase(() => {
@@ -764,7 +754,6 @@ export default function VetPatientTracker() {
               )}
             </div>
           </div>
-
           {/* Add patient */}
           <div className="flex gap-2">
             <input
