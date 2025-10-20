@@ -2,14 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { useCollection } from '@/firebase/firestore/use-collection';
 import {
-  useFirebase,
-  useCollection,
-  useMemoFirebase,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
-} from '@/firebase';
+} from '@/firebase/non-blocking-updates';
+import { initializeFirebase } from '@/firebase';
 import { signOutUser, signInWithGoogle } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
@@ -181,11 +181,12 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 ----------------------------------------------------------- */
 
 export default function VetPatientTracker() {
-  const { firestore, auth, user, isUserLoading } = useFirebase();
+  const { auth, firestore } = initializeFirebase();
+  const { user, isUserLoading } = useUser();
 
 
   // Firestore queries scoped to user
-  const patientsQuery = useMemoFirebase(() => {
+  const patientsQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/patients`));
   }, [firestore, user]);
@@ -193,7 +194,7 @@ export default function VetPatientTracker() {
   const patients = patientsRes?.data ?? [];
   const isLoadingPatients = patientsRes?.isLoading ?? false;
 
-  const generalTasksQuery = useMemoFirebase(() => {
+  const generalTasksQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/generalTasks`));
   }, [firestore, user]);
@@ -201,7 +202,7 @@ export default function VetPatientTracker() {
   const generalTasks = generalTasksRes?.data ?? [];
   const isLoadingGeneralTasks = generalTasksRes?.isLoading ?? false;
 
-  const commonProblemsQuery = useMemoFirebase(() => {
+  const commonProblemsQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/commonProblems`));
   }, [firestore, user]);
@@ -209,7 +210,7 @@ export default function VetPatientTracker() {
   const commonProblems = commonProblemsRes?.data ?? [];
   const isLoadingCommonProblems = commonProblemsRes?.isLoading ?? false;
 
-  const commonCommentsQuery = useMemoFirebase(() => {
+  const commonCommentsQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/commonComments`));
   }, [firestore, user]);
@@ -217,7 +218,7 @@ export default function VetPatientTracker() {
   const commonComments = commonCommentsRes?.data ?? [];
   const isLoadingCommonComments = commonCommentsRes?.isLoading ?? false;
 
-  const commonMedicationsQuery = useMemoFirebase(() => {
+  const commonMedicationsQuery = useMemo(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, `users/${user.uid}/commonMedications`));
   }, [firestore, user]);
