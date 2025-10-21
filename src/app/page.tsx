@@ -50,7 +50,7 @@ const getStatusColor = (status: string) => {
 };
 
 const getPriorityColor = (patient: any) => {
-  if (patient.status === 'In Procedure') return 'border-l-4 border-red-500';
+  if (patient.status === 'In Procedure') return 'border-l-4 border-orange-500';
   if (patient.status === 'Pre-procedure') return 'border-l-4 border-yellow-500';
   if (patient.status === 'Ready for Discharge') return 'border-l-4 border-green-500';
   return 'border-l-4 border-gray-300';
@@ -350,6 +350,9 @@ export default function VetPatientTracker() {
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [roundingViewMode, setRoundingViewMode] = useState<'tsv' | 'table'>('tsv');
   const [patientOrder, setPatientOrder] = useState<string[]>([]);
+  const [showRoundingSheet, setShowRoundingSheet] = useState(true);
+  const [showMedCalculator, setShowMedCalculator] = useState(false);
+  const [medCalcWeight, setMedCalcWeight] = useState('');
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -1065,14 +1068,116 @@ export default function VetPatientTracker() {
           </div>
         </div>
 
+        {/* Medication Calculator */}
+        <div className="w-full bg-white rounded-lg shadow p-4 mb-4 border-l-4 border-cyan-400">
+          <button
+            onClick={() => setShowMedCalculator(!showMedCalculator)}
+            className="w-full flex items-center justify-between hover:bg-gray-50 px-2 py-1 rounded transition mb-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-semibold text-gray-800">💊 Medication Calculator & Discharge Templates</span>
+            </div>
+            <ChevronDown className={`transition-transform ${showMedCalculator ? 'rotate-180' : ''}`} size={20} />
+          </button>
+
+          {showMedCalculator && (
+            <div className="space-y-4">
+              {/* Weight Input */}
+              <div className="p-3 bg-cyan-50 rounded-lg border border-cyan-200">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Patient Weight (kg)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={medCalcWeight}
+                  onChange={(e) => setMedCalcWeight(e.target.value)}
+                  placeholder="Enter weight in kg..."
+                  className="w-full px-3 py-2 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                />
+              </div>
+
+              {/* Oral Medications Table */}
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-gradient-to-r from-cyan-100 to-blue-100">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-semibold border-b">Medication</th>
+                      <th className="px-4 py-2 text-left font-semibold border-b">Dose</th>
+                      {medCalcWeight && <th className="px-4 py-2 text-left font-semibold border-b">Calculated Dose</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: 'Omeprazole', dose: '1 mg/kg SID', calc: (w: number) => `${(w * 1).toFixed(1)} mg SID` },
+                      { name: 'Metronidazole', dose: '10 mg/kg BID (DO NOT EXCEED 15)', calc: (w: number) => `${Math.min(w * 10, 15).toFixed(1)} mg BID` },
+                      { name: 'Clavamox', dose: '13.75 mg/kg BID', calc: (w: number) => `${(w * 13.75).toFixed(1)} mg BID` },
+                      { name: 'Cephalexin', dose: '20-30 mg/kg BID', calc: (w: number) => `${(w * 20).toFixed(1)}-${(w * 30).toFixed(1)} mg BID` },
+                      { name: 'Doxycycline', dose: '5 mg/kg BID or 10 mg/kg SID', calc: (w: number) => `${(w * 5).toFixed(1)} mg BID or ${(w * 10).toFixed(1)} mg SID` },
+                      { name: 'Clindamycin', dose: '12-15 mg/kg BID', calc: (w: number) => `${(w * 12).toFixed(1)}-${(w * 15).toFixed(1)} mg BID` },
+                      { name: 'Enrofloxacin', dose: '5-10 mg/kg SID', calc: (w: number) => `${(w * 5).toFixed(1)}-${(w * 10).toFixed(1)} mg SID` },
+                      { name: 'Amantadine', dose: '3-5 mg/kg BID', calc: (w: number) => `${(w * 3).toFixed(1)}-${(w * 5).toFixed(1)} mg BID` },
+                    ].map((med, idx) => {
+                      const weight = parseFloat(medCalcWeight);
+                      return (
+                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <td className="px-4 py-2 border-b font-medium">{med.name}</td>
+                          <td className="px-4 py-2 border-b text-gray-600">{med.dose}</td>
+                          {medCalcWeight && !isNaN(weight) && (
+                            <td className="px-4 py-2 border-b font-semibold text-cyan-700">
+                              {med.calc(weight)}
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Discharge Templates by Weight */}
+              {medCalcWeight && (() => {
+                const weight = parseFloat(medCalcWeight);
+                if (isNaN(weight)) return null;
+
+                let template = '';
+                if (weight < 7) template = '< 7kg';
+                else if (weight <= 9) template = '7-9kg';
+                else if (weight <= 12) template = '10-12kg';
+                else if (weight <= 15) template = '13-15kg';
+                else if (weight <= 20) template = '16-20kg';
+                else if (weight <= 26) template = '21-26kg';
+                else if (weight <= 30) template = '27-30kg';
+                else if (weight <= 39) template = '> 30kg';
+                else if (weight <= 54) template = '40-54kg';
+                else template = '> 55kg';
+
+                return (
+                  <div className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-300">
+                    <h3 className="font-bold text-lg mb-2 text-cyan-900">
+                      Suggested Discharge Template for {weight.toFixed(1)}kg ({template})
+                    </h3>
+                    <div className="text-sm text-gray-700 space-y-2 font-mono bg-white p-3 rounded border">
+                      <p className="font-semibold">Weight Range: {template}</p>
+                      <p className="text-xs text-gray-500 italic">See full discharge instructions template in reference section</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+
         {/* Rounding sheet with table/TSV toggle */}
         {(patients || []).length > 0 && (
           <div className="w-full bg-white rounded-lg shadow p-4 mb-4 border-l-4 border-pink-400">
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowRoundingSheet(!showRoundingSheet)}
+                className="flex items-center gap-2 hover:bg-gray-50 px-2 py-1 rounded transition"
+              >
                 <span className="text-sm font-semibold text-gray-700">Rounding Sheet</span>
                 <span className="text-lg">📋</span>
-              </div>
+                <ChevronDown className={`transition-transform ${showRoundingSheet ? 'rotate-180' : ''}`} size={20} />
+              </button>
               <div className="flex items-center gap-2">
                 <div className="flex items-center border rounded-lg overflow-hidden">
                   <button
@@ -1121,7 +1226,7 @@ export default function VetPatientTracker() {
               </div>
             </div>
 
-            {roundingViewMode === 'tsv' ? (
+            {showRoundingSheet && (roundingViewMode === 'tsv' ? (
               <textarea
                 readOnly
                 value={roundingTSV}
@@ -1168,7 +1273,7 @@ export default function VetPatientTracker() {
                   </tbody>
                 </table>
               </div>
-            )}
+            ))}
           </div>
         )}
 
@@ -1223,7 +1328,7 @@ export default function VetPatientTracker() {
                   <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
                     {task.name}
                   </span>
-                  <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-red-600 transition">
+                  <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
                     <X size={16} />
                   </button>
                 </div>
@@ -1428,7 +1533,7 @@ export default function VetPatientTracker() {
                       >
                         {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <button onClick={() => removePatient(patient.id)} className="text-red-500 hover:text-red-700 p-2" title="Remove patient">
+                      <button onClick={() => removePatient(patient.id)} className="text-purple-500 hover:text-purple-700 p-2" title="Remove patient">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -1519,7 +1624,7 @@ export default function VetPatientTracker() {
                                       <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
                                         {task.name}
                                       </span>
-                                      <button onClick={() => removeTask(patient.id, task.id)} className="text-gray-400 hover:text-red-600 transition">
+                                      <button onClick={() => removeTask(patient.id, task.id)} className="text-gray-400 hover:text-purple-600 transition">
                                         <X size={16} />
                                       </button>
                                     </div>
@@ -1691,7 +1796,7 @@ export default function VetPatientTracker() {
                                         </button>
                                         <button
                                           onClick={() => deleteCommonItem('commonProblems', pr.id)}
-                                          className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                          className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                           ×
                                         </button>
@@ -1836,7 +1941,7 @@ export default function VetPatientTracker() {
                                         </button>
                                         <button
                                           onClick={() => deleteCommonItem('commonMedications', med.id)}
-                                          className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                          className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                           ×
                                         </button>
@@ -1959,7 +2064,7 @@ export default function VetPatientTracker() {
                                         </button>
                                         <button
                                           onClick={() => deleteCommonItem('commonComments', c.id)}
-                                          className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                          className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                           ×
                                         </button>
@@ -2115,7 +2220,7 @@ export default function VetPatientTracker() {
             <span className="text-lg">☀️</span>
             Morning to All
           </button>
-          <div className="text-4xl animate-bounce cursor-pointer" title="You're doing great! 🐱">
+          <div className="text-4xl cursor-pointer" title="You're doing great! 🐱">
             🐱
           </div>
         </div>
