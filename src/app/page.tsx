@@ -1573,65 +1573,78 @@ export default function VetPatientTracker() {
                       <div className="space-y-3">
                         {/* TASKS */}
                         {curTab === 'Tasks' && (
-                          <div className="border rounded-lg">
-                            <button onClick={() => toggleSection(patient.id, 'tasks')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                              <span className="font-semibold">Tasks ({completed}/{total})</span>
-                              <ChevronDown className={expandedSections[patient.id]?.tasks ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                            </button>
-                            {expandedSections[patient.id]?.tasks && (
-                              <div className="p-3 border-t space-y-3">
-                                {patient.status === 'New Admit' && (
-                                  <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                                    <h4 className="text-sm font-semibold text-amber-900 mb-2">
-                                      New Admit Quick-Add Tasks — {patient.type}
-                                    </h4>
-                                    <div className="flex flex-wrap gap-2">
-                                      {admitTasks[patient.type].map(task => (
-                                        <button
-                                          key={task}
-                                          onClick={() => addTaskToPatient(patient.id, task)}
-                                          className="px-3 py-1 text-sm bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition font-medium"
-                                        >
-                                          + {task}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-2">
-                                  <button onClick={() => addMorningTasks(patient.id)} className="px-3 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition font-medium">
-                                    Add Morning Tasks
-                                  </button>
-                                  <button onClick={() => addEveningTasks(patient.id)} className="px-3 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition font-medium">
-                                    Add Evening Tasks
-                                  </button>
-                                </div>
-                                <button onClick={() => resetDailyTasks(patient.id)} className="w-full px-3 py-1 text-xs bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-medium">
-                                  Clear All Daily Tasks
+                          <div className="space-y-2">
+                            {/* Quick action buttons - compact */}
+                            <div className="flex flex-wrap gap-1">
+                              <button onClick={() => addMorningTasks(patient.id)} className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600">
+                                + Morning
+                              </button>
+                              <button onClick={() => addEveningTasks(patient.id)} className="px-2 py-1 text-xs bg-indigo-500 text-white rounded hover:bg-indigo-600">
+                                + Evening
+                              </button>
+                              {patient.status === 'New Admit' && admitTasks[patient.type].map(task => (
+                                <button
+                                  key={task}
+                                  onClick={() => addTaskToPatient(patient.id, task)}
+                                  className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
+                                >
+                                  + {task}
                                 </button>
+                              ))}
+                              <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500 ml-auto">
+                                Clear Daily
+                              </button>
+                            </div>
 
-                                {/* Render tasks — incomplete first (already sorted) */}
-                                <div className="space-y-2">
-                                  {tasksSorted.map((task: any) => (
-                                    <div key={task.id} className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}>
-                                      <input
-                                        type="checkbox"
-                                        checked={task.completed}
-                                        onChange={() => toggleTask(patient.id, task.id)}
-                                        className="w-4 h-4 text-blue-600 rounded"
-                                      />
-                                      <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
-                                        {task.name}
-                                      </span>
-                                      <button onClick={() => removeTask(patient.id, task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                                        <X size={16} />
-                                      </button>
-                                    </div>
-                                  ))}
+                            {/* Custom task input */}
+                            <div className="flex gap-1">
+                              <input
+                                type="text"
+                                placeholder="Add custom task..."
+                                className="flex-1 px-2 py-1 text-xs border rounded focus:ring-1 focus:ring-purple-500"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                                    addTaskToPatient(patient.id, e.currentTarget.value.trim());
+                                    e.currentTarget.value = '';
+                                  }
+                                }}
+                              />
+                              <button
+                                onClick={(e) => {
+                                  const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                  if (input.value.trim()) {
+                                    addTaskToPatient(patient.id, input.value.trim());
+                                    input.value = '';
+                                  }
+                                }}
+                                className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700"
+                              >
+                                Add
+                              </button>
+                            </div>
+
+                            {/* Tasks list - compact grid */}
+                            <div className="grid grid-cols-2 gap-1">
+                              {tasksSorted.map((task: any) => (
+                                <div key={task.id} className={'flex items-center gap-1 px-2 py-1 rounded text-xs border ' + (task.completed ? 'bg-green-50 border-green-300 line-through text-green-700' : 'bg-white border-gray-200')}>
+                                  <input
+                                    type="checkbox"
+                                    checked={task.completed}
+                                    onChange={() => toggleTask(patient.id, task.id)}
+                                    className="w-3 h-3 rounded"
+                                  />
+                                  <span className="flex-1 truncate" title={task.name}>
+                                    {task.name}
+                                  </span>
+                                  <button onClick={() => removeTask(patient.id, task.id)} className="text-gray-400 hover:text-purple-600">
+                                    <X size={12} />
+                                  </button>
                                 </div>
-                              </div>
-                            )}
+                              ))}
+                            </div>
+                            <div className="text-xs text-gray-500 text-right">
+                              {completed}/{total} completed
+                            </div>
                           </div>
                         )}
 
