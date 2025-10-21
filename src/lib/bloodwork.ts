@@ -1,47 +1,89 @@
 'use client';
 
-export type AnalyzeBloodWorkInput = { bloodWorkText: string };
+export type AnalyzeBloodWorkInput = { bloodWorkText: string; species?: string };
 export type AnalyzeBloodWorkOutput = { abnormalValues: string[] };
 
-// Dog defaults; tweak if you need species switching later
-const RANGES: Record<string, { min: number; max: number; aliases: string[] }> = {
-  WBC: { min: 6, max: 17, aliases: ['WBC'] },
-  RBC: { min: 5.5, max: 8.5, aliases: ['RBC'] },
-  HGB: { min: 12, max: 18, aliases: ['HGB', 'Hgb', 'Hb'] },
-  HCT: { min: 37, max: 55, aliases: ['HCT', 'PCV'] },
-  PLT: { min: 200, max: 500, aliases: ['PLT', 'Platelets'] },
-  NEUT: { min: 3, max: 12, aliases: ['NEUT', 'Neut', 'Neutrophils'] },
-  LYMPH: { min: 1, max: 5, aliases: ['LYMPH', 'Lymph', 'Lymphocytes'] },
-  MONO: { min: 0.2, max: 1.5, aliases: ['MONO', 'Mono', 'Monocytes'] },
-  EOS: { min: 0, max: 1, aliases: ['EOS', 'Eos', 'Eosinophils'] },
-  BUN: { min: 7, max: 27, aliases: ['BUN', 'Urea'] },
-  CREAT: { min: 0.5, max: 1.8, aliases: ['CREAT', 'Creat', 'Creatinine'] },
-  GLU: { min: 70, max: 143, aliases: ['GLU', 'Glucose'] },
-  ALT: { min: 10, max: 125, aliases: ['ALT'] },
-  AST: { min: 0, max: 50, aliases: ['AST'] },
-  ALP: { min: 23, max: 212, aliases: ['ALP', 'Alk Phos', 'ALPase'] },
-  TBIL: { min: 0, max: 0.9, aliases: ['TBIL', 'T. Bil', 'Total Bilirubin'] },
-  ALB: { min: 2.3, max: 4, aliases: ['ALB', 'Albumin'] },
-  TP: { min: 5.2, max: 8.2, aliases: ['TP', 'Total Protein', 'T. Prot'] },
-  CA: { min: 9, max: 11.3, aliases: ['CA', 'Calcium'] },
-  PHOS: { min: 2.5, max: 6.8, aliases: ['PHOS', 'Phosphorus', 'PO4'] },
-  NA: { min: 144, max: 160, aliases: ['NA', 'Sodium'] },
-  K: { min: 3.5, max: 5.8, aliases: ['K', 'Potassium'] },
-  CL: { min: 109, max: 122, aliases: ['CL', 'Chloride'] },
+// IDEXX Reference Ranges - Updated 2025
+const CANINE_RANGES: Record<string, { min: number; max: number; aliases: string[] }> = {
+  RBC: { min: 5.84, max: 8.95, aliases: ['RBC'] },
+  HCT: { min: 41, max: 60, aliases: ['HCT', 'Hematocrit', 'PCV'] },
+  HGB: { min: 14.6, max: 21.7, aliases: ['HGB', 'Hgb', 'Hemoglobin'] },
+  WBC: { min: 5.8, max: 16.2, aliases: ['WBC'] },
+  NEUT: { min: 3.004, max: 9.741, aliases: ['NEUT', 'Neutrophils'] },
+  LYMPH: { min: 0.98, max: 4.2, aliases: ['LYMPH', 'Lymphocytes'] },
+  MONO: { min: 0.145, max: 0.736, aliases: ['MONO', 'Monocytes'] },
+  EOS: { min: 0.141, max: 1.927, aliases: ['EOS', 'Eosinophils'] },
+  PLT: { min: 120, max: 412, aliases: ['PLT', 'Platelets'] },
+  GLU: { min: 63, max: 114, aliases: ['GLU', 'Glucose'] },
+  SDMA: { min: 0, max: 14, aliases: ['SDMA', 'IDEXX SDMA'] },
+  CREAT: { min: 0.5, max: 1.5, aliases: ['CREAT', 'Creatinine'] },
+  BUN: { min: 9, max: 31, aliases: ['BUN'] },
+  PHOS: { min: 2.5, max: 6.1, aliases: ['PHOS', 'Phosphorus'] },
+  CA: { min: 8.4, max: 11.8, aliases: ['CA', 'Calcium'] },
+  NA: { min: 142, max: 152, aliases: ['NA', 'Sodium'] },
+  K: { min: 4, max: 5.4, aliases: ['K', 'Potassium'] },
+  CL: { min: 108, max: 119, aliases: ['CL', 'Chloride'] },
+  TP: { min: 5.5, max: 7.5, aliases: ['TP', 'Total Protein'] },
+  ALB: { min: 2.7, max: 3.9, aliases: ['ALB', 'Albumin'] },
+  GLOB: { min: 2.4, max: 4, aliases: ['GLOB', 'Globulin'] },
+  ALT: { min: 18, max: 121, aliases: ['ALT'] },
+  AST: { min: 16, max: 55, aliases: ['AST'] },
+  ALP: { min: 5, max: 160, aliases: ['ALP', 'Alk Phos'] },
+  CHOL: { min: 131, max: 345, aliases: ['CHOL', 'Cholesterol'] },
 };
 
-const ALIAS_INDEX: Record<string, string> = Object.entries(RANGES).reduce((acc, [k, v]) => {
-  v.aliases.forEach(a => acc[a.toLowerCase()] = k);
-  return acc;
-}, {} as Record<string, string>);
+const FELINE_RANGES: Record<string, { min: number; max: number; aliases: string[] }> = {
+  RBC: { min: 6.5, max: 11.53, aliases: ['RBC'] },
+  HCT: { min: 31, max: 51, aliases: ['HCT', 'Hematocrit', 'PCV'] },
+  HGB: { min: 10.6, max: 16.7, aliases: ['HGB', 'Hgb', 'Hemoglobin'] },
+  WBC: { min: 3.9, max: 19, aliases: ['WBC'] },
+  NEUT: { min: 2.62, max: 15.17, aliases: ['NEUT', 'Neutrophils'] },
+  LYMPH: { min: 0.65, max: 6.86, aliases: ['LYMPH', 'Lymphocytes'] },
+  MONO: { min: 0.042, max: 0.467, aliases: ['MONO', 'Monocytes'] },
+  EOS: { min: 0.209, max: 1.214, aliases: ['EOS', 'Eosinophils'] },
+  PLT: { min: 100, max: 440, aliases: ['PLT', 'Platelets'] },
+  GLU: { min: 72, max: 175, aliases: ['GLU', 'Glucose'] },
+  SDMA: { min: 0, max: 14, aliases: ['SDMA', 'IDEXX SDMA'] },
+  CREAT: { min: 0.9, max: 2.3, aliases: ['CREAT', 'Creatinine'] },
+  BUN: { min: 16, max: 37, aliases: ['BUN'] },
+  PHOS: { min: 2.9, max: 6.3, aliases: ['PHOS', 'Phosphorus'] },
+  CA: { min: 8.2, max: 11.2, aliases: ['CA', 'Calcium'] },
+  NA: { min: 147, max: 157, aliases: ['NA', 'Sodium'] },
+  K: { min: 3.7, max: 5.2, aliases: ['K', 'Potassium'] },
+  CL: { min: 114, max: 126, aliases: ['CL', 'Chloride'] },
+  TP: { min: 6.3, max: 8.8, aliases: ['TP', 'Total Protein'] },
+  ALB: { min: 2.6, max: 3.9, aliases: ['ALB', 'Albumin'] },
+  GLOB: { min: 3, max: 5.9, aliases: ['GLOB', 'Globulin'] },
+  ALT: { min: 27, max: 158, aliases: ['ALT'] },
+  AST: { min: 16, max: 67, aliases: ['AST'] },
+  ALP: { min: 12, max: 59, aliases: ['ALP', 'Alk Phos'] },
+  CHOL: { min: 91, max: 305, aliases: ['CHOL', 'Cholesterol'] },
+};
 
-const VALUE_RE = new RegExp(
-  `\\b(${Object.values(RANGES).flatMap(r => r.aliases).map(s => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')).join('|')})\\s*[:=\\-–]?\\s*([<>]?-?\\d+(?:\\.\\d+)?)`,
-  'gi'
-);
+function buildAliasIndex(ranges: Record<string, { min: number; max: number; aliases: string[] }>) {
+  return Object.entries(ranges).reduce((acc, [k, v]) => {
+    v.aliases.forEach(a => acc[a.toLowerCase()] = k);
+    return acc;
+  }, {} as Record<string, string>);
+}
+
+function buildValueRegex(ranges: Record<string, { min: number; max: number; aliases: string[] }>) {
+  return new RegExp(
+    `\\b(${Object.values(ranges).flatMap(r => r.aliases).map(s => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')).join('|')})\\s*[:=\\-–]?\\s*([<>]?-?\\d+(?:\\.\\d+)?)`,
+    'gi'
+  );
+}
 
 export function analyzeBloodWorkLocal(input: AnalyzeBloodWorkInput): AnalyzeBloodWorkOutput {
   const text = input.bloodWorkText || '';
+  const species = (input.species || '').toLowerCase();
+
+  // Determine which ranges to use based on species
+  const isFeline = species.includes('feline') || species.includes('cat') || species.includes('fe');
+  const RANGES = isFeline ? FELINE_RANGES : CANINE_RANGES;
+  const ALIAS_INDEX = buildAliasIndex(RANGES);
+  const VALUE_RE = buildValueRegex(RANGES);
+
   const latest: Record<string, number> = {};
   let m: RegExpExecArray | null;
 
@@ -57,7 +99,10 @@ export function analyzeBloodWorkLocal(input: AnalyzeBloodWorkInput): AnalyzeBloo
   for (const [key, val] of Object.entries(latest)) {
     const r = RANGES[key];
     if (!r) continue;
-    if (val < r.min || val > r.max) abnormalValues.push(`${key} ${val}`);
+    if (val < r.min || val > r.max) {
+      const direction = val < r.min ? '↓' : '↑';
+      abnormalValues.push(`${key} ${val} ${direction}`);
+    }
   }
 
   return { abnormalValues };

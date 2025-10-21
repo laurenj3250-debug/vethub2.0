@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
   DndContext,
@@ -28,6 +28,80 @@ import {
 import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase/auth';
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
+import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
+
+/* -----------------------------------------------------------
+   Kitty Fireworks Component
+----------------------------------------------------------- */
+interface KittyFireworksProps {
+  show: boolean;
+  onComplete: () => void;
+}
+
+function KittyFireworks({ show, onComplete }: KittyFireworksProps) {
+  useEffect(() => {
+    if (show) {
+      const timer = setTimeout(onComplete, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [show, onComplete]);
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center">
+      <div className="relative">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-4xl animate-ping"
+            style={{
+              animation: `ping 1s cubic-bezier(0, 0, 0.2, 1) 1`,
+              transform: `rotate(${i * 45}deg) translate(${80 + Math.random() * 40}px)`,
+              animationDelay: `${i * 0.1}s`,
+            }}
+          >
+            🐱
+          </div>
+        ))}
+        <div className="text-6xl animate-bounce">✨</div>
+      </div>
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
+   Sparkly Progress Bar Component
+----------------------------------------------------------- */
+interface SparklyProgressBarProps {
+  completed: number;
+  total: number;
+}
+
+function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
+  const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-3">
+        <Sparkles size={16} className="text-yellow-300 flex-shrink-0" />
+        <div className="flex-1 bg-white/30 rounded-full h-4 overflow-hidden backdrop-blur-sm">
+          <div
+            className="h-full bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 transition-all duration-500 ease-out relative overflow-hidden"
+            style={{ width: `${percentage}%` }}
+          >
+            <div className="absolute inset-0 bg-white/40 animate-pulse"></div>
+          </div>
+        </div>
+        <span className="text-white font-bold text-sm flex-shrink-0 min-w-[80px] text-right">
+          {completed}/{total} ({percentage}%)
+        </span>
+        <span className="text-2xl flex-shrink-0">🐱</span>
+      </div>
+    </div>
+  );
+}
+
 /* -----------------------------------------------------------
    Helpers: safe guards and formatting
 ----------------------------------------------------------- */
@@ -60,90 +134,14 @@ const roundKgToInt = (kg: number) => Math.round(kg);
 const kgToLbs1 = (kg: number) => kg * 2.20462;
 
 /* -----------------------------------------------------------
-   Bloodwork parser (no AI): extract abnormals only
-   Uses simple reference ranges (dog defaults). Only outputs "TEST value".
+   Bloodwork parser (uses IDEXX reference ranges)
+   Now supports both canine and feline with proper ranges!
+   Includes SDMA, more parameters, with ↑↓ indicators
 ----------------------------------------------------------- */
 
-type RefRange = { lo: number; hi: number };
-const REF_RANGES: Record<string, RefRange> = {
-  WBC: { lo: 6, hi: 17 },
-  RBC: { lo: 5.5, hi: 8.5 },
-  HGB: { lo: 12, hi: 18 },
-  HCT: { lo: 37, hi: 55 },
-  PLT: { lo: 200, hi: 500 },
-  NEUT: { lo: 3, hi: 12 },
-  LYMPH: { lo: 1, hi: 5 },
-  MONO: { lo: 0.2, hi: 1.5 },
-  EOS: { lo: 0, hi: 1 },
-  BUN: { lo: 7, hi: 27 },
-  CREAT: { lo: 0.5, hi: 1.8 },
-  GLU: { lo: 70, hi: 143 },
-  ALT: { lo: 10, hi: 125 },
-  AST: { lo: 0, hi: 50 },
-  ALP: { lo: 23, hi: 212 },
-  TBIL: { lo: 0, hi: 0.9 },
-  ALB: { lo: 2.3, hi: 4.0 },
-  TP: { lo: 5.2, hi: 8.2 },
-  CA: { lo: 9, hi: 11.3 },
-  PHOS: { lo: 2.5, hi: 6.8 },
-  NA: { lo: 144, hi: 160 },
-  K: { lo: 3.5, hi: 5.8 },
-  CL: { lo: 109, hi: 122 },
-};
-
-function normalizeKey(k: string): keyof typeof REF_RANGES {
-  const map: Record<string, keyof typeof REF_RANGES> = {
-    WBC: 'WBC',
-    RBC: 'RBC',
-    HGB: 'HGB',
-    HCT: 'HCT',
-    PLT: 'PLT',
-    NEU: 'NEUT',
-    NEUT: 'NEUT',
-    LYMPH: 'LYMPH',
-    MONO: 'MONO',
-    EOS: 'EOS',
-    BUN: 'BUN',
-    CREA: 'CREAT',
-    CREAT: 'CREAT',
-    GLU: 'GLU',
-    ALT: 'ALT',
-    AST: 'AST',
-    ALP: 'ALP',
-    TBIL: 'TBIL',
-    ALB: 'ALB',
-    TP: 'TP',
-    CA: 'CA',
-    PHOS: 'PHOS',
-    NA: 'NA',
-    K: 'K',
-    CL: 'CL',
-  };
-  return map[k] || (k as any);
-}
-
-function parseBloodworkAbnormals(text: string): string[] {
-  // capture tokens like "WBC 18.2", "ALP: 345", "K=6.2"
-  const re = /\b([A-Za-z]{2,5})\s*[:=]?\s*(-?\d+(?:\.\d+)?)/g;
-  const results: string[] = [];
-  const seen = new Set<string>();
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    const rawKey = m[1].toUpperCase();
-    const val = parseFloat(m[2]);
-    const key = normalizeKey(rawKey);
-    if (!REF_RANGES[key]) continue;
-    if (Number.isNaN(val)) continue;
-    const { lo, hi } = REF_RANGES[key];
-    if (val < lo || val > hi) {
-      const label = `${key} ${val}`;
-      if (!seen.has(label)) {
-        results.push(label); // NO ranges in output per your request
-        seen.add(label);
-      }
-    }
-  }
-  return results;
+function parseBloodworkAbnormals(text: string, species: string = 'canine'): string[] {
+  const result = analyzeBloodWorkLocal({ bloodWorkText: text, species });
+  return result.abnormalValues;
 }
 
 /* -----------------------------------------------------------
@@ -353,6 +351,7 @@ export default function VetPatientTracker() {
   const [showRoundingSheet, setShowRoundingSheet] = useState(true);
   const [showMedCalculator, setShowMedCalculator] = useState(false);
   const [medCalcWeight, setMedCalcWeight] = useState('');
+  const [showFireworks, setShowFireworks] = useState(false);
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -710,10 +709,18 @@ export default function VetPatientTracker() {
   const toggleTask = (patientId: string, taskId: number) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
+    const taskToToggle = (patient.tasks || []).find((t: any) => t.id === taskId);
+    const isBeingCompleted = taskToToggle && !taskToToggle.completed;
+
     const newTasks = (patient.tasks || []).map((t: any) => (t.id === taskId ? { ...t, completed: !t.completed } : t));
     // Sort: incomplete first
     newTasks.sort((a: any, b: any) => Number(a.completed) - Number(b.completed));
     updatePatientField(patientId, 'tasks', newTasks);
+
+    // Trigger fireworks when task is completed
+    if (isBeingCompleted) {
+      setShowFireworks(true);
+    }
   };
 
   const updatePatientInfo = (patientId: string, field: string, value: any) => {
@@ -823,7 +830,9 @@ export default function VetPatientTracker() {
       return;
     }
     try {
-      const abnormalValues = parseBloodworkAbnormals(bwText);
+      // Use patient's species from signalment or default to canine
+      const species = (patient.patientInfo?.species || patient.roundingData?.signalment || 'canine').toLowerCase();
+      const abnormalValues = parseBloodworkAbnormals(bwText, species);
       const currentDx = safeStr(patient.roundingData?.diagnosticFindings);
       const bwLine = abnormalValues.length > 0 ? 'CBC/CHEM: ' + abnormalValues.join(', ') : 'CBC/CHEM: NAD';
       const newDx = currentDx ? currentDx + '\n' + bwLine : bwLine;
@@ -842,6 +851,17 @@ export default function VetPatientTracker() {
     const completed = (patient?.tasks || []).filter((t: any) => t.completed).length;
     return { completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
   };
+
+  // Overall task completion across all patients
+  const overallTaskStats = useMemo(() => {
+    let totalTasks = 0;
+    let completedTasks = 0;
+    patients.forEach((p: any) => {
+      totalTasks += (p.tasks || []).length;
+      completedTasks += (p.tasks || []).filter((t: any) => t.completed).length;
+    });
+    return { completed: completedTasks, total: totalTasks };
+  }, [patients]);
 
   // Tabs
   const getTabsForPatient = (p: any) => {
@@ -951,7 +971,15 @@ export default function VetPatientTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6 pt-20">
+      {/* Sparkly Progress Bar */}
+      {overallTaskStats.total > 0 && (
+        <SparklyProgressBar completed={overallTaskStats.completed} total={overallTaskStats.total} />
+      )}
+
+      {/* Kitty Fireworks */}
+      <KittyFireworks show={showFireworks} onComplete={() => setShowFireworks(false)} />
+
       <KeyboardHelpModal isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
