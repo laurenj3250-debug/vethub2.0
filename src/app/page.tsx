@@ -1,8 +1,25 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
@@ -175,6 +192,95 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 };
 
 /* -----------------------------------------------------------
+   Sortable Patient Wrapper Component
+----------------------------------------------------------- */
+interface SortablePatientProps {
+  id: string;
+  children: React.ReactNode;
+}
+
+function SortablePatient({ id, children }: SortablePatientProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="relative group">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-0 top-1/2 -translate-y-1/2 -ml-8 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        title="Drag to reorder"
+      >
+        <GripVertical size={20} className="text-gray-400 hover:text-gray-600" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
+   Keyboard Help Modal
+----------------------------------------------------------- */
+interface KeyboardHelpProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function KeyboardHelpModal({ isOpen, onClose }: KeyboardHelpProps) {
+  if (!isOpen) return null;
+
+  const shortcuts = [
+    { key: 'Cmd/Ctrl + N', description: 'Focus patient name input' },
+    { key: 'Cmd/Ctrl + K', description: 'Focus search box' },
+    { key: 'Cmd/Ctrl + E', description: 'Expand/collapse all patients' },
+    { key: 'Cmd/Ctrl + M', description: 'Add morning tasks to all' },
+    { key: 'Cmd/Ctrl + T', description: 'Toggle table/TSV view' },
+    { key: '? or Cmd/Ctrl + /', description: 'Show this help' },
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full m-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <HelpCircle className="text-blue-600" />
+            Keyboard Shortcuts
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={24} />
+          </button>
+        </div>
+        <div className="space-y-3">
+          {shortcuts.map((shortcut, i) => (
+            <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
+              <span className="text-sm text-gray-600">{shortcut.description}</span>
+              <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">
+                {shortcut.key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 pt-4 border-t text-center text-xs text-gray-500">
+          Made with love for veterinary professionals
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -----------------------------------------------------------
    Component
 ----------------------------------------------------------- */
 
@@ -233,11 +339,17 @@ export default function VetPatientTracker() {
   const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
-  
+
   // Add these three new ones:
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+
+  // New feature states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+  const [roundingViewMode, setRoundingViewMode] = useState<'tsv' | 'table'>('tsv');
+  const [patientOrder, setPatientOrder] = useState<string[]>([]);
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -253,9 +365,77 @@ export default function VetPatientTracker() {
     setExpandedPatients(next);
   };
 
+  // Initialize patient order when patients change
+  useEffect(() => {
+    if (patients.length > 0) {
+      setPatientOrder(prev => {
+        const currentIds = patients.map(p => p.id);
+        // Keep existing order for patients that still exist, add new ones at the end
+        const existingOrdered = prev.filter(id => currentIds.includes(id));
+        const newPatients = currentIds.filter(id => !prev.includes(id));
+        return [...existingOrdered, ...newPatients];
+      });
+    }
+  }, [patients]);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setPatientOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Filter patients based on search query
+  const filteredPatients = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return patients;
+    }
+    const query = searchQuery.toLowerCase();
+    return patients.filter(p =>
+      p.name?.toLowerCase().includes(query) ||
+      p.type?.toLowerCase().includes(query) ||
+      p.status?.toLowerCase().includes(query) ||
+      p.patientInfo?.patientId?.toLowerCase().includes(query) ||
+      p.patientInfo?.breed?.toLowerCase().includes(query) ||
+      p.patientInfo?.ownerName?.toLowerCase().includes(query) ||
+      p.roundingData?.signalment?.toLowerCase().includes(query)
+    );
+  }, [patients, searchQuery]);
+
+  // Sort filtered patients by custom order
+  const sortedPatients = useMemo(() => {
+    if (patientOrder.length === 0) return filteredPatients;
+    return [...filteredPatients].sort((a, b) => {
+      const indexA = patientOrder.indexOf(a.id);
+      const indexB = patientOrder.indexOf(b.id);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+  }, [filteredPatients, patientOrder]);
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Help modal (? or Cmd+/)
+      if (e.key === '?' || ((e.metaKey || e.ctrlKey) && e.key === '/')) {
+        e.preventDefault();
+        setShowKeyboardHelp(prev => !prev);
+        return;
+      }
+
       if (!(e.metaKey || e.ctrlKey)) return;
       switch (e.key.toLowerCase()) {
         case 'n':
@@ -271,6 +451,14 @@ export default function VetPatientTracker() {
         case 'm':
           e.preventDefault();
           addMorningTasksToAll();
+          break;
+        case 'k':
+          e.preventDefault();
+          (document.getElementById('search-input') as HTMLInputElement | null)?.focus();
+          break;
+        case 't':
+          e.preventDefault();
+          setRoundingViewMode(prev => prev === 'tsv' ? 'table' : 'tsv');
           break;
       }
     };
@@ -478,7 +666,7 @@ export default function VetPatientTracker() {
   const addTaskToPatient = (patientId: string, taskName: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
-    if ((patient.tasks || []).some(t => t.name === taskName)) return;
+    if ((patient.tasks || []).some((t: any) => t.name === taskName)) return;
     const newTasks = [...(patient.tasks || []), { name: taskName, completed: false, id: Date.now() + Math.random() }];
     updatePatientField(patientId, 'tasks', newTasks);
   };
@@ -487,7 +675,7 @@ export default function VetPatientTracker() {
     if (!patient) return;
     const newTasks = [...(patient.tasks || [])];
     morningTasks.forEach(t => {
-      if (!newTasks.some(x => x.name === t)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random() });
+      if (!newTasks.some((x: any) => x.name === t)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random() });
     });
     updatePatientField(patientId, 'tasks', newTasks);
   };
@@ -496,7 +684,7 @@ export default function VetPatientTracker() {
     if (!patient) return;
     const newTasks = [...(patient.tasks || [])];
     eveningTasks.forEach(t => {
-      if (!newTasks.some(x => x.name === t)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random() });
+      if (!newTasks.some((x: any) => x.name === t)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random() });
     });
     updatePatientField(patientId, 'tasks', newTasks);
   };
@@ -506,22 +694,22 @@ export default function VetPatientTracker() {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const allDaily = [...morningTasks, ...eveningTasks];
-    const filtered = (patient.tasks || []).filter(t => !allDaily.includes(t.name));
+    const filtered = (patient.tasks || []).filter((t: any) => !allDaily.includes(t.name));
     updatePatientField(patientId, 'tasks', filtered);
   };
 
   const removeTask = (patientId: string, taskId: number) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
-    const newTasks = (patient.tasks || []).filter(t => t.id !== taskId);
+    const newTasks = (patient.tasks || []).filter((t: any) => t.id !== taskId);
     updatePatientField(patientId, 'tasks', newTasks);
   };
   const toggleTask = (patientId: string, taskId: number) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
-    const newTasks = (patient.tasks || []).map(t => (t.id === taskId ? { ...t, completed: !t.completed } : t));
+    const newTasks = (patient.tasks || []).map((t: any) => (t.id === taskId ? { ...t, completed: !t.completed } : t));
     // Sort: incomplete first
-    newTasks.sort((a, b) => Number(a.completed) - Number(b.completed));
+    newTasks.sort((a: any, b: any) => Number(a.completed) - Number(b.completed));
     updatePatientField(patientId, 'tasks', newTasks);
   };
 
@@ -697,10 +885,13 @@ export default function VetPatientTracker() {
 
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
         <div className="text-center">
-          <p className="text-xl font-semibold text-gray-700">Loading your VetCare Hub...</p>
-          <p className="text-gray-500">One sec.</p>
+          <div className="text-6xl mb-4 animate-pulse">🐱</div>
+          <p className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Loading your VetCare Hub...
+          </p>
+          <p className="text-gray-500 mt-2">Preparing the purr-fect experience! 🐾</p>
         </div>
       </div>
     );
@@ -717,10 +908,15 @@ export default function VetPatientTracker() {
     };
 
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-          <h1 className="text-3xl font-bold text-gray-800 mb-4 text-center">RBVH Patient Task Manager</h1>
-          <p className="text-gray-600 mb-6 text-center">{isSignUp ? 'Create Account' : 'Sign In'}</p>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full border-t-4 border-purple-400">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">🐱</div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              VetCare Hub
+            </h1>
+            <p className="text-gray-600">{isSignUp ? 'Create Account' : 'Welcome Back!'}</p>
+          </div>
           <form onSubmit={handleAuth} className="space-y-4">
             <input
               type="email"
@@ -737,13 +933,13 @@ export default function VetPatientTracker() {
               placeholder="Password (min 6 characters)"
               required
               minLength={6}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
             />
-            <button type="submit" className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
-              {isSignUp ? 'Sign Up' : 'Sign In'}
+            <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 font-semibold shadow-md transition">
+              {isSignUp ? 'Sign Up 🐾' : 'Sign In 🐾'}
             </button>
           </form>
-          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-sm text-blue-600">
+          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-sm text-purple-600 hover:text-purple-800">
             {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
           </button>
         </div>
@@ -752,16 +948,29 @@ export default function VetPatientTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6">
+      <KeyboardHelpModal isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-4 border-t-4 border-purple-400">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-1">RBVH Patient Task Manager</h1>
-              <p className="text-gray-600">Track tasks and prep rounding sheets</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-1">
+                VetCare Hub
+              </h1>
+              <p className="text-gray-600 flex items-center gap-2">
+                Track tasks and prep rounding sheets
+                <span className="text-xl" title="Purrfect for veterinary care!">🐱</span>
+              </p>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowKeyboardHelp(true)}
+                className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition"
+                title="Keyboard shortcuts"
+              >
+                <HelpCircle size={20} />
+              </button>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleAll(true)}
@@ -800,6 +1009,34 @@ export default function VetPatientTracker() {
               ) : null}
             </div>
           </div>
+          {/* Search patients */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                id="search-input"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search patients by name, ID, breed, status... (Cmd+K)"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={18} />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-xs text-gray-500 mt-1">
+                Found {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
+
           {/* Add patient */}
           <div className="flex gap-2">
             <input
@@ -808,19 +1045,19 @@ export default function VetPatientTracker() {
               value={newPatient.name}
               onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
               onKeyDown={(e) => e.key === 'Enter' && addPatient()}
-              placeholder="Patient name (e.g., Max - Golden Retriever)"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Patient name (e.g., Max - Golden Retriever) 🐕"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <select
               value={newPatient.type}
               onChange={(e) => setNewPatient({ ...newPatient, type: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               {procedureTypes.map(type => <option key={type} value={type}>{type}</option>)}
             </select>
             <button
               onClick={addPatient}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center gap-2 transition shadow-md"
             >
               <Plus size={20} />
               Add Patient
@@ -828,15 +1065,42 @@ export default function VetPatientTracker() {
           </div>
         </div>
 
-        {/* TSV copy helper (no headers) */}
+        {/* Rounding sheet with table/TSV toggle */}
         {(patients || []).length > 0 && (
-          <div className="w-full bg-white rounded-lg shadow p-3 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-700">Rounding sheet (TSV, no headers)</span>
-              <div className="flex gap-2">
+          <div className="w-full bg-white rounded-lg shadow p-4 mb-4 border-l-4 border-pink-400">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-700">Rounding Sheet</span>
+                <span className="text-lg">📋</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setRoundingViewMode('table')}
+                    className={`px-3 py-1 text-sm flex items-center gap-1 transition ${
+                      roundingViewMode === 'table'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Table size={16} />
+                    Table
+                  </button>
+                  <button
+                    onClick={() => setRoundingViewMode('tsv')}
+                    className={`px-3 py-1 text-sm flex items-center gap-1 transition ${
+                      roundingViewMode === 'tsv'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FileText size={16} />
+                    TSV
+                  </button>
+                </div>
                 <button
                   onClick={() => navigator.clipboard.writeText(roundingTSV)}
-                  className="px-3 py-1 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700"
+                  className="px-3 py-1 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition"
                 >
                   Copy to Clipboard
                 </button>
@@ -850,25 +1114,70 @@ export default function VetPatientTracker() {
                     a.click();
                     window.URL.revokeObjectURL(url);
                   }}
-                  className="px-3 py-1 rounded-md text-sm font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300"
+                  className="px-3 py-1 rounded-md text-sm font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
                 >
                   Download .tsv
                 </button>
               </div>
             </div>
-            <textarea
-              readOnly
-              value={roundingTSV}
-              rows={4}
-              className="w-full font-mono text-xs p-2 border rounded-lg bg-gray-50"
-              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-            />
+
+            {roundingViewMode === 'tsv' ? (
+              <textarea
+                readOnly
+                value={roundingTSV}
+                rows={4}
+                className="w-full font-mono text-xs p-2 border rounded-lg bg-gray-50"
+                onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+              />
+            ) : (
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-xs">
+                  <thead className="bg-gradient-to-r from-purple-100 to-pink-100 sticky top-0">
+                    <tr>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Name</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Signalment</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Location</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">ICU Criteria</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Code</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Problems</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Diagnostics</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Therapeutics</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">IVC</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Fluids</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">CRI</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Overnight Dx</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Concerns</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Comments</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {patients.map((patient: any, idx: number) => {
+                      const row = makeRoundingRow(patient);
+                      return (
+                        <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          {row.map((cell, cellIdx) => (
+                            <td key={cellIdx} className="px-2 py-2 border-b align-top">
+                              <div className="max-w-xs overflow-hidden">
+                                {cell || '-'}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
         {/* General Tasks */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-3">General Tasks (Not Patient-Specific)</h2>
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
+          <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+            General Tasks (Not Patient-Specific)
+            <span className="text-lg">✅</span>
+          </h2>
           <div className="flex flex-wrap gap-2 mb-3">
             {commonGeneralTasksTemplates.map(task => (
               <button
@@ -1041,11 +1350,21 @@ export default function VetPatientTracker() {
         {/* Patients */}
         {patients.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 text-lg">No patients added yet. Add your first patient above!</p>
+            <p className="text-gray-500 text-lg flex items-center justify-center gap-2">
+              <span className="text-3xl">🐾</span>
+              No patients added yet. Add your first patient above!
+              <span className="text-3xl">🐾</span>
+            </p>
+          </div>
+        ) : sortedPatients.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-500 text-lg">No patients match your search. Try a different query!</p>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {patients.map((patient: any) => {
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sortedPatients.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <div className="grid gap-4 pl-8">
+                {sortedPatients.map((patient: any) => {
               const { completed, total, percentage } = getCompletionStatus(patient);
               const isExpanded = !!expandedPatients[patient.id];
 
@@ -1063,7 +1382,8 @@ export default function VetPatientTracker() {
               const rer = calcRER(safeStr(patient.patientInfo?.species), safeStr(patient.patientInfo?.weight));
 
               return (
-                <div key={patient.id} id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden`}>
+                <SortablePatient key={patient.id} id={patient.id}>
+                  <div id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
                   {/* Header */}
                   <div className="flex justify-between items-center p-4 border-b">
                     <div className="flex items-center gap-3">
@@ -1775,23 +2095,29 @@ export default function VetPatientTracker() {
                     </div>
                   )}
                 </div>
+              </SortablePatient>
               );
             })}
           </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
-      {/* Floating Quick Add */}
+      {/* Floating Quick Add with Cat */}
       <div className="fixed bottom-6 right-6 z-50">
-        {/* Example: global quick actions */}
         <div className="flex flex-col items-end gap-2">
           <button
             onClick={() => addMorningTasksToAll()}
-            className="px-3 py-2 bg-orange-600 text-white rounded-md shadow hover:bg-orange-700"
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg shadow-lg hover:from-orange-600 hover:to-pink-600 transition-all transform hover:scale-105 flex items-center gap-2"
             title="Add Morning Tasks To All Patients"
           >
-            + Morning to All
+            <span className="text-lg">☀️</span>
+            Morning to All
           </button>
+          <div className="text-4xl animate-bounce cursor-pointer" title="You're doing great! 🐱">
+            🐱
+          </div>
         </div>
       </div>
     </div>
