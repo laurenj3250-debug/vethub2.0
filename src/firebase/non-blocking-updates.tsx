@@ -38,7 +38,12 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
  */
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
   const promise = addDoc(colRef, data)
+    .then((docRef) => {
+      console.log('✅ Document added successfully:', colRef.path, docRef.id);
+      return docRef;
+    })
     .catch(error => {
+      console.error('❌ Error adding document to', colRef.path, error);
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
@@ -58,7 +63,11 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
  */
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   updateDoc(docRef, data)
+    .then(() => {
+      console.log('✅ Document updated successfully:', docRef.path);
+    })
     .catch(error => {
+      console.error('❌ Error updating document at', docRef.path, error);
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
