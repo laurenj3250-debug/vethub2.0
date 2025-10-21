@@ -352,6 +352,8 @@ export default function VetPatientTracker() {
   const [showMedCalculator, setShowMedCalculator] = useState(false);
   const [medCalcWeight, setMedCalcWeight] = useState('');
   const [showFireworks, setShowFireworks] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -399,34 +401,73 @@ export default function VetPatientTracker() {
     }
   };
 
-  // Filter patients based on search query
+  // Filter patients based on search query and status
   const filteredPatients = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return patients;
-    }
-    const query = searchQuery.toLowerCase();
-    return patients.filter(p =>
-      p.name?.toLowerCase().includes(query) ||
-      p.type?.toLowerCase().includes(query) ||
-      p.status?.toLowerCase().includes(query) ||
-      p.patientInfo?.patientId?.toLowerCase().includes(query) ||
-      p.patientInfo?.breed?.toLowerCase().includes(query) ||
-      p.patientInfo?.ownerName?.toLowerCase().includes(query) ||
-      p.roundingData?.signalment?.toLowerCase().includes(query)
-    );
-  }, [patients, searchQuery]);
+    let filtered = patients;
 
-  // Sort filtered patients by custom order
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.name?.toLowerCase().includes(query) ||
+        p.type?.toLowerCase().includes(query) ||
+        p.status?.toLowerCase().includes(query) ||
+        p.patientInfo?.patientId?.toLowerCase().includes(query) ||
+        p.patientInfo?.breed?.toLowerCase().includes(query) ||
+        p.patientInfo?.ownerName?.toLowerCase().includes(query) ||
+        p.roundingData?.signalment?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply status filter
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(p => p.status === filterStatus);
+    }
+
+    return filtered;
+  }, [patients, searchQuery, filterStatus]);
+
+  // Sort filtered patients
   const sortedPatients = useMemo(() => {
-    if (patientOrder.length === 0) return filteredPatients;
-    return [...filteredPatients].sort((a, b) => {
-      const indexA = patientOrder.indexOf(a.id);
-      const indexB = patientOrder.indexOf(b.id);
-      if (indexA === -1) return 1;
-      if (indexB === -1) return -1;
-      return indexA - indexB;
-    });
-  }, [filteredPatients, patientOrder]);
+    let sorted = [...filteredPatients];
+
+    switch (sortBy) {
+      case 'status':
+        sorted.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+        break;
+      case 'rounding':
+        sorted.sort((a, b) => {
+          const aComp = getRoundingCompletion(a);
+          const bComp = getRoundingCompletion(b);
+          return bComp.percentage - aComp.percentage; // Most complete first
+        });
+        break;
+      case 'tasks':
+        sorted.sort((a, b) => {
+          const aComp = getCompletionStatus(a);
+          const bComp = getCompletionStatus(b);
+          return bComp.percentage - aComp.percentage; // Most complete first
+        });
+        break;
+      case 'name':
+      default:
+        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        break;
+    }
+
+    // Apply custom order if no explicit sort
+    if (sortBy === 'name' && patientOrder.length > 0) {
+      sorted.sort((a, b) => {
+        const indexA = patientOrder.indexOf(a.id);
+        const indexB = patientOrder.indexOf(b.id);
+        if (indexA === -1) return 1;
+        if (indexB === -1) return -1;
+        return indexA - indexB;
+      });
+    }
+
+    return sorted;
+  }, [filteredPatients, sortBy, patientOrder]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -863,6 +904,34 @@ export default function VetPatientTracker() {
     return { completed: completedTasks, total: totalTasks };
   }, [patients]);
 
+  // Rounding sheet completion tracking
+  const getRoundingCompletion = (patient: any) => {
+    const required = ['signalment', 'location', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics'];
+    const r = patient.roundingData || {};
+    const filled = required.filter(field => r[field] && r[field].trim()).length;
+    return {
+      filled,
+      total: required.length,
+      percentage: Math.round((filled / required.length) * 100),
+      missing: required.filter(field => !r[field] || !r[field].trim()),
+      isComplete: filled === required.length
+    };
+  };
+
+  // Helper to get class for required rounding fields
+  const getRequiredFieldClass = (patient: any, fieldName: string, baseClass: string = "px-3 py-2 text-sm border rounded-lg") => {
+    const required = ['signalment', 'location', 'problems', 'diagnosticFindings', 'therapeutics'];
+    if (!required.includes(fieldName)) return baseClass;
+
+    const value = patient.roundingData?.[fieldName];
+    const isEmpty = !value || !value.trim();
+
+    if (isEmpty) {
+      return `${baseClass} border-2 border-orange-300 bg-orange-50`;
+    }
+    return `${baseClass} border-green-300`;
+  };
+
   // Tabs
   const getTabsForPatient = (p: any) => {
     const base = ['Tasks', 'Rounding Sheet', 'Patient Info'];
@@ -1040,8 +1109,9 @@ export default function VetPatientTracker() {
               ) : null}
             </div>
           </div>
-          {/* Search patients */}
-          <div className="mb-4">
+          {/* Search, Filter, Sort */}
+          <div className="mb-4 space-y-3">
+            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input
@@ -1061,11 +1131,35 @@ export default function VetPatientTracker() {
                 </button>
               )}
             </div>
-            {searchQuery && (
-              <p className="text-xs text-gray-500 mt-1">
-                Found {filteredPatients.length} patient{filteredPatients.length !== 1 ? 's' : ''}
-              </p>
-            )}
+
+            {/* Filter and Sort */}
+            <div className="flex gap-2 items-center flex-wrap">
+              <span className="text-xs font-semibold text-gray-600">Filter:</span>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="all">All Status</option>
+                {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+
+              <span className="text-xs font-semibold text-gray-600 ml-3">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="name">Name</option>
+                <option value="status">Status</option>
+                <option value="rounding">Rounding Complete</option>
+                <option value="tasks">Tasks Complete</option>
+              </select>
+
+              <div className="ml-auto text-xs text-gray-500">
+                Showing {sortedPatients.length} of {patients.length} patient{patients.length !== 1 ? 's' : ''}
+              </div>
+            </div>
           </div>
 
           {/* Add patient */}
@@ -1513,6 +1607,7 @@ export default function VetPatientTracker() {
               const curTab = activeTab[patient.id] ?? tabs[0];
 
               const rer = calcRER(safeStr(patient.patientInfo?.species), safeStr(patient.patientInfo?.weight));
+              const roundingComp = getRoundingCompletion(patient);
 
               return (
                 <SortablePatient key={patient.id} id={patient.id}>
@@ -1530,9 +1625,23 @@ export default function VetPatientTracker() {
                         </button>
                       )}
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-lg font-bold text-gray-900">{patient.name}</h3>
                           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">{patient.type}</span>
+
+                          {/* Rounding Status Badge */}
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              roundingComp.isComplete
+                                ? 'bg-green-100 text-green-800 border border-green-300'
+                                : roundingComp.percentage > 50
+                                ? 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                                : 'bg-orange-100 text-orange-800 border border-orange-300'
+                            }`}
+                            title={`Missing: ${roundingComp.missing.join(', ')}`}
+                          >
+                            📋 {roundingComp.filled}/{roundingComp.total}
+                          </span>
                           <span className="text-xs text-gray-500 flex items-center gap-1">
                             <Clock size={14} /> {patient.addedTime}
                           </span>
@@ -1794,14 +1903,14 @@ export default function VetPatientTracker() {
                                   value={safeStr(patient.roundingData?.signalment)}
                                   onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
                                   placeholder="Signalment (e.g., 4yo MN Frenchie)"
-                                  className="col-span-2 px-3 py-2 text-sm border rounded-lg"
+                                  className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
                                 />
                                 <input
                                   type="text"
                                   value={safeStr(patient.roundingData?.location)}
                                   onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
                                   placeholder="Location"
-                                  className="px-3 py-2 text-sm border rounded-lg"
+                                  className={getRequiredFieldClass(patient, 'location', 'px-3 py-2 text-sm border rounded-lg')}
                                 />
                                 <input
                                   type="text"
@@ -1891,7 +2000,7 @@ export default function VetPatientTracker() {
                                     onChange={(e) => updateRoundingData(patient.id, 'problems', e.target.value)}
                                     placeholder="Problems"
                                     rows={3}
-                                    className="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg mt-2"
+                                    className={getRequiredFieldClass(patient, 'problems', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
                                   />
                                 </div>
 
@@ -1961,7 +2070,7 @@ export default function VetPatientTracker() {
                                   onChange={(e) => updateRoundingData(patient.id, 'diagnosticFindings', e.target.value)}
                                   placeholder="Diagnostic Findings"
                                   rows={3}
-                                  className="col-span-2 px-3 py-2 text-sm border rounded-lg"
+                                  className={getRequiredFieldClass(patient, 'diagnosticFindings', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
                                 />
 
                                 {/* Therapeutics chip system */}
@@ -2036,7 +2145,7 @@ export default function VetPatientTracker() {
                                     onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
                                     placeholder="Current Therapeutics"
                                     rows={3}
-                                    className="w-full px-3 py-2 text-sm border border-cyan-300 rounded-lg mt-2"
+                                    className={getRequiredFieldClass(patient, 'therapeutics', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
                                   />
                                 </div>
 
