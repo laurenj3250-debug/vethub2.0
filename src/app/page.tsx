@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar } from 'lucide-react';
+import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
   DndContext,
@@ -1125,6 +1126,13 @@ export default function VetPatientTracker() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <Link
+                href="/appointments"
+                className="px-3 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md text-sm"
+              >
+                <Calendar size={18} />
+                Today's Appointments
+              </Link>
               <button
                 onClick={() => setShowKeyboardHelp(true)}
                 className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition"
