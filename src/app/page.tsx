@@ -1136,7 +1136,7 @@ export default function VetPatientTracker() {
       <KeyboardHelpModal isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-4 border-t-4 border-purple-400">
+        <div className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 rounded-lg shadow-lg p-6 mb-4 border-t-4 border-purple-400">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-1">
@@ -1342,7 +1342,7 @@ export default function VetPatientTracker() {
         </div>
 
         {/* Medication Calculator */}
-        <div className="w-full bg-white rounded-lg shadow p-4 mb-4 border-l-4 border-cyan-400">
+        <div className="w-full bg-gradient-to-br from-cyan-50 via-blue-50 to-white rounded-lg shadow-lg p-4 mb-4 border-l-4 border-cyan-400">
           <button
             onClick={() => setShowMedCalculator(!showMedCalculator)}
             className="w-full flex items-center justify-between hover:bg-gray-50 px-2 py-1 rounded transition mb-3"
@@ -1551,7 +1551,7 @@ export default function VetPatientTracker() {
         )}
 
         {/* General Tasks */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
+        <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
           <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
             General Tasks (Not Patient-Specific)
             <span className="text-lg">✅</span>
@@ -1609,34 +1609,38 @@ export default function VetPatientTracker() {
             </div>
           )}
         </div>
-        {/* All Tasks Overview Dropdown */}
-        <div className="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
-          <button
-            onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
-            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition"
-          >
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-bold text-gray-800">All Patient Tasks Overview</h2>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
-                {patients.reduce((acc, p) => acc + (p.tasks || []).length, 0)} total tasks
-              </span>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
-                {patients.reduce((acc, p) => acc + (p.tasks || []).filter((t: any) => t.completed).length, 0)} completed
+        {/* All Tasks Overview - Always Visible, Beautiful & Colorful */}
+        <div className="bg-gradient-to-br from-orange-100 via-purple-100 to-pink-100 rounded-xl shadow-2xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                🎃 All Tasks
+              </h2>
+              <span className="px-4 py-2 bg-orange-500 text-white rounded-full text-lg font-bold shadow-lg">
+                {overallTaskStats.completed}/{overallTaskStats.total}
               </span>
             </div>
-            <ChevronDown 
-              className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`} 
-              size={24} 
-            />
-          </button>
+            <button
+              onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
+              className="px-4 py-2 bg-white/80 hover:bg-white rounded-lg shadow-md transition flex items-center gap-2"
+            >
+              <span className="text-sm font-semibold">{showAllTasksDropdown ? 'Hide' : 'Show'}</span>
+              <ChevronDown
+                className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`}
+                size={20}
+              />
+            </button>
+          </div>
 
           {showAllTasksDropdown && (
-            <div className="border-t p-4 bg-gray-50">
+            <div className="space-y-4">
               {patients.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No patients added yet</p>
+                <div className="bg-white/80 backdrop-blur rounded-xl p-12 text-center">
+                  <p className="text-gray-500 text-lg">No patients added yet 🐾</p>
+                </div>
               ) : (
-                <div className="space-y-4">
-                  {patients.map((patient: any) => {
+                <div className="grid gap-4">
+                  {patients.map((patient: any, idx: number) => {
                     const todayTasks = getTasksForDate(patient.tasks || [], currentDate);
                     const tasksSorted = [...todayTasks].sort((a, b) =>
                       Number(a.completed) - Number(b.completed)
@@ -1729,16 +1733,16 @@ export default function VetPatientTracker() {
 
         {/* Patients */}
         {patients.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 text-lg flex items-center justify-center gap-2">
+          <div className="bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50 rounded-lg shadow-lg p-12 text-center border-2 border-purple-200">
+            <p className="text-gray-700 text-lg flex items-center justify-center gap-2 font-semibold">
               <span className="text-3xl">🐾</span>
               No patients added yet. Add your first patient above!
               <span className="text-3xl">🐾</span>
             </p>
           </div>
         ) : sortedPatients.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 text-lg">No patients match your search. Try a different query!</p>
+          <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-lg shadow-lg p-12 text-center border-2 border-blue-200">
+            <p className="text-gray-700 text-lg font-semibold">No patients match your search. Try a different query!</p>
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -1765,7 +1769,7 @@ export default function VetPatientTracker() {
 
               return (
                 <SortablePatient key={patient.id} id={patient.id}>
-                  <div id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
+                  <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-orange-50/20 to-purple-50/20 rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
                   {/* Header */}
                   <div className="flex justify-between items-center p-4 border-b">
                     <div className="flex items-center gap-3">
