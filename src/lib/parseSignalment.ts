@@ -11,11 +11,13 @@ export type Signalment = {
   clientId?: string;
   ownerName?: string;
   ownerPhone?: string;
+  medications?: string[]; // extracted medications
+  bloodwork?: string; // extracted bloodwork values
 };
 
 export type ParseResult = {
   data: Signalment;
-  diagnostics: string[]; // what matched / what didn’t
+  diagnostics: string[]; // what matched / what didn't
 };
 
 const sexMap: Record<string, string> = {
@@ -169,7 +171,83 @@ export function parseSignalment(text: string): ParseResult {
   // Final compacting
   if (data.age) data.age = compactAge(data.age);
 
+  // Extract medications
+  const medications = extractMedications(t);
+  if (medications.length > 0) {
+    data.medications = medications;
+    diag.push(`medications:${medications.length} found`);
+  }
+
+  // Extract bloodwork
+  const bloodwork = extractBloodwork(t);
+  if (bloodwork) {
+    data.bloodwork = bloodwork;
+    diag.push(`bloodwork: extracted`);
+  }
+
   return { data, diagnostics: diag };
+}
+
+/* ---------- Medication and Bloodwork extraction ---------- */
+
+function extractMedications(text: string): string[] {
+  const meds: string[] = [];
+  const lines = text.split('\n');
+
+  // Common medication patterns
+  const medPatterns = [
+    // "Drug Name dose route frequency"
+    /([A-Z][a-z]+(?:cillin|mycin|azole|prazole|ine|osin|ide|oxib|olol|pril|sartan|tide|ipine|afil|nazine|dine))\s+(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|u|iu|units?)(?:\/kg)?(?:\s+(iv|sq|po|im|topical|rectal))?\s*(?:q\d+h|bid|tid|qid|sid|prn)?/gi,
+    // "Drug: dose"
+    /([A-Z][a-z]{2,20})\s*:\s*(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|u|iu|units?)(?:\/kg)?/gi,
+    // Common vet meds with various formats
+    /\b(fentanyl|hydromorphone|buprenorphine|tramadol|gabapentin|trazodone|maropitant|cerenia|ondansetron|metoclopramide|famotidine|omeprazole|pantoprazole|sucralfate|metronidazole|enrofloxacin|clavamox|amoxicillin|cephalexin|doxycycline|prednisone|prednisolone|dexamethasone|meloxicam|carprofen|galliprant|onsior|bupivacaine|lidocaine|propofol|alfaxalone|ketamine|midazolam|acepromazine|dexmedetomidine|atropine|glycopyrrolate|atipamezole|flumazenil|naloxone|ampicillin|cefazolin|insulin|levothyroxine|atenolol|enalapril|pimobendan|furosemide|spironolactone|amlodipine|telmisartan|methimazole|phenobarbital|levetiracetam|zonisamide|potassium bromide|clindamycin|azithromycin|pradofloxacin|cefovecin|apoquel|cytopoint|atopica|cyclosporine|chlorpheniramine|diphenhydramine|hydroxyzine|sildenafil|theophylline|terbutaline|albuterol|n-acetylcysteine|mucomyst|saline|lactated ringers|plasmalyte|hetastarch|mannitol|hypertonic saline|dopamine|dobutamine|epinephrine|norepinephrine|vasopressin|vitamin k|yunnan baiyao|aminocaproic acid|tranexamic acid|desmopressin|heparin|clopidogrel|rivaroxaban|apixaban|diltiazem|amiodarone|sotalol|digoxin|cerenia|maropitant)\s+(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|u|iu|units?)(?:\/kg)?/gi
+  ];
+
+  for (const pattern of medPatterns) {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      if (match[0].length > 3) { // Avoid very short matches
+        meds.push(match[0].trim());
+      }
+    }
+  }
+
+  // Also look for "Medications:" or "Current meds:" sections
+  const medSectionMatch = text.match(/(?:medications?|current\s+meds?|drugs?|therapeutics?)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
+  if (medSectionMatch) {
+    const section = medSectionMatch[1];
+    // Split by common delimiters
+    const items = section.split(/[,;\n]/).map(s => s.trim()).filter(s => s.length > 2);
+    meds.push(...items);
+  }
+
+  // Remove duplicates
+  return [...new Set(meds)];
+}
+
+function extractBloodwork(text: string): string | undefined {
+  // Look for bloodwork section or individual lab values
+  const bwSectionMatch = text.match(/(?:bloodwork|labs?|cbc|chemistry|blood\s+results?)\s*[:\-]?\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
+
+  if (bwSectionMatch) {
+    return bwSectionMatch[1].trim();
+  }
+
+  // Try to find individual lab values
+  const labPattern = /\b(wbc|rbc|hgb|hct|plt|neutrophils?|lymphocytes?|monocytes?|eosinophils?|basophils?|alb|albumin|tp|total protein|glob|globulin|alt|alp|alkp|ast|ggt|tbil|total bilirubin|dbil|chol|cholesterol|trig|triglycerides?|bun|creat|creatinine|glucose|glu|ca|calcium|phos|phosphorus?|na|sodium|k|potassium|cl|chloride|bicarb|hco3|ag|anion gap|amylase|lipase|sdma|ckd|cpk|ck|mg|magnesium)\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi;
+
+  const labValues: string[] = [];
+  const matches = text.matchAll(labPattern);
+  for (const match of matches) {
+    labValues.push(`${match[1]}: ${match[2]}`);
+  }
+
+  if (labValues.length > 0) {
+    return labValues.join(', ');
+  }
+
+  return undefined;
 }
 
 /* ---------- helpers ---------- */

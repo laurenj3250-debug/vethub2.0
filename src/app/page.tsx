@@ -848,6 +848,20 @@ export default function VetPatientTracker() {
       if (data.breed) parts.push(data.breed);
       newRounding.signalment = parts.join(' ');
 
+      // Add medications to therapeutics if found
+      if (data.medications && data.medications.length > 0) {
+        const currentTherapeutics = newRounding.therapeutics || '';
+        const newMeds = data.medications.join('\n');
+        newRounding.therapeutics = currentTherapeutics ? currentTherapeutics + '\n' + newMeds : newMeds;
+      }
+
+      // Add bloodwork to diagnosticFindings if found
+      if (data.bloodwork) {
+        const currentDx = newRounding.diagnosticFindings || '';
+        const bwLine = 'CBC/CHEM: ' + data.bloodwork;
+        newRounding.diagnosticFindings = currentDx ? currentDx + '\n' + bwLine : bwLine;
+      }
+
       let updates: any = {
         patientInfo: newInfo,
         roundingData: newRounding,
@@ -1961,20 +1975,25 @@ export default function VetPatientTracker() {
                                   placeholder="Signalment (e.g., 4yo MN Frenchie)"
                                   className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
                                 />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.roundingData?.location)}
+                                <select
+                                  value={safeStr(patient.roundingData?.location) || ''}
                                   onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
-                                  placeholder="Location"
                                   className={getRequiredFieldClass(patient, 'location', 'px-3 py-2 text-sm border rounded-lg')}
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.roundingData?.icuCriteria)}
+                                >
+                                  <option value="">Select Location...</option>
+                                  <option value="IP">IP</option>
+                                  <option value="ICU">ICU</option>
+                                </select>
+                                <select
+                                  value={safeStr(patient.roundingData?.icuCriteria) || ''}
                                   onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
-                                  placeholder="ICU Criteria"
                                   className="px-3 py-2 text-sm border rounded-lg"
-                                />
+                                >
+                                  <option value="">ICU Criteria...</option>
+                                  <option value="Yes">Yes</option>
+                                  <option value="No">No</option>
+                                  <option value="N/A">N/A</option>
+                                </select>
                                 <select
                                   value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
                                   onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
