@@ -363,6 +363,28 @@ export default function VetPatientTracker() {
   };
   const [currentDate, setCurrentDate] = useState<string>(getTodayDate());
 
+  // Auto-rollover incomplete tasks to current date when viewing today
+  useEffect(() => {
+    const today = getTodayDate();
+    if (currentDate === today && patients.length > 0) {
+      patients.forEach((patient: any) => {
+        const tasks = patient.tasks || [];
+        const needsRollover = tasks.some((t: any) => t.date && t.date < today && !t.completed);
+
+        if (needsRollover) {
+          const updatedTasks = tasks.map((t: any) => {
+            // Roll over incomplete tasks from previous days to today
+            if (t.date && t.date < today && !t.completed) {
+              return { ...t, date: today };
+            }
+            return t;
+          });
+          updatePatientField(patient.id, 'tasks', updatedTasks);
+        }
+      });
+    }
+  }, [currentDate, patients]);
+
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -1125,7 +1147,28 @@ export default function VetPatientTracker() {
                 <span className="text-xl" title="Purrfect for veterinary care!">🐱</span>
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Quick Links */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                <span className="text-xs font-semibold text-gray-600">Quick Links:</span>
+                <a
+                  href="https://tfalls300101.use2.ezyvet.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                >
+                  EzyVet
+                </a>
+                <a
+                  href="https://app.vetradar.com/patients"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                >
+                  VetRadar
+                </a>
+              </div>
+
               <Link
                 href="/appointments"
                 className="px-3 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md text-sm"
@@ -1646,32 +1689,32 @@ export default function VetPatientTracker() {
                         {totalCount === 0 ? (
                           <p className="text-gray-400 text-sm italic p-3">No tasks yet</p>
                         ) : (
-                          <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                             {tasksSorted.map((task: any) => (
-                              <div
+                              <label
                                 key={task.id}
-                                className={`flex items-center gap-2 p-2 rounded-lg border transition ${
-                                  task.completed 
-                                    ? 'bg-green-50 border-green-300' 
-                                    : 'bg-white border-gray-300'
+                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition cursor-pointer hover:scale-[1.02] ${
+                                  task.completed
+                                    ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm'
+                                    : 'bg-white border-orange-200 hover:border-orange-400 hover:shadow-md'
                                 }`}
                               >
                                 <input
                                   type="checkbox"
                                   checked={task.completed}
                                   onChange={() => toggleTask(patient.id, task.id)}
-                                  className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                                  className="w-6 h-6 text-orange-600 rounded-lg cursor-pointer flex-shrink-0 accent-orange-600"
                                 />
-                                <span 
-                                  className={`flex-1 text-sm font-medium ${
-                                    task.completed 
-                                      ? 'text-green-800 line-through' 
-                                      : 'text-gray-700'
+                                <span
+                                  className={`flex-1 text-sm font-semibold ${
+                                    task.completed
+                                      ? 'text-green-800 line-through'
+                                      : 'text-gray-800'
                                   }`}
                                 >
                                   {task.name}
                                 </span>
-                              </div>
+                              </label>
                             ))}
                           </div>
                         )}
@@ -1872,23 +1915,36 @@ export default function VetPatientTracker() {
                               </button>
                             </div>
 
-                            {/* Tasks list - compact grid */}
-                            <div className="grid grid-cols-2 gap-1">
+                            {/* Tasks list - big clickable checkboxes */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {tasksSorted.map((task: any) => (
-                                <div key={task.id} className={'flex items-center gap-1 px-2 py-1 rounded text-xs border ' + (task.completed ? 'bg-green-50 border-green-300 line-through text-green-700' : 'bg-white border-gray-200')}>
+                                <label
+                                  key={task.id}
+                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition hover:scale-[1.02] ${
+                                    task.completed
+                                      ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm'
+                                      : 'bg-white border-orange-200 hover:border-orange-400 hover:shadow-md'
+                                  }`}
+                                >
                                   <input
                                     type="checkbox"
                                     checked={task.completed}
                                     onChange={() => toggleTask(patient.id, task.id)}
-                                    className="w-3 h-3 rounded"
+                                    className="w-5 h-5 rounded cursor-pointer flex-shrink-0 accent-orange-600"
                                   />
-                                  <span className="flex-1 truncate" title={task.name}>
+                                  <span className={`flex-1 text-sm font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-800'}`} title={task.name}>
                                     {task.name}
                                   </span>
-                                  <button onClick={() => removeTask(patient.id, task.id)} className="text-gray-400 hover:text-purple-600">
-                                    <X size={12} />
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      removeTask(patient.id, task.id);
+                                    }}
+                                    className="text-gray-400 hover:text-red-600 flex-shrink-0"
+                                  >
+                                    <X size={16} />
                                   </button>
-                                </div>
+                                </label>
                               ))}
                             </div>
                             <div className="text-xs text-gray-500 text-right">
