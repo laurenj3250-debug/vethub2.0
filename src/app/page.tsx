@@ -61,10 +61,10 @@ function KittyFireworks({ show, onComplete }: KittyFireworksProps) {
               animationDelay: `${i * 0.1}s`,
             }}
           >
-            🐱
+            🦇
           </div>
         ))}
-        <div className="text-6xl animate-bounce">✨</div>
+        <div className="text-6xl animate-bounce">🎃</div>
       </div>
     </div>
   );
@@ -82,12 +82,12 @@ function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-600 via-pink-500 to-purple-600 shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-purple-600 to-black shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-3">
-        <Sparkles size={16} className="text-yellow-300 flex-shrink-0" />
-        <div className="flex-1 bg-white/30 rounded-full h-4 overflow-hidden backdrop-blur-sm">
+        <Sparkles size={16} className="text-orange-300 flex-shrink-0" />
+        <div className="flex-1 bg-black/30 rounded-full h-4 overflow-hidden backdrop-blur-sm border border-orange-400">
           <div
-            className="h-full bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 transition-all duration-500 ease-out relative overflow-hidden"
+            className="h-full bg-gradient-to-r from-orange-500 via-purple-500 to-orange-500 transition-all duration-500 ease-out relative overflow-hidden"
             style={{ width: `${percentage}%` }}
           >
             <div className="absolute inset-0 bg-white/40 animate-pulse"></div>
@@ -96,7 +96,7 @@ function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
         <span className="text-white font-bold text-sm flex-shrink-0 min-w-[80px] text-right">
           {completed}/{total} ({percentage}%)
         </span>
-        <span className="text-2xl flex-shrink-0">🐱</span>
+        <span className="text-2xl flex-shrink-0">🎃</span>
       </div>
     </div>
   );
@@ -553,12 +553,8 @@ export default function VetPatientTracker() {
 
   const statusOptions = [
     'New Admit',
-    'Pre-procedure',
-    'In Procedure',
-    'Recovery',
-    'Monitoring',
-    'Ready for Discharge',
-    'Discharged'
+    'In Hospital',
+    'Going home'
   ];
 
   /* --------------------- Firestore helpers --------------------- */
@@ -977,6 +973,42 @@ export default function VetPatientTracker() {
     return `${Math.round(rer)} kcal/day`;
   };
 
+  // Get breed emoji for Halloween fun!
+  const getBreedEmoji = (patient: any): string => {
+    const breed = (patient.patientInfo?.breed || patient.roundingData?.signalment || '').toLowerCase();
+    const species = (patient.patientInfo?.species || '').toLowerCase();
+
+    // Cats
+    if (species.includes('feline') || species.includes('cat') || breed.includes('cat') || breed.includes('dsh') || breed.includes('dmh') || breed.includes('dlh')) {
+      return '🐈‍⬛'; // Black cat for Halloween!
+    }
+
+    // Dogs by breed
+    if (breed.includes('husky') || breed.includes('malamute')) return '🐺';
+    if (breed.includes('poodle') || breed.includes('doodle')) return '🐩';
+    if (breed.includes('bulldog') || breed.includes('pug') || breed.includes('boston')) return '🐶';
+    if (breed.includes('shepherd') || breed.includes('collie')) return '🦮';
+    if (breed.includes('terrier') || breed.includes('schnauzer')) return '🐕';
+    if (breed.includes('retriever') || breed.includes('lab')) return '🦴';
+    if (breed.includes('chihuahua') || breed.includes('yorkie') || breed.includes('pomeranian')) return '🐕';
+    if (breed.includes('beagle') || breed.includes('hound')) return '🐕‍🦺';
+    if (breed.includes('corgi')) return '🦊';
+    if (breed.includes('dalmatian')) return '🐕';
+
+    // General species
+    if (species.includes('canine') || species.includes('dog')) return '🐕';
+    if (species.includes('equine') || species.includes('horse')) return '🐴';
+    if (species.includes('rabbit') || species.includes('lagomorph')) return '🐰';
+    if (species.includes('ferret')) return '🦦';
+    if (species.includes('bird') || species.includes('avian')) return '🦜';
+    if (species.includes('reptile') || breed.includes('lizard') || breed.includes('snake')) return '🦎';
+    if (species.includes('hamster') || breed.includes('hamster')) return '🐹';
+    if (species.includes('guinea') || breed.includes('guinea')) return '🐹';
+
+    // Default
+    return '🎃'; // Pumpkin for unknown!
+  };
+
   /* --------------------- TSV (no headers) --------------------- */
   const makeRoundingRow = (p: any): string[] => {
     const r = p.roundingData || {};
@@ -1069,7 +1101,7 @@ export default function VetPatientTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-6 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-purple-50 to-black/5 p-6 pt-20">
       {/* Sparkly Progress Bar */}
       {overallTaskStats.total > 0 && (
         <SparklyProgressBar completed={overallTaskStats.completed} total={overallTaskStats.total} />
@@ -1250,7 +1282,7 @@ export default function VetPatientTracker() {
             </select>
             <button
               onClick={addPatient}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 flex items-center gap-2 transition shadow-md"
+              className="bg-gradient-to-r from-orange-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md"
             >
               <Plus size={20} />
               Add Patient
@@ -1574,8 +1606,9 @@ export default function VetPatientTracker() {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
+                                <span className="text-2xl">{getBreedEmoji(patient)}</span>
                                 <h3 className="font-bold text-gray-900">{patient.name}</h3>
-                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">
+                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white">
                                   {patient.type}
                                 </span>
                                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
@@ -1696,8 +1729,9 @@ export default function VetPatientTracker() {
                       )}
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-3xl">{getBreedEmoji(patient)}</span>
                           <h3 className="text-lg font-bold text-gray-900">{patient.name}</h3>
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">{patient.type}</span>
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white">{patient.type}</span>
 
                           {/* Rounding Status Badge */}
                           <span
