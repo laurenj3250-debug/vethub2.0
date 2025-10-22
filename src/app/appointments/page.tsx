@@ -24,67 +24,106 @@ export default function AppointmentsPage() {
 
   const parseAppointment = (text: string): Partial<AppointmentData> => {
     const data: Partial<AppointmentData> = {};
-    const lower = text.toLowerCase();
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
 
-    // Extract name (first line or "Name:" field)
-    const nameMatch = text.match(/^(.+?)(?:\n|$)/i) || text.match(/name\s*[:\-]\s*([^\n]+)/i);
-    if (nameMatch) {
-      data.name = nameMatch[1].trim();
+    // Extract patient name - look for pattern like "Lobo (MN)" or first non-header line
+    const patientLineIdx = lines.findIndex(l => l.match(/^[A-Z][a-z]+\s*\([A-Z]+\)/) || (l.match(/^[A-Z][a-z]+/) && !l.includes(':')));
+    if (patientLineIdx >= 0) {
+      const nameLine = lines[patientLineIdx];
+      // Remove neutered status in parentheses for cleaner display
+      data.name = nameLine.replace(/\s*\([A-Z]+\)/, '').trim();
     }
 
-    // Extract signalment
-    const signalmentMatch = text.match(/signalment\s*[:\-]\s*([^\n]+)/i) ||
-                           text.match(/(\d+\s*(?:yo|y\/o|year|yr).*?(?:mn|fs|fn|mc|male|female).*?(?:canine|feline|dog|cat)?[^\n]*)/i);
-    if (signalmentMatch) {
-      data.signalment = signalmentMatch[1].trim();
+    // Extract signalment - age, weight, breed
+    const ageWeightMatch = text.match(/(\d+\s+years?\s+\d+\s+months?).*?(\d+\.?\d*\s*kg)/i);
+    const breedMatch = text.match(/(?:canine|feline)\s*-\s*([^\n]+)/i);
+    const sexMatch = text.match(/\((M[NC]|F[SN])\)/i);
+
+    let signalment = [];
+    if (ageWeightMatch) signalment.push(ageWeightMatch[1], ageWeightMatch[2]);
+    if (sexMatch) signalment.push(sexMatch[1]);
+    if (breedMatch) signalment.push(breedMatch[1].trim());
+    if (signalment.length > 0) {
+      data.signalment = signalment.join(' ');
     }
 
-    // Extract problem/presenting complaint
-    const problemMatch = text.match(/(?:problem|presenting complaint|chief complaint|reason for visit|diagnosis|dx)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
-    if (problemMatch) {
-      data.problem = problemMatch[1].trim().replace(/\n/g, ' ');
+    // Extract presenting problem - look for "Presenting Problem" section
+    const presentingMatch = text.match(/Presenting Problem[\s\S]*?General Description[\s\S]*?Recheck[\s\S]*?([^\n]+presented.*?)(?:\n\n|\d{2}-\d{2}-\d{4})/i);
+    if (presentingMatch) {
+      data.problem = presentingMatch[1].trim();
+    } else {
+      // Fallback to simpler patterns
+      const problemMatch = text.match(/(?:presenting problem|chief complaint|reason for visit)\s*[:\-]?\s*([^\n]+)/i);
+      if (problemMatch) {
+        data.problem = problemMatch[1].trim();
+      }
     }
 
-    // Extract last recheck date and plan
-    const recheckMatch = text.match(/(?:last recheck|recheck|last visit|last exam)\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
-    if (recheckMatch) {
-      data.lastRecheck = recheckMatch[1];
+    // Extract last visit info - look for "Last visit" pattern
+    const lastVisitMatch = text.match(/Last visit\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s*:\s*([^\n]+(?:\n(?!\n)[^\n]+)*)/i);
+    if (lastVisitMatch) {
+      data.lastRecheck = lastVisitMatch[1];
+      data.lastPlan = lastVisitMatch[2].trim().replace(/\n/g, ' ');
     }
 
-    const planMatch = text.match(/(?:plan|assessment|recommendation|progress)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
-    if (planMatch) {
-      data.lastPlan = planMatch[1].trim().replace(/\n/g, ' ');
-    }
-
-    // Extract MRI date and findings
-    const mriDateMatch = text.match(/mri\s*(?:date|performed|done|on)?\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
-    if (mriDateMatch) {
-      data.mriDate = mriDateMatch[1];
-    }
-
-    const mriMatch = text.match(/mri\s*(?:findings|results|shows?|revealed)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
+    // Extract MRI date and findings - look for date + "MRI" + description
+    const mriMatch = text.match(/(\d{2}\/\d{2}\/\d{4})\s+MRI\s*:?\s*([^\n]+(?:\.|\;)[^\n]*)/i);
     if (mriMatch) {
-      data.mriFindings = mriMatch[1].trim().replace(/\n/g, ' ');
+      data.mriDate = mriMatch[1];
+      data.mriFindings = mriMatch[2].trim();
     }
 
-    // Extract bloodwork due date
-    const bloodworkMatch = text.match(/(?:bloodwork|labs?|cbc|chemistry|phenobarbital|pheno)\s*(?:due|needed|scheduled|next)\s*[:\-]?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i);
-    if (bloodworkMatch) {
-      data.bloodworkDue = bloodworkMatch[1];
-    } else if (lower.includes('bloodwork due') || lower.includes('labs due') || lower.includes('pheno due')) {
-      data.bloodworkDue = 'Yes - see notes';
+    // Extract current medications - look for "Current Medications" section
+    const medsSection = text.match(/Current Medications\s*\n([\s\S]*?)(?:\n\n|Prior|Referred|Tags|Presenting)/i);
+    if (medsSection) {
+      const medLines = medsSection[1]
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l && !l.includes('Referred') && !l.includes('Tags'))
+        .filter(l => l.match(/[A-Z][a-z]+.*?\d+\s*mg|tab|cap|PO|SID|BID|TID/i));
+
+      if (medLines.length > 0) {
+        data.medications = medLines.join('\n');
+      }
     }
 
-    // Extract medications
-    const medsMatch = text.match(/(?:medications?|current meds?|drugs?|therapeutics?)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
-    if (medsMatch) {
-      data.medications = medsMatch[1].trim();
+    // Extract bloodwork - check if CBC/Chem mentioned in recent history
+    const cbcChemMatch = text.match(/(\d{2}\/\d{2}\/\d{4})[^\n]*(?:CBC|Chem|Chemistry)[^\n]*([^\n]*)/i);
+    if (cbcChemMatch) {
+      const date = cbcChemMatch[1];
+      // Check if it's within last 6 months (rough check)
+      const dateParts = date.split('/');
+      const month = parseInt(dateParts[0]);
+      const currentMonth = new Date().getMonth() + 1;
+      const monthsDiff = Math.abs(currentMonth - month);
+
+      if (monthsDiff > 3) {
+        data.bloodworkDue = `Last: ${date} - Due soon`;
+      } else {
+        data.bloodworkDue = `Last: ${date}`;
+      }
     }
 
-    // Extract other concerns
-    const concernsMatch = text.match(/(?:concerns?|notes?|additional|other)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
-    if (concernsMatch) {
-      data.otherConcerns = concernsMatch[1].trim().replace(/\n/g, ' ');
+    // Extract concerns from exam or history
+    const concernPatterns = [
+      /owner\s+(?:has\s+)?concerns?\s+(?:that\s+)?([^\n]+(?:\n(?!\n)[^\n]+)*)/i,
+      /(?:hunched|unsteady|weak|twitching|lethargy|difficulty)[^\n]*/gi
+    ];
+
+    let concerns = [];
+    for (const pattern of concernPatterns) {
+      const matches = text.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          concerns.push(match[1].trim());
+        } else if (match[0]) {
+          concerns.push(match[0].trim());
+        }
+      }
+    }
+
+    if (concerns.length > 0) {
+      data.otherConcerns = [...new Set(concerns)].join('; ').slice(0, 200);
     }
 
     return data;
