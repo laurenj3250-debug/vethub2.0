@@ -21,6 +21,8 @@ interface AppointmentData {
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const [pasteInput, setPasteInput] = useState('');
+  const [useAI, setUseAI] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const parseAppointment = (text: string): Partial<AppointmentData> => {
     const data: Partial<AppointmentData> = {};
@@ -129,10 +131,39 @@ export default function AppointmentsPage() {
     return data;
   };
 
-  const addAppointment = () => {
+  const parseWithAI = async (text: string): Promise<Partial<AppointmentData>> => {
+    try {
+      const response = await fetch('/api/parse-appointment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('AI parsing failed');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('AI parsing error:', error);
+      alert('AI parsing failed. Using basic parser instead.');
+      return parseAppointment(text);
+    }
+  };
+
+  const addAppointment = async () => {
     if (!pasteInput.trim()) return;
 
-    const parsed = parseAppointment(pasteInput);
+    setAiLoading(true);
+    let parsed: Partial<AppointmentData>;
+
+    if (useAI) {
+      parsed = await parseWithAI(pasteInput);
+    } else {
+      parsed = parseAppointment(pasteInput);
+    }
+
     const newAppt: AppointmentData = {
       id: Date.now().toString(),
       name: parsed.name || 'Unknown',
@@ -149,6 +180,13 @@ export default function AppointmentsPage() {
 
     setAppointments(prev => [...prev, newAppt]);
     setPasteInput('');
+    setAiLoading(false);
+  };
+
+  const updateAppointmentField = (id: string, field: keyof AppointmentData, value: string) => {
+    setAppointments(prev =>
+      prev.map(appt => appt.id === id ? { ...appt, [field]: value } : appt)
+    );
   };
 
   const removeAppointment = (id: string) => {
@@ -191,13 +229,27 @@ export default function AppointmentsPage() {
             rows={6}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none mb-3"
           />
+          <div className="flex gap-2 items-center mb-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useAI}
+                onChange={(e) => setUseAI(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+              />
+              <span className="text-sm font-semibold text-gray-700">
+                🤖 Use AI Parsing (More Accurate)
+              </span>
+            </label>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={addAppointment}
-              className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md"
+              disabled={aiLoading}
+              className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus size={20} />
-              Add to List
+              {aiLoading ? 'Processing with AI...' : 'Add to List'}
             </button>
             {appointments.length > 0 && (
               <button
@@ -238,48 +290,87 @@ export default function AppointmentsPage() {
                       className={`border-b hover:bg-orange-50 transition ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
                     >
                       <td className="px-4 py-3">
-                        <div className="font-bold text-gray-900">{appt.name}</div>
-                        <div className="text-sm text-gray-600">{appt.signalment || 'N/A'}</div>
+                        <input
+                          type="text"
+                          value={appt.name}
+                          onChange={(e) => updateAppointmentField(appt.id, 'name', e.target.value)}
+                          className="font-bold text-gray-900 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
+                        />
+                        <input
+                          type="text"
+                          value={appt.signalment}
+                          onChange={(e) => updateAppointmentField(appt.id, 'signalment', e.target.value)}
+                          placeholder="Signalment"
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-800">{appt.problem || 'N/A'}</div>
+                        <textarea
+                          value={appt.problem}
+                          onChange={(e) => updateAppointmentField(appt.id, 'problem', e.target.value)}
+                          placeholder="Problem/Reason for visit"
+                          rows={3}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        {appt.lastRecheck && (
-                          <div className="text-sm">
-                            <div className="font-semibold text-gray-700">Date: {appt.lastRecheck}</div>
-                            <div className="text-gray-600 mt-1">{appt.lastPlan || 'No plan noted'}</div>
-                          </div>
-                        )}
-                        {!appt.lastRecheck && <span className="text-gray-400 text-sm">N/A</span>}
+                        <input
+                          type="text"
+                          value={appt.lastRecheck}
+                          onChange={(e) => updateAppointmentField(appt.id, 'lastRecheck', e.target.value)}
+                          placeholder="Date (MM/DD/YYYY)"
+                          className="text-sm font-semibold text-gray-700 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
+                        />
+                        <textarea
+                          value={appt.lastPlan}
+                          onChange={(e) => updateAppointmentField(appt.id, 'lastPlan', e.target.value)}
+                          placeholder="Plan from last visit"
+                          rows={2}
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        {appt.mriDate && (
-                          <div className="text-sm">
-                            <div className="font-semibold text-gray-700">Date: {appt.mriDate}</div>
-                            <div className="text-gray-600 mt-1">{appt.mriFindings || 'No findings noted'}</div>
-                          </div>
-                        )}
-                        {!appt.mriDate && <span className="text-gray-400 text-sm">N/A</span>}
+                        <input
+                          type="text"
+                          value={appt.mriDate}
+                          onChange={(e) => updateAppointmentField(appt.id, 'mriDate', e.target.value)}
+                          placeholder="Date (MM/DD/YYYY)"
+                          className="text-sm font-semibold text-gray-700 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
+                        />
+                        <textarea
+                          value={appt.mriFindings}
+                          onChange={(e) => updateAppointmentField(appt.id, 'mriFindings', e.target.value)}
+                          placeholder="MRI findings"
+                          rows={2}
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        {appt.bloodworkDue ? (
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm font-semibold">
-                            {appt.bloodworkDue}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">N/A</span>
-                        )}
+                        <input
+                          type="text"
+                          value={appt.bloodworkDue}
+                          onChange={(e) => updateAppointmentField(appt.id, 'bloodworkDue', e.target.value)}
+                          placeholder="Due date or status"
+                          className="text-sm w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-800 max-w-xs whitespace-pre-wrap">
-                          {appt.medications || 'N/A'}
-                        </div>
+                        <textarea
+                          value={appt.medications}
+                          onChange={(e) => updateAppointmentField(appt.id, 'medications', e.target.value)}
+                          placeholder="Current medications"
+                          rows={3}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none whitespace-pre-wrap"
+                        />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="text-sm text-gray-800 max-w-xs">
-                          {appt.otherConcerns || 'None'}
-                        </div>
+                        <textarea
+                          value={appt.otherConcerns}
+                          onChange={(e) => updateAppointmentField(appt.id, 'otherConcerns', e.target.value)}
+                          placeholder="Other concerns"
+                          rows={2}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                        />
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
