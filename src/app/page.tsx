@@ -354,6 +354,14 @@ export default function VetPatientTracker() {
   const [showFireworks, setShowFireworks] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
+
+  // Date-based task management
+  const getTodayDate = () => {
+    const now = new Date();
+    return now.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
+  const [currentDate, setCurrentDate] = useState<string>(getTodayDate());
+
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -709,8 +717,8 @@ export default function VetPatientTracker() {
   const addTaskToPatient = (patientId: string, taskName: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
-    if ((patient.tasks || []).some((t: any) => t.name === taskName)) return;
-    const newTasks = [...(patient.tasks || []), { name: taskName, completed: false, id: Date.now() + Math.random() }];
+    if ((patient.tasks || []).some((t: any) => t.name === taskName && t.date === currentDate)) return;
+    const newTasks = [...(patient.tasks || []), { name: taskName, completed: false, id: Date.now() + Math.random(), date: currentDate }];
     updatePatientField(patientId, 'tasks', newTasks);
   };
   const addMorningTasks = (patientId: string) => {
@@ -718,7 +726,7 @@ export default function VetPatientTracker() {
     if (!patient) return;
     const newTasks = [...(patient.tasks || [])];
     morningTasks.forEach(t => {
-      if (!newTasks.some((x: any) => x.name === t)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random() });
+      if (!newTasks.some((x: any) => x.name === t && x.date === currentDate)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random(), date: currentDate });
     });
     updatePatientField(patientId, 'tasks', newTasks);
   };
@@ -727,7 +735,7 @@ export default function VetPatientTracker() {
     if (!patient) return;
     const newTasks = [...(patient.tasks || [])];
     eveningTasks.forEach(t => {
-      if (!newTasks.some((x: any) => x.name === t)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random() });
+      if (!newTasks.some((x: any) => x.name === t && x.date === currentDate)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random(), date: currentDate });
     });
     updatePatientField(patientId, 'tasks', newTasks);
   };
@@ -886,23 +894,30 @@ export default function VetPatientTracker() {
     }
   };
 
-  // Completion
+  // Helper to get tasks for current date (or all if task has no date - for backwards compatibility)
+  const getTasksForDate = (tasks: any[], date: string) => {
+    return (tasks || []).filter((t: any) => !t.date || t.date === date);
+  };
+
+  // Completion (only counts tasks for current date)
   const getCompletionStatus = (patient: any) => {
-    const total = (patient?.tasks || []).length;
-    const completed = (patient?.tasks || []).filter((t: any) => t.completed).length;
+    const todayTasks = getTasksForDate(patient?.tasks || [], currentDate);
+    const total = todayTasks.length;
+    const completed = todayTasks.filter((t: any) => t.completed).length;
     return { completed, total, percentage: total > 0 ? (completed / total) * 100 : 0 };
   };
 
-  // Overall task completion across all patients
+  // Overall task completion across all patients (only counts tasks for current date)
   const overallTaskStats = useMemo(() => {
     let totalTasks = 0;
     let completedTasks = 0;
     patients.forEach((p: any) => {
-      totalTasks += (p.tasks || []).length;
-      completedTasks += (p.tasks || []).filter((t: any) => t.completed).length;
+      const todayTasks = getTasksForDate(p.tasks || [], currentDate);
+      totalTasks += todayTasks.length;
+      completedTasks += todayTasks.filter((t: any) => t.completed).length;
     });
     return { completed: completedTasks, total: totalTasks };
-  }, [patients]);
+  }, [patients, currentDate]);
 
   // Rounding sheet completion tracking
   const getRoundingCompletion = (patient: any) => {
@@ -1155,6 +1170,45 @@ export default function VetPatientTracker() {
                 <option value="rounding">Rounding Complete</option>
                 <option value="tasks">Tasks Complete</option>
               </select>
+
+              <span className="text-xs font-semibold text-gray-600 ml-3">Date:</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    const date = new Date(currentDate);
+                    date.setDate(date.getDate() - 1);
+                    setCurrentDate(date.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                  title="Previous day"
+                >
+                  ←
+                </button>
+                <input
+                  type="date"
+                  value={currentDate}
+                  onChange={(e) => setCurrentDate(e.target.value)}
+                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                />
+                <button
+                  onClick={() => {
+                    const date = new Date(currentDate);
+                    date.setDate(date.getDate() + 1);
+                    setCurrentDate(date.toISOString().split('T')[0]);
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                  title="Next day"
+                >
+                  →
+                </button>
+                <button
+                  onClick={() => setCurrentDate(getTodayDate())}
+                  className="px-2 py-1 text-xs bg-purple-600 text-white hover:bg-purple-700 rounded"
+                  title="Go to today"
+                >
+                  Today
+                </button>
+              </div>
 
               <div className="ml-auto text-xs text-gray-500">
                 Showing {sortedPatients.length} of {patients.length} patient{patients.length !== 1 ? 's' : ''}
@@ -1486,7 +1540,8 @@ export default function VetPatientTracker() {
               ) : (
                 <div className="space-y-4">
                   {patients.map((patient: any) => {
-                    const tasksSorted = [...(patient.tasks || [])].sort((a, b) => 
+                    const todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+                    const tasksSorted = [...todayTasks].sort((a, b) =>
                       Number(a.completed) - Number(b.completed)
                     );
                     const completedCount = tasksSorted.filter(t => t.completed).length;
@@ -1595,8 +1650,9 @@ export default function VetPatientTracker() {
               const { completed, total, percentage } = getCompletionStatus(patient);
               const isExpanded = !!expandedPatients[patient.id];
 
-              // sort tasks: incomplete first
-              const tasksSorted = [...(patient.tasks || [])].sort((a, b) => Number(a.completed) - Number(b.completed));
+              // Filter tasks for current date, then sort: incomplete first
+              const todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+              const tasksSorted = [...todayTasks].sort((a, b) => Number(a.completed) - Number(b.completed));
               const morningTasksSet = new Set(morningTasks);
               const eveningTasksSet = new Set(eveningTasks);
               const patientMorningTasks = tasksSorted.filter(t => morningTasksSet.has(t.name));
