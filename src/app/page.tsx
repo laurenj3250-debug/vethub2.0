@@ -335,7 +335,7 @@ export default function VetPatientTracker() {
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState('');
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
-  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
+  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(true);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
 
@@ -351,7 +351,6 @@ export default function VetPatientTracker() {
   const [patientOrder, setPatientOrder] = useState<string[]>([]);
   const [showRoundingSheet, setShowRoundingSheet] = useState(true);
   const [showMedCalculator, setShowMedCalculator] = useState(false);
-  const [medCalcWeight, setMedCalcWeight] = useState('');
   const [showFireworks, setShowFireworks] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
@@ -1059,6 +1058,17 @@ export default function VetPatientTracker() {
     return rows.join('\n');
   }, [patients]);
 
+  const roundingHeaders = [
+    "Name", "Signalment", "Location", "ICU Criteria", "Code", "Problems",
+    "Diagnostics", "Therapeutics", "IVC", "Fluids", "CRI", "Overnight Dx",
+    "Concerns", "Comments"
+  ];
+  const roundingDataFields = [
+    "name", "signalment", "location", "icuCriteria", "codeStatus", "problems",
+    "diagnosticFindings", "therapeutics", "replaceIVC", "replaceFluids",
+    "replaceCRI", "overnightDiagnostics", "overnightConcerns", "additionalComments"
+  ];
+
   /* --------------------- UI --------------------- */
 
   if (isUserLoading) {
@@ -1534,37 +1544,32 @@ export default function VetPatientTracker() {
                 <table className="w-full text-xs">
                   <thead className="bg-gradient-to-r from-purple-100 to-pink-100 sticky top-0">
                     <tr>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Name</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Signalment</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Location</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">ICU Criteria</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Code</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Problems</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Diagnostics</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Therapeutics</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">IVC</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Fluids</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">CRI</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Overnight Dx</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Concerns</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Comments</th>
+                      {roundingHeaders.map(header => (
+                        <th key={header} className="px-2 py-2 text-left font-semibold border-b">{header}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {patients.map((patient: any, idx: number) => {
-                      const row = makeRoundingRow(patient);
-                      return (
-                        <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                          {row.map((cell, cellIdx) => (
-                            <td key={cellIdx} className="px-2 py-2 border-b align-top">
-                              <div className="max-w-xs overflow-hidden">
-                                {cell || '-'}
-                              </div>
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
+                    {patients.map((patient: any, idx: number) => (
+                      <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        {roundingDataFields.map(field => (
+                          <td key={field} className="px-1 py-1 border-b align-top">
+                            <input
+                              type="text"
+                              value={field === 'name' ? safeStr(patient[field]) : safeStr(patient.roundingData?.[field])}
+                              onChange={(e) => {
+                                if (field === 'name') {
+                                  updatePatientField(patient.id, 'name', e.target.value);
+                                } else {
+                                  updateRoundingData(patient.id, field, e.target.value);
+                                }
+                              }}
+                              className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -1631,129 +1636,110 @@ export default function VetPatientTracker() {
             </div>
           )}
         </div>
-        {/* All Tasks Overview - Always Visible, Beautiful & Colorful */}
+        {/* All Tasks Board */}
         <div className="bg-gradient-to-br from-orange-100 via-purple-100 to-pink-100 rounded-xl shadow-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                🎃 All Tasks
+                🎃 All Tasks Board
               </h2>
               <span className="px-4 py-2 bg-orange-500 text-white rounded-full text-lg font-bold shadow-lg">
                 {overallTaskStats.completed}/{overallTaskStats.total}
               </span>
             </div>
-            <button
-              onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
-              className="px-4 py-2 bg-white/80 hover:bg-white rounded-lg shadow-md transition flex items-center gap-2"
-            >
-              <span className="text-sm font-semibold">{showAllTasksDropdown ? 'Hide' : 'Show'}</span>
-              <ChevronDown
-                className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`}
-                size={20}
-              />
-            </button>
           </div>
 
-          {showAllTasksDropdown && (
-            <div className="space-y-4">
-              {patients.length === 0 ? (
-                <div className="bg-white/80 backdrop-blur rounded-xl p-12 text-center">
-                  <p className="text-gray-500 text-lg">No patients added yet 🐾</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {patients.map((patient: any, idx: number) => {
-                    let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
-                    if (hideCompletedTasks) {
-                        todayTasks = todayTasks.filter((t: any) => !t.completed);
-                    }
-                    const tasksSorted = [...todayTasks].sort((a, b) =>
-                      Number(a.completed) - Number(b.completed)
-                    );
-                    const completedCount = tasksSorted.filter(t => t.completed).length;
-                    const totalCount = tasksSorted.length;
-                    const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+          <div className="space-y-4">
+            {patients.length === 0 ? (
+              <div className="bg-white/80 backdrop-blur rounded-xl p-12 text-center">
+                <p className="text-gray-500 text-lg">No patients added yet 🐾</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {patients.map((patient: any) => {
+                  let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+                  if (hideCompletedTasks) {
+                      todayTasks = todayTasks.filter((t: any) => !t.completed);
+                  }
+                  const tasksSorted = [...todayTasks].sort((a, b) =>
+                    Number(a.completed) - Number(b.completed)
+                  );
+                  const completedCount = tasksSorted.filter(t => t.completed).length;
+                  const totalCount = tasksSorted.length;
+                  const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
-                    return (
-                      <div 
-                        key={patient.id} 
-                        className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10">
-                              <ProgressRing percentage={Math.round(percentage)} size={40} />
+                  return (
+                    <div 
+                      key={patient.id} 
+                      className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-lg"
+                    >
+                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10">
+                            <ProgressRing percentage={Math.round(percentage)} size={40} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">{getBreedEmoji(patient)}</span>
+                              <h3 className="font-bold text-gray-900">{patient.name}</h3>
                             </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-2xl">{getBreedEmoji(patient)}</span>
-                                <h3 className="font-bold text-gray-900">{patient.name}</h3>
-                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white">
-                                  {patient.type}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
-                                  {patient.status}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-600 mt-0.5">
-                                {completedCount}/{totalCount} tasks completed
-                              </div>
+                            <div className="text-xs text-gray-600 mt-0.5">
+                              {completedCount}/{totalCount} tasks done
                             </div>
                           </div>
-                          <button
-                            onClick={() => {
-                              setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
-                              setShowAllTasksDropdown(false);
-                              setTimeout(() => {
-                                const element = document.getElementById(`patient-${patient.id}`);
-                                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              }, 100);
-                            }}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                          >
-                            Go to Patient
-                          </button>
                         </div>
+                        <button
+                          onClick={() => {
+                            setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
+                            setTimeout(() => {
+                              const element = document.getElementById(`patient-${patient.id}`);
+                              element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 100);
+                          }}
+                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                        >
+                          Go to
+                        </button>
+                      </div>
 
-                        {totalCount === 0 ? (
-                          <p className="text-gray-400 text-sm italic p-3">No tasks yet</p>
-                        ) : (
-                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                            {tasksSorted.map((task: any) => (
-                              <label
-                                key={task.id}
-                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition cursor-pointer hover:scale-[1.02] ${
+                      {totalCount === 0 ? (
+                        <p className="text-gray-400 text-sm italic p-3">No tasks today</p>
+                      ) : (
+                        <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
+                          {tasksSorted.map((task: any) => (
+                            <label
+                              key={task.id}
+                              className={`flex items-center gap-3 p-2 rounded-lg border transition cursor-pointer ${
+                                task.completed
+                                  ? 'bg-green-50 border-green-200'
+                                  : 'bg-white border-orange-200 hover:bg-orange-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={task.completed}
+                                onChange={() => toggleTask(patient.id, task.id)}
+                                className="w-5 h-5 text-orange-600 rounded-md cursor-pointer flex-shrink-0 accent-orange-600"
+                              />
+                              <span
+                                className={`flex-1 text-sm font-medium ${
                                   task.completed
-                                    ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm'
-                                    : 'bg-white border-orange-200 hover:border-orange-400 hover:shadow-md'
+                                    ? 'text-green-800 line-through'
+                                    : 'text-gray-800'
                                 }`}
                               >
-                                <input
-                                  type="checkbox"
-                                  checked={task.completed}
-                                  onChange={() => toggleTask(patient.id, task.id)}
-                                  className="w-6 h-6 text-orange-600 rounded-lg cursor-pointer flex-shrink-0 accent-orange-600"
-                                />
-                                <span
-                                  className={`flex-1 text-sm font-semibold ${
-                                    task.completed
-                                      ? 'text-green-800 line-through'
-                                      : 'text-gray-800'
-                                  }`}
-                                >
-                                  {task.name}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                                {task.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Patients */}
@@ -2584,6 +2570,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
-    
