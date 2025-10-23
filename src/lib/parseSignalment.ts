@@ -64,7 +64,7 @@ const yoRe = /\b(\d+)\s*(?:yo|y\/o)\b/i;
 const pidRe = /\bpatient\s*id\s*[:\-]?\s*([A-Za-z0-9\-_.]+)\b/i;
 const cidRe = /\bclient\s*id\s*[:\-]?\s*([A-Za-z0-9\-_.]+)\b/i;
 
-const ownerRe = /\b(owner|guardian)\s*[:\-]?\s*([A-Za-z ,.'\-]+)\b/i;
+const ownerRe = /\b(owner|guardian)\s*[:\-]?\s*([A-Za-z\s,.'\-]{2,30})\b/i;
 const speciesKVRe = /\bspecies\s*[:\-]\s*([A-Za-z]+)\b/i;
 const breedKVRe = /\bbreed\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
 const colorKVRe = /\b(colou?r)\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
