@@ -1568,12 +1568,12 @@ export default function VetPatientTracker() {
                 readOnly
                 value={roundingTSV}
                 rows={4}
-                className="w-full font-mono text-xs p-2 border rounded-lg bg-gray-50"
+                className="w-full font-mono text-[10px] font-['Arial'] p-2 border rounded-lg bg-gray-50"
                 onClick={(e) => (e.target as HTMLTextAreaElement).select()}
               />
             ) : (
               <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-xs">
+                <table className="w-full text-[10px] font-['Arial']">
                   <thead className="bg-gradient-to-r from-purple-100 to-pink-100 sticky top-0">
                     <tr>
                       {roundingHeaders.map(header => (
