@@ -358,7 +358,7 @@ export default function VetPatientTracker() {
   const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(true);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
-
+  
   // Add these three new ones:
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -564,8 +564,8 @@ export default function VetPatientTracker() {
   // Static lists
   const procedureTypes = ['Surgery', 'MRI', 'Medical', 'Other'];
 
-  const morningGeneralTasksTemplates = ['Check Comms', 'Check Emails', 'Draw Up Contrast', 'Rounding'];
-  const eveningGeneralTasksTemplates = ['Read appointments for next day'];
+  const morningGeneralTasksTemplates = ['Read appointments for today'];
+  const eveningGeneralTasksTemplates = ['Check Comms', 'Check Emails', 'Draw Up Contrast', 'Rounding'];
 
   // Admit task menus (not auto-added)
   const admitTasks: Record<string, string[]> = {
