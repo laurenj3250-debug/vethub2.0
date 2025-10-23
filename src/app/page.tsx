@@ -1578,54 +1578,56 @@ export default function VetPatientTracker() {
                   <tbody>
                     {patients.map((patient: any, idx: number) => (
                       <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                          {roundingDataFields.map(field => (
-                          <td key={field} className="px-1 py-1 border-b align-top">
-                            {field === 'location' ? (
-                              <select
-                                value={safeStr(patient.roundingData?.[field])}
-                                onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
-                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
-                              >
-                                <option value="">Select...</option>
-                                <option value="IP">IP</option>
-                                <option value="ICU">ICU</option>
-                              </select>
-                            ) : field === 'icuCriteria' ? (
-                              <select
-                                value={safeStr(patient.roundingData?.[field])}
-                                onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
-                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
-                              >
-                                <option value="">Select...</option>
-                                <option value="Yes">Yes</option>
-                                <option value="No">No</option>
-                                <option value="N/A">N/A</option>
-                              </select>
-                            ) : field === 'codeStatus' ? (
-                              <select
-                                value={safeStr(patient.roundingData?.[field])}
-                                onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
-                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
-                              >
-                                <option value="Yellow">Yellow</option>
-                                <option value="Red">Red</option>
-                              </select>
-                            ) : (
-                              <input
-                                type="text"
-                                value={field === 'name' ? safeStr(patient[field]) : safeStr(patient.roundingData?.[field])}
-                                onChange={(e) => {
-                                  if (field === 'name') {
-                                    updatePatientField(patient.id, 'name', e.target.value);
-                                  } else {
-                                    updateRoundingData(patient.id, field, e.target.value);
-                                  }
-                                }}
-                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
-                              />
-                            )}
-                          </td>
-                        ))}
+                          {roundingDataFields.map(field => {
+                            const isSelectField = ['location', 'icuCriteria', 'codeStatus', 'replaceIVC', 'replaceFluids', 'replaceCRI'].includes(field);
+                            
+                            return (
+                              <td key={field} className="px-1 py-1 border-b align-top">
+                                {isSelectField ? (
+                                  <select
+                                    value={safeStr(patient.roundingData?.[field])}
+                                    onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
+                                    className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                                  >
+                                    {field === 'location' && (<>
+                                      <option value="">Select...</option>
+                                      <option value="IP">IP</option>
+                                      <option value="ICU">ICU</option>
+                                    </>)}
+                                    {field === 'icuCriteria' && (<>
+                                      <option value="">Select...</option>
+                                      <option value="Yes">Yes</option>
+                                      <option value="No">No</option>
+                                      <option value="N/A">N/A</option>
+                                    </>)}
+                                    {field === 'codeStatus' && (<>
+                                      <option value="Yellow">Yellow</option>
+                                      <option value="Red">Red</option>
+                                    </>)}
+                                    {(field === 'replaceIVC' || field === 'replaceFluids' || field === 'replaceCRI') && (<>
+                                      <option value="">Select…</option>
+                                      <option>Yes</option>
+                                      <option>No</option>
+                                      <option>N/A</option>
+                                    </>)}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={field === 'name' ? safeStr(patient[field]) : safeStr(patient.roundingData?.[field])}
+                                    onChange={(e) => {
+                                      if (field === 'name') {
+                                        updatePatientField(patient.id, 'name', e.target.value);
+                                      } else {
+                                        updateRoundingData(patient.id, field, e.target.value);
+                                      }
+                                    }}
+                                    className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                                  />
+                                )}
+                              </td>
+                            )
+                          })}
                       </tr>
                     ))}
                   </tbody>
