@@ -1009,7 +1009,7 @@ export default function VetPatientTracker() {
 
   // Tabs
   const getTabsForPatient = (p: any) => {
-    const base = ['Tasks', 'Rounding Sheet', 'Patient Info'];
+    const base = ['Tasks', 'Rounding Sheet'];
     if (p.type === 'MRI') base.splice(1, 0, 'MRI Calculator');
     return base;
   };
@@ -1861,7 +1861,7 @@ export default function VetPatientTracker() {
 
                   return (
                     <SortablePatient key={patient.id} id={patient.id}>
-                      <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-orange-50/20 to-purple-50/20 rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
+                      <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-orange-50/20 to-purple-50/20 rounded-lg shadow-md border ${getPriorityColor(patient.status)} overflow-hidden hover:shadow-lg transition-shadow`}>
                       {/* Header */}
                       <div className={`flex justify-between items-center p-4 border-b ${getPatientTypeColor(patient.type)}`}>
                         <div className="flex items-center gap-3">
@@ -2139,11 +2139,66 @@ export default function VetPatientTracker() {
                             {curTab === 'Rounding Sheet' && (
                               <div className="border rounded-lg">
                                 <button onClick={() => toggleSection(patient.id, 'rounding')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                                  <span className="font-semibold">Rounding Sheet</span>
+                                  <span className="font-semibold">Patient & Rounding Info</span>
                                   <ChevronDown className={expandedSections[patient.id]?.rounding ? 'rotate-180 transition-transform' : 'transition-transform'} />
                                 </button>
                                 {expandedSections[patient.id]?.rounding && (
                                   <div className="p-3 border-t grid grid-cols-2 gap-3">
+                                    {/* Patient Info Fields */}
+                                    <div className="col-span-2 p-3 bg-indigo-50 border border-indigo-200 rounded-lg grid grid-cols-2 gap-3">
+                                      <h5 className="col-span-2 text-sm font-bold text-indigo-900 mb-1">Patient Info</h5>
+                                      <input
+                                        type="text"
+                                        value={safeStr(patient.patientInfo?.patientId)}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
+                                        placeholder="Patient ID"
+                                        className="px-3 py-2 text-sm border rounded-lg"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={safeStr(patient.patientInfo?.ownerName)}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
+                                        placeholder="Owner Name"
+                                        className="px-3 py-2 text-sm border rounded-lg"
+                                      />
+                                      <select
+                                        value={safeStr(patient.patientInfo?.species) || 'Canine'}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
+                                        className="px-3 py-2 text-sm border rounded-lg"
+                                      >
+                                        <option>Canine</option>
+                                        <option>Feline</option>
+                                      </select>
+                                      <input
+                                        type="text"
+                                        value={safeStr(patient.patientInfo?.breed)}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
+                                        placeholder="Breed"
+                                        className="px-3 py-2 text-sm border rounded-lg"
+                                      />
+                                       <input
+                                        type="text"
+                                        value={safeStr(patient.patientInfo?.sex)}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
+                                        placeholder="Sex (MN/FS/MI/FI)"
+                                        className="px-3 py-2 text-sm border rounded-lg"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={safeStr(patient.patientInfo?.age)}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
+                                        placeholder="Age (e.g., 4yo)"
+                                        className="px-3 py-2 text-sm border rounded-lg"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={safeStr(patient.patientInfo?.weight)}
+                                        onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
+                                        placeholder="Weight (e.g., 4.9 kg)"
+                                        className="px-3 py-2 text-sm border rounded-lg col-span-2"
+                                      />
+                                    </div>
+
                                     {/* Quick Import */}
                                     <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                       <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import — Paste Patient Details</label>
@@ -2156,7 +2211,7 @@ export default function VetPatientTracker() {
                                       />
                                       <button onClick={() => parsePatientDetails(patient.id, safeStr(patient.detailsInput))}
                                               className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
-                                        Extract Basics (Signalment, Weight, ID, Owner)
+                                        Extract & Fill Fields
                                       </button>
                                       <p className="text-xs text-gray-600 mt-1 italic">Uses non-AI parser for speed and reliability.</p>
                                     </div>
@@ -2545,76 +2600,6 @@ export default function VetPatientTracker() {
                               </div>
                             )}
 
-                            {/* PATIENT INFO */}
-                            {curTab === 'Patient Info' && (
-                              <div className="border rounded-lg">
-                                <button onClick={() => toggleSection(patient.id, 'info')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                                  <span className="font-semibold">Patient Info</span>
-                                  <ChevronDown className={expandedSections[patient.id]?.info ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                                </button>
-                                {expandedSections[patient.id]?.info && (
-                                  <div className="p-3 border-t grid grid-cols-2 gap-3">
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.patientId)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
-                                      placeholder="Patient ID"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.ownerName)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
-                                      placeholder="Owner Name"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.ownerPhone)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
-                                      placeholder="Owner Phone"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                    <select
-                                      value={safeStr(patient.patientInfo?.species) || 'Canine'}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    >
-                                      <option>Canine</option>
-                                      <option>Feline</option>
-                                    </select>
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.breed)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
-                                      placeholder="Breed"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.sex)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
-                                      placeholder="Sex (MN/FS/MI/FI)"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.weight)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
-                                      placeholder="Weight (e.g., 4.9 kg)"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.patientInfo?.age)}
-                                      onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
-                                      placeholder="Age (e.g., 4yo)"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
                           </div>
                         </div>
                       )}
