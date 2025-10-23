@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { parseSignalment } from '@/lib/parseSignalment';
+import { useToast } from "@/hooks/use-toast"
 
 type AppointmentType = 'New' | 'Recheck';
 
@@ -37,6 +37,8 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const { user, firestore } = useUserAndFirestore();
   const [textToParse, setTextToParse] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  const { toast } = useToast();
 
   // Common problems from Firestore
   const commonProblemsQuery = useMemoFirebase(() => {
@@ -126,55 +128,71 @@ export default function AppointmentsPage() {
     setAppointments(prev => [newAppt, ...prev]);
   };
   
-  const handleParseAndAdd = () => {
+  const handleParseAndAdd = async () => {
     if (!textToParse.trim()) {
-      alert('Please paste some text to parse.');
+      toast({
+        variant: "destructive",
+        title: "No Text Provided",
+        description: "Please paste some text to parse.",
+      });
       return;
     }
-    const { data } = parseSignalment(textToParse);
-
-    const newApptData: Partial<AppointmentData> = {};
-
-    let nameField = data.patientName || '';
-    if (data.ownerName && data.ownerName.toLowerCase() !== data.patientName?.toLowerCase()) {
-        // Only append owner name if it's a reasonable length
-        if (data.ownerName.length < 50) {
-            nameField = `${nameField} (${data.ownerName})`;
-        }
-    }
-    newApptData.name = nameField;
     
-    // Build Signalment
-    if (data.signalment) {
-        newApptData.signalment = data.signalment;
-    } else {
-        const signalmentParts = [];
-        if (data.age) signalmentParts.push(data.age);
-        if (data.sex) signalmentParts.push(data.sex);
-        if (data.breed) signalmentParts.push(data.breed);
-        if(data.weight) signalmentParts.push(data.weight);
-        newApptData.signalment = signalmentParts.join(', ');
-    }
-
-
-    // Clinical Data
-    if(data.problem) newApptData.problem = data.problem;
-    if(data.mriDate) newApptData.mriDate = data.mriDate;
-    if(data.mriFindings) newApptData.mriFindings = data.mriFindings;
-    if(data.lastRecheck) newApptData.lastRecheck = data.lastRecheck;
-    if(data.lastPlan) newApptData.lastPlan = data.lastPlan;
-    if(data.otherConcerns) newApptData.otherConcerns = data.otherConcerns;
-    if(data.medications) newApptData.medications = data.medications.join('\n');
+    setIsParsing(true);
     
-    // Determine Type
-    if (data.problem && data.problem.toLowerCase().includes('recheck')) {
-        newApptData.type = 'Recheck';
-    } else {
-        newApptData.type = 'New';
-    }
+    try {
+      const response = await fetch('/api/parse-appointment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: textToParse }),
+      });
 
-    addAppointment(newApptData);
-    setTextToParse(''); // Clear the textarea
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to parse patient record.');
+      }
+
+      const data = await response.json();
+      
+      const newApptData: Partial<AppointmentData> = {};
+
+      newApptData.name = data.patientName || '';
+      newApptData.signalment = data.signalment || '';
+      newApptData.problem = data.problem || '';
+      newApptData.lastRecheck = data.lastRecheckDate || '';
+      newApptData.lastPlan = data.lastRecheckPlan || '';
+      newApptData.mriDate = data.mriDate || '';
+      newApptData.mriFindings = data.mriFindings || '';
+      newApptData.medications = (data.medications || []).join('\n');
+      newApptData.otherConcerns = data.otherConcerns || '';
+      
+      // Determine Type
+      if (data.problem && data.problem.toLowerCase().includes('recheck')) {
+          newApptData.type = 'Recheck';
+      } else {
+          newApptData.type = 'New';
+      }
+
+      addAppointment(newApptData);
+      setTextToParse(''); // Clear the textarea
+      toast({
+        title: "Parsing Successful",
+        description: `${data.patientName || 'New patient'} has been added to the list.`,
+      });
+
+    } catch (error) {
+      console.error("Parsing failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      toast({
+        variant: "destructive",
+        title: "Parsing Failed",
+        description: errorMessage,
+      });
+    } finally {
+      setIsParsing(false);
+    }
   };
 
 
@@ -243,10 +261,20 @@ export default function AppointmentsPage() {
                         />
                         <button
                             onClick={handleParseAndAdd}
-                            className="mt-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition shadow-md"
+                            disabled={isParsing}
+                            className="mt-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition shadow-md disabled:bg-gray-400"
                         >
-                            <Sparkles size={18} />
-                            Parse & Add
+                           {isParsing ? (
+                            <>
+                                <span className="animate-spin h-5 w-5 mr-3" role="status">🌀</span>
+                                Parsing...
+                            </>
+                            ) : (
+                            <>
+                                <Sparkles size={18} />
+                                Parse & Add
+                            </>
+                            )}
                         </button>
                     </div>
                 </div>
