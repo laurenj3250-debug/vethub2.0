@@ -198,9 +198,9 @@ export default function AppointmentsPage() {
                             Add Blank Row
                         </button>
                     </div>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="bg-purple-50/50 border border-purple-200 rounded-lg p-4">
                         <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                          <Sparkles className="text-blue-500" />
+                          <Sparkles className="text-purple-500" />
                           Parse from Patient Record
                         </h2>
                         <p className="text-sm text-gray-600 mb-2">
@@ -211,11 +211,11 @@ export default function AppointmentsPage() {
                             onChange={(e) => setTextToParse(e.target.value)}
                             placeholder="Paste patient record here..."
                             rows={4}
-                            className="w-full text-sm border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
                         />
                         <button
                             onClick={handleParseAndAdd}
-                            className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition shadow-md"
+                            className="mt-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition shadow-md"
                         >
                             <Sparkles size={18} />
                             Parse & Add
