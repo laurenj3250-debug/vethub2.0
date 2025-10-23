@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Calendar, Sparkles } from 'lucide-react';
+import { Plus, X, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
@@ -36,8 +36,6 @@ const getAppointmentTypeColor = (type: AppointmentType) => {
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const { user, firestore } = useUserAndFirestore();
-  const [textToParse, setTextToParse] = useState('');
-  const [isParsing, setIsParsing] = useState(false);
   const { toast } = useToast();
 
   // Common problems from Firestore
@@ -128,73 +126,6 @@ export default function AppointmentsPage() {
     setAppointments(prev => [newAppt, ...prev]);
   };
   
-  const handleParseAndAdd = async () => {
-    if (!textToParse.trim()) {
-      toast({
-        variant: "destructive",
-        title: "No Text Provided",
-        description: "Please paste some text to parse.",
-      });
-      return;
-    }
-    
-    setIsParsing(true);
-    
-    try {
-      const response = await fetch('/api/parse-appointment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: textToParse }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to parse patient record.');
-      }
-
-      const data = await response.json();
-      
-      const newApptData: Partial<AppointmentData> = {};
-
-      newApptData.name = data.patientName || '';
-      newApptData.signalment = data.signalment || '';
-      newApptData.problem = data.problem || '';
-      newApptData.lastRecheck = data.lastRecheckDate || '';
-      newApptData.lastPlan = data.lastRecheckPlan || '';
-      newApptData.mriDate = data.mriDate || '';
-      newApptData.mriFindings = data.mriFindings || '';
-      newApptData.medications = (data.medications || []).join('\n');
-      newApptData.otherConcerns = data.otherConcerns || '';
-      
-      // Determine Type
-      if (data.problem && data.problem.toLowerCase().includes('recheck')) {
-          newApptData.type = 'Recheck';
-      } else {
-          newApptData.type = 'New';
-      }
-
-      addAppointment(newApptData);
-      setTextToParse(''); // Clear the textarea
-      toast({
-        title: "Parsing Successful",
-        description: `${data.patientName || 'New patient'} has been added to the list.`,
-      });
-
-    } catch (error) {
-      console.error("Parsing failed:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({
-        variant: "destructive",
-        title: "Parsing Failed",
-        description: errorMessage,
-      });
-    } finally {
-      setIsParsing(false);
-    }
-  };
-
 
   const updateAppointmentField = (id: string, field: keyof AppointmentData, value: string) => {
     setAppointments(prev =>
@@ -242,39 +173,6 @@ export default function AppointmentsPage() {
                         >
                             <Plus size={20} />
                             Add Blank Row
-                        </button>
-                    </div>
-                    <div className="bg-purple-50/50 border border-purple-200 rounded-lg p-4">
-                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                          <Sparkles className="text-purple-500" />
-                          Parse from Patient Record
-                        </h2>
-                        <p className="text-sm text-gray-600 mb-2">
-                           Paste patient text from ezyVet or other system to auto-fill a new row.
-                        </p>
-                         <textarea
-                            value={textToParse}
-                            onChange={(e) => setTextToParse(e.target.value)}
-                            placeholder="Paste patient record here..."
-                            rows={4}
-                            className="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
-                        />
-                        <button
-                            onClick={handleParseAndAdd}
-                            disabled={isParsing}
-                            className="mt-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 transition shadow-md disabled:bg-gray-400"
-                        >
-                           {isParsing ? (
-                            <>
-                                <span className="animate-spin h-5 w-5 mr-3" role="status">🌀</span>
-                                Parsing...
-                            </>
-                            ) : (
-                            <>
-                                <Sparkles size={18} />
-                                Parse & Add
-                            </>
-                            )}
                         </button>
                     </div>
                 </div>
