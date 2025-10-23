@@ -77,12 +77,22 @@
         "completed": {
           "type": "boolean",
           "description": "Indicates whether the general task is completed."
+        },
+        "category": {
+            "type": "string",
+            "enum": ["Morning", "Evening"]
+        },
+        "priority": {
+            "type": "string",
+            "enum": ["High", "Medium", "Low"]
         }
       },
       "required": [
         "id",
         "name",
-        "completed"
+        "completed",
+        "category",
+        "priority"
       ]
     },
     "CommonProblem": {

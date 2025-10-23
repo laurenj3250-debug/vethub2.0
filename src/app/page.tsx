@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, EyeOff, Flag } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -124,12 +124,32 @@ const getStatusColor = (status: string) => {
   return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
 };
 
+const getPatientTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    'Surgery': 'bg-red-100 border-red-300',
+    'MRI': 'bg-blue-100 border-blue-300',
+    'Medical': 'bg-green-100 border-green-300',
+    'Other': 'bg-gray-100 border-gray-300'
+  };
+  return colors[type] || 'bg-gray-100 border-gray-300';
+};
+
 const getPriorityColor = (patient: any) => {
   if (patient.status === 'In Procedure') return 'border-l-4 border-orange-500';
   if (patient.status === 'Pre-procedure') return 'border-l-4 border-yellow-500';
   if (patient.status === 'Ready for Discharge') return 'border-l-4 border-green-500';
   return 'border-l-4 border-gray-300';
 };
+
+const getGeneralTaskPriorityColor = (priority: string) => {
+  const colors: Record<string, string> = {
+    'High': 'border-red-500',
+    'Medium': 'border-yellow-500',
+    'Low': 'border-gray-300',
+  };
+  return colors[priority] || 'border-gray-300';
+};
+
 
 const roundKgToInt = (kg: number) => Math.round(kg);
 const kgToLbs1 = (kg: number) => kg * 2.20462;
@@ -355,6 +375,7 @@ export default function VetPatientTracker() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
   const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
+  const [medCalcWeight, setMedCalcWeight] = useState('');
 
   // Date-based task management
   const getTodayDate = () => {
@@ -543,13 +564,8 @@ export default function VetPatientTracker() {
   // Static lists
   const procedureTypes = ['Surgery', 'MRI', 'Medical', 'Other'];
 
-  const commonGeneralTasksTemplates = [
-    'Check Comms',
-    'Check Emails',
-    'Draw Up Contrast',
-    'Rounding',
-    'Read appointments for next day', // ONLY general task (per your spec)
-  ];
+  const morningGeneralTasksTemplates = ['Check Comms', 'Check Emails', 'Draw Up Contrast', 'Rounding'];
+  const eveningGeneralTasksTemplates = ['Read appointments for next day'];
 
   // Admit task menus (not auto-added)
   const admitTasks: Record<string, string[]> = {
@@ -588,15 +604,25 @@ export default function VetPatientTracker() {
     return doc(firestore, `users/${user.uid}/patients`, patientId);
   };
 
-  const addGeneralTask = (taskName: string) => {
+  const addGeneralTask = (taskName: string, category: 'Morning' | 'Evening', priority: 'High' | 'Medium' | 'Low' = 'Medium') => {
     if (!taskName.trim() || !firestore || !user) return;
-    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { name: taskName, completed: false });
+    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { 
+        name: taskName, 
+        completed: false, 
+        category,
+        priority,
+    });
     setNewGeneralTask('');
   };
   const toggleGeneralTask = (taskId: string, completed: boolean) => {
     if (!firestore || !user) return;
     const ref = doc(firestore, `users/${user.uid}/generalTasks`, taskId);
     updateDocumentNonBlocking(ref, { completed: !completed });
+  };
+  const updateGeneralTaskPriority = (taskId: string, priority: string) => {
+    if (!firestore || !user) return;
+    const ref = doc(firestore, `users/${user.uid}/generalTasks`, taskId);
+    updateDocumentNonBlocking(ref, { priority });
   };
   const removeGeneralTask = (taskId: string) => {
     if (!firestore || !user) return;
@@ -1579,63 +1605,114 @@ export default function VetPatientTracker() {
 
         {/* General Tasks */}
         <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
-          <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
-            General Tasks (Not Patient-Specific)
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            General Tasks
             <span className="text-lg">✅</span>
           </h2>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {commonGeneralTasksTemplates.map(task => (
-              <button
-                key={task}
-                onClick={() => addGeneralTask(task)}
-                className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
-              >
-                + {task}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2 mb-3">
-            <input
-              type="text"
-              value={newGeneralTask}
-              onChange={(e) => setNewGeneralTask(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addGeneralTask(newGeneralTask)}
-              placeholder="Add custom general task..."
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
-            />
-            <button
-              onClick={() => addGeneralTask(newGeneralTask)}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
-            >
-              Add
-            </button>
-          </div>
-          {(generalTasks ?? []).length === 0 ? (
-            <p className="text-gray-400 text-sm italic py-2">No general tasks yet. Click quick-add or type a custom task.</p>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {generalTasks.map((task: any) => (
-                <div
-                  key={task.id}
-                  className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
-                >
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleGeneralTask(task.id, task.completed)}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
-                    {task.name}
-                  </span>
-                  <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                    <X size={16} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Morning Tasks */}
+            <div>
+              <h3 className="font-bold text-lg text-gray-700 mb-3">☀️ Morning</h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {morningGeneralTasksTemplates.map(task => (
+                  <button
+                    key={task}
+                    onClick={() => addGeneralTask(task, 'Morning')}
+                    className="px-3 py-1 text-sm bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition"
+                  >
+                    + {task}
                   </button>
+                ))}
+              </div>
+              {(generalTasks.filter((t: any) => t.category === 'Morning') ?? []).length === 0 ? (
+                <p className="text-gray-400 text-sm italic py-2">No morning tasks.</p>
+              ) : (
+                <div className="space-y-2">
+                  {generalTasks.filter((t: any) => t.category === 'Morning').map((task: any) => (
+                    <div
+                      key={task.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${task.completed ? 'bg-green-50 border-green-500' : 'bg-white'} ${getGeneralTaskPriorityColor(task.priority)}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => toggleGeneralTask(task.id, task.completed)}
+                        className="w-4 h-4 text-indigo-600 rounded"
+                      />
+                      <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
+                        {task.name}
+                      </span>
+                      <select 
+                        value={task.priority || 'Medium'} 
+                        onChange={(e) => updateGeneralTaskPriority(task.id, e.target.value)}
+                        className="text-xs border-gray-300 rounded"
+                      >
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                      </select>
+                      <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-red-600 transition">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+
+            {/* Evening Tasks */}
+            <div>
+              <h3 className="font-bold text-lg text-gray-700 mb-3">🌙 Evening</h3>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {eveningGeneralTasksTemplates.map(task => (
+                  <button
+                    key={task}
+                    onClick={() => addGeneralTask(task, 'Evening')}
+                    className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
+                  >
+                    + {task}
+                  </button>
+                ))}
+              </div>
+              {(generalTasks.filter((t: any) => t.category === 'Evening') ?? []).length === 0 ? (
+                <p className="text-gray-400 text-sm italic py-2">No evening tasks.</p>
+              ) : (
+                <div className="space-y-2">
+                  {generalTasks.filter((t: any) => t.category === 'Evening').map((task: any) => (
+                    <div
+                      key={task.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${task.completed ? 'bg-green-50 border-green-500' : 'bg-white'} ${getGeneralTaskPriorityColor(task.priority)}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => toggleGeneralTask(task.id, task.completed)}
+                        className="w-4 h-4 text-indigo-600 rounded"
+                      />
+                      <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
+                        {task.name}
+                      </span>
+                      <select 
+                        value={task.priority || 'Medium'} 
+                        onChange={(e) => updateGeneralTaskPriority(task.id, e.target.value)}
+                        className="text-xs border-gray-300 rounded"
+                      >
+                        <option>Low</option>
+                        <option>Medium</option>
+                        <option>High</option>
+                      </select>
+                      <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-red-600 transition">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
+
         {/* All Tasks Board */}
         <div className="bg-gradient-to-br from-orange-100 via-purple-100 to-pink-100 rounded-xl shadow-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
@@ -1786,7 +1863,7 @@ export default function VetPatientTracker() {
                     <SortablePatient key={patient.id} id={patient.id}>
                       <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-orange-50/20 to-purple-50/20 rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
                       {/* Header */}
-                      <div className="flex justify-between items-center p-4 border-b">
+                      <div className={`flex justify-between items-center p-4 border-b ${getPatientTypeColor(patient.type)}`}>
                         <div className="flex items-center gap-3">
                           {viewMode === 'compact' ? (
                             <div className="w-12 h-12">
@@ -1801,7 +1878,7 @@ export default function VetPatientTracker() {
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-3xl">{getBreedEmoji(patient)}</span>
                               <h3 className="text-lg font-bold text-gray-900">{patient.name}</h3>
-                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white">{patient.type}</span>
+                              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-white text-gray-800">{patient.type}</span>
 
                               {/* Rounding Status Badge */}
                               <span
@@ -1833,7 +1910,7 @@ export default function VetPatientTracker() {
                           <select
                             value={patient.type}
                             onChange={(e) => updatePatientType(patient.id, e.target.value)}
-                            className="px-2 py-1 rounded-lg border text-sm"
+                            className="px-2 py-1 rounded-lg border text-sm bg-white"
                           >
                             {procedureTypes.map(t => <option key={t} value={t}>{t}</option>)}
                           </select>
