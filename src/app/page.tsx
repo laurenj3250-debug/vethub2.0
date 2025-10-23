@@ -355,7 +355,7 @@ export default function VetPatientTracker() {
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState('');
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
-  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(true);
+  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
   
@@ -1578,20 +1578,52 @@ export default function VetPatientTracker() {
                   <tbody>
                     {patients.map((patient: any, idx: number) => (
                       <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        {roundingDataFields.map(field => (
+                          {roundingDataFields.map(field => (
                           <td key={field} className="px-1 py-1 border-b align-top">
-                            <input
-                              type="text"
-                              value={field === 'name' ? safeStr(patient[field]) : safeStr(patient.roundingData?.[field])}
-                              onChange={(e) => {
-                                if (field === 'name') {
-                                  updatePatientField(patient.id, 'name', e.target.value);
-                                } else {
-                                  updateRoundingData(patient.id, field, e.target.value);
-                                }
-                              }}
-                              className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
-                            />
+                            {field === 'location' ? (
+                              <select
+                                value={safeStr(patient.roundingData?.[field])}
+                                onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
+                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                              >
+                                <option value="">Select...</option>
+                                <option value="IP">IP</option>
+                                <option value="ICU">ICU</option>
+                              </select>
+                            ) : field === 'icuCriteria' ? (
+                              <select
+                                value={safeStr(patient.roundingData?.[field])}
+                                onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
+                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                              >
+                                <option value="">Select...</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                                <option value="N/A">N/A</option>
+                              </select>
+                            ) : field === 'codeStatus' ? (
+                              <select
+                                value={safeStr(patient.roundingData?.[field])}
+                                onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
+                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                              >
+                                <option value="Yellow">Yellow</option>
+                                <option value="Red">Red</option>
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={field === 'name' ? safeStr(patient[field]) : safeStr(patient.roundingData?.[field])}
+                                onChange={(e) => {
+                                  if (field === 'name') {
+                                    updatePatientField(patient.id, 'name', e.target.value);
+                                  } else {
+                                    updateRoundingData(patient.id, field, e.target.value);
+                                  }
+                                }}
+                                className="w-full p-1 border border-transparent rounded hover:border-gray-300 focus:border-purple-400 focus:outline-none bg-transparent"
+                              />
+                            )}
                           </td>
                         ))}
                       </tr>
@@ -1713,111 +1745,57 @@ export default function VetPatientTracker() {
           </div>
         </div>
 
-        {/* All Tasks Board */}
-        <div className="bg-gradient-to-br from-orange-100 via-purple-100 to-pink-100 rounded-xl shadow-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                🎃 All Tasks Board
-              </h2>
-              <span className="px-4 py-2 bg-orange-500 text-white rounded-full text-lg font-bold shadow-lg">
-                {overallTaskStats.completed}/{overallTaskStats.total}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {patients.length === 0 ? (
-              <div className="bg-white/80 backdrop-blur rounded-xl p-12 text-center">
-                <p className="text-gray-500 text-lg">No patients added yet 🐾</p>
+        {/* All Tasks Dropdown */}
+        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+            <button
+              onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
+              className="w-full flex items-center justify-between text-left font-bold text-gray-800"
+            >
+              <div className="flex items-center gap-2">
+                All Tasks Overview
+                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">{overallTaskStats.completed}/{overallTaskStats.total}</span>
               </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <ChevronDown className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            {showAllTasksDropdown && (
+              <div className="mt-4 space-y-3">
                 {patients.map((patient: any) => {
                   let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
                   if (hideCompletedTasks) {
                       todayTasks = todayTasks.filter((t: any) => !t.completed);
                   }
-                  const tasksSorted = [...todayTasks].sort((a, b) =>
-                    Number(a.completed) - Number(b.completed)
-                  );
-                  const completedCount = tasksSorted.filter(t => t.completed).length;
-                  const totalCount = tasksSorted.length;
-                  const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+                  const tasksSorted = [...todayTasks].sort((a,b) => Number(a.completed) - Number(b.completed));
 
                   return (
-                    <div 
-                      key={patient.id} 
-                      className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden shadow-lg"
-                    >
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10">
-                            <ProgressRing percentage={Math.round(percentage)} size={40} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl">{getBreedEmoji(patient)}</span>
-                              <h3 className="font-bold text-gray-900">{patient.name}</h3>
-                            </div>
-                            <div className="text-xs text-gray-600 mt-0.5">
-                              {completedCount}/{totalCount} tasks done
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
-                            setTimeout(() => {
-                              const element = document.getElementById(`patient-${patient.id}`);
-                              element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 100);
-                          }}
-                          className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                        >
-                          Go to
-                        </button>
-                      </div>
-
-                      {totalCount === 0 ? (
-                        <p className="text-gray-400 text-sm italic p-3">No tasks today</p>
-                      ) : (
-                        <div className="p-3 space-y-2 max-h-60 overflow-y-auto">
+                    <div key={patient.id} className="p-3 rounded-lg border bg-gray-50">
+                      <h4 className="font-semibold text-gray-700 mb-2">{patient.name}</h4>
+                      {tasksSorted.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                           {tasksSorted.map((task: any) => (
-                            <label
+                             <label
                               key={task.id}
-                              className={`flex items-center gap-3 p-2 rounded-lg border transition cursor-pointer ${
-                                task.completed
-                                  ? 'bg-green-50 border-green-200'
-                                  : 'bg-white border-orange-200 hover:bg-orange-50'
-                              }`}
+                              className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}
                             >
                               <input
                                 type="checkbox"
                                 checked={task.completed}
                                 onChange={() => toggleTask(patient.id, task.id)}
-                                className="w-5 h-5 text-orange-600 rounded-md cursor-pointer flex-shrink-0 accent-orange-600"
+                                className="w-4 h-4 text-purple-600 rounded"
                               />
-                              <span
-                                className={`flex-1 text-sm font-medium ${
-                                  task.completed
-                                    ? 'text-green-800 line-through'
-                                    : 'text-gray-800'
-                                }`}
-                              >
-                                {task.name}
-                              </span>
+                              <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
                             </label>
                           ))}
                         </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">No tasks for today.</p>
                       )}
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
-          </div>
         </div>
+
 
         {/* Patients */}
         {patients.length === 0 ? (
