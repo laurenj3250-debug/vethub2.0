@@ -200,182 +200,182 @@ export default function AppointmentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-purple-50 to-black/5 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
-      <div className="max-w-7xl mx-auto mb-6">
+      <div className="max-w-screen-2xl mx-auto mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Calendar size={32} className="text-orange-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Today's Appointments 📋</h1>
+            <Calendar size={32} className="text-indigo-600" />
+            <h1 className="text-3xl font-bold text-gray-900">Today's Appointments</h1>
           </div>
           <Link
             href="/"
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
           >
             ← Back to Patients
           </Link>
         </div>
 
         {/* Input Section */}
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-orange-500">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-500">
           <h2 className="text-xl font-bold mb-3 text-gray-800">Add Appointment</h2>
           <p className="text-sm text-gray-600 mb-3">
-            Paste patient history below. The system will automatically extract: name, signalment, problem, recheck info, MRI details, bloodwork due dates, medications, and concerns.
+            Paste patient history below to add a new row to the spreadsheet.
           </p>
           <textarea
             value={pasteInput}
             onChange={(e) => setPasteInput(e.target.value)}
             placeholder="Paste patient history here..."
             rows={6}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none mb-3"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none mb-3"
           />
-          <div className="flex gap-2 items-center mb-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useAI}
-                onChange={(e) => setUseAI(e.target.checked)}
-                className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-              />
-              <span className="text-sm font-semibold text-gray-700">
-                🤖 Use AI Parsing (More Accurate)
-              </span>
-            </label>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={addAppointment}
-              disabled={aiLoading}
-              className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus size={20} />
-              {aiLoading ? 'Processing with AI...' : 'Add to List'}
-            </button>
-            {appointments.length > 0 && (
-              <button
-                onClick={clearAll}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-              >
-                Clear All
-              </button>
-            )}
+          <div className="flex gap-4 items-center justify-between">
+            <div className="flex gap-2 items-center">
+                <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={useAI}
+                    onChange={(e) => setUseAI(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                />
+                <span className="text-sm font-semibold text-gray-700">
+                    Use AI Parsing (More Accurate)
+                </span>
+                </label>
+            </div>
+            <div className="flex gap-2">
+                <button
+                onClick={addAppointment}
+                disabled={aiLoading}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                <Plus size={20} />
+                {aiLoading ? 'Processing...' : 'Add to List'}
+                </button>
+                {appointments.length > 0 && (
+                <button
+                    onClick={clearAll}
+                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                >
+                    Clear All
+                </button>
+                )}
+            </div>
           </div>
         </div>
 
-        {/* Appointments Table */}
+        {/* Appointments Spreadsheet */}
         {appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 text-lg">No appointments added yet. Paste patient info above to get started! 🎃</p>
+            <p className="text-gray-500 text-lg">No appointments added yet. Paste patient info above to get started!</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gradient-to-r from-orange-600 to-purple-600 text-white">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-100 border-b">
                   <tr>
-                    <th className="px-4 py-3 text-left text-sm font-bold">Name & Signalment</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold">Problem</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold">Last Recheck & Plan</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold">MRI Info</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold">Bloodwork Due</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold">Medications</th>
-                    <th className="px-4 py-3 text-left text-sm font-bold">Other Concerns</th>
-                    <th className="px-4 py-3 text-center text-sm font-bold">Actions</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Name + Signalment</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Problem</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">MRI?</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Last Recheck?</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Bloodwork?</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Meds?</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Questions/Concerns?</th>
+                    <th className="px-4 py-3 text-center font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {appointments.map((appt, idx) => (
                     <tr
                       key={appt.id}
-                      className={`border-b hover:bg-orange-50 transition ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
+                      className="border-b hover:bg-indigo-50 transition"
                     >
-                      <td className="px-4 py-3">
+                      <td className="p-2 align-top" style={{ minWidth: '200px' }}>
                         <input
                           type="text"
                           value={appt.name}
                           onChange={(e) => updateAppointmentField(appt.id, 'name', e.target.value)}
-                          className="font-bold text-gray-900 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
+                          className="font-bold text-gray-900 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none mb-1"
                         />
-                        <input
-                          type="text"
+                        <textarea
                           value={appt.signalment}
                           onChange={(e) => updateAppointmentField(appt.id, 'signalment', e.target.value)}
                           placeholder="Signalment"
-                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none"
+                          rows={2}
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none resize-none"
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="p-2 align-top" style={{ minWidth: '250px' }}>
                         <textarea
                           value={appt.problem}
                           onChange={(e) => updateAppointmentField(appt.id, 'problem', e.target.value)}
                           placeholder="Problem/Reason for visit"
-                          rows={3}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                          rows={4}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none"
                         />
                       </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          value={appt.lastRecheck}
-                          onChange={(e) => updateAppointmentField(appt.id, 'lastRecheck', e.target.value)}
-                          placeholder="Date (MM/DD/YYYY)"
-                          className="text-sm font-semibold text-gray-700 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
-                        />
+                      <td className="p-2 align-top" style={{ minWidth: '250px' }}>
                         <textarea
-                          value={appt.lastPlan}
-                          onChange={(e) => updateAppointmentField(appt.id, 'lastPlan', e.target.value)}
-                          placeholder="Plan from last visit"
-                          rows={2}
-                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                          value={`${appt.mriDate} ${appt.mriFindings}`.trim()}
+                          onChange={(e) => {
+                              const parts = e.target.value.split(' ');
+                              const date = parts[0];
+                              const findings = parts.slice(1).join(' ');
+                              updateAppointmentField(appt.id, 'mriDate', date);
+                              updateAppointmentField(appt.id, 'mriFindings', findings);
+                          }}
+                          placeholder="MRI Date & Findings"
+                          rows={4}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none"
                         />
                       </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          value={appt.mriDate}
-                          onChange={(e) => updateAppointmentField(appt.id, 'mriDate', e.target.value)}
-                          placeholder="Date (MM/DD/YYYY)"
-                          className="text-sm font-semibold text-gray-700 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
-                        />
+                       <td className="p-2 align-top" style={{ minWidth: '250px' }}>
                         <textarea
-                          value={appt.mriFindings}
-                          onChange={(e) => updateAppointmentField(appt.id, 'mriFindings', e.target.value)}
-                          placeholder="MRI findings"
-                          rows={2}
-                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                          value={`${appt.lastRecheck} ${appt.lastPlan}`.trim()}
+                          onChange={(e) => {
+                              const parts = e.target.value.split(' ');
+                              const date = parts[0];
+                              const plan = parts.slice(1).join(' ');
+                              updateAppointmentField(appt.id, 'lastRecheck', date);
+                              updateAppointmentField(appt.id, 'lastPlan', plan);
+                          }}
+                          placeholder="Last Recheck Date & Plan"
+                          rows={4}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none"
                         />
                       </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
+                       <td className="p-2 align-top" style={{ minWidth: '200px' }}>
+                        <textarea
                           value={appt.bloodworkDue}
                           onChange={(e) => updateAppointmentField(appt.id, 'bloodworkDue', e.target.value)}
-                          placeholder="Due date or status"
-                          className="text-sm w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none"
+                          placeholder="Bloodwork"
+                          rows={4}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none"
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="p-2 align-top" style={{ minWidth: '300px' }}>
                         <textarea
                           value={appt.medications}
                           onChange={(e) => updateAppointmentField(appt.id, 'medications', e.target.value)}
                           placeholder="Current medications"
-                          rows={3}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none whitespace-pre-wrap"
+                          rows={4}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none whitespace-pre-wrap"
                         />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="p-2 align-top" style={{ minWidth: '250px' }}>
                         <textarea
                           value={appt.otherConcerns}
                           onChange={(e) => updateAppointmentField(appt.id, 'otherConcerns', e.target.value)}
-                          placeholder="Other concerns"
-                          rows={2}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                          placeholder="Questions/Concerns"
+                          rows={4}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none"
                         />
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="p-2 align-top text-center">
                         <button
                           onClick={() => removeAppointment(appt.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
                           title="Remove"
                         >
                           <X size={18} />
