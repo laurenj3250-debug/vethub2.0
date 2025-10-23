@@ -20,6 +20,7 @@ export type Signalment = {
   medications?: string[];
   otherConcerns?: string;
   bloodwork?: string;
+  signalment?: string;
 };
 
 export type ParseResult = {
@@ -75,17 +76,29 @@ const mriRe = /MRI\s+(\d{1,2}\/\d{1,2}\/\d{2,4}):\s*([^\n]+)/i;
 const lastVisitRe = /Last visit\s+((?:\d{1,2}\/\d{1,2}\/\d{2,4}|\w+\s+\d{1,2}(?:st|nd|rd|th)?,\s+\d{4}))(?:\s*-\s*\d{1,2}\/\d{1,2}\/\d{2,4})?:\s*([^\n]+)/i;
 const concernsRe = /Owner Concerns(?: & Clinical Signs)?:?\s*([^]+?)(?=Current Medications:|Plan:|Assessment:|\n\n)/i;
 
+// New regex to find name and signalment in the "Presenting Problem" section
+const problemNameSignalmentRe = /Presenting Problem:\s*([A-Za-z\s.'-]+?)\s+is an?\s+(.*?)\s+that is presenting/i;
+
 export function parseSignalment(text: string): ParseResult {
   const diag: string[] = [];
   const data: Signalment = {};
   const t = text.replace(/\r/g, "");
   const lower = t.toLowerCase();
 
+  // Try the presenting problem regex first as it's often very specific
+  const problemNameMatch = t.match(problemNameSignalmentRe);
+  if (problemNameMatch) {
+    data.patientName = problemNameMatch[1].trim();
+    data.signalment = problemNameMatch[2].trim();
+    diag.push(`problemNameSignalment: ${data.patientName} - ${data.signalment}`);
+  }
+
+
   // 1) Direct K/V picks (highest confidence)
   // Patient name is usually the first line if it's just a name
   const firstLine = t.split('\n')[0].trim();
   const nameMatch = firstLine.match(/^([A-Za-z\s.'-]+)/);
-  if (nameMatch && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
+  if (nameMatch && !data.patientName && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
       data.patientName = nameMatch[1].trim();
       diag.push(`patientName: ${data.patientName}`);
   }
@@ -187,7 +200,7 @@ export function parseSignalment(text: string): ParseResult {
   }
 
   // Breed from “Feline/Canine - Foo”
-  if (!data.breed) {
+  if (!data.breed && !data.signalment) {
     const m = t.match(/\b(?:feline|canine)\s*-\s*([A-Za-z][A-Za-z \-\/']{2,40})/i);
     if (m) {
       const cand = titleCase(clean(m[1]));

@@ -135,20 +135,24 @@ export default function AppointmentsPage() {
 
     const newApptData: Partial<AppointmentData> = {};
 
-    // Combine name and owner name
     let nameField = data.patientName || '';
-    if (data.ownerName && data.ownerName !== data.patientName) {
-        nameField = `${data.patientName || 'Unknown Patient'} (${data.ownerName})`
+    if (data.ownerName && data.ownerName.toLowerCase() !== data.patientName?.toLowerCase()) {
+        nameField = `${nameField} (${data.ownerName})`;
     }
     newApptData.name = nameField;
-
+    
     // Build Signalment
-    const signalmentParts = [];
-    if (data.age) signalmentParts.push(data.age);
-    if (data.sex) signalmentParts.push(data.sex);
-    if (data.breed) signalmentParts.push(data.breed);
-    if(data.weight) signalmentParts.push(data.weight);
-    newApptData.signalment = signalmentParts.join(', ');
+    if (data.signalment) {
+        newApptData.signalment = data.signalment;
+    } else {
+        const signalmentParts = [];
+        if (data.age) signalmentParts.push(data.age);
+        if (data.sex) signalmentParts.push(data.sex);
+        if (data.breed) signalmentParts.push(data.breed);
+        if(data.weight) signalmentParts.push(data.weight);
+        newApptData.signalment = signalmentParts.join(', ');
+    }
+
 
     // Clinical Data
     if(data.problem) newApptData.problem = data.problem;
