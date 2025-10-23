@@ -396,3 +396,5 @@ function useUserAndFirestore() {
     const { user, isUserLoading, firestore } = useFirebase();
     return { user, isUserLoading, firestore };
 }
+
+    
