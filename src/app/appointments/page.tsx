@@ -18,7 +18,7 @@ interface AppointmentData {
   lastPlan: string;
   mriDate: string;
   mriFindings: string;
-  bloodworkDue: string;
+  bloodworkNeeded: 'Needs Pheno' | 'Pheno/Bromide' | 'CBC/CHEM' | '';
   medications: string;
   otherConcerns: string;
   type: AppointmentType;
@@ -44,6 +44,14 @@ export default function AppointmentsPage() {
   const commonProblemsRes = useCollection(commonProblemsQuery);
   const commonProblems = commonProblemsRes?.data ?? [];
 
+  // Common medications from Firestore
+  const commonMedicationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonMedications`));
+  }, [firestore, user]);
+  const commonMedicationsRes = useCollection(commonMedicationsQuery);
+  const commonMedications = commonMedicationsRes?.data ?? [];
+
   const addCommonProblem = (name: string) => {
     if (!name.trim() || !firestore || !user) return;
     if (!commonProblems.some(p => p.name === name.trim())) {
@@ -51,9 +59,16 @@ export default function AppointmentsPage() {
     }
   };
 
-  const deleteCommonItem = (id: string) => {
+  const addCommonMedication = (name: string) => {
+    if (!name.trim() || !firestore || !user) return;
+    if (!commonMedications.some(m => m.name === name.trim())) {
+      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonMedications`), { name: name.trim() });
+    }
+  };
+
+  const deleteCommonItem = (type: 'commonProblems' | 'commonMedications', id: string) => {
     if (!firestore || !user) return;
-    const ref = doc(firestore, `users/${user.uid}/commonProblems`, id);
+    const ref = doc(firestore, `users/${user.uid}/${type}`, id);
     deleteDocumentNonBlocking(ref);
   };
 
@@ -100,7 +115,7 @@ export default function AppointmentsPage() {
       lastPlan: '',
       mriDate: '',
       mriFindings: '',
-      bloodworkDue: '',
+      bloodworkNeeded: '',
       medications: '',
       otherConcerns: '',
       type: 'New',
@@ -186,7 +201,7 @@ export default function AppointmentsPage() {
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Problem</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">MRI?</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Last Recheck?</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Bloodwork?</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Bloodwork Needed</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Meds?</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Questions/Concerns?</th>
                     <th className="px-4 py-3 text-center font-semibold text-gray-600">Actions</th>
@@ -242,6 +257,19 @@ export default function AppointmentsPage() {
                                   </button>
                                 ))}
                             </div>
+                             <div className="flex gap-2 mb-2">
+                                <input
+                                    type="text"
+                                    placeholder="Add new problem..."
+                                    className="flex-1 px-2 py-1 text-xs border rounded"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            addCommonProblem(e.currentTarget.value);
+                                            e.currentTarget.value = '';
+                                        }
+                                    }}
+                                />
+                            </div>
                             <textarea
                               value={appt.problem}
                               onChange={(e) => updateAppointmentField(appt.id, 'problem', e.target.value)}
@@ -282,22 +310,56 @@ export default function AppointmentsPage() {
                         />
                       </td>
                        <td className="p-2 align-top" style={{ minWidth: '200px' }}>
-                        <textarea
-                          value={appt.bloodworkDue}
-                          onChange={(e) => updateAppointmentField(appt.id, 'bloodworkDue', e.target.value)}
-                          placeholder="Bloodwork"
-                          rows={4}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
-                        />
+                         <select
+                            value={appt.bloodworkNeeded}
+                            onChange={(e) => updateAppointmentField(appt.id, 'bloodworkNeeded', e.target.value as AppointmentData['bloodworkNeeded'])}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
+                          >
+                            <option value="">Select...</option>
+                            <option value="Needs Pheno">Needs Pheno</option>
+                            <option value="Pheno/Bromide">Pheno/Bromide</option>
+                            <option value="CBC/CHEM">CBC/CHEM</option>
+                          </select>
                       </td>
                       <td className="p-2 align-top" style={{ minWidth: '300px' }}>
-                        <textarea
-                          value={appt.medications}
-                          onChange={(e) => updateAppointmentField(appt.id, 'medications', e.target.value)}
-                          placeholder="Current medications"
-                          rows={4}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none whitespace-pre-wrap bg-white"
-                        />
+                        <div className="p-1 bg-cyan-50/50 border border-cyan-200/50 rounded-lg">
+                           <div className="flex flex-wrap gap-1 mb-2">
+                                {(commonMedications || []).slice(0, 5).map((med: any) => (
+                                  <button
+                                    key={med.id}
+                                    onClick={() => {
+                                        const current = appt.medications || '';
+                                        const newValue = current ? `${current}\n${med.name}` : med.name;
+                                        updateAppointmentField(appt.id, 'medications', newValue);
+                                    }}
+                                    className="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded-full hover:bg-cyan-200 transition"
+                                    title={`Add "${med.name}"`}
+                                  >
+                                    + {med.name}
+                                  </button>
+                                ))}
+                            </div>
+                             <div className="flex gap-2 mb-2">
+                                <input
+                                    type="text"
+                                    placeholder="Add new medication..."
+                                    className="flex-1 px-2 py-1 text-xs border rounded"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            addCommonMedication(e.currentTarget.value);
+                                            e.currentTarget.value = '';
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <textarea
+                              value={appt.medications}
+                              onChange={(e) => updateAppointmentField(appt.id, 'medications', e.target.value)}
+                              placeholder="Current medications"
+                              rows={4}
+                              className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none whitespace-pre-wrap bg-white"
+                            />
+                        </div>
                       </td>
                       <td className="p-2 align-top" style={{ minWidth: '250px' }}>
                         <textarea
