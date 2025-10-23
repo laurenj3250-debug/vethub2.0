@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// This API route is no longer used by the application but is kept for potential future use or reference.
 export async function POST(request: NextRequest) {
   try {
     const { text } = await request.json();
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 2000,
         messages: [
           {
