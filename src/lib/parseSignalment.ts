@@ -9,10 +9,17 @@ export type Signalment = {
   color?: string;
   patientId?: string;
   clientId?: string;
+  patientName?: string;
   ownerName?: string;
   ownerPhone?: string;
-  medications?: string[]; // extracted medications
-  bloodwork?: string; // extracted bloodwork values
+  problem?: string;
+  lastRecheck?: string;
+  lastPlan?: string;
+  mriDate?: string;
+  mriFindings?: string;
+  medications?: string[];
+  otherConcerns?: string;
+  bloodwork?: string;
 };
 
 export type ParseResult = {
@@ -56,11 +63,17 @@ const yoRe = /\b(\d+)\s*(?:yo|y\/o)\b/i;
 const pidRe = /\bpatient\s*id\s*[:\-]?\s*([A-Za-z0-9\-_.]+)\b/i;
 const cidRe = /\bclient\s*id\s*[:\-]?\s*([A-Za-z0-9\-_.]+)\b/i;
 
-const ownerRe = /\b(owner|guardian)\s*[:\-]\s*([A-Za-z ,.'\-]+)\b/i;
+const ownerRe = /\b(owner|guardian)\s*[:\-]?\s*([A-Za-z ,.'\-]+)\b/i;
 const speciesKVRe = /\bspecies\s*[:\-]\s*([A-Za-z]+)\b/i;
 const breedKVRe = /\bbreed\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
 const colorKVRe = /\b(colou?r)\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
 const sexKVRe = /\b(?:sex|gender)\s*[:\-]\s*(female|male|mn|mc|fs|fn|cm|mi|mni|spayed|neutered|intact|unknown)\b/i;
+
+// New regexes for clinical data
+const problemRe = /Presenting Problem:\s*([^]+?)(?=Past Pertinent History:|Current History:|Current Medications:|\n\n)/i;
+const mriRe = /MRI\s+(\d{1,2}\/\d{1,2}\/\d{2,4}):\s*([^\n]+)/i;
+const lastVisitRe = /Last visit\s+((?:\d{1,2}\/\d{1,2}\/\d{2,4}|\w+\s+\d{1,2}(?:st|nd|rd|th)?,\s+\d{4}))(?:\s*-\s*\d{1,2}\/\d{1,2}\/\d{2,4})?:\s*([^\n]+)/i;
+const concernsRe = /Owner Concerns(?: & Clinical Signs)?:?\s*([^]+?)(?=Current Medications:|Plan:|Assessment:|\n\n)/i;
 
 export function parseSignalment(text: string): ParseResult {
   const diag: string[] = [];
@@ -69,6 +82,13 @@ export function parseSignalment(text: string): ParseResult {
   const lower = t.toLowerCase();
 
   // 1) Direct K/V picks (highest confidence)
+  // Patient name is usually the first line if it's just a name
+  const firstLine = t.split('\n')[0].trim();
+  if (firstLine && !firstLine.includes(':') && firstLine.split(' ').length < 4) {
+      data.patientName = firstLine;
+      diag.push(`patientName: ${firstLine}`);
+  }
+
   const spKV = t.match(speciesKVRe);
   if (spKV) {
     data.species = normalizeSpecies(spKV[1]);
@@ -125,7 +145,7 @@ export function parseSignalment(text: string): ParseResult {
   const pid = t.match(pidRe); if (pid) { data.patientId = pid[1]; diag.push(`patientId:${pid[1]}`); }
   const cid = t.match(cidRe); if (cid) { data.clientId = cid[1]; diag.push(`clientId:${cid[1]}`); }
 
-  const owner = t.match(ownerRe); if (owner) { data.ownerName = clean(owner[2]); diag.push(`owner:${data.ownerName}`); }
+  const ownerMatch = t.match(ownerRe); if (ownerMatch) { data.ownerName = clean(ownerMatch[2]); diag.push(`owner:${data.ownerName}`); }
   const phone = t.match(phoneRe); if (phone) { data.ownerPhone = phone[0]; diag.push(`phone:${data.ownerPhone}`); }
 
   // 2) Heuristics if missing:
@@ -138,6 +158,15 @@ export function parseSignalment(text: string): ParseResult {
       diag.push(`sexParen:${sxPar[1]}→${data.sex}`);
     }
   }
+  
+  if (!data.patientName) {
+      const nameAndSignalment = t.match(/^([A-Za-z\s]+)\s\((MN|FS)\)/);
+      if (nameAndSignalment) {
+          data.patientName = nameAndSignalment[1].trim();
+          diag.push(`patientNameHeuristic: ${data.patientName}`);
+      }
+  }
+
 
   // Species inference from tokens
   if (!data.species) {
@@ -168,6 +197,34 @@ export function parseSignalment(text: string): ParseResult {
     }
   }
 
+  // Clinical data extraction
+  const problemMatch = t.match(problemRe);
+  if (problemMatch && problemMatch[1]) {
+      data.problem = problemMatch[1].replace(/\n/g, ' ').trim();
+      diag.push(`problem: found`);
+  }
+
+  const mriMatch = t.match(mriRe);
+  if (mriMatch) {
+      data.mriDate = mriMatch[1].trim();
+      data.mriFindings = mriMatch[2].trim();
+      diag.push(`mri: found`);
+  }
+
+  const lastVisitMatch = t.match(lastVisitRe);
+  if (lastVisitMatch) {
+      data.lastRecheck = lastVisitMatch[1].trim();
+      data.lastPlan = lastVisitMatch[2].trim();
+      diag.push(`lastVisit: found`);
+  }
+  
+  const concernsMatch = t.match(concernsRe);
+  if (concernsMatch && concernsMatch[1]) {
+      data.otherConcerns = concernsMatch[1].replace(/\n/g, ' ').trim();
+      diag.push('otherConcerns: found');
+  }
+
+
   // Final compacting
   if (data.age) data.age = compactAge(data.age);
 
@@ -191,39 +248,18 @@ export function parseSignalment(text: string): ParseResult {
 /* ---------- Medication and Bloodwork extraction ---------- */
 
 function extractMedications(text: string): string[] {
-  const meds: string[] = [];
-  const lines = text.split('\n');
+  const meds: Set<string> = new Set();
+  
+  // Look for "Current Medications:" section
+  const medSectionMatch = text.match(/(?:Current Medications|Current Meds|Medications):\s*([^]+?)(?=\n\n|Past Pertinent History:|Current History:|Prior Diagnostics:|Plan:)/i);
 
-  // Common medication patterns
-  const medPatterns = [
-    // "Drug Name dose route frequency"
-    /([A-Z][a-z]+(?:cillin|mycin|azole|prazole|ine|osin|ide|oxib|olol|pril|sartan|tide|ipine|afil|nazine|dine))\s+(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|u|iu|units?)(?:\/kg)?(?:\s+(iv|sq|po|im|topical|rectal))?\s*(?:q\d+h|bid|tid|qid|sid|prn)?/gi,
-    // "Drug: dose"
-    /([A-Z][a-z]{2,20})\s*:\s*(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|u|iu|units?)(?:\/kg)?/gi,
-    // Common vet meds with various formats
-    /\b(fentanyl|hydromorphone|buprenorphine|tramadol|gabapentin|trazodone|maropitant|cerenia|ondansetron|metoclopramide|famotidine|omeprazole|pantoprazole|sucralfate|metronidazole|enrofloxacin|clavamox|amoxicillin|cephalexin|doxycycline|prednisone|prednisolone|dexamethasone|meloxicam|carprofen|galliprant|onsior|bupivacaine|lidocaine|propofol|alfaxalone|ketamine|midazolam|acepromazine|dexmedetomidine|atropine|glycopyrrolate|atipamezole|flumazenil|naloxone|ampicillin|cefazolin|insulin|levothyroxine|atenolol|enalapril|pimobendan|furosemide|spironolactone|amlodipine|telmisartan|methimazole|phenobarbital|levetiracetam|zonisamide|potassium bromide|clindamycin|azithromycin|pradofloxacin|cefovecin|apoquel|cytopoint|atopica|cyclosporine|chlorpheniramine|diphenhydramine|hydroxyzine|sildenafil|theophylline|terbutaline|albuterol|n-acetylcysteine|mucomyst|saline|lactated ringers|plasmalyte|hetastarch|mannitol|hypertonic saline|dopamine|dobutamine|epinephrine|norepinephrine|vasopressin|vitamin k|yunnan baiyao|aminocaproic acid|tranexamic acid|desmopressin|heparin|clopidogrel|rivaroxaban|apixaban|diltiazem|amiodarone|sotalol|digoxin|cerenia|maropitant)\s+(\d+(?:\.\d+)?)\s*(mg|mcg|ml|g|u|iu|units?)(?:\/kg)?/gi
-  ];
-
-  for (const pattern of medPatterns) {
-    const matches = text.matchAll(pattern);
-    for (const match of matches) {
-      if (match[0].length > 3) { // Avoid very short matches
-        meds.push(match[0].trim());
-      }
-    }
+  if (medSectionMatch && medSectionMatch[1]) {
+      const section = medSectionMatch[1];
+      const lines = section.split('\n').filter(line => line.trim() !== '');
+      lines.forEach(line => meds.add(line.trim()));
   }
 
-  // Also look for "Medications:" or "Current meds:" sections
-  const medSectionMatch = text.match(/(?:medications?|current\s+meds?|drugs?|therapeutics?)\s*[:\-]\s*([^\n]+(?:\n(?!\s*\n)[^\n]+)*)/i);
-  if (medSectionMatch) {
-    const section = medSectionMatch[1];
-    // Split by common delimiters
-    const items = section.split(/[,;\n]/).map(s => s.trim()).filter(s => s.length > 2);
-    meds.push(...items);
-  }
-
-  // Remove duplicates
-  return [...new Set(meds)];
+  return Array.from(meds);
 }
 
 function extractBloodwork(text: string): string | undefined {

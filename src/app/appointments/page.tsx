@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Calendar, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useFirebase, useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { parseSignalment } from '@/lib/parseSignalment';
@@ -134,8 +134,15 @@ export default function AppointmentsPage() {
     const { data } = parseSignalment(textToParse);
 
     const newApptData: Partial<AppointmentData> = {};
-    if (data.ownerName) newApptData.name = data.ownerName; // Example: use owner name as patient name
-    
+
+    // Combine name and owner name
+    let nameField = data.patientName || '';
+    if (data.ownerName && data.ownerName !== data.patientName) {
+        nameField = `${data.patientName || 'Unknown Patient'} (${data.ownerName})`
+    }
+    newApptData.name = nameField;
+
+    // Build Signalment
     const signalmentParts = [];
     if (data.age) signalmentParts.push(data.age);
     if (data.sex) signalmentParts.push(data.sex);
@@ -143,7 +150,21 @@ export default function AppointmentsPage() {
     if(data.weight) signalmentParts.push(data.weight);
     newApptData.signalment = signalmentParts.join(', ');
 
+    // Clinical Data
+    if(data.problem) newApptData.problem = data.problem;
+    if(data.mriDate) newApptData.mriDate = data.mriDate;
+    if(data.mriFindings) newApptData.mriFindings = data.mriFindings;
+    if(data.lastRecheck) newApptData.lastRecheck = data.lastRecheck;
+    if(data.lastPlan) newApptData.lastPlan = data.lastPlan;
+    if(data.otherConcerns) newApptData.otherConcerns = data.otherConcerns;
     if(data.medications) newApptData.medications = data.medications.join('\n');
+    
+    // Determine Type
+    if (data.problem && data.problem.toLowerCase().includes('recheck')) {
+        newApptData.type = 'Recheck';
+    } else {
+        newApptData.type = 'New';
+    }
 
     addAppointment(newApptData);
     setTextToParse(''); // Clear the textarea
