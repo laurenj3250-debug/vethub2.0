@@ -580,7 +580,7 @@ export default function VetPatientTracker() {
     'Review Patient Notes Overnight',
     'Vet Radar Sheet Checked',
     'MRI Findings Inputted (if needed)',
-    // "Read appointments for next day" intentionally NOT included
+    'Discharge Instructions',
   ];
 
   const eveningTasks = [
@@ -785,6 +785,8 @@ export default function VetPatientTracker() {
     updatePatientField(patientId, 'tasks', newTasks);
   };
   const addMorningTasksToAll = () => (patients || []).forEach(p => addMorningTasks(p.id));
+  const addEveningTasksToAll = () => (patients || []).forEach(p => addEveningTasks(p.id));
+
 
   const resetDailyTasks = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
@@ -2680,6 +2682,14 @@ export default function VetPatientTracker() {
       {/* Floating Quick Add with Cat */}
       <div className="fixed bottom-6 right-6 z-50">
         <div className="flex flex-col items-end gap-2">
+           <button
+            onClick={() => addEveningTasksToAll()}
+            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-lg hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:scale-105 flex items-center gap-2"
+            title="Add Evening Tasks To All Patients"
+          >
+            <span className="text-lg">🌙</span>
+            Evening to All
+          </button>
           <button
             onClick={() => addMorningTasksToAll()}
             className="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg shadow-lg hover:from-orange-600 hover:to-pink-600 transition-all transform hover:scale-105 flex items-center gap-2"
