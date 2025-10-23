@@ -355,7 +355,6 @@ export default function VetPatientTracker() {
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState('');
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
-  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
   
@@ -1747,55 +1746,79 @@ export default function VetPatientTracker() {
           </div>
         </div>
 
-        {/* All Tasks Dropdown */}
+        {/* ALL TASKS OVERVIEW */}
         <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
-            <button
-              onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
-              className="w-full flex items-center justify-between text-left font-bold text-gray-800"
-            >
-              <div className="flex items-center gap-2">
-                All Tasks Overview
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full">{overallTaskStats.completed}/{overallTaskStats.total}</span>
-              </div>
-              <ChevronDown className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            {showAllTasksDropdown && (
-              <div className="mt-4 space-y-3">
-                {patients.map((patient: any) => {
-                  let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
-                  if (hideCompletedTasks) {
-                      todayTasks = todayTasks.filter((t: any) => !t.completed);
-                  }
-                  const tasksSorted = [...todayTasks].sort((a,b) => Number(a.completed) - Number(b.completed));
+            <h2 className="text-xl font-bold text-gray-800 mb-4">
+              All Tasks Overview
+              <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full align-middle">{overallTaskStats.completed}/{overallTaskStats.total}</span>
+            </h2>
+            <div className="space-y-4">
+              {sortedPatients.map((patient: any) => {
+                let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+                if (hideCompletedTasks) {
+                    todayTasks = todayTasks.filter((t: any) => !t.completed);
+                }
 
-                  return (
-                    <div key={patient.id} className="p-3 rounded-lg border bg-gray-50">
-                      <h4 className="font-semibold text-gray-700 mb-2">{patient.name}</h4>
-                      {tasksSorted.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                          {tasksSorted.map((task: any) => (
-                             <label
-                              key={task.id}
-                              className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={task.completed}
-                                onChange={() => toggleTask(patient.id, task.id)}
-                                className="w-4 h-4 text-purple-600 rounded"
-                              />
-                              <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
-                            </label>
-                          ))}
+                const morningTasksSet = new Set(morningTasks);
+                const eveningTasksSet = new Set(eveningTasks);
+                
+                const patientMorningTasks = todayTasks.filter((t: any) => morningTasksSet.has(t.name));
+                const patientEveningTasks = todayTasks.filter((t: any) => eveningTasksSet.has(t.name));
+                const otherTasks = todayTasks.filter((t: any) => !morningTasksSet.has(t.name) && !eveningTasksSet.has(t.name));
+
+                if (todayTasks.length === 0) return null;
+
+                return (
+                  <div key={patient.id} className="p-4 rounded-lg border bg-gray-50/50">
+                    <h3 className="font-bold text-gray-800 text-lg mb-3">{patient.name}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Morning */}
+                      {patientMorningTasks.length > 0 && (
+                        <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                          <h4 className="font-semibold text-orange-800 mb-2">☀️ Morning</h4>
+                          <div className="space-y-2">
+                            {patientMorningTasks.map((task: any) => (
+                              <label key={task.id} className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}>
+                                <input type="checkbox" checked={task.completed} onChange={() => toggleTask(patient.id, task.id)} className="w-4 h-4 text-purple-600 rounded" />
+                                <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
+                              </label>
+                            ))}
+                          </div>
                         </div>
-                      ) : (
-                        <p className="text-xs text-gray-500 italic">No tasks for today.</p>
+                      )}
+                      {/* Evening */}
+                      {patientEveningTasks.length > 0 && (
+                        <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                          <h4 className="font-semibold text-indigo-800 mb-2">🌙 Evening</h4>
+                           <div className="space-y-2">
+                            {patientEveningTasks.map((task: any) => (
+                              <label key={task.id} className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}>
+                                <input type="checkbox" checked={task.completed} onChange={() => toggleTask(patient.id, task.id)} className="w-4 h-4 text-purple-600 rounded" />
+                                <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Other */}
+                      {otherTasks.length > 0 && (
+                        <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                          <h4 className="font-semibold text-gray-800 mb-2">📋 Other</h4>
+                           <div className="space-y-2">
+                            {otherTasks.map((task: any) => (
+                              <label key={task.id} className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}>
+                                <input type="checkbox" checked={task.completed} onChange={() => toggleTask(patient.id, task.id)} className="w-4 h-4 text-purple-600 rounded" />
+                                <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  )
-                })}
-              </div>
-            )}
+                  </div>
+                )
+              })}
+            </div>
         </div>
 
 
