@@ -30,6 +30,7 @@ import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebas
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
+import { getDischargeMedsByWeight, type DischargeMedGroup } from '@/lib/discharge-meds';
 
 /* -----------------------------------------------------------
    Kitty Fireworks Component
@@ -1472,33 +1473,39 @@ export default function VetPatientTracker() {
 
               {/* Discharge Templates by Weight */}
               {medCalcWeight && (() => {
-                const weight = parseFloat(medCalcWeight);
-                if (isNaN(weight)) return null;
+                  const weight = parseFloat(medCalcWeight);
+                  if (isNaN(weight)) return null;
 
-                let template = '';
-                if (weight < 7) template = '< 7kg';
-                else if (weight <= 9) template = '7-9kg';
-                else if (weight <= 12) template = '10-12kg';
-                else if (weight <= 15) template = '13-15kg';
-                else if (weight <= 20) template = '16-20kg';
-                else if (weight <= 26) template = '21-26kg';
-                else if (weight <= 30) template = '27-30kg';
-                else if (weight <= 39) template = '> 30kg';
-                else if (weight <= 54) template = '40-54kg';
-                else template = '> 55kg';
+                  const medGroup: DischargeMedGroup | undefined = getDischargeMedsByWeight(weight);
 
-                return (
-                  <div className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-300">
-                    <h3 className="font-bold text-lg mb-2 text-cyan-900">
-                      Suggested Discharge Template for {weight.toFixed(1)}kg ({template})
-                    </h3>
-                    <div className="text-sm text-gray-700 space-y-2 font-mono bg-white p-3 rounded border">
-                      <p className="font-semibold">Weight Range: {template}</p>
-                      <p className="text-xs text-gray-500 italic">See full discharge instructions template in reference section</p>
+                  if (!medGroup) {
+                    return (
+                      <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-300">
+                        <p className="font-semibold text-yellow-800">No specific discharge template for this weight. Please consult standard protocols.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-300">
+                      <h3 className="font-bold text-lg mb-2 text-cyan-900">
+                        Discharge Template for {weight.toFixed(1)}kg ({medGroup.range})
+                      </h3>
+                      {medGroup.recheckNote && <p className="text-sm italic text-gray-600 mb-3">{medGroup.recheckNote}</p>}
+                      <div className="text-sm text-gray-800 space-y-4 font-mono bg-white p-4 rounded border">
+                        <h4 className="font-bold text-base text-gray-900">MEDICATIONS:</h4>
+                        {medGroup.meds.map((med, index) => (
+                          <div key={index}>
+                            <p className="font-semibold">{med.name}</p>
+                            <p className="whitespace-pre-wrap">{med.instructions}</p>
+                            {med.nextDose && <p className="font-bold text-red-600 mt-1">{med.nextDose}</p>}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
+
             </div>
           )}
         </div>
