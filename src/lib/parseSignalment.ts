@@ -70,7 +70,7 @@ const colorKVRe = /\b(colou?r)\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
 const sexKVRe = /\b(?:sex|gender)\s*[:\-]\s*(female|male|mn|mc|fs|fn|cm|mi|mni|spayed|neutered|intact|unknown)\b/i;
 
 // New regexes for clinical data
-const problemRe = /Presenting Problem:\s*([^]+?)(?=Past Pertinent History:|Current History:|Current Medications:|\n\n)/i;
+const problemRe = /Presenting Problem:([\s\S]*?)(?=Past Pertinent History:|Current History:|Current Medications:|\n\n)/i;
 const mriRe = /MRI\s+(\d{1,2}\/\d{1,2}\/\d{2,4}):\s*([^\n]+)/i;
 const lastVisitRe = /Last visit\s+((?:\d{1,2}\/\d{1,2}\/\d{2,4}|\w+\s+\d{1,2}(?:st|nd|rd|th)?,\s+\d{4}))(?:\s*-\s*\d{1,2}\/\d{1,2}\/\d{2,4})?:\s*([^\n]+)/i;
 const concernsRe = /Owner Concerns(?: & Clinical Signs)?:?\s*([^]+?)(?=Current Medications:|Plan:|Assessment:|\n\n)/i;
@@ -84,9 +84,10 @@ export function parseSignalment(text: string): ParseResult {
   // 1) Direct K/V picks (highest confidence)
   // Patient name is usually the first line if it's just a name
   const firstLine = t.split('\n')[0].trim();
-  if (firstLine && !firstLine.includes(':') && firstLine.split(' ').length < 4) {
-      data.patientName = firstLine;
-      diag.push(`patientName: ${firstLine}`);
+  const nameMatch = firstLine.match(/^([A-Za-z\s.'-]+)/);
+  if (nameMatch && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
+      data.patientName = nameMatch[1].trim();
+      diag.push(`patientName: ${data.patientName}`);
   }
 
   const spKV = t.match(speciesKVRe);
@@ -200,7 +201,10 @@ export function parseSignalment(text: string): ParseResult {
   // Clinical data extraction
   const problemMatch = t.match(problemRe);
   if (problemMatch && problemMatch[1]) {
-      data.problem = problemMatch[1].replace(/\n/g, ' ').trim();
+      // Clean up the problem text
+      let problemText = problemMatch[1].replace(/^[*\s\n]+/, ''); // remove leading list markers
+      problemText = problemText.split('\n').map(l => l.trim()).join(' ').trim();
+      data.problem = problemText
       diag.push(`problem: found`);
   }
 
