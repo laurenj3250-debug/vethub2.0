@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, EyeOff, Flag } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, EyeOff, Flag, Notebook } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -376,11 +376,25 @@ export default function VetPatientTracker() {
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
   const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
   const [medCalcWeight, setMedCalcWeight] = useState('');
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState('');
 
   // States for collapsible task sections
   const [showMorningTasks, setShowMorningTasks] = useState(true);
   const [showEveningTasks, setShowEveningTasks] = useState(true);
   const [showOtherTasks, setShowOtherTasks] = useState(true);
+
+  // Load/Save notes from local storage
+  useEffect(() => {
+    const savedNotes = localStorage.getItem('vet-notes');
+    if (savedNotes) {
+      setNotes(savedNotes);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('vet-notes', notes);
+  }, [notes]);
 
   // Date-based task management
   const getTodayDate = () => {
@@ -2716,7 +2730,23 @@ export default function VetPatientTracker() {
       </div>
 
       {/* Floating Quick Add with Cat */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50 flex items-end gap-4">
+        {showNotes && (
+            <div className="bg-white rounded-lg shadow-2xl p-4 w-80 border border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-gray-800 flex items-center gap-2"><Notebook size={18} /> Quick Notes</h3>
+                <button onClick={() => setShowNotes(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Jot down your ideas..."
+                rows={8}
+                className="w-full text-sm border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+              />
+              <p className="text-xs text-gray-400 mt-1 italic">Notes are saved automatically.</p>
+            </div>
+        )}
         <div className="flex flex-col items-end gap-2">
            <button
             onClick={() => addEveningTasksToAll()}
@@ -2734,9 +2764,13 @@ export default function VetPatientTracker() {
             <span className="text-lg">☀️</span>
             Morning to All
           </button>
-          <div className="text-4xl cursor-pointer" title="You're doing great! 🐱">
+          <button
+            onClick={() => setShowNotes(prev => !prev)}
+            className="text-4xl cursor-pointer transform hover:scale-110 transition-transform"
+            title="Toggle Quick Notes"
+          >
             🐱
-          </div>
+          </button>
         </div>
       </div>
     </div>
