@@ -64,7 +64,7 @@ const yoRe = /\b(\d+)\s*(?:yo|y\/o)\b/i;
 const pidRe = /\bpatient\s*id\s*[:\-]?\s*([A-Za-z0-9\-_.]+)\b/i;
 const cidRe = /\bclient\s*id\s*[:\-]?\s*([A-Za-z0-9\-_.]+)\b/i;
 
-const ownerRe = /\b(owner|guardian)\s*[:\-]?\s*([A-Za-z\s,.'\-]{2,30})\b/i;
+const ownerRe = /\b(?:owner|guardian)\s*[:\-]?\s*([A-Za-z\s,.'\-]{2,40})\b/i;
 const speciesKVRe = /\bspecies\s*[:\-]\s*([A-Za-z]+)\b/i;
 const breedKVRe = /\bbreed\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
 const colorKVRe = /\b(colou?r)\s*[:\-]\s*([A-Za-z][A-Za-z \-\/']{1,60})\b/i;
@@ -77,7 +77,7 @@ const lastVisitRe = /Last visit\s+((?:\d{1,2}\/\d{1,2}\/\d{2,4}|\w+\s+\d{1,2}(?:
 const concernsRe = /Owner Concerns(?: & Clinical Signs)?:?\s*([^]+?)(?=Current Medications:|Plan:|Assessment:|\n\n)/i;
 
 // New regex to find name and signalment in the "Presenting Problem" section
-const problemNameSignalmentRe = /Presenting Problem:\s*([A-Za-z\s.'-]+?)\s+is an?\s+(.*?)\s+that is presenting/i;
+const problemNameSignalmentRe = /Presenting Problem:\s*([A-Za-z\s.'-]+?)\s+is an?\s+(.*?)(?:that is presenting|, presenting)/i;
 
 export function parseSignalment(text: string): ParseResult {
   const diag: string[] = [];
@@ -159,7 +159,7 @@ export function parseSignalment(text: string): ParseResult {
   const pid = t.match(pidRe); if (pid) { data.patientId = pid[1]; diag.push(`patientId:${pid[1]}`); }
   const cid = t.match(cidRe); if (cid) { data.clientId = cid[1]; diag.push(`clientId:${cid[1]}`); }
 
-  const ownerMatch = t.match(ownerRe); if (ownerMatch) { data.ownerName = clean(ownerMatch[2]); diag.push(`owner:${data.ownerName}`); }
+  const ownerMatch = t.match(ownerRe); if (ownerMatch) { data.ownerName = clean(ownerMatch[1]); diag.push(`owner:${data.ownerName}`); }
   const phone = t.match(phoneRe); if (phone) { data.ownerPhone = phone[0]; diag.push(`phone:${data.ownerPhone}`); }
 
   // 2) Heuristics if missing:

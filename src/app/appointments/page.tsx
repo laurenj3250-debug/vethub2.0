@@ -137,7 +137,10 @@ export default function AppointmentsPage() {
 
     let nameField = data.patientName || '';
     if (data.ownerName && data.ownerName.toLowerCase() !== data.patientName?.toLowerCase()) {
-        nameField = `${nameField} (${data.ownerName})`;
+        // Only append owner name if it's a reasonable length
+        if (data.ownerName.length < 50) {
+            nameField = `${nameField} (${data.ownerName})`;
+        }
     }
     newApptData.name = nameField;
     
