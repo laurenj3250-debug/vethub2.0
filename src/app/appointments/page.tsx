@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Calendar } from 'lucide-react';
+import { Plus, X, Calendar, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useFirebase, useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { parseSignalment } from '@/lib/parseSignalment';
 
 type AppointmentType = 'New' | 'Recheck';
 
@@ -26,15 +27,16 @@ interface AppointmentData {
 
 const getAppointmentTypeColor = (type: AppointmentType) => {
   if (type === 'Recheck') {
-    return 'bg-green-50 border-green-200'; // Light green for rechecks
+    return 'bg-green-100 border-green-300';
   }
-  return 'bg-blue-50 border-blue-200'; // Light blue for new appointments
+  return 'bg-blue-100 border-blue-300';
 };
 
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const { user, firestore } = useUserAndFirestore();
+  const [textToParse, setTextToParse] = useState('');
 
   // Common problems from Firestore
   const commonProblemsQuery = useMemoFirebase(() => {
@@ -105,24 +107,48 @@ export default function AppointmentsPage() {
     localStorage.setItem(storageKey, JSON.stringify(appointments));
   }, [appointments]);
 
-  const addAppointment = () => {
+  const addAppointment = (data?: Partial<AppointmentData>) => {
     const newAppt: AppointmentData = {
       id: Date.now().toString(),
-      name: '',
-      signalment: '',
-      problem: '',
-      lastRecheck: '',
-      lastPlan: '',
-      mriDate: '',
-      mriFindings: '',
-      bloodworkNeeded: '',
-      medications: '',
-      otherConcerns: '',
-      type: 'New',
+      name: data?.name || '',
+      signalment: data?.signalment || '',
+      problem: data?.problem || '',
+      lastRecheck: data?.lastRecheck || '',
+      lastPlan: data?.lastPlan || '',
+      mriDate: data?.mriDate || '',
+      mriFindings: data?.mriFindings || '',
+      bloodworkNeeded: data?.bloodworkNeeded || '',
+      medications: data?.medications || '',
+      otherConcerns: data?.otherConcerns || '',
+      type: data?.type || 'New',
     };
 
     setAppointments(prev => [newAppt, ...prev]);
   };
+  
+  const handleParseAndAdd = () => {
+    if (!textToParse.trim()) {
+      alert('Please paste some text to parse.');
+      return;
+    }
+    const { data } = parseSignalment(textToParse);
+
+    const newApptData: Partial<AppointmentData> = {};
+    if (data.ownerName) newApptData.name = data.ownerName; // Example: use owner name as patient name
+    
+    const signalmentParts = [];
+    if (data.age) signalmentParts.push(data.age);
+    if (data.sex) signalmentParts.push(data.sex);
+    if (data.breed) signalmentParts.push(data.breed);
+    if(data.weight) signalmentParts.push(data.weight);
+    newApptData.signalment = signalmentParts.join(', ');
+
+    if(data.medications) newApptData.medications = data.medications.join('\n');
+
+    addAppointment(newApptData);
+    setTextToParse(''); // Clear the textarea
+  };
+
 
   const updateAppointmentField = (id: string, field: keyof AppointmentData, value: string) => {
     setAppointments(prev =>
@@ -158,37 +184,61 @@ export default function AppointmentsPage() {
             </div>
 
             <div className="bg-white/50 rounded-lg shadow-lg p-6 mb-6 border-l-4 border-purple-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">Add & Manage Appointments</h2>
-                  <p className="text-sm text-gray-600">
-                    Click "Add Appointment" to create a new row. Data is saved locally for today.
-                  </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                         <h2 className="text-xl font-bold text-gray-800">Add New Appointment</h2>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Manually add a new appointment to the list below.
+                        </p>
+                        <button
+                            onClick={() => addAppointment()}
+                            className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md"
+                        >
+                            <Plus size={20} />
+                            Add Blank Row
+                        </button>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                          <Sparkles className="text-blue-500" />
+                          Parse from Patient Record
+                        </h2>
+                        <p className="text-sm text-gray-600 mb-2">
+                           Paste patient text from ezyVet or other system to auto-fill a new row.
+                        </p>
+                         <textarea
+                            value={textToParse}
+                            onChange={(e) => setTextToParse(e.target.value)}
+                            placeholder="Paste patient record here..."
+                            rows={4}
+                            className="w-full text-sm border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                            onClick={handleParseAndAdd}
+                            className="mt-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition shadow-md"
+                        >
+                            <Sparkles size={18} />
+                            Parse & Add
+                        </button>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={addAppointment}
-                    className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md"
-                  >
-                    <Plus size={20} />
-                    Add Appointment
-                  </button>
-                  {appointments.length > 0 && (
-                    <button
-                      onClick={clearAll}
-                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                    >
-                      Clear All
-                    </button>
+
+                 {appointments.length > 0 && (
+                    <div className="mt-6 border-t pt-4 flex justify-end">
+                      <button
+                        onClick={clearAll}
+                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                      >
+                        Clear All
+                      </button>
+                    </div>
                   )}
-                </div>
-              </div>
             </div>
          </div>
 
         {appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 text-lg">No appointments added yet. Click "Add Appointment" to get started!</p>
+            <p className="text-gray-500 text-lg">No appointments added yet. Add an appointment to get started!</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
