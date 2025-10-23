@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, X, Calendar } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { useFirebase, useUser, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, query, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 type AppointmentType = 'New' | 'Recheck';
