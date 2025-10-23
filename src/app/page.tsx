@@ -376,6 +376,11 @@ export default function VetPatientTracker() {
   const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
   const [medCalcWeight, setMedCalcWeight] = useState('');
 
+  // States for collapsible task sections
+  const [showMorningTasks, setShowMorningTasks] = useState(true);
+  const [showEveningTasks, setShowEveningTasks] = useState(true);
+  const [showOtherTasks, setShowOtherTasks] = useState(true);
+
   // Date-based task management
   const getTodayDate = () => {
     const now = new Date();
@@ -1757,131 +1762,155 @@ export default function VetPatientTracker() {
 
           {/* Morning Tasks Table */}
           <div className="mb-8">
-            <h3 className="font-bold text-lg text-gray-700 mb-3">☀️ Morning Tasks</h3>
-            <div className="overflow-x-auto border rounded-lg">
-              <table className="w-full text-sm">
-                <thead className="bg-orange-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600 sticky left-0 bg-orange-50">Patient</th>
-                    {morningTasks.map(taskName => (
-                      <th key={taskName} className="px-4 py-3 text-center font-semibold text-gray-600">{taskName}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedPatients.map((patient: any) => {
-                    let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
-                    if (hideCompletedTasks && todayTasks.every((t: any) => t.completed)) return null;
+            <button
+              onClick={() => setShowMorningTasks(!showMorningTasks)}
+              className="w-full flex justify-between items-center mb-3 p-2 rounded hover:bg-gray-50 transition"
+            >
+              <h3 className="font-bold text-lg text-gray-700">☀️ Morning Tasks</h3>
+              <ChevronDown className={`transition-transform ${showMorningTasks ? 'rotate-180' : ''}`} />
+            </button>
+            {showMorningTasks && (
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-orange-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600 sticky left-0 bg-orange-50">Patient</th>
+                      {morningTasks.map(taskName => (
+                        <th key={taskName} className="px-4 py-3 text-center font-semibold text-gray-600">{taskName}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedPatients.map((patient: any) => {
+                      let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+                      if (hideCompletedTasks && todayTasks.every((t: any) => t.completed)) return null;
 
-                    return (
-                      <tr key={patient.id} className="border-b hover:bg-orange-50/50">
-                        <td className="px-4 py-2 font-medium text-gray-800 sticky left-0 bg-white group-hover:bg-orange-50/50">{patient.name}</td>
-                        {morningTasks.map(taskName => {
-                          const task = todayTasks.find((t: any) => t.name === taskName);
-                          if (!task && hideCompletedTasks) return <td key={taskName} className="px-4 py-2 text-center"></td>;
-                          return (
-                            <td key={taskName} className="px-4 py-2 text-center">
-                              {task ? (
-                                <input
-                                  type="checkbox"
-                                  checked={task.completed}
-                                  onChange={() => toggleTask(patient.id, task.id)}
-                                  className={`w-5 h-5 rounded cursor-pointer ${hideCompletedTasks && task.completed ? 'hidden' : ''}`}
-                                  title={`${patient.name} - ${taskName}`}
-                                />
-                              ) : (
-                                <span className="text-gray-300">-</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={patient.id} className="border-b hover:bg-orange-50/50">
+                          <td className="px-4 py-2 font-medium text-gray-800 sticky left-0 bg-white group-hover:bg-orange-50/50">{patient.name}</td>
+                          {morningTasks.map(taskName => {
+                            const task = todayTasks.find((t: any) => t.name === taskName);
+                            if (!task && hideCompletedTasks) return <td key={taskName} className="px-4 py-2 text-center"></td>;
+                            return (
+                              <td key={taskName} className="px-4 py-2 text-center">
+                                {task ? (
+                                  <input
+                                    type="checkbox"
+                                    checked={task.completed}
+                                    onChange={() => toggleTask(patient.id, task.id)}
+                                    className={`w-5 h-5 rounded cursor-pointer ${hideCompletedTasks && task.completed ? 'hidden' : ''}`}
+                                    title={`${patient.name} - ${taskName}`}
+                                  />
+                                ) : (
+                                  <span className="text-gray-300">-</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Evening Tasks Table */}
           <div className="mb-6">
-            <h3 className="font-bold text-lg text-gray-700 mb-3">🌙 Evening Tasks</h3>
-            <div className="overflow-x-auto border rounded-lg">
-              <table className="w-full text-sm">
-                <thead className="bg-indigo-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600 sticky left-0 bg-indigo-50">Patient</th>
-                    {eveningTasks.map(taskName => (
-                      <th key={taskName} className="px-4 py-3 text-center font-semibold text-gray-600">{taskName}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedPatients.map((patient: any) => {
-                    let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
-                    if (hideCompletedTasks && todayTasks.every((t: any) => t.completed)) return null;
+            <button
+              onClick={() => setShowEveningTasks(!showEveningTasks)}
+              className="w-full flex justify-between items-center mb-3 p-2 rounded hover:bg-gray-50 transition"
+            >
+              <h3 className="font-bold text-lg text-gray-700">🌙 Evening Tasks</h3>
+              <ChevronDown className={`transition-transform ${showEveningTasks ? 'rotate-180' : ''}`} />
+            </button>
+            {showEveningTasks && (
+              <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                  <thead className="bg-indigo-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600 sticky left-0 bg-indigo-50">Patient</th>
+                      {eveningTasks.map(taskName => (
+                        <th key={taskName} className="px-4 py-3 text-center font-semibold text-gray-600">{taskName}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedPatients.map((patient: any) => {
+                      let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+                      if (hideCompletedTasks && todayTasks.every((t: any) => t.completed)) return null;
 
-                    return (
-                      <tr key={patient.id} className="border-b hover:bg-indigo-50/50">
-                        <td className="px-4 py-2 font-medium text-gray-800 sticky left-0 bg-white group-hover:bg-indigo-50/50">{patient.name}</td>
-                        {eveningTasks.map(taskName => {
-                          const task = todayTasks.find((t: any) => t.name === taskName);
-                          if (!task && hideCompletedTasks) return <td key={taskName} className="px-4 py-2 text-center"></td>;
-                          return (
-                            <td key={taskName} className="px-4 py-2 text-center">
-                              {task ? (
-                                <input
-                                  type="checkbox"
-                                  checked={task.completed}
-                                  onChange={() => toggleTask(patient.id, task.id)}
-                                  className={`w-5 h-5 rounded cursor-pointer ${hideCompletedTasks && task.completed ? 'hidden' : ''}`}
-                                  title={`${patient.name} - ${taskName}`}
-                                />
-                              ) : (
-                                <span className="text-gray-300">-</span>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      return (
+                        <tr key={patient.id} className="border-b hover:bg-indigo-50/50">
+                          <td className="px-4 py-2 font-medium text-gray-800 sticky left-0 bg-white group-hover:bg-indigo-50/50">{patient.name}</td>
+                          {eveningTasks.map(taskName => {
+                            const task = todayTasks.find((t: any) => t.name === taskName);
+                            if (!task && hideCompletedTasks) return <td key={taskName} className="px-4 py-2 text-center"></td>;
+                            return (
+                              <td key={taskName} className="px-4 py-2 text-center">
+                                {task ? (
+                                  <input
+                                    type="checkbox"
+                                    checked={task.completed}
+                                    onChange={() => toggleTask(patient.id, task.id)}
+                                    className={`w-5 h-5 rounded cursor-pointer ${hideCompletedTasks && task.completed ? 'hidden' : ''}`}
+                                    title={`${patient.name} - ${taskName}`}
+                                  />
+                                ) : (
+                                  <span className="text-gray-300">-</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
            {/* Other/Custom Tasks */}
             <div>
-              <h3 className="font-bold text-lg text-gray-700 mb-3">📋 Other & Procedure Tasks</h3>
-              <div className="space-y-3">
-                {sortedPatients.map((patient: any) => {
-                  let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
-                  const morningTasksSet = new Set(morningTasks);
-                  const eveningTasksSet = new Set(eveningTasks);
-                  let otherTasks = todayTasks.filter((t: any) => !morningTasksSet.has(t.name) && !eveningTasksSet.has(t.name));
+              <button
+                onClick={() => setShowOtherTasks(!showOtherTasks)}
+                className="w-full flex justify-between items-center mb-3 p-2 rounded hover:bg-gray-50 transition"
+              >
+                <h3 className="font-bold text-lg text-gray-700">📋 Other & Procedure Tasks</h3>
+                <ChevronDown className={`transition-transform ${showOtherTasks ? 'rotate-180' : ''}`} />
+              </button>
+              {showOtherTasks && (
+                <div className="space-y-3">
+                  {sortedPatients.map((patient: any) => {
+                    let todayTasks = getTasksForDate(patient.tasks || [], currentDate);
+                    const morningTasksSet = new Set(morningTasks);
+                    const eveningTasksSet = new Set(eveningTasks);
+                    let otherTasks = todayTasks.filter((t: any) => !morningTasksSet.has(t.name) && !eveningTasksSet.has(t.name));
 
-                  if (hideCompletedTasks) {
-                    otherTasks = otherTasks.filter((t: any) => !t.completed);
-                  }
-                  
-                  if (otherTasks.length === 0) return null;
+                    if (hideCompletedTasks) {
+                      otherTasks = otherTasks.filter((t: any) => !t.completed);
+                    }
+                    
+                    if (otherTasks.length === 0) return null;
 
-                  return (
-                    <div key={patient.id} className="p-3 rounded-lg border bg-gray-50/70">
-                       <h4 className="font-bold text-gray-800 mb-2">{patient.name}</h4>
-                       <div className="flex flex-wrap gap-2">
-                        {otherTasks.map((task: any) => (
-                           <label key={task.id} className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}>
-                              <input type="checkbox" checked={task.completed} onChange={() => toggleTask(patient.id, task.id)} className="w-4 h-4 text-purple-600 rounded" />
-                              <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
-                            </label>
-                        ))}
-                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    return (
+                      <div key={patient.id} className="p-3 rounded-lg border bg-gray-50/70">
+                        <h4 className="font-bold text-gray-800 mb-2">{patient.name}</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {otherTasks.map((task: any) => (
+                            <label key={task.id} className={`flex items-center gap-2 p-2 rounded-md border transition cursor-pointer text-sm ${task.completed ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-100'}`}>
+                                <input type="checkbox" checked={task.completed} onChange={() => toggleTask(patient.id, task.id)} className="w-4 h-4 text-purple-600 rounded" />
+                                <span className={task.completed ? 'line-through text-gray-500' : 'text-gray-800'}>{task.name}</span>
+                              </label>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
         </div>
 

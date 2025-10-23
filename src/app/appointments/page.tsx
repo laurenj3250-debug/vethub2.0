@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Plus, X, Calendar } from 'lucide-react';
 import Link from 'next/link';
 
+type AppointmentType = 'New' | 'Recheck';
+
 interface AppointmentData {
   id: string;
   name: string;
@@ -16,7 +18,16 @@ interface AppointmentData {
   bloodworkDue: string;
   medications: string;
   otherConcerns: string;
+  type: AppointmentType;
 }
+
+const getAppointmentTypeColor = (type: AppointmentType) => {
+  if (type === 'Recheck') {
+    return 'bg-green-50 border-green-200'; // Light green for rechecks
+  }
+  return 'bg-blue-50 border-blue-200'; // Light blue for new appointments
+};
+
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
@@ -34,6 +45,7 @@ export default function AppointmentsPage() {
       bloodworkDue: '',
       medications: '',
       otherConcerns: '',
+      type: 'New',
     };
 
     setAppointments(prev => [newAppt, ...prev]);
@@ -112,6 +124,7 @@ export default function AppointmentsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-100 border-b">
                   <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Type</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Name + Signalment</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">Problem</th>
                     <th className="px-4 py-3 text-left font-semibold text-gray-600">MRI?</th>
@@ -126,8 +139,18 @@ export default function AppointmentsPage() {
                   {appointments.map((appt) => (
                     <tr
                       key={appt.id}
-                      className="border-b hover:bg-indigo-50 transition"
+                      className={`border-b transition-colors ${getAppointmentTypeColor(appt.type)}`}
                     >
+                      <td className="p-2 align-top" style={{ minWidth: '120px' }}>
+                        <select
+                          value={appt.type}
+                          onChange={(e) => updateAppointmentField(appt.id, 'type', e.target.value as AppointmentType)}
+                          className="font-bold w-full px-2 py-1 border border-gray-200 rounded focus:border-indigo-400 focus:outline-none"
+                        >
+                          <option value="New">New</option>
+                          <option value="Recheck">Recheck</option>
+                        </select>
+                      </td>
                       <td className="p-2 align-top" style={{ minWidth: '200px' }}>
                         <input
                           type="text"
