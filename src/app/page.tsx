@@ -338,6 +338,8 @@ export default function VetPatientTracker() {
   const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
+  const [useAIForRounding, setUseAIForRounding] = useState(false);
+  const [aiParsingLoading, setAiParsingLoading] = useState(false);
 
   // Add these three new ones:
   const [email, setEmail] = useState('');
@@ -901,6 +903,61 @@ export default function VetPatientTracker() {
     } catch (err) {
       console.error(err);
       alert('Parsing of patient details failed. Please check the log or enter the information manually.');
+    }
+  };
+
+  // Parse patient details using AI
+  const parsePatientDetailsWithAI = async (patientId: string, detailsText: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient || !detailsText.trim()) {
+      alert('Please paste patient details first');
+      return;
+    }
+
+    setAiParsingLoading(true);
+    try {
+      const response = await fetch('/api/parse-rounding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: detailsText }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'AI parsing failed');
+      }
+
+      const parsed = await response.json();
+
+      // Merge the AI-parsed data into patient info and rounding data
+      const newInfo: any = { ...(patient.patientInfo || {}), ...(parsed.patientInfo || {}) };
+      const newRounding: any = { ...(patient.roundingData || {}), ...(parsed.roundingData || {}) };
+
+      let updates: any = {
+        patientInfo: newInfo,
+        roundingData: newRounding,
+        detailsInput: '',
+      };
+
+      // If MRI patient and weight was parsed, update MRI data
+      if (patient.type === 'MRI' && newInfo.weight) {
+        const weightMatch = newInfo.weight.match(/(\d+(?:\.\d+)?)\s*(kg|lbs)/i);
+        if (weightMatch) {
+          const newMriData = { ...(patient.mriData || {}) };
+          newMriData.weight = weightMatch[1];
+          newMriData.weightUnit = weightMatch[2].toLowerCase();
+          updates.mriData = newMriData;
+        }
+      }
+
+      updatePatientData(patientId, updates);
+    } catch (err: any) {
+      console.error('AI parsing error:', err);
+      alert(`AI parsing failed: ${err.message}. Using basic parser instead.`);
+      // Fallback to non-AI parser
+      parsePatientDetails(patientId, detailsText);
+    } finally {
+      setAiParsingLoading(false);
     }
   };
 
@@ -2062,11 +2119,36 @@ export default function VetPatientTracker() {
                                     rows={4}
                                     className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
                                   />
-                                  <button onClick={() => parsePatientDetails(patient.id, safeStr(patient.detailsInput))}
-                                          className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700">
-                                    Extract Basics (Signalment, Weight, ID, Owner)
+                                  <div className="flex gap-2 items-center mb-2">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        checked={useAIForRounding}
+                                        onChange={(e) => setUseAIForRounding(e.target.checked)}
+                                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                                      />
+                                      <span className="text-xs font-semibold text-gray-700">
+                                        🤖 Use AI Parsing (More Comprehensive)
+                                      </span>
+                                    </label>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (useAIForRounding) {
+                                        parsePatientDetailsWithAI(patient.id, safeStr(patient.detailsInput));
+                                      } else {
+                                        parsePatientDetails(patient.id, safeStr(patient.detailsInput));
+                                      }
+                                    }}
+                                    disabled={aiParsingLoading}
+                                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    {aiParsingLoading ? '🤖 Processing with AI...' : useAIForRounding ? 'Extract with AI (All Fields)' : 'Extract Basics (Signalment, Weight, ID, Owner)'}
                                   </button>
-                                  <p className="text-xs text-gray-600 mt-1 italic">Uses non-AI parser for speed and reliability.</p>
+                                  <p className="text-xs text-gray-600 mt-1 italic">
+                                    {useAIForRounding
+                                      ? 'AI extracts all rounding sheet fields including problem list, medications, diagnostics, and plan.'
+                                      : 'Non-AI parser for speed and reliability. Extracts basic patient info only.'}
+                                  </p>
                                 </div>
 
                                 {/* Signalment / Location / ICU / Code */}
