@@ -1,19 +1,8 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, X, Calendar, Sparkles, HeartPulse, ShieldCheck, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, X, Calendar } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useToast } from "@/hooks/use-toast"
-import { Textarea } from '@/components/ui/textarea';
-import { parseAppointment } from '@/ai/flows/parse-appointment-flow';
-import { checkAIHealth, type AIHealthStatus } from '@/ai/genkit';
-
-
-type AppointmentType = 'New' | 'Recheck';
 
 interface AppointmentData {
   id: string;
@@ -24,173 +13,180 @@ interface AppointmentData {
   lastPlan: string;
   mriDate: string;
   mriFindings: string;
-  bloodworkNeeded: 'Needs Pheno' | 'Pheno/Bromide' | 'CBC/CHEM' | '';
+  bloodworkDue: string;
   medications: string;
   otherConcerns: string;
-  type: AppointmentType;
 }
-
-const getAppointmentTypeColor = (type: AppointmentType) => {
-  if (type === 'Recheck') {
-    return 'bg-green-100 border-green-300';
-  }
-  return 'bg-blue-100 border-blue-300';
-};
-
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
-  const { user, firestore } = useUserAndFirestore();
-  const { toast } = useToast();
-  
-  const [aiParseInput, setAiParseInput] = useState('');
-  const [useAI, setUseAI] = useState(true);
-  const [isParsing, setIsParsing] = useState(false);
+  const [pasteInput, setPasteInput] = useState('');
+  const [useAI, setUseAI] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
 
-  const [healthStatus, setHealthStatus] = useState<AIHealthStatus | null>(null);
-  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+  const parseAppointment = (text: string): Partial<AppointmentData> => {
+    const data: Partial<AppointmentData> = {};
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
 
-
-  // Common problems from Firestore
-  const commonProblemsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/commonProblems`));
-  }, [firestore, user]);
-  const commonProblemsRes = useCollection(commonProblemsQuery);
-  const commonProblems = commonProblemsRes?.data ?? [];
-
-  // Common medications from Firestore
-  const commonMedicationsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, `users/${user.uid}/commonMedications`));
-  }, [firestore, user]);
-  const commonMedicationsRes = useCollection(commonMedicationsQuery);
-  const commonMedications = commonMedicationsRes?.data ?? [];
-  
-  const runHealthCheck = async () => {
-    setIsCheckingHealth(true);
-    setHealthStatus(null);
-    try {
-      const data = await checkAIHealth();
-      setHealthStatus(data);
-    } catch (err) {
-      setHealthStatus({
-        apiKeyFound: false,
-        apiConnection: false,
-        status: 'ERROR',
-        message: 'Failed to connect to the health check endpoint.',
-        details: (err as Error).message,
-      });
-    } finally {
-      setIsCheckingHealth(false);
+    // Extract patient name - look for pattern like "Lobo (MN)" or first non-header line
+    const patientLineIdx = lines.findIndex(l => l.match(/^[A-Z][a-z]+\s*\([A-Z]+\)/) || (l.match(/^[A-Z][a-z]+/) && !l.includes(':')));
+    if (patientLineIdx >= 0) {
+      const nameLine = lines[patientLineIdx];
+      // Remove neutered status in parentheses for cleaner display
+      data.name = nameLine.replace(/\s*\([A-Z]+\)/, '').trim();
     }
-  };
 
+    // Extract signalment - age, weight, breed
+    const ageWeightMatch = text.match(/(\d+\s+years?\s+\d+\s+months?).*?(\d+\.?\d*\s*kg)/i);
+    const breedMatch = text.match(/(?:canine|feline)\s*-\s*([^\n]+)/i);
+    const sexMatch = text.match(/\((M[NC]|F[SN])\)/i);
 
-  const addCommonProblem = (name: string) => {
-    if (!name.trim() || !firestore || !user) return;
-    if (!commonProblems.some(p => p.name === name.trim())) {
-      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonProblems`), { name: name.trim() });
+    let signalment = [];
+    if (ageWeightMatch) signalment.push(ageWeightMatch[1], ageWeightMatch[2]);
+    if (sexMatch) signalment.push(sexMatch[1]);
+    if (breedMatch) signalment.push(breedMatch[1].trim());
+    if (signalment.length > 0) {
+      data.signalment = signalment.join(' ');
     }
-  };
 
-  const addCommonMedication = (name: string) => {
-    if (!name.trim() || !firestore || !user) return;
-    if (!commonMedications.some(m => m.name === name.trim())) {
-      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/commonMedications`), { name: name.trim() });
-    }
-  };
-
-  const deleteCommonItem = (type: 'commonProblems' | 'commonMedications', id: string) => {
-    if (!firestore || !user) return;
-    const ref = doc(firestore, `users/${user.uid}/${type}`, id);
-    deleteDocumentNonBlocking(ref);
-  };
-
-  const getStorageKey = () => {
-    const today = new Date().toISOString().split('T')[0];
-    return `appointments_${today}`;
-  };
-
-  // Load appointments from local storage on mount
-  useEffect(() => {
-    const storageKey = getStorageKey();
-    const storedAppointments = localStorage.getItem(storageKey);
-    if (storedAppointments) {
-      try {
-        setAppointments(JSON.parse(storedAppointments));
-      } catch (e) {
-        console.error("Failed to parse appointments from storage", e);
-        setAppointments([]);
-      }
+    // Extract presenting problem - look for "Presenting Problem" section
+    const presentingMatch = text.match(/Presenting Problem[\s\S]*?General Description[\s\S]*?Recheck[\s\S]*?([^\n]+presented.*?)(?:\n\n|\d{2}-\d{2}-\d{4})/i);
+    if (presentingMatch) {
+      data.problem = presentingMatch[1].trim();
     } else {
-        // Clear old data from other days
-        Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('appointments_')) {
-                localStorage.removeItem(key);
-            }
-        });
-        setAppointments([]);
+      // Fallback to simpler patterns
+      const problemMatch = text.match(/(?:presenting problem|chief complaint|reason for visit)\s*[:\-]?\s*([^\n]+)/i);
+      if (problemMatch) {
+        data.problem = problemMatch[1].trim();
+      }
     }
-  }, []);
 
-  // Save appointments to local storage whenever they change
-  useEffect(() => {
-    const storageKey = getStorageKey();
-    localStorage.setItem(storageKey, JSON.stringify(appointments));
-  }, [appointments]);
+    // Extract last visit info - look for "Last visit" pattern
+    const lastVisitMatch = text.match(/Last visit\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s*:\s*([^\n]+(?:\n(?!\n)[^\n]+)*)/i);
+    if (lastVisitMatch) {
+      data.lastRecheck = lastVisitMatch[1];
+      data.lastPlan = lastVisitMatch[2].trim().replace(/\n/g, ' ');
+    }
 
-  const addAppointment = (data?: Partial<AppointmentData>) => {
+    // Extract MRI date and findings - look for date + "MRI" + description
+    const mriMatch = text.match(/(\d{2}\/\d{2}\/\d{4})\s+MRI\s*:?\s*([^\n]+(?:\.|\;)[^\n]*)/i);
+    if (mriMatch) {
+      data.mriDate = mriMatch[1];
+      data.mriFindings = mriMatch[2].trim();
+    }
+
+    // Extract current medications - look for "Current Medications" section
+    const medsSection = text.match(/Current Medications\s*\n([\s\S]*?)(?:\n\n|Prior|Referred|Tags|Presenting)/i);
+    if (medsSection) {
+      const medLines = medsSection[1]
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l && !l.includes('Referred') && !l.includes('Tags'))
+        .filter(l => l.match(/[A-Z][a-z]+.*?\d+\s*mg|tab|cap|PO|SID|BID|TID/i));
+
+      if (medLines.length > 0) {
+        data.medications = medLines.join('\n');
+      }
+    }
+
+    // Extract bloodwork - check if CBC/Chem mentioned in recent history
+    const cbcChemMatch = text.match(/(\d{2}\/\d{2}\/\d{4})[^\n]*(?:CBC|Chem|Chemistry)[^\n]*([^\n]*)/i);
+    if (cbcChemMatch) {
+      const date = cbcChemMatch[1];
+      // Check if it's within last 6 months (rough check)
+      const dateParts = date.split('/');
+      const month = parseInt(dateParts[0]);
+      const currentMonth = new Date().getMonth() + 1;
+      const monthsDiff = Math.abs(currentMonth - month);
+
+      if (monthsDiff > 3) {
+        data.bloodworkDue = `Last: ${date} - Due soon`;
+      } else {
+        data.bloodworkDue = `Last: ${date}`;
+      }
+    }
+
+    // Extract concerns from exam or history
+    const concernPatterns = [
+      /owner\s+(?:has\s+)?concerns?\s+(?:that\s+)?([^\n]+(?:\n(?!\n)[^\n]+)*)/i,
+      /(?:hunched|unsteady|weak|twitching|lethargy|difficulty)[^\n]*/gi
+    ];
+
+    let concerns = [];
+    for (const pattern of concernPatterns) {
+      const matches = text.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1]) {
+          concerns.push(match[1].trim());
+        } else if (match[0]) {
+          concerns.push(match[0].trim());
+        }
+      }
+    }
+
+    if (concerns.length > 0) {
+      data.otherConcerns = [...new Set(concerns)].join('; ').slice(0, 200);
+    }
+
+    return data;
+  };
+
+  const parseWithAI = async (text: string): Promise<Partial<AppointmentData>> => {
+    try {
+      // Try Gemini first (free with Firebase)
+      const response = await fetch('/api/parse-appointment-gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('AI parsing failed');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('AI parsing error:', error);
+      alert('AI parsing failed. Using basic parser instead.');
+      return parseAppointment(text);
+    }
+  };
+
+  const addAppointment = async () => {
+    if (!pasteInput.trim()) return;
+
+    setAiLoading(true);
+    let parsed: Partial<AppointmentData>;
+
+    if (useAI) {
+      parsed = await parseWithAI(pasteInput);
+    } else {
+      parsed = parseAppointment(pasteInput);
+    }
+
     const newAppt: AppointmentData = {
       id: Date.now().toString(),
-      name: data?.name || '',
-      signalment: data?.signalment || '',
-      problem: data?.problem || '',
-      lastRecheck: data?.lastRecheck || '',
-      lastPlan: data?.lastPlan || '',
-      mriDate: data?.mriDate || '',
-      mriFindings: data?.mriFindings || '',
-      bloodworkNeeded: data?.bloodworkNeeded || '',
-      medications: data?.medications || '',
-otherConcerns: data?.otherConcerns || '',
-      type: data?.type || (data?.lastRecheck ? 'Recheck' : 'New'),
+      name: parsed.name || 'Unknown',
+      signalment: parsed.signalment || '',
+      problem: parsed.problem || '',
+      lastRecheck: parsed.lastRecheck || '',
+      lastPlan: parsed.lastPlan || '',
+      mriDate: parsed.mriDate || '',
+      mriFindings: parsed.mriFindings || '',
+      bloodworkDue: parsed.bloodworkDue || '',
+      medications: parsed.medications || '',
+      otherConcerns: parsed.otherConcerns || '',
     };
 
-    setAppointments(prev => [newAppt, ...prev]);
-  };
-  
-  const parseAndAddAppointment = async () => {
-    if (!aiParseInput.trim()) {
-      toast({ title: "Input is empty", description: "Please paste patient history to parse.", variant: "destructive" });
-      return;
-    }
-    
-    setIsParsing(true);
-    try {
-      if (useAI) {
-        const parsedData = await parseAppointment(aiParseInput);
-        addAppointment(parsedData);
-        toast({ title: "Success", description: "AI successfully parsed the appointment." });
-      } else {
-        // Fallback to local regex-based parsing if needed in the future
-        toast({ title: "Local Parsing", description: "This would use local parsing. AI checkbox is off.", variant: "default" });
-        // For now, just add a blank appointment
-        addAppointment();
-      }
-      setAiParseInput('');
-    } catch (err: any) {
-      console.error("Parsing error:", err);
-      toast({ title: "Parsing Failed", description: err.message, variant: "destructive" });
-      runHealthCheck(); // Automatically run health check on failure
-      addAppointment(); // Add a blank row on failure so work isn't lost
-    } finally {
-      setIsParsing(false);
-    }
+    setAppointments(prev => [...prev, newAppt]);
+    setPasteInput('');
+    setAiLoading(false);
   };
 
   const updateAppointmentField = (id: string, field: keyof AppointmentData, value: string) => {
     setAppointments(prev =>
-      prev.map(appt => (appt.id === id ? { ...appt, [field]: value } : appt))
+      prev.map(appt => appt.id === id ? { ...appt, [field]: value } : appt)
     );
   };
 
@@ -199,323 +195,188 @@ otherConcerns: data?.otherConcerns || '',
   };
 
   const clearAll = () => {
-    if (confirm('Clear all appointments for today?')) {
+    if (confirm('Clear all appointments?')) {
       setAppointments([]);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-purple-50 to-black/5 p-6">
-      <div className="max-w-screen-2xl mx-auto mb-6">
-         <div className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 rounded-lg shadow-lg p-6 mb-4 border-t-4 border-purple-400">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Calendar size={32} className="text-purple-600" />
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Today's Appointments</h1>
-              </div>
-              <Link
-                href="/"
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Calendar size={32} className="text-orange-600" />
+            <h1 className="text-3xl font-bold text-gray-900">Today's Appointments 📋</h1>
+          </div>
+          <Link
+            href="/"
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+          >
+            ← Back to Patients
+          </Link>
+        </div>
+
+        {/* Input Section */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-orange-500">
+          <h2 className="text-xl font-bold mb-3 text-gray-800">Add Appointment</h2>
+          <p className="text-sm text-gray-600 mb-3">
+            Paste patient history below. The system will automatically extract: name, signalment, problem, recheck info, MRI details, bloodwork due dates, medications, and concerns.
+          </p>
+          <textarea
+            value={pasteInput}
+            onChange={(e) => setPasteInput(e.target.value)}
+            placeholder="Paste patient history here..."
+            rows={6}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none mb-3"
+          />
+          <div className="flex gap-2 items-center mb-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useAI}
+                onChange={(e) => setUseAI(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+              />
+              <span className="text-sm font-semibold text-gray-700">
+                🤖 Use AI Parsing (More Accurate)
+              </span>
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={addAppointment}
+              disabled={aiLoading}
+              className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={20} />
+              {aiLoading ? 'Processing with AI...' : 'Add to List'}
+            </button>
+            {appointments.length > 0 && (
+              <button
+                onClick={clearAll}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
               >
-                ← Back to Patients
-              </Link>
-            </div>
+                Clear All
+              </button>
+            )}
+          </div>
+        </div>
 
-            <div className="bg-white/50 rounded-lg shadow-lg p-6 mb-6 border-l-4 border-purple-500">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                         <h2 className="text-xl font-bold text-gray-800">Add New Appointment</h2>
-                        <p className="text-sm text-gray-600 mb-4">
-                            Manually add a new appointment to the list below.
-                        </p>
-                        <button
-                            onClick={() => addAppointment()}
-                            className="px-6 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md"
-                        >
-                            <Plus size={20} />
-                            Add Blank Row
-                        </button>
-                    </div>
-                    {/* AI Parser Section */}
-                    <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-200">
-                      <h2 className="text-xl font-bold text-gray-800 mb-2">Quick Import</h2>
-                      <p className="text-sm text-gray-600 mb-4">
-                        Paste patient history to automatically fill the fields.
-                      </p>
-                      <Textarea
-                        value={aiParseInput}
-                        onChange={(e) => setAiParseInput(e.target.value)}
-                        placeholder="Paste patient history from clinical notes..."
-                        rows={6}
-                        className="mb-2 bg-white"
-                      />
-                      <div className="flex justify-between items-center">
-                        <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
-                          <input
-                            type="checkbox"
-                            checked={useAI}
-                            onChange={(e) => setUseAI(e.target.checked)}
-                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                          />
-                          🤖 Use AI Parsing
-                        </label>
-                        <button
-                          onClick={parseAndAddAppointment}
-                          disabled={isParsing}
-                          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md disabled:opacity-50"
-                        >
-                          <Sparkles size={20} />
-                          {isParsing ? 'Parsing...' : 'Parse & Add'}
-                        </button>
-                      </div>
-                    </div>
-                </div>
-
-                 {appointments.length > 0 && (
-                    <div className="mt-6 border-t pt-4 flex justify-end">
-                      <button
-                        onClick={clearAll}
-                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                      >
-                        Clear All
-                      </button>
-                    </div>
-                  )}
-            </div>
-
-            {/* AI Health Check Section */}
-            <div className="bg-gray-50 rounded-lg shadow-lg p-6 mb-6 border-l-4 border-gray-400">
-              <div className="flex items-center justify-between mb-4">
-                <div className='flex items-center gap-2'>
-                    <HeartPulse className="text-gray-600" />
-                    <h2 className="text-xl font-bold text-gray-800">AI Health Check</h2>
-                </div>
-                <button
-                  onClick={runHealthCheck}
-                  disabled={isCheckingHealth}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 transition shadow-md disabled:opacity-50"
-                >
-                  {isCheckingHealth ? 'Checking...' : 'Run Check'}
-                </button>
-              </div>
-              {isCheckingHealth && <p className="text-sm text-gray-600 animate-pulse">Checking AI system status...</p>}
-              {healthStatus && (
-                <div className="mt-4 space-y-3 p-4 rounded-lg bg-white border">
-                    <div className={`flex items-center gap-3 p-3 rounded-md ${healthStatus.status === 'OK' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-                        {healthStatus.status === 'OK' ? <ShieldCheck /> : <ShieldAlert />}
-                        <p className="font-semibold">{healthStatus.message}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                            {healthStatus.apiKeyFound ? <ShieldCheck className="text-green-600" /> : <ShieldAlert className="text-red-600" />}
-                            <span>API Key Found</span>
-                        </div>
-                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                            {healthStatus.apiConnection ? <Wifi className="text-green-600" /> : <WifiOff className="text-red-600" />}
-                            <span>API Connection</span>
-                        </div>
-                    </div>
-
-                    {healthStatus.status === 'ERROR' && healthStatus.details && (
-                        <div className="p-3 bg-red-50/50 rounded-md border border-red-200">
-                            <p className="font-semibold text-sm text-red-900">Details:</p>
-                            <p className="text-xs text-red-700 font-mono mt-1">{healthStatus.details}</p>
-                        </div>
-                    )}
-                </div>
-              )}
-            </div>
-         </div>
-
+        {/* Appointments Table */}
         {appointments.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-500 text-lg">No appointments added yet. Add an appointment to get started!</p>
+            <p className="text-gray-500 text-lg">No appointments added yet. Paste patient info above to get started! 🎃</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-100 border-b">
+              <table className="w-full">
+                <thead className="bg-gradient-to-r from-orange-600 to-purple-600 text-white">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Type</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Name + Signalment</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Problem</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">MRI?</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Last Recheck?</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Bloodwork Needed</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Meds?</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Questions/Concerns?</th>
-                    <th className="px-4 py-3 text-center font-semibold text-gray-600">Actions</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">Name & Signalment</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">Problem</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">Last Recheck & Plan</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">MRI Info</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">Bloodwork Due</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">Medications</th>
+                    <th className="px-4 py-3 text-left text-sm font-bold">Other Concerns</th>
+                    <th className="px-4 py-3 text-center text-sm font-bold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {appointments.map((appt) => (
+                  {appointments.map((appt, idx) => (
                     <tr
                       key={appt.id}
-                      className={`border-b transition-colors hover:bg-purple-50 ${getAppointmentTypeColor(appt.type)}`}
+                      className={`border-b hover:bg-orange-50 transition ${idx % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
                     >
-                      <td className="p-2 align-top" style={{ minWidth: '120px' }}>
-                        <select
-                          value={appt.type}
-                          onChange={(e) => updateAppointmentField(appt.id, 'type', e.target.value as AppointmentType)}
-                          className="font-bold w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
-                        >
-                          <option value="New">New</option>
-                          <option value="Recheck">Recheck</option>
-                        </select>
-                      </td>
-                      <td className="p-2 align-top" style={{ minWidth: '200px' }}>
+                      <td className="px-4 py-3">
                         <input
                           type="text"
                           value={appt.name}
                           onChange={(e) => updateAppointmentField(appt.id, 'name', e.target.value)}
-                          placeholder="Patient Name"
-                          className="font-bold text-gray-900 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none mb-1 bg-white"
+                          className="font-bold text-gray-900 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
                         />
-                        <textarea
+                        <input
+                          type="text"
                           value={appt.signalment}
                           onChange={(e) => updateAppointmentField(appt.id, 'signalment', e.target.value)}
                           placeholder="Signalment"
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <textarea
+                          value={appt.problem}
+                          onChange={(e) => updateAppointmentField(appt.id, 'problem', e.target.value)}
+                          placeholder="Problem/Reason for visit"
+                          rows={3}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={appt.lastRecheck}
+                          onChange={(e) => updateAppointmentField(appt.id, 'lastRecheck', e.target.value)}
+                          placeholder="Date (MM/DD/YYYY)"
+                          className="text-sm font-semibold text-gray-700 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
+                        />
+                        <textarea
+                          value={appt.lastPlan}
+                          onChange={(e) => updateAppointmentField(appt.id, 'lastPlan', e.target.value)}
+                          placeholder="Plan from last visit"
                           rows={2}
-                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none resize-none bg-white"
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
                         />
                       </td>
-                      <td className="p-2 align-top" style={{ minWidth: '250px' }}>
-                        <div className="p-1 bg-yellow-50/50 border border-yellow-200/50 rounded-lg">
-                           <div className="flex flex-wrap gap-1 mb-2">
-                                {(commonProblems || []).slice(0, 5).map((pr: any) => (
-                                  <button
-                                    key={pr.id}
-                                    onClick={() => {
-                                        const current = appt.problem || '';
-                                        const newValue = current ? `${current}\n${pr.name}` : pr.name;
-                                        updateAppointmentField(appt.id, 'problem', newValue);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full hover:bg-yellow-200 transition"
-                                    title={`Add "${pr.name}"`}
-                                  >
-                                    + {pr.name}
-                                  </button>
-                                ))}
-                            </div>
-                             <div className="flex gap-2 mb-2">
-                                <input
-                                    type="text"
-                                    placeholder="Add new problem..."
-                                    className="flex-1 px-2 py-1 text-xs border rounded"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            addCommonProblem(e.currentTarget.value);
-                                            e.currentTarget.value = '';
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <textarea
-                              value={appt.problem}
-                              onChange={(e) => updateAppointmentField(appt.id, 'problem', e.target.value)}
-                              placeholder="Problem/Reason for visit"
-                              rows={4}
-                              className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
-                            />
-                        </div>
-                      </td>
-                      <td className="p-2 align-top" style={{ minWidth: '250px' }}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={appt.mriDate}
+                          onChange={(e) => updateAppointmentField(appt.id, 'mriDate', e.target.value)}
+                          placeholder="Date (MM/DD/YYYY)"
+                          className="text-sm font-semibold text-gray-700 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none mb-1"
+                        />
                         <textarea
-                          value={`${appt.mriDate} ${appt.mriFindings}`.trim()}
-                          onChange={(e) => {
-                              const parts = e.target.value.split(' ');
-                              const date = parts[0];
-                              const findings = parts.slice(1).join(' ');
-                              updateAppointmentField(appt.id, 'mriDate', date);
-                              updateAppointmentField(appt.id, 'mriFindings', findings);
-                          }}
-                          placeholder="MRI Date & Findings"
-                          rows={4}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
+                          value={appt.mriFindings}
+                          onChange={(e) => updateAppointmentField(appt.id, 'mriFindings', e.target.value)}
+                          placeholder="MRI findings"
+                          rows={2}
+                          className="text-sm text-gray-600 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
                         />
                       </td>
-                       <td className="p-2 align-top" style={{ minWidth: '250px' }}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={appt.bloodworkDue}
+                          onChange={(e) => updateAppointmentField(appt.id, 'bloodworkDue', e.target.value)}
+                          placeholder="Due date or status"
+                          className="text-sm w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
                         <textarea
-                          value={`${appt.lastRecheck} ${appt.lastPlan}`.trim()}
-                          onChange={(e) => {
-                              const parts = e.target.value.split(' ');
-                              const date = parts[0];
-                              const plan = parts.slice(1).join(' ');
-                              updateAppointmentField(appt.id, 'lastRecheck', date);
-                              updateAppointmentField(appt.id, 'lastPlan', plan);
-                          }}
-                          placeholder="Last Recheck Date & Plan"
-                          rows={4}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
+                          value={appt.medications}
+                          onChange={(e) => updateAppointmentField(appt.id, 'medications', e.target.value)}
+                          placeholder="Current medications"
+                          rows={3}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none whitespace-pre-wrap"
                         />
                       </td>
-                       <td className="p-2 align-top" style={{ minWidth: '200px' }}>
-                         <select
-                            value={appt.bloodworkNeeded}
-                            onChange={(e) => updateAppointmentField(appt.id, 'bloodworkNeeded', e.target.value as AppointmentData['bloodworkNeeded'])}
-                            className="w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
-                          >
-                            <option value="">Select...</option>
-                            <option value="Needs Pheno">Needs Pheno</option>
-                            <option value="Pheno/Bromide">Pheno/Bromide</option>
-                            <option value="CBC/CHEM">CBC/CHEM</option>
-                          </select>
-                      </td>
-                      <td className="p-2 align-top" style={{ minWidth: '300px' }}>
-                        <div className="p-1 bg-cyan-50/50 border border-cyan-200/50 rounded-lg">
-                           <div className="flex flex-wrap gap-1 mb-2">
-                                {(commonMedications || []).slice(0, 5).map((med: any) => (
-                                  <button
-                                    key={med.id}
-                                    onClick={() => {
-                                        const current = appt.medications || '';
-                                        const newValue = current ? `${current}\n${med.name}` : med.name;
-                                        updateAppointmentField(appt.id, 'medications', newValue);
-                                    }}
-                                    className="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded-full hover:bg-cyan-200 transition"
-                                    title={`Add "${med.name}"`}
-                                  >
-                                    + {med.name}
-                                  </button>
-                                ))}
-                            </div>
-                             <div className="flex gap-2 mb-2">
-                                <input
-                                    type="text"
-                                    placeholder="Add new medication..."
-                                    className="flex-1 px-2 py-1 text-xs border rounded"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            addCommonMedication(e.currentTarget.value);
-                                            e.currentTarget.value = '';
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <textarea
-                              value={appt.medications}
-                              onChange={(e) => updateAppointmentField(appt.id, 'medications', e.target.value)}
-                              placeholder="Current medications"
-                              rows={4}
-                              className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none whitespace-pre-wrap bg-white"
-                            />
-                        </div>
-                      </td>
-                      <td className="p-2 align-top" style={{ minWidth: '250px' }}>
+                      <td className="px-4 py-3">
                         <textarea
                           value={appt.otherConcerns}
                           onChange={(e) => updateAppointmentField(appt.id, 'otherConcerns', e.target.value)}
-                          placeholder="Questions/Concerns"
-                          rows={4}
-                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-300 rounded focus:border-purple-400 focus:outline-none bg-white"
+                          placeholder="Other concerns"
+                          rows={2}
+                          className="text-sm text-gray-800 w-full px-2 py-1 border border-gray-200 rounded focus:border-purple-400 focus:outline-none resize-none"
                         />
                       </td>
-                      <td className="p-2 align-top text-center">
+                      <td className="px-4 py-3 text-center">
                         <button
                           onClick={() => removeAppointment(appt.id)}
-                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Remove"
                         >
                           <X size={18} />
@@ -531,10 +392,4 @@ otherConcerns: data?.otherConcerns || '',
       </div>
     </div>
   );
-}
-
-// A helper hook to safely get user and firestore, handling the case where they might not be available yet.
-function useUserAndFirestore() {
-    const { user, isUserLoading, firestore } = useFirebase();
-    return { user, isUserLoading, firestore };
 }
