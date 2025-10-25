@@ -5,14 +5,12 @@
  *
  * Exports:
  * - parseAppointment: The main function to call the AI flow.
- * - AppointmentDataSchema: The Zod schema for the input data.
- * - AppointmentParseOutputSchema: The Zod schema for the output data.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const AppointmentDataSchema = z.object({
+const AppointmentDataSchema = z.object({
   name: z.string().describe("Patient's name"),
   signalment: z.string().describe('Brief signalment (e.g., "8yr MN Labrador")'),
   problem: z.string().describe('Presenting problem or reason for visit'),
@@ -24,7 +22,7 @@ export const AppointmentDataSchema = z.object({
   otherConcerns: z.string().describe('Owner concerns or clinical signs'),
 });
 
-export type AppointmentData = z.infer<typeof AppointmentDataSchema>;
+type AppointmentData = z.infer<typeof AppointmentDataSchema>;
 
 const model = 'gemini-1.5-flash-latest';
 

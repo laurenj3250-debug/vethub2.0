@@ -3,7 +3,7 @@
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
 interface FirebaseProviderProps {
@@ -64,36 +64,17 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       return;
     }
 
-    let unsubscribe: (() => void) | null = null;
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (firebaseUser) => {
+        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+      },
+      (error) => {
+        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+      }
+    );
 
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          console.log('✅ Got redirect result:', result.user.email);
-        } else {
-          console.log('ℹ️ No redirect result found');
-        }
-        
-        unsubscribe = onAuthStateChanged(
-          auth,
-          (firebaseUser) => {
-            console.log('👤 Auth state:', firebaseUser?.email || 'not signed in');
-            setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
-          },
-          (error) => {
-            console.error("❌ Auth error:", error);
-            setUserAuthState({ user: null, isUserLoading: false, userError: error });
-          }
-        );
-      })
-      .catch((error) => {
-        console.error('❌ Redirect error:', error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error as Error });
-      });
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    return () => unsubscribe();
   }, [auth]);
 
   const contextValue = useMemo((): FirebaseContextState => {

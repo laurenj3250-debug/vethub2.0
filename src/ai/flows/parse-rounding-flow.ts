@@ -5,13 +5,12 @@
  *
  * Exports:
  * - parseRounding: The main function to call the AI flow.
- * - RoundingParseOutputSchema: The Zod schema for the output data.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const PatientInfoSchema = z.object({
+const PatientInfoSchema = z.object({
   species: z.string().describe('dog or cat'),
   breed: z.string().describe('breed name'),
   sex: z.string().describe('normalized sex (M, MN, F, FS)'),
@@ -25,7 +24,7 @@ export const PatientInfoSchema = z.object({
   ownerPhone: z.string().describe("owner's phone number"),
 });
 
-export const RoundingDataSchema = z.object({
+const RoundingDataSchema = z.object({
   signalment: z.string().describe('brief signalment (age, sex, breed)'),
   problemList: z.string().describe('main problems/diagnoses'),
   subjectiveAssessment: z.string().describe('patient status, observations, concerns'),
@@ -35,14 +34,14 @@ export const RoundingDataSchema = z.object({
   plan: z.string().describe('treatment plan and next steps'),
 });
 
-export const RoundingParseOutputSchema = z.object({
+const RoundingParseOutputSchema = z.object({
   patientInfo: PatientInfoSchema,
   roundingData: RoundingDataSchema,
   medications: z.array(z.string()).describe('list of medications as separate strings'),
   bloodwork: z.string().describe('raw bloodwork section if present'),
 });
 
-export type RoundingParseOutput = z.infer<typeof RoundingParseOutputSchema>;
+type RoundingParseOutput = z.infer<typeof RoundingParseOutputSchema>;
 
 const model = 'gemini-1.5-flash-latest';
 
