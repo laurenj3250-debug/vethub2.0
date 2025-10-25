@@ -1,23 +1,10 @@
 'use server';
 /**
- * @fileoverview This file initializes and configures the Genkit AI instance.
- * It sets up the Google AI plugin and exports a configured `ai` object for use throughout the application.
- * It also defines a helper function to check the health of the AI service.
+ * @fileoverview This file defines a helper function to check the health of the AI service.
  */
 
-import { genkit, type GenkitError } from 'genkit';
-import { googleAI } from '@genkit-ai/google-genai';
-
-// Initialize Genkit with the Google AI plugin
-export const ai = genkit({
-  plugins: [
-    googleAI({
-      apiVersion: 'v1beta',
-    }),
-  ],
-  logLevel: 'debug',
-  enableTracingAndMetrics: true,
-});
+import { type GenkitError } from 'genkit';
+import { ai } from '@/ai';
 
 export interface AIHealthStatus {
   apiKeyFound: boolean;

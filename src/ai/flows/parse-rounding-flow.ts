@@ -7,7 +7,7 @@
  * - parseRounding: The main function to call the AI flow.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai';
 import { z } from 'zod';
 
 const PatientInfoSchema = z.object({
