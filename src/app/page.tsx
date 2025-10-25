@@ -916,7 +916,8 @@ export default function VetPatientTracker() {
 
     setAiParsingLoading(true);
     try {
-      const response = await fetch('/api/parse-rounding', {
+      // Try Gemini first (free with Firebase)
+      const response = await fetch('/api/parse-rounding-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: detailsText }),

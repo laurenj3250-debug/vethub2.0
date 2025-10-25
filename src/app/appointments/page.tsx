@@ -133,7 +133,8 @@ export default function AppointmentsPage() {
 
   const parseWithAI = async (text: string): Promise<Partial<AppointmentData>> => {
     try {
-      const response = await fetch('/api/parse-appointment', {
+      // Try Gemini first (free with Firebase)
+      const response = await fetch('/api/parse-appointment-gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
