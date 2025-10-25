@@ -6,17 +6,13 @@
  */
 
 import { genkit, type GenkitError } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
-import { googleGenai } from '@genkit-ai/google-genai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 // Initialize Genkit with the Google AI plugin
 export const ai = genkit({
   plugins: [
     googleAI({
       apiVersion: 'v1beta',
-    }),
-    googleGenai({
-        // Other Google GenAI plugin configuration
     }),
   ],
   logLevel: 'debug',
