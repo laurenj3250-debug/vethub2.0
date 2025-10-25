@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, Calendar, Sparkles, HeartPulse, ShieldCheck, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
@@ -9,6 +9,9 @@ import { collection, query, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from '@/components/ui/textarea';
+import { parseAppointment } from '@/ai/flows/parse-appointment-flow';
+import { checkAIHealth, type AIHealthStatus } from '@/ai/genkit';
+
 
 type AppointmentType = 'New' | 'Recheck';
 
@@ -27,15 +30,6 @@ interface AppointmentData {
   type: AppointmentType;
 }
 
-interface HealthStatus {
-  apiKeyFound: boolean;
-  apiConnection: boolean;
-  modelAvailable: boolean;
-  status: 'OK' | 'ERROR';
-  message: string;
-  details?: string;
-}
-
 const getAppointmentTypeColor = (type: AppointmentType) => {
   if (type === 'Recheck') {
     return 'bg-green-100 border-green-300';
@@ -50,10 +44,10 @@ export default function AppointmentsPage() {
   const { toast } = useToast();
   
   const [aiParseInput, setAiParseInput] = useState('');
-  const [useAI, setUseAI] = useState(false);
+  const [useAI, setUseAI] = useState(true);
   const [isParsing, setIsParsing] = useState(false);
 
-  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
+  const [healthStatus, setHealthStatus] = useState<AIHealthStatus | null>(null);
   const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
 
@@ -73,18 +67,16 @@ export default function AppointmentsPage() {
   const commonMedicationsRes = useCollection(commonMedicationsQuery);
   const commonMedications = commonMedicationsRes?.data ?? [];
   
-  const checkAIHealth = async () => {
+  const runHealthCheck = async () => {
     setIsCheckingHealth(true);
     setHealthStatus(null);
     try {
-      const response = await fetch('/api/health-check');
-      const data: HealthStatus = await response.json();
+      const data = await checkAIHealth();
       setHealthStatus(data);
     } catch (err) {
       setHealthStatus({
         apiKeyFound: false,
         apiConnection: false,
-        modelAvailable: false,
         status: 'ERROR',
         message: 'Failed to connect to the health check endpoint.',
         details: (err as Error).message,
@@ -176,18 +168,8 @@ otherConcerns: data?.otherConcerns || '',
     setIsParsing(true);
     try {
       if (useAI) {
-        const response = await fetch('/api/parse-appointment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: aiParseInput }),
-        });
-
-        const errorData = await response.json();
-        if (!response.ok) {
-          throw new Error(errorData.details || errorData.error || 'AI parsing failed');
-        }
-
-        addAppointment(errorData); // On success, the body is the parsed data
+        const parsedData = await parseAppointment(aiParseInput);
+        addAppointment(parsedData);
         toast({ title: "Success", description: "AI successfully parsed the appointment." });
       } else {
         // Fallback to local regex-based parsing if needed in the future
@@ -199,7 +181,7 @@ otherConcerns: data?.otherConcerns || '',
     } catch (err: any) {
       console.error("Parsing error:", err);
       toast({ title: "Parsing Failed", description: err.message, variant: "destructive" });
-      checkAIHealth(); // Automatically run health check on failure
+      runHealthCheck(); // Automatically run health check on failure
       addAppointment(); // Add a blank row on failure so work isn't lost
     } finally {
       setIsParsing(false);
@@ -309,7 +291,7 @@ otherConcerns: data?.otherConcerns || '',
                     <h2 className="text-xl font-bold text-gray-800">AI Health Check</h2>
                 </div>
                 <button
-                  onClick={checkAIHealth}
+                  onClick={runHealthCheck}
                   disabled={isCheckingHealth}
                   className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 transition shadow-md disabled:opacity-50"
                 >

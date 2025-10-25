@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { NotepadText, X } from 'lucide-react';
+import { parseRounding } from '@/ai/flows/parse-rounding-flow';
 
 const useLocalStorage = (key: string, initialValue: string) => {
   const [storedValue, setStoredValue] = useState(() => {
@@ -995,18 +996,7 @@ export default function VetPatientTracker() {
 
     setAiParsingLoading(true);
     try {
-      const response = await fetch('/api/parse-rounding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: detailsText }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'AI parsing failed');
-      }
-
-      const parsed = await response.json();
+      const parsed = await parseRounding(detailsText);
 
       // Merge the AI-parsed data into patient info and rounding data
       const newInfo: any = { ...(patient.patientInfo || {}), ...(parsed.patientInfo || {}) };
