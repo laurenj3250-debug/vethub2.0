@@ -1,9 +1,38 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { NotepadText, X } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { NotepadText, X, Plus, Trash2, Clock, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar } from 'lucide-react';
+import Link from 'next/link';
+
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
+import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from '@/firebase/non-blocking-updates';
+import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase/auth';
+import { collection, doc, query } from 'firebase/firestore';
+import { parseSignalment } from '@/lib/parseSignalment';
+import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 
 const useLocalStorage = (key: string, initialValue: string) => {
   const [storedValue, setStoredValue] = useState(() => {
@@ -79,37 +108,6 @@ function CatNotes() {
     </div>
   );
 }
-
-import React, { useMemo } from 'react';
-import { Plus, Trash2, Clock, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar } from 'lucide-react';
-import Link from 'next/link';
-import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import {
-  addDocumentNonBlocking,
-  updateDocumentNonBlocking,
-  deleteDocumentNonBlocking,
-} from '@/firebase/non-blocking-updates';
-import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase/auth';
-import { collection, doc, query } from 'firebase/firestore';
-import { parseSignalment } from '@/lib/parseSignalment';
-import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 
 /* -----------------------------------------------------------
    Kitty Fireworks Component
@@ -2704,5 +2702,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
