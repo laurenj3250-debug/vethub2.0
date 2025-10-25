@@ -131,6 +131,29 @@ const getPriorityColor = (patient: any) => {
   return 'border-l-4 border-gray-300';
 };
 
+// Beautiful color coding for patient types
+const getPatientTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    'MRI': 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/50',
+    'Surgery': 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg shadow-red-500/50',
+    'Admit': 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50',
+    'Other': 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/50'
+  };
+  return colors[type] || 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg';
+};
+
+// Get background color for task based on time category
+const getTaskBackgroundColor = (taskName: string, isCompleted: boolean, morningTasks: string[], eveningTasks: string[]) => {
+  if (isCompleted) {
+    return 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm';
+  }
+  const isMorning = morningTasks.includes(taskName);
+  const isEvening = eveningTasks.includes(taskName);
+  if (isMorning) return 'bg-gradient-to-br from-yellow-50 to-amber-50 border-amber-300 hover:border-amber-500 hover:shadow-lg';
+  if (isEvening) return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-300 hover:border-indigo-500 hover:shadow-lg';
+  return 'bg-gradient-to-br from-white to-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-lg';
+};
+
 const roundKgToInt = (kg: number) => Math.round(kg);
 const kgToLbs1 = (kg: number) => kg * 2.20462;
 
@@ -340,6 +363,7 @@ export default function VetPatientTracker() {
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
   const [useAIForRounding, setUseAIForRounding] = useState(false);
   const [aiParsingLoading, setAiParsingLoading] = useState(false);
+  const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
 
   // Add these three new ones:
   const [email, setEmail] = useState('');
@@ -1272,6 +1296,17 @@ export default function VetPatientTracker() {
                 </button>
               </div>
 
+              <button
+                onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md ${
+                  hideCompletedTasks
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                    : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-purple-400'
+                }`}
+              >
+                {hideCompletedTasks ? '👁️ Show' : '🙈 Hide'} Completed
+              </button>
+
               {user ? (
                 <button onClick={() => signOutUser(auth)} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">
                   Sign Out
@@ -1588,14 +1623,35 @@ export default function VetPatientTracker() {
                   </thead>
                   <tbody>
                     {patients.map((patient: any, idx: number) => {
+                      const fieldMap = ['name', 'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics', 'replaceIVC', 'replaceFluids', 'replaceCRI', 'overnightDiagnostics', 'overnightConcerns', 'additionalComments'];
                       const row = makeRoundingRow(patient);
                       return (
-                        <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 hover:bg-blue-50'}>
                           {row.map((cell, cellIdx) => (
                             <td key={cellIdx} className="px-2 py-2 border-b align-top">
-                              <div className="max-w-xs overflow-hidden">
-                                {cell || '-'}
-                              </div>
+                              {cellIdx === 0 ? (
+                                <div className="font-semibold text-gray-900">{cell || '-'}</div>
+                              ) : (
+                                <textarea
+                                  value={cellIdx === 1 ? (patient.roundingData?.signalment || '') :
+                                         cellIdx === 2 ? (patient.roundingData?.location || '') :
+                                         cellIdx === 3 ? (patient.roundingData?.icuCriteria || '') :
+                                         cellIdx === 4 ? (patient.roundingData?.codeStatus || '') :
+                                         cellIdx === 5 ? (patient.roundingData?.problems || '') :
+                                         cellIdx === 6 ? (patient.roundingData?.diagnosticFindings || '') :
+                                         cellIdx === 7 ? (patient.roundingData?.therapeutics || '') :
+                                         cellIdx === 8 ? (patient.roundingData?.replaceIVC || '') :
+                                         cellIdx === 9 ? (patient.roundingData?.replaceFluids || '') :
+                                         cellIdx === 10 ? (patient.roundingData?.replaceCRI || '') :
+                                         cellIdx === 11 ? (patient.roundingData?.overnightDiagnostics || '') :
+                                         cellIdx === 12 ? (patient.roundingData?.overnightConcerns || '') :
+                                         (patient.roundingData?.additionalComments || '')}
+                                  onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
+                                  className="w-full min-w-[120px] px-2 py-1 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
+                                  rows={2}
+                                  placeholder={`Enter ${fieldMap[cellIdx]}...`}
+                                />
+                              )}
                             </td>
                           ))}
                         </tr>
@@ -1721,7 +1777,7 @@ export default function VetPatientTracker() {
                               <div className="flex items-center gap-2">
                                 <span className="text-2xl">{getBreedEmoji(patient)}</span>
                                 <h3 className="font-bold text-gray-900">{patient.name}</h3>
-                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPatientTypeColor(patient.type)}`}>
                                   {patient.type}
                                 </span>
                                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
@@ -1752,13 +1808,11 @@ export default function VetPatientTracker() {
                           <p className="text-gray-400 text-sm italic p-3">No tasks yet</p>
                         ) : (
                           <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                            {tasksSorted.map((task: any) => (
+                            {tasksSorted.filter(task => !hideCompletedTasks || !task.completed).map((task: any) => (
                               <label
                                 key={task.id}
                                 className={`flex items-center gap-3 p-3 rounded-xl border-2 transition cursor-pointer hover:scale-[1.02] ${
-                                  task.completed
-                                    ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm'
-                                    : 'bg-white border-orange-200 hover:border-orange-400 hover:shadow-md'
+                                  getTaskBackgroundColor(task.name, task.completed, morningTasks, eveningTasks)
                                 }`}
                               >
                                 <input
@@ -1844,7 +1898,7 @@ export default function VetPatientTracker() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-3xl">{getBreedEmoji(patient)}</span>
                           <h3 className="text-lg font-bold text-gray-900">{patient.name}</h3>
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-600 text-white">{patient.type}</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPatientTypeColor(patient.type)}`}>{patient.type}</span>
 
                           {/* Rounding Status Badge */}
                           <span
@@ -1863,7 +1917,12 @@ export default function VetPatientTracker() {
                             <Clock size={14} /> {patient.addedTime}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-600">
+                        {patient.roundingData?.problemList && (
+                          <div className="text-sm font-semibold text-red-700 bg-red-50 px-3 py-1 rounded-lg inline-block mt-1 border border-red-200">
+                            🏥 {patient.roundingData.problemList}
+                          </div>
+                        )}
+                        <div className="text-sm text-gray-600 mt-1">
                           {patient.roundingData?.signalment && <span className="mr-3">📋 {patient.roundingData.signalment}</span>}
                           {patient.patientInfo?.weight && <span className="mr-3">⚖️ {patient.patientInfo.weight}</span>}
                           {patient.patientInfo?.patientId && <span className="mr-3">🆔 {patient.patientInfo.patientId}</span>}
@@ -1894,9 +1953,14 @@ export default function VetPatientTracker() {
                   </div>
 
                   {viewMode === 'compact' && (
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div className="text-sm text-gray-600">{completed}/{total} tasks</div>
-                      <button onClick={() => toggleExpanded(patient.id)} className="px-3 py-1 text-sm border rounded-md hover:bg-gray-50">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-bold text-gray-800">{completed}/{total} tasks</div>
+                        <div className="px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold rounded-full shadow-lg">
+                          {Math.round(percentage)}% Complete
+                        </div>
+                      </div>
+                      <button onClick={() => toggleExpanded(patient.id)} className="px-4 py-2 text-sm bg-white border-2 border-purple-500 text-purple-700 font-semibold rounded-lg hover:bg-purple-50 shadow-md">
                         {isExpanded ? 'Hide' : 'Open'} <ChevronRight className="inline-block ml-1" size={16} />
                       </button>
                     </div>
@@ -1979,23 +2043,25 @@ export default function VetPatientTracker() {
 
                             {/* Tasks list - big clickable checkboxes */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {tasksSorted.map((task: any) => (
+                              {tasksSorted.filter((task: any) => !hideCompletedTasks || !task.completed).map((task: any) => {
+                                const isMorning = morningTasksSet.has(task.name);
+                                const isEvening = eveningTasksSet.has(task.name);
+                                const timeEmoji = isMorning ? '🌅 ' : isEvening ? '🌙 ' : '';
+                                return (
                                 <label
                                   key={task.id}
                                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition hover:scale-[1.02] ${
-                                    task.completed
-                                      ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm'
-                                      : 'bg-white border-orange-200 hover:border-orange-400 hover:shadow-md'
+                                    getTaskBackgroundColor(task.name, task.completed, morningTasks, eveningTasks)
                                   }`}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={task.completed}
                                     onChange={() => toggleTask(patient.id, task.id)}
-                                    className="w-5 h-5 rounded cursor-pointer flex-shrink-0 accent-orange-600"
+                                    className="w-5 h-5 rounded cursor-pointer flex-shrink-0 accent-purple-600"
                                   />
-                                  <span className={`flex-1 text-sm font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-800'}`} title={task.name}>
-                                    {task.name}
+                                  <span className={`flex-1 text-sm font-semibold ${task.completed ? 'text-green-800 line-through' : 'text-gray-900'}`} title={task.name}>
+                                    {timeEmoji}{task.name}
                                   </span>
                                   <button
                                     onClick={(e) => {
@@ -2007,7 +2073,8 @@ export default function VetPatientTracker() {
                                     <X size={16} />
                                   </button>
                                 </label>
-                              ))}
+                                );
+                              })}
                             </div>
                             <div className="text-xs text-gray-500 text-right">
                               {completed}/{total} completed
