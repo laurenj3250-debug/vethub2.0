@@ -65,8 +65,8 @@ ${text}`
       const errorData = await response.json();
       console.error('Claude API error:', errorData);
       return NextResponse.json(
-        { error: 'AI parsing failed', details: errorData },
-        { status: 500 }
+        { error: 'AI parsing failed', details: errorData.error?.message || 'Unknown API error' },
+        { status: response.status }
       );
     }
 
@@ -74,18 +74,25 @@ ${text}`
     const content = data.content[0].text;
     
     let jsonStr = content;
-    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      jsonStr = jsonMatch[1];
+      jsonStr = jsonMatch[0];
     }
 
-    const parsed = JSON.parse(jsonStr);
-    
-    return NextResponse.json(parsed);
+    try {
+      const parsed = JSON.parse(jsonStr);
+      return NextResponse.json(parsed);
+    } catch (e) {
+      console.error('JSON parsing error from AI response:', e);
+      return NextResponse.json(
+        { error: 'AI returned invalid JSON', details: content },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Parse appointment error:', error);
     return NextResponse.json(
-      { error: 'Failed to parse appointment data' },
+      { error: 'Failed to parse appointment data', details: (error as Error).message },
       { status: 500 }
     );
   }

@@ -182,13 +182,12 @@ otherConcerns: data?.otherConcerns || '',
           body: JSON.stringify({ text: aiParseInput }),
         });
 
+        const errorData = await response.json();
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'AI parsing failed');
+          throw new Error(errorData.details || errorData.error || 'AI parsing failed');
         }
 
-        const parsedData = await response.json();
-        addAppointment(parsedData);
+        addAppointment(errorData); // On success, the body is the parsed data
         toast({ title: "Success", description: "AI successfully parsed the appointment." });
       } else {
         // Fallback to local regex-based parsing if needed in the future
@@ -200,6 +199,7 @@ otherConcerns: data?.otherConcerns || '',
     } catch (err: any) {
       console.error("Parsing error:", err);
       toast({ title: "Parsing Failed", description: err.message, variant: "destructive" });
+      checkAIHealth(); // Automatically run health check on failure
       addAppointment(); // Add a blank row on failure so work isn't lost
     } finally {
       setIsParsing(false);
