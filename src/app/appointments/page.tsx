@@ -1,12 +1,14 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Calendar } from 'lucide-react';
+import { Plus, X, Calendar, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from "@/hooks/use-toast"
+import { Textarea } from '@/components/ui/textarea';
 
 type AppointmentType = 'New' | 'Recheck';
 
@@ -37,6 +39,11 @@ export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<AppointmentData[]>([]);
   const { user, firestore } = useUserAndFirestore();
   const { toast } = useToast();
+  
+  const [aiParseInput, setAiParseInput] = useState('');
+  const [useAI, setUseAI] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+
 
   // Common problems from Firestore
   const commonProblemsQuery = useMemoFirebase(() => {
@@ -119,13 +126,51 @@ export default function AppointmentsPage() {
       mriFindings: data?.mriFindings || '',
       bloodworkNeeded: data?.bloodworkNeeded || '',
       medications: data?.medications || '',
-      otherConcerns: data?.otherConcerns || '',
-      type: data?.type || 'New',
+otherConcerns: data?.otherConcerns || '',
+      type: data?.type || (data?.lastRecheck ? 'Recheck' : 'New'),
     };
 
     setAppointments(prev => [newAppt, ...prev]);
   };
   
+  const parseAndAddAppointment = async () => {
+    if (!aiParseInput.trim()) {
+      toast({ title: "Input is empty", description: "Please paste patient history to parse.", variant: "destructive" });
+      return;
+    }
+    
+    setIsParsing(true);
+    try {
+      if (useAI) {
+        const response = await fetch('/api/parse-appointment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: aiParseInput }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'AI parsing failed');
+        }
+
+        const parsedData = await response.json();
+        addAppointment(parsedData);
+        toast({ title: "Success", description: "AI successfully parsed the appointment." });
+      } else {
+        // Fallback to local regex-based parsing if needed in the future
+        toast({ title: "Local Parsing", description: "This would use local parsing. AI checkbox is off.", variant: "default" });
+        // For now, just add a blank appointment
+        addAppointment();
+      }
+      setAiParseInput('');
+    } catch (err: any) {
+      console.error("Parsing error:", err);
+      toast({ title: "Parsing Failed", description: err.message, variant: "destructive" });
+      addAppointment(); // Add a blank row on failure so work isn't lost
+    } finally {
+      setIsParsing(false);
+    }
+  };
 
   const updateAppointmentField = (id: string, field: keyof AppointmentData, value: string) => {
     setAppointments(prev =>
@@ -174,6 +219,39 @@ export default function AppointmentsPage() {
                             <Plus size={20} />
                             Add Blank Row
                         </button>
+                    </div>
+                    {/* AI Parser Section */}
+                    <div className="bg-purple-50/50 p-4 rounded-lg border border-purple-200">
+                      <h2 className="text-xl font-bold text-gray-800 mb-2">Quick Import</h2>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Paste patient history to automatically fill the fields.
+                      </p>
+                      <Textarea
+                        value={aiParseInput}
+                        onChange={(e) => setAiParseInput(e.target.value)}
+                        placeholder="Paste patient history from clinical notes..."
+                        rows={6}
+                        className="mb-2 bg-white"
+                      />
+                      <div className="flex justify-between items-center">
+                        <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
+                          <input
+                            type="checkbox"
+                            checked={useAI}
+                            onChange={(e) => setUseAI(e.target.checked)}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                          />
+                          🤖 Use AI Parsing
+                        </label>
+                        <button
+                          onClick={parseAndAddAppointment}
+                          disabled={isParsing}
+                          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md disabled:opacity-50"
+                        >
+                          <Sparkles size={20} />
+                          {isParsing ? 'Parsing...' : 'Parse & Add'}
+                        </button>
+                      </div>
                     </div>
                 </div>
 
