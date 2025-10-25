@@ -30,6 +30,64 @@ import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebas
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
+import { parseRounding } from '@/ai/flows/parse-rounding-flow';
+
+/* -----------------------------------------------------------
+   Helpers: safe guards and formatting
+----------------------------------------------------------- */
+
+const safeStr = (v?: any) => (v ?? '') as string;
+const sanitizeCell = (v?: string) =>
+  (v ?? '').replace(/\r?\n/g, ' · ').replace(/\t/g, ' ');
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    'New Admit': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    'Pre-procedure': 'bg-blue-100 text-blue-800 border-blue-300',
+    'In Procedure': 'bg-purple-100 text-purple-800 border-purple-300',
+    'Recovery': 'bg-orange-100 text-orange-800 border-orange-300',
+    'Monitoring': 'bg-indigo-100 text-indigo-800 border-indigo-300',
+    'Ready for Discharge': 'bg-green-100 text-green-800 border-green-300',
+    'Discharged': 'bg-gray-100 text-gray-800 border-gray-300'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
+};
+
+const getPriorityColor = (patient: any) => {
+  if (patient.status === 'In Procedure') return 'border-l-4 border-orange-500';
+  if (patient.status === 'Pre-procedure') return 'border-l-4 border-yellow-500';
+  if (patient.status === 'Ready for Discharge') return 'border-l-4 border-green-500';
+  return 'border-l-4 border-gray-300';
+};
+
+const getPatientTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    'MRI': 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/50',
+    'Surgery': 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg shadow-red-500/50',
+    'Admit': 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50',
+    'Other': 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/50'
+  };
+  return colors[type] || 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg';
+};
+
+const getTaskBackgroundColor = (taskName: string, isCompleted: boolean, morningTasks: string[], eveningTasks: string[]) => {
+  if (isCompleted) {
+    return 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm';
+  }
+  const isMorning = morningTasks.includes(taskName);
+  const isEvening = eveningTasks.includes(taskName);
+  if (isMorning) return 'bg-gradient-to-br from-yellow-50 to-amber-50 border-amber-300 hover:border-amber-500 hover:shadow-lg';
+  if (isEvening) return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-300 hover:border-indigo-500 hover:shadow-lg';
+  return 'bg-gradient-to-br from-white to-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-lg';
+};
+
+const roundKgToInt = (kg: number) => Math.round(kg);
+const kgToLbs1 = (kg: number) => kg * 2.20462;
+
+function parseBloodworkAbnormals(text: string, species: string = 'canine'): string[] {
+  const result = analyzeBloodWorkLocal({ bloodWorkText: text, species });
+  return result.abnormalValues;
+}
 
 /* -----------------------------------------------------------
    Kitty Fireworks Component
@@ -101,71 +159,6 @@ function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
       </div>
     </div>
   );
-}
-
-/* -----------------------------------------------------------
-   Helpers: safe guards and formatting
------------------------------------------------------------ */
-
-const safeStr = (v?: any) => (v ?? '') as string;
-const sanitizeCell = (v?: string) =>
-  (v ?? '').replace(/\r?\n/g, ' · ').replace(/\t/g, ' ');
-
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    'New Admit': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'Pre-procedure': 'bg-blue-100 text-blue-800 border-blue-300',
-    'In Procedure': 'bg-purple-100 text-purple-800 border-purple-300',
-    'Recovery': 'bg-orange-100 text-orange-800 border-orange-300',
-    'Monitoring': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    'Ready for Discharge': 'bg-green-100 text-green-800 border-green-300',
-    'Discharged': 'bg-gray-100 text-gray-800 border-gray-300'
-  };
-  return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
-};
-
-const getPriorityColor = (patient: any) => {
-  if (patient.status === 'In Procedure') return 'border-l-4 border-orange-500';
-  if (patient.status === 'Pre-procedure') return 'border-l-4 border-yellow-500';
-  if (patient.status === 'Ready for Discharge') return 'border-l-4 border-green-500';
-  return 'border-l-4 border-gray-300';
-};
-
-// Beautiful color coding for patient types
-const getPatientTypeColor = (type: string) => {
-  const colors: Record<string, string> = {
-    'MRI': 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/50',
-    'Surgery': 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg shadow-red-500/50',
-    'Admit': 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50',
-    'Other': 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/50'
-  };
-  return colors[type] || 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg';
-};
-
-// Get background color for task based on time category
-const getTaskBackgroundColor = (taskName: string, isCompleted: boolean, morningTasks: string[], eveningTasks: string[]) => {
-  if (isCompleted) {
-    return 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm';
-  }
-  const isMorning = morningTasks.includes(taskName);
-  const isEvening = eveningTasks.includes(taskName);
-  if (isMorning) return 'bg-gradient-to-br from-yellow-50 to-amber-50 border-amber-300 hover:border-amber-500 hover:shadow-lg';
-  if (isEvening) return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-300 hover:border-indigo-500 hover:shadow-lg';
-  return 'bg-gradient-to-br from-white to-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-lg';
-};
-
-const roundKgToInt = (kg: number) => Math.round(kg);
-const kgToLbs1 = (kg: number) => kg * 2.20462;
-
-/* -----------------------------------------------------------
-   Bloodwork parser (uses IDEXX reference ranges)
-   Now supports both canine and feline with proper ranges!
-   Includes SDMA, more parameters, with ↑↓ indicators
------------------------------------------------------------ */
-
-function parseBloodworkAbnormals(text: string, species: string = 'canine'): string[] {
-  const result = analyzeBloodWorkLocal({ bloodWorkText: text, species });
-  return result.abnormalValues;
 }
 
 /* -----------------------------------------------------------
@@ -303,7 +296,7 @@ function KeyboardHelpModal({ isOpen, onClose }: KeyboardHelpProps) {
 }
 
 /* -----------------------------------------------------------
-   Component
+   MAIN COMPONENT
 ----------------------------------------------------------- */
 
 export default function VetPatientTracker() {
@@ -940,19 +933,7 @@ export default function VetPatientTracker() {
 
     setAiParsingLoading(true);
     try {
-      // Try Gemini first (free with Firebase)
-      const response = await fetch('/api/parse-rounding-gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: detailsText }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'AI parsing failed');
-      }
-
-      const parsed = await response.json();
+      const parsed = await parseRounding(detailsText);
 
       // Merge the AI-parsed data into patient info and rounding data
       const newInfo: any = { ...(patient.patientInfo || {}), ...(parsed.patientInfo || {}) };
@@ -2705,5 +2686,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
