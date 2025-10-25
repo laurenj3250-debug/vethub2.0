@@ -358,7 +358,7 @@ function KeyboardHelpModal({ isOpen, onClose }: KeyboardHelpProps) {
 }
 
 /* -----------------------------------------------------------
-   Component
+   Main Component
 ----------------------------------------------------------- */
 
 export default function VetPatientTracker() {
