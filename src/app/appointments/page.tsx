@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, X, Calendar, Sparkles } from 'lucide-react';
+import { Plus, X, Calendar, Sparkles, HeartPulse, ShieldCheck, ShieldAlert, Wifi, WifiOff } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useMemoFirebase, useCollection, useFirebase } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
@@ -27,6 +27,15 @@ interface AppointmentData {
   type: AppointmentType;
 }
 
+interface HealthStatus {
+  apiKeyFound: boolean;
+  apiConnection: boolean;
+  modelAvailable: boolean;
+  status: 'OK' | 'ERROR';
+  message: string;
+  details?: string;
+}
+
 const getAppointmentTypeColor = (type: AppointmentType) => {
   if (type === 'Recheck') {
     return 'bg-green-100 border-green-300';
@@ -44,6 +53,9 @@ export default function AppointmentsPage() {
   const [useAI, setUseAI] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
 
+  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
+  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+
 
   // Common problems from Firestore
   const commonProblemsQuery = useMemoFirebase(() => {
@@ -60,6 +72,28 @@ export default function AppointmentsPage() {
   }, [firestore, user]);
   const commonMedicationsRes = useCollection(commonMedicationsQuery);
   const commonMedications = commonMedicationsRes?.data ?? [];
+  
+  const checkAIHealth = async () => {
+    setIsCheckingHealth(true);
+    setHealthStatus(null);
+    try {
+      const response = await fetch('/api/health-check');
+      const data: HealthStatus = await response.json();
+      setHealthStatus(data);
+    } catch (err) {
+      setHealthStatus({
+        apiKeyFound: false,
+        apiConnection: false,
+        modelAvailable: false,
+        status: 'ERROR',
+        message: 'Failed to connect to the health check endpoint.',
+        details: (err as Error).message,
+      });
+    } finally {
+      setIsCheckingHealth(false);
+    }
+  };
+
 
   const addCommonProblem = (name: string) => {
     if (!name.trim() || !firestore || !user) return;
@@ -265,6 +299,50 @@ otherConcerns: data?.otherConcerns || '',
                       </button>
                     </div>
                   )}
+            </div>
+
+            {/* AI Health Check Section */}
+            <div className="bg-gray-50 rounded-lg shadow-lg p-6 mb-6 border-l-4 border-gray-400">
+              <div className="flex items-center justify-between mb-4">
+                <div className='flex items-center gap-2'>
+                    <HeartPulse className="text-gray-600" />
+                    <h2 className="text-xl font-bold text-gray-800">AI Health Check</h2>
+                </div>
+                <button
+                  onClick={checkAIHealth}
+                  disabled={isCheckingHealth}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 transition shadow-md disabled:opacity-50"
+                >
+                  {isCheckingHealth ? 'Checking...' : 'Run Check'}
+                </button>
+              </div>
+              {isCheckingHealth && <p className="text-sm text-gray-600 animate-pulse">Checking AI system status...</p>}
+              {healthStatus && (
+                <div className="mt-4 space-y-3 p-4 rounded-lg bg-white border">
+                    <div className={`flex items-center gap-3 p-3 rounded-md ${healthStatus.status === 'OK' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                        {healthStatus.status === 'OK' ? <ShieldCheck /> : <ShieldAlert />}
+                        <p className="font-semibold">{healthStatus.message}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            {healthStatus.apiKeyFound ? <ShieldCheck className="text-green-600" /> : <ShieldAlert className="text-red-600" />}
+                            <span>API Key Found</span>
+                        </div>
+                        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                            {healthStatus.apiConnection ? <Wifi className="text-green-600" /> : <WifiOff className="text-red-600" />}
+                            <span>API Connection</span>
+                        </div>
+                    </div>
+
+                    {healthStatus.status === 'ERROR' && healthStatus.details && (
+                        <div className="p-3 bg-red-50/50 rounded-md border border-red-200">
+                            <p className="font-semibold text-sm text-red-900">Details:</p>
+                            <p className="text-xs text-red-700 font-mono mt-1">{healthStatus.details}</p>
+                        </div>
+                    )}
+                </div>
+              )}
             </div>
          </div>
 

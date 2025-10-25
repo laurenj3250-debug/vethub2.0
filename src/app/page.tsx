@@ -1,7 +1,86 @@
+
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { NotepadText, X } from 'lucide-react';
+
+const useLocalStorage = (key: string, initialValue: string) => {
+  const [storedValue, setStoredValue] = useState(() => {
+    try {
+      if (typeof window === 'undefined') {
+        return initialValue;
+      }
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.log(error);
+      return initialValue;
+    }
+  });
+
+  const setValue = (value: string | ((val: string) => string)) => {
+    try {
+      const valueToStore =
+        value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  return [storedValue, setValue] as const;
+};
+
+function CatNotes() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [notes, setNotes] = useLocalStorage('cat-notes', '');
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50">
+      {isOpen && (
+        <div className="bg-white p-4 rounded-lg shadow-2xl w-72 h-80 flex flex-col border border-gray-200 mb-2">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+              <NotepadText size={18} />
+              My Notes
+            </h3>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Jot down your ideas here..."
+            className="w-full flex-1 p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+          />
+          <p className="text-xs text-gray-400 mt-2 text-center">
+            Notes are saved automatically to your browser.
+          </p>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="text-4xl cursor-pointer hover:scale-110 transition-transform"
+          title="Toggle Notes"
+        >
+          🐱
+        </button>
+      </div>
+    </div>
+  );
+}
+
+import React, { useMemo } from 'react';
+import { Plus, Trash2, Clock, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -2629,9 +2708,7 @@ export default function VetPatientTracker() {
             <span className="text-lg">☀️</span>
             Morning to All
           </button>
-          <div className="text-4xl cursor-pointer" title="You're doing great! 🐱">
-            🐱
-          </div>
+          <CatNotes />
         </div>
       </div>
     </div>
