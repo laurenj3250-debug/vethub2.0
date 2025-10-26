@@ -31,6 +31,8 @@ import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
+import type { AIHealthStatus } from '@/ai/genkit';
+import { checkAIHealth } from '@/ai/genkit';
 
 /* -----------------------------------------------------------
    Helpers: safe guards and formatting
@@ -778,6 +780,7 @@ export default function VetPatientTracker() {
     updatePatientField(patientId, 'tasks', newTasks);
   };
   const addMorningTasksToAll = () => (patients || []).forEach(p => addMorningTasks(p.id));
+  const addEveningTasksToAll = () => (patients || []).forEach(p => addEveningTasks(p.id));
 
   const resetDailyTasks = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
@@ -2677,6 +2680,14 @@ export default function VetPatientTracker() {
           >
             <span className="text-lg">☀️</span>
             Morning to All
+          </button>
+           <button
+            onClick={() => addEveningTasksToAll()}
+            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg hover:from-indigo-600 hover:to-purple-600 transition-all transform hover:scale-105 flex items-center gap-2"
+            title="Add Evening Tasks To All Patients"
+          >
+            <span className="text-lg">🌙</span>
+            Evening to All
           </button>
           <div className="text-4xl cursor-pointer" title="You're doing great! 🐱">
             🐱
