@@ -376,6 +376,7 @@ export default function VetPatientTracker() {
   const [showFireworks, setShowFireworks] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
+  const [reversePasteContent, setReversePasteContent] = useState('');
 
   // Date-based task management
   const getTodayDate = () => {
@@ -1123,6 +1124,41 @@ export default function VetPatientTracker() {
     return rows.join('\n');
   }, [patients]);
   
+  const handleReversePaste = () => {
+    if (!reversePasteContent.trim()) {
+      alert('Please paste a tab-separated row into the text area first.');
+      return;
+    }
+    const lines = reversePasteContent.trim().split('\n');
+    lines.forEach(line => {
+      const values = line.split('\t');
+      if (values.length < 2) return; // Need at least name and something else
+
+      const patientName = values[0].trim();
+      if (!patientName) return;
+
+      const patient = patients.find(p => p.name.toLowerCase() === patientName.toLowerCase());
+      if (!patient) {
+        console.warn(`Could not find patient named: ${patientName}`);
+        return;
+      }
+
+      const roundingKeys = ['signalment', 'location', 'icuCriteria', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics', 'replaceIVC', 'replaceFluids', 'replaceCRI', 'overnightDiagnostics', 'overnightConcerns', 'additionalComments'];
+      const updatedRoundingData = { ...patient.roundingData };
+
+      values.slice(1).forEach((val, index) => {
+        const key = roundingKeys[index];
+        if (key) {
+          (updatedRoundingData as any)[key] = val.replace(/ · /g, '\n').trim();
+        }
+      });
+      updatePatientField(patient.id, 'roundingData', updatedRoundingData);
+    });
+
+    setReversePasteContent(''); // Clear after processing
+    alert('Patient data updated from pasted content.');
+  };
+
   const getPriorityClasses = (priority: string) => {
     switch (priority) {
       case 'High': return 'border-red-500 bg-red-50 text-red-800';
@@ -1588,88 +1624,112 @@ export default function VetPatientTracker() {
               </div>
             </div>
 
-            {showRoundingSheet && (roundingViewMode === 'tsv' ? (
-              <textarea
-                readOnly
-                value={roundingTSV}
-                rows={4}
-                className="w-full font-mono text-xs p-2 border rounded-lg bg-gray-50"
-                onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-              />
-            ) : (
-              <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-xs">
-                  <thead className="bg-gradient-to-r from-purple-100 to-pink-100 sticky top-0">
-                    <tr>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Name</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Signalment</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Location</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">ICU Criteria</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Code</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Problems</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Diagnostics</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Therapeutics</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">IVC</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Fluids</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">CRI</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Overnight Dx</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Concerns</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Comments</th>
-                      <th className="px-2 py-2 text-left font-semibold border-b">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {patients.map((patient: any, idx: number) => {
-                      const fieldMap = ['name', 'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics', 'replaceIVC', 'replaceFluids', 'replaceCRI', 'overnightDiagnostics', 'overnightConcerns', 'additionalComments'];
-                      const row = makeRoundingRow(patient);
-                      const rowTsv = makeRoundingRow(patient).map(sanitizeCell).join('\t');
-                      return (
-                        <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 hover:bg-blue-50'}>
-                          {row.map((cell, cellIdx) => (
-                            <td key={cellIdx} className="px-2 py-2 border-b align-top">
-                              {cellIdx === 0 ? (
-                                <div className="font-semibold text-gray-900">{cell || '-'}</div>
-                              ) : (
-                                <textarea
-                                  value={cellIdx === 1 ? (patient.roundingData?.signalment || '') :
-                                         cellIdx === 2 ? (patient.roundingData?.location || '') :
-                                         cellIdx === 3 ? (patient.roundingData?.icuCriteria || '') :
-                                         cellIdx === 4 ? (patient.roundingData?.codeStatus || '') :
-                                         cellIdx === 5 ? (patient.roundingData?.problems || '') :
-                                         cellIdx === 6 ? (patient.roundingData?.diagnosticFindings || '') :
-                                         cellIdx === 7 ? (patient.roundingData?.therapeutics || '') :
-                                         cellIdx === 8 ? (patient.roundingData?.replaceIVC || '') :
-                                         cellIdx === 9 ? (patient.roundingData?.replaceFluids || '') :
-                                         cellIdx === 10 ? (patient.roundingData?.replaceCRI || '') :
-                                         cellIdx === 11 ? (patient.roundingData?.overnightDiagnostics || '') :
-                                         cellIdx === 12 ? (patient.roundingData?.overnightConcerns || '') :
-                                         (patient.roundingData?.additionalComments || '')}
-                                  onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
-                                  className="w-full min-w-[120px] px-2 py-1 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
-                                  rows={2}
-                                  placeholder={`Enter ${fieldMap[cellIdx]}...`}
-                                />
-                              )}
-                            </td>
-                          ))}
-                          <td className="px-2 py-2 border-b align-top">
-                            <button
-                              onClick={() => navigator.clipboard.writeText(rowTsv)}
-                              title="Copy row to clipboard"
-                              className="p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-md"
-                            >
-                              <Copy size={14} />
-                            </button>
-                          </td>
+            {showRoundingSheet && (
+              <>
+                <div className="mb-4 p-3 bg-pink-50 border border-pink-200 rounded-lg">
+                  <label htmlFor="reverse-paste-input" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Paste Row from Spreadsheet to Update Patient
+                  </label>
+                  <textarea
+                    id="reverse-paste-input"
+                    value={reversePasteContent}
+                    onChange={(e) => setReversePasteContent(e.target.value)}
+                    placeholder="Paste a single tab-separated row here (e.g., from Excel or Google Sheets). The first column must be the patient's name."
+                    rows={2}
+                    className="w-full p-2 text-xs border rounded-lg focus:ring-1 focus:ring-pink-400"
+                  />
+                  <button
+                    onClick={handleReversePaste}
+                    className="mt-2 px-3 py-1 bg-pink-600 text-white text-xs font-semibold rounded-lg hover:bg-pink-700"
+                  >
+                    Update From Paste
+                  </button>
+                </div>
+                {roundingViewMode === 'tsv' ? (
+                  <textarea
+                    readOnly
+                    value={roundingTSV}
+                    rows={4}
+                    className="w-full font-mono text-xs p-2 border rounded-lg bg-gray-50"
+                    onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                  />
+                ) : (
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gradient-to-r from-purple-100 to-pink-100 sticky top-0">
+                        <tr>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Name</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Signalment</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Location</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">ICU Criteria</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Code</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Problems</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Diagnostics</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Therapeutics</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">IVC</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Fluids</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">CRI</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Overnight Dx</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Concerns</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Comments</th>
+                          <th className="px-2 py-2 text-left font-semibold border-b">Actions</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ))}
+                      </thead>
+                      <tbody>
+                        {patients.map((patient: any, idx: number) => {
+                          const fieldMap = ['name', 'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics', 'replaceIVC', 'replaceFluids', 'replaceCRI', 'overnightDiagnostics', 'overnightConcerns', 'additionalComments'];
+                          const row = makeRoundingRow(patient);
+                          const rowTsv = makeRoundingRow(patient).map(sanitizeCell).join('\t');
+                          return (
+                            <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 hover:bg-blue-50'}>
+                              {row.map((cell, cellIdx) => (
+                                <td key={cellIdx} className="px-2 py-2 border-b align-top">
+                                  {cellIdx === 0 ? (
+                                    <div className="font-semibold text-gray-900">{cell || '-'}</div>
+                                  ) : (
+                                    <textarea
+                                      value={cellIdx === 1 ? (patient.roundingData?.signalment || '') :
+                                             cellIdx === 2 ? (patient.roundingData?.location || '') :
+                                             cellIdx === 3 ? (patient.roundingData?.icuCriteria || '') :
+                                             cellIdx === 4 ? (patient.roundingData?.codeStatus || '') :
+                                             cellIdx === 5 ? (patient.roundingData?.problems || '') :
+                                             cellIdx === 6 ? (patient.roundingData?.diagnosticFindings || '') :
+                                             cellIdx === 7 ? (patient.roundingData?.therapeutics || '') :
+                                             cellIdx === 8 ? (patient.roundingData?.replaceIVC || '') :
+                                             cellIdx === 9 ? (patient.roundingData?.replaceFluids || '') :
+                                             cellIdx === 10 ? (patient.roundingData?.replaceCRI || '') :
+                                             cellIdx === 11 ? (patient.roundingData?.overnightDiagnostics || '') :
+                                             cellIdx === 12 ? (patient.roundingData?.overnightConcerns || '') :
+                                             (patient.roundingData?.additionalComments || '')}
+                                      onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
+                                      className="w-full min-w-[120px] px-2 py-1 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
+                                      rows={2}
+                                      placeholder={`Enter ${fieldMap[cellIdx]}...`}
+                                    />
+                                  )}
+                                </td>
+                              ))}
+                              <td className="px-2 py-2 border-b align-top">
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(rowTsv)}
+                                  title="Copy row to clipboard"
+                                  className="p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-md"
+                                >
+                                  <Copy size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
+
 
         {/* General Tasks */}
         <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
