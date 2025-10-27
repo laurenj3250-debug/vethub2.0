@@ -31,7 +31,8 @@ import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
-import type { AIHealthStatus } from '@/ai/genkit';
+
+type AIHealthStatus = any;
 import { checkAIHealth } from '@/ai/genkit';
 
 /* -----------------------------------------------------------
@@ -349,7 +350,7 @@ export default function VetPatientTracker() {
   const isLoadingCommonMedications = commonMedicationsRes?.isLoading ?? false;
 
   // UI State
-  const [newPatient, setNewPatient] = useState({ name: '', type: 'Surgery' });
+  const [newPatient, setNewPatient] = useState({ name: '', type: 'MRI' });
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState({ name: '', category: 'Morning', priority: 'Medium' });
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
@@ -563,7 +564,7 @@ export default function VetPatientTracker() {
   }, [expandedPatients, patients]);
 
   // Static lists
-  const procedureTypes = ['Surgery', 'MRI', 'Medical', 'Other'];
+  const procedureTypes = ['MRI', 'Surgery', 'Medical', 'Other'];
 
   const commonGeneralTasksTemplates = [
     { name: 'Check Comms', category: 'Morning', priority: 'High' },
@@ -701,7 +702,7 @@ export default function VetPatientTracker() {
       addDocumentNonBlocking(collection(firestore, `users/${user.uid}/patients`), patientData).then(docRef => {
         if (docRef) setExpandedPatients(prev => ({ ...prev, [docRef.id]: true }));
       });
-      setNewPatient({ name: '', type: 'Surgery' });
+      setNewPatient({ name: '', type: 'MRI' });
     }
   };
 
