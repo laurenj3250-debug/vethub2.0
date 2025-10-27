@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -351,7 +351,7 @@ export default function VetPatientTracker() {
   // UI State
   const [newPatient, setNewPatient] = useState({ name: '', type: 'Surgery' });
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
-  const [newGeneralTask, setNewGeneralTask] = useState('');
+  const [newGeneralTask, setNewGeneralTask] = useState({ name: '', category: 'Morning', priority: 'Medium' });
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
   const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
@@ -565,11 +565,11 @@ export default function VetPatientTracker() {
   const procedureTypes = ['Surgery', 'MRI', 'Medical', 'Other'];
 
   const commonGeneralTasksTemplates = [
-    'Check Comms',
-    'Check Emails',
-    'Draw Up Contrast',
-    'Rounding',
-    'Read appointments for next day', // ONLY general task (per your spec)
+    { name: 'Check Comms', category: 'Morning', priority: 'High' },
+    { name: 'Check Emails', category: 'Morning', priority: 'Medium' },
+    { name: 'Draw Up Contrast', category: 'Morning', priority: 'High' },
+    { name: 'Rounding', category: 'Morning', priority: 'High' },
+    { name: 'Read appointments for next day', category: 'Evening', priority: 'Medium' },
   ];
 
   // Admit task menus (not auto-added)
@@ -608,10 +608,10 @@ export default function VetPatientTracker() {
     return doc(firestore, `users/${user.uid}/patients`, patientId);
   };
 
-  const addGeneralTask = (taskName: string) => {
-    if (!taskName.trim() || !firestore || !user) return;
-    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { name: taskName, completed: false });
-    setNewGeneralTask('');
+  const addGeneralTask = (task: { name: string, category: string, priority: string }) => {
+    if (!task.name.trim() || !firestore || !user) return;
+    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { ...task, completed: false });
+    setNewGeneralTask({ name: '', category: 'Morning', priority: 'Medium' });
   };
   const toggleGeneralTask = (taskId: string, completed: boolean) => {
     if (!firestore || !user) return;
@@ -1122,6 +1122,18 @@ export default function VetPatientTracker() {
     const rows = (patients || []).map(p => makeRoundingRow(p).map(sanitizeCell).join('\t'));
     return rows.join('\n');
   }, [patients]);
+  
+  const getPriorityClasses = (priority: string) => {
+    switch (priority) {
+      case 'High': return 'border-red-500 bg-red-50 text-red-800';
+      case 'Medium': return 'border-yellow-500 bg-yellow-50 text-yellow-800';
+      case 'Low': return 'border-blue-500 bg-blue-50 text-blue-800';
+      default: return 'border-gray-300 bg-gray-50';
+    }
+  };
+
+  const morningGeneralTasks = useMemo(() => (generalTasks || []).filter(t => t.category === 'Morning'), [generalTasks]);
+  const eveningGeneralTasks = useMemo(() => (generalTasks || []).filter(t => t.category === 'Evening'), [generalTasks]);
 
   /* --------------------- UI --------------------- */
 
@@ -1657,53 +1669,105 @@ export default function VetPatientTracker() {
           <div className="flex flex-wrap gap-2 mb-3">
             {commonGeneralTasksTemplates.map(task => (
               <button
-                key={task}
+                key={task.name}
                 onClick={() => addGeneralTask(task)}
                 className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
               >
-                + {task}
+                + {task.name}
               </button>
             ))}
           </div>
-          <div className="flex gap-2 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
             <input
               type="text"
-              value={newGeneralTask}
-              onChange={(e) => setNewGeneralTask(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addGeneralTask(newGeneralTask)}
+              value={newGeneralTask.name}
+              onChange={(e) => setNewGeneralTask(p => ({ ...p, name: e.target.value }))}
               placeholder="Add custom general task..."
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+              className="md:col-span-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
             />
-            <button
-              onClick={() => addGeneralTask(newGeneralTask)}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+            <select
+                value={newGeneralTask.category}
+                onChange={(e) => setNewGeneralTask(p => ({ ...p, category: e.target.value }))}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
             >
-              Add
-            </button>
+                <option>Morning</option>
+                <option>Evening</option>
+            </select>
+            <select
+                value={newGeneralTask.priority}
+                onChange={(e) => setNewGeneralTask(p => ({ ...p, priority: e.target.value }))}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+            >
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+            </select>
           </div>
+           <button
+              onClick={() => addGeneralTask(newGeneralTask)}
+              className="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+            >
+              Add Task
+            </button>
+          
           {(generalTasks ?? []).length === 0 ? (
             <p className="text-gray-400 text-sm italic py-2">No general tasks yet. Click quick-add or type a custom task.</p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {generalTasks.map((task: any) => (
-                <div
-                  key={task.id}
-                  className={'flex items-center gap-2 p-2 rounded-lg border-2 transition ' + (task.completed ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-300')}
-                >
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleGeneralTask(task.id, task.completed)}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className={'flex-1 text-sm font-medium ' + (task.completed ? 'text-green-800 line-through' : 'text-gray-700')}>
-                    {task.name}
-                  </span>
-                  <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                    <X size={16} />
-                  </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              <div>
+                <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Sun className="text-yellow-500" /> Morning</h3>
+                <div className="space-y-2">
+                {morningGeneralTasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
+                      task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => toggleGeneralTask(task.id, task.completed)}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <span className={`flex-1 text-sm font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
+                      {task.name}
+                    </span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full">{task.priority}</span>
+                    <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
                 </div>
-              ))}
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Moon className="text-blue-500" /> Evening</h3>
+                <div className="space-y-2">
+                {eveningGeneralTasks.map((task: any) => (
+                  <div
+                    key={task.id}
+                    className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
+                      task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => toggleGeneralTask(task.id, task.completed)}
+                      className="w-4 h-4 text-indigo-600 rounded"
+                    />
+                    <span className={`flex-1 text-sm font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
+                      {task.name}
+                    </span>
+                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full">{task.priority}</span>
+                    <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

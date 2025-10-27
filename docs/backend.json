@@ -64,7 +64,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "GeneralTask",
       "type": "object",
-      "description": "Represents a general task not associated with a specific patient.",
+      "description": "Represents a general task not associated with a specific patient, with category and priority.",
       "properties": {
         "id": {
           "type": "string",
@@ -79,12 +79,14 @@
           "description": "Indicates whether the general task is completed."
         },
         "category": {
-            "type": "string",
-            "enum": ["Morning", "Evening"]
+          "type": "string",
+          "enum": ["Morning", "Evening"],
+          "description": "The category of the task (e.g., Morning, Evening)."
         },
         "priority": {
-            "type": "string",
-            "enum": ["High", "Medium", "Low"]
+          "type": "string",
+          "enum": ["High", "Medium", "Low"],
+          "description": "The priority level of the task."
         }
       },
       "required": [
