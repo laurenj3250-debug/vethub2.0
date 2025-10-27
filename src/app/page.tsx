@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -1615,12 +1615,14 @@ export default function VetPatientTracker() {
                       <th className="px-2 py-2 text-left font-semibold border-b">Overnight Dx</th>
                       <th className="px-2 py-2 text-left font-semibold border-b">Concerns</th>
                       <th className="px-2 py-2 text-left font-semibold border-b">Comments</th>
+                      <th className="px-2 py-2 text-left font-semibold border-b">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {patients.map((patient: any, idx: number) => {
                       const fieldMap = ['name', 'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics', 'replaceIVC', 'replaceFluids', 'replaceCRI', 'overnightDiagnostics', 'overnightConcerns', 'additionalComments'];
                       const row = makeRoundingRow(patient);
+                      const rowTsv = makeRoundingRow(patient).map(sanitizeCell).join('\t');
                       return (
                         <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 hover:bg-blue-50'}>
                           {row.map((cell, cellIdx) => (
@@ -1650,6 +1652,15 @@ export default function VetPatientTracker() {
                               )}
                             </td>
                           ))}
+                          <td className="px-2 py-2 border-b align-top">
+                            <button
+                              onClick={() => navigator.clipboard.writeText(rowTsv)}
+                              title="Copy row to clipboard"
+                              className="p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-md"
+                            >
+                              <Copy size={14} />
+                            </button>
+                          </td>
                         </tr>
                       );
                     })}
