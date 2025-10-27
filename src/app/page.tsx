@@ -31,8 +31,7 @@ import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
-
-type AIHealthStatus = any;
+import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
 
 /* -----------------------------------------------------------
@@ -1995,8 +1994,6 @@ export default function VetPatientTracker() {
 
               const tabs = getTabsForPatient(patient);
               const curTab = activeTab[patient.id] ?? tabs[0];
-
-              const rer = calcRER(safeStr(patient.patientInfo?.species), safeStr(patient.patientInfo?.weight));
               const roundingComp = getRoundingCompletion(patient);
 
               return (
@@ -2037,16 +2034,15 @@ export default function VetPatientTracker() {
                             <Clock size={14} /> {patient.addedTime}
                           </span>
                         </div>
-                        {patient.roundingData?.problemList && (
+                        {patient.roundingData?.problems && (
                           <div className="text-sm font-semibold text-red-700 bg-red-50 px-3 py-1 rounded-lg inline-block mt-1 border border-red-200">
-                            🏥 {patient.roundingData.problemList}
+                            🏥 {patient.roundingData.problems.split('\n')[0]}
                           </div>
                         )}
                         <div className="text-sm text-gray-600 mt-1">
                           {patient.roundingData?.signalment && <span className="mr-3">📋 {patient.roundingData.signalment}</span>}
                           {patient.patientInfo?.weight && <span className="mr-3">⚖️ {patient.patientInfo.weight}</span>}
                           {patient.patientInfo?.patientId && <span className="mr-3">🆔 {patient.patientInfo.patientId}</span>}
-                          {rer && <span className="mr-3">🔥 RER: {rer}</span>}
                         </div>
                       </div>
                     </div>
@@ -2833,3 +2829,5 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    
