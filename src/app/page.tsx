@@ -1054,15 +1054,6 @@ export default function VetPatientTracker() {
     return base;
   };
 
-  // RER (same formula for canine/feline); shown if species is set.
-  const calcRER = (_species: string, weightStr: string) => {
-    const m = weightStr.match(/(\d+(?:\.\d+)?)\s*kg/i);
-    const kg = m ? parseFloat(m[1]) : NaN;
-    if (!kg || Number.isNaN(kg)) return '';
-    const rer = 70 * Math.pow(kg, 0.75);
-    return `${Math.round(rer)} kcal/day`;
-  };
-
   // Get breed emoji for Halloween fun!
   const getBreedEmoji = (patient: any): string => {
     const breed = (patient.patientInfo?.breed || patient.roundingData?.signalment || '').toLowerCase();
@@ -1881,6 +1872,15 @@ export default function VetPatientTracker() {
                     const completedCount = tasksSorted.filter(t => t.completed).length;
                     const totalCount = tasksSorted.length;
                     const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+                    
+                    const goToPatient = () => {
+                      setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
+                      setShowAllTasksDropdown(false);
+                      setTimeout(() => {
+                        const element = document.getElementById(`patient-${patient.id}`);
+                        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 100);
+                    };
 
                     return (
                       <div 
@@ -1895,7 +1895,9 @@ export default function VetPatientTracker() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="text-2xl">{getBreedEmoji(patient)}</span>
-                                <h3 className="font-bold text-gray-900">{patient.name}</h3>
+                                <button onClick={goToPatient} className="font-bold text-gray-900 hover:underline">
+                                  {patient.name}
+                                </button>
                                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPatientTypeColor(patient.type)}`}>
                                   {patient.type}
                                 </span>
@@ -1909,14 +1911,7 @@ export default function VetPatientTracker() {
                             </div>
                           </div>
                           <button
-                            onClick={() => {
-                              setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
-                              setShowAllTasksDropdown(false);
-                              setTimeout(() => {
-                                const element = document.getElementById(`patient-${patient.id}`);
-                                element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              }, 100);
-                            }}
+                            onClick={goToPatient}
                             className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
                           >
                             Go to Patient
@@ -2829,5 +2824,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
