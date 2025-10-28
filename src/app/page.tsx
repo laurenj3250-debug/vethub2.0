@@ -65,23 +65,23 @@ const getPriorityColor = (patient: any) => {
 
 const getPatientTypeColor = (type: string) => {
   const colors: Record<string, string> = {
-    'MRI': 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg shadow-purple-500/50',
-    'Surgery': 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg shadow-red-500/50',
-    'Admit': 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50',
-    'Other': 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/50'
+    'MRI': 'bg-purple-200 text-purple-800',
+    'Surgery': 'bg-red-200 text-red-800',
+    'Admit': 'bg-blue-200 text-blue-800',
+    'Other': 'bg-green-200 text-green-800'
   };
-  return colors[type] || 'bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg';
+  return colors[type] || 'bg-gray-200 text-gray-800';
 };
 
 const getTaskBackgroundColor = (taskName: string, isCompleted: boolean, morningTasks: string[], eveningTasks: string[]) => {
   if (isCompleted) {
-    return 'bg-gradient-to-br from-green-50 to-green-100 border-green-400 shadow-sm';
+    return 'bg-green-100/70 border-green-300';
   }
   const isMorning = morningTasks.includes(taskName);
   const isEvening = eveningTasks.includes(taskName);
-  if (isMorning) return 'bg-gradient-to-br from-yellow-50 to-amber-50 border-amber-300 hover:border-amber-500 hover:shadow-lg';
-  if (isEvening) return 'bg-gradient-to-br from-blue-50 to-indigo-50 border-indigo-300 hover:border-indigo-500 hover:shadow-lg';
-  return 'bg-gradient-to-br from-white to-purple-50 border-purple-200 hover:border-purple-400 hover:shadow-lg';
+  if (isMorning) return 'bg-yellow-100/70 border-yellow-300 hover:border-yellow-500';
+  if (isEvening) return 'bg-blue-100/70 border-blue-300 hover:border-blue-500';
+  return 'bg-purple-100/70 border-purple-200 hover:border-purple-400';
 };
 
 const roundKgToInt = (kg: number) => Math.round(kg);
@@ -126,7 +126,7 @@ function KittyFireworks({ show, onComplete }: KittyFireworksProps) {
             🐾
           </div>
         ))}
-        <div className="text-6xl animate-bounce">⚕️</div>
+        <div className="text-6xl animate-bounce">🐈</div>
       </div>
     </div>
   );
@@ -144,21 +144,21 @@ function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-purple-600 to-slate-900 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-3">
-        <Sparkles size={16} className="text-cyan-300 flex-shrink-0" />
-        <div className="flex-1 bg-black/30 rounded-full h-4 overflow-hidden backdrop-blur-sm border border-cyan-400">
+    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-slate-800 shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 py-1 flex items-center gap-3">
+        <Sparkles size={14} className="text-fuchsia-300 flex-shrink-0" />
+        <div className="flex-1 bg-black/30 rounded-full h-3 overflow-hidden backdrop-blur-sm border border-fuchsia-400">
           <div
-            className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 transition-all duration-500 ease-out relative overflow-hidden"
+            className="h-full bg-gradient-to-r from-fuchsia-400 via-purple-400 to-fuchsia-400 transition-all duration-500 ease-out relative overflow-hidden"
             style={{ width: `${percentage}%` }}
           >
             <div className="absolute inset-0 bg-white/40 animate-pulse"></div>
           </div>
         </div>
-        <span className="text-white font-bold text-sm flex-shrink-0 min-w-[80px] text-right">
+        <span className="text-white font-bold text-xs flex-shrink-0 min-w-[70px] text-right">
           {completed}/{total} ({percentage}%)
         </span>
-        <span className="text-2xl flex-shrink-0">🐾</span>
+        <span className="text-xl flex-shrink-0">🐾</span>
       </div>
     </div>
   );
@@ -175,7 +175,7 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
   const offset = circumference - (pct / 100) * circumference;
 
   return (
-    <svg width={size} height={size} className="transform -rotate-90 text-blue-600">
+    <svg width={size} height={size} className="transform -rotate-90 text-purple-600">
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -190,7 +190,7 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
         cy={size / 2}
         r={radius}
         stroke="currentColor"
-        className="text-blue-600"
+        className="text-purple-600"
         strokeWidth={strokeWidth}
         strokeDasharray={circumference}
         strokeDashoffset={offset}
@@ -238,10 +238,10 @@ function SortablePatient({ id, children }: SortablePatientProps) {
       <div
         {...attributes}
         {...listeners}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -ml-8 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        className="absolute left-0 top-1/2 -translate-y-1/2 -ml-6 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity z-10"
         title="Drag to reorder"
       >
-        <GripVertical size={20} className="text-gray-400 hover:text-gray-600" />
+        <GripVertical size={18} className="text-gray-400 hover:text-gray-600" />
       </div>
       {children}
     </div>
@@ -272,26 +272,26 @@ function KeyboardHelpModal({ isOpen, onClose }: KeyboardHelpProps) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white rounded-lg shadow-2xl p-6 max-w-md w-full m-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <HelpCircle className="text-blue-600" />
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <HelpCircle className="text-purple-600" />
             Keyboard Shortcuts
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
           </button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {shortcuts.map((shortcut, i) => (
             <div key={i} className="flex items-center justify-between p-2 rounded hover:bg-gray-50">
-              <span className="text-sm text-gray-600">{shortcut.description}</span>
+              <span className="text-xs text-gray-600">{shortcut.description}</span>
               <kbd className="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">
                 {shortcut.key}
               </kbd>
             </div>
           ))}
         </div>
-        <div className="mt-6 pt-4 border-t text-center text-xs text-gray-500">
-          Made with love for veterinary professionals
+        <div className="mt-4 pt-3 border-t text-center text-xs text-gray-500">
+          Made with 💜 for veterinary professionals
         </div>
       </div>
     </div>
@@ -316,15 +316,15 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
   if (patients.length === 0 || taskNames.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-4 border">
-      <h3 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">{icon}{title}</h3>
+    <div className="bg-white rounded-lg shadow-md p-4 border">
+      <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">{icon}{title}</h3>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="bg-gray-50">
               <th className="p-2 border text-left font-semibold text-gray-600 sticky left-0 bg-gray-50 z-10">Patient</th>
               {taskNames.map(taskName => (
-                <th key={taskName} className="p-2 border text-center font-semibold text-gray-600 whitespace-nowrap" style={{ minWidth: '100px' }}>
+                <th key={taskName} className="p-2 border text-center font-semibold text-gray-600 whitespace-nowrap" style={{ minWidth: '80px' }}>
                   {taskName}
                 </th>
               ))}
@@ -335,22 +335,22 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
               const patientTasks = (patient.tasks || []).filter((t: any) => !t.date || t.date === currentDate);
               
               return (
-                <tr key={patient.id} className="hover:bg-blue-50/50">
-                  <td className="p-2 border font-semibold sticky left-0 bg-white group-hover:bg-blue-50/50 z-10">
-                    <button onClick={() => onPatientClick(patient.id)} className="text-blue-600 hover:underline text-left w-full">
+                <tr key={patient.id} className="hover:bg-purple-50/50">
+                  <td className="p-2 border font-semibold sticky left-0 bg-white group-hover:bg-purple-50/50 z-10">
+                    <button onClick={() => onPatientClick(patient.id)} className="text-purple-600 hover:underline text-left w-full">
                       {patient.name}
                     </button>
                   </td>
                   {taskNames.map(taskName => {
                     const task = patientTasks.find((t: any) => t.name === taskName);
                     return (
-                      <td key={taskName} className="p-2 border text-center">
+                      <td key={taskName} className="p-1 border text-center">
                         {task ? (
                           <input
                             type="checkbox"
                             checked={task.completed}
                             onChange={() => onToggleTask(patient.id, task.id)}
-                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                            className="w-4 h-4 accent-purple-600 cursor-pointer"
                           />
                         ) : (
                           <span className="text-gray-300">-</span>
@@ -1114,7 +1114,7 @@ export default function VetPatientTracker() {
   };
 
   // Helper to get class for required rounding fields
-  const getRequiredFieldClass = (patient: any, fieldName: string, baseClass: string = "px-3 py-2 text-sm border rounded-lg") => {
+  const getRequiredFieldClass = (patient: any, fieldName: string, baseClass: string = "px-2 py-1 text-xs border rounded-lg") => {
     const required = ['signalment', 'location', 'problems', 'diagnosticFindings', 'therapeutics'];
     if (!required.includes(fieldName)) return baseClass;
 
@@ -1234,7 +1234,7 @@ export default function VetPatientTracker() {
     switch (priority) {
       case 'High': return 'border-red-500 bg-red-50 text-red-800';
       case 'Medium': return 'border-yellow-500 bg-yellow-50 text-yellow-800';
-      case 'Low': return 'border-blue-500 bg-blue-50 text-blue-800';
+      case 'Low': return 'border-purple-500 bg-purple-50 text-purple-800';
       default: return 'border-gray-300 bg-gray-50';
     }
   };
@@ -1266,10 +1266,10 @@ export default function VetPatientTracker() {
 
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-fuchsia-50 to-slate-100">
         <div className="text-center">
           <div className="text-6xl mb-4 animate-pulse">🐾</div>
-          <p className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <p className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
             Loading your VetCare Hub...
           </p>
           <p className="text-gray-500 mt-2">Preparing the purr-fect experience!</p>
@@ -1289,23 +1289,23 @@ export default function VetPatientTracker() {
     };
 
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
-        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full border-t-4 border-blue-500">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-fuchsia-50 to-slate-100">
+        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-sm w-full border-t-4 border-purple-400">
           <div className="text-center mb-6">
-            <div className="text-6xl mb-4">🐾</div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+            <div className="text-6xl mb-4">🐈</div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent mb-1">
               VetCare Hub
             </h1>
-            <p className="text-gray-600">{isSignUp ? 'Create Account' : 'Welcome Back!'}</p>
+            <p className="text-gray-600 text-sm">{isSignUp ? 'Create a New Account' : 'Welcome Back!'}</p>
           </div>
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-3">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
               required
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500"
             />
             <input
               type="password"
@@ -1314,13 +1314,13 @@ export default function VetPatientTracker() {
               placeholder="Password (min 6 characters)"
               required
               minLength={6}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-fuchsia-500"
             />
-            <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold shadow-md transition">
+            <button type="submit" className="w-full py-2 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white rounded-lg hover:from-purple-600 hover:to-fuchsia-600 font-semibold shadow-md transition">
               {isSignUp ? 'Sign Up 🐾' : 'Sign In 🐾'}
             </button>
           </form>
-          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-sm text-blue-600 hover:text-blue-800">
+          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-xs text-purple-600 hover:text-purple-800">
             {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
           </button>
         </div>
@@ -1329,7 +1329,7 @@ export default function VetPatientTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50/50 p-6 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-fuchsia-50/50 p-4 pt-12">
       {/* Sparkly Progress Bar */}
       {overallTaskStats.total > 0 && (
         <SparklyProgressBar completed={overallTaskStats.completed} total={overallTaskStats.total} />
@@ -1341,26 +1341,25 @@ export default function VetPatientTracker() {
       <KeyboardHelpModal isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 rounded-lg shadow-lg p-6 mb-4 border-t-4 border-blue-400">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-md p-4 mb-4 border-t-2 border-purple-300">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
-                VetCare Hub
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
+                VetCare Hub 🐈
               </h1>
-              <p className="text-gray-600 flex items-center gap-2">
+              <p className="text-xs text-gray-500">
                 Track tasks and prep rounding sheets
-                <span className="text-xl" title="Purrfect for veterinary care!">⚕️</span>
               </p>
             </div>
-            <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               {/* Quick Links */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-xs font-semibold text-gray-600">Quick Links:</span>
+              <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-lg border">
+                <span className="text-xs font-semibold text-gray-600">Links:</span>
                 <a
                   href="https://tfalls300101.use2.ezyvet.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                  className="text-xs px-2 py-0.5 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
                 >
                   EzyVet
                 </a>
@@ -1368,7 +1367,7 @@ export default function VetPatientTracker() {
                   href="https://app.vetradar.com/patients"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                  className="text-xs px-2 py-0.5 bg-fuchsia-600 text-white rounded hover:bg-fuchsia-700 transition"
                 >
                   VetRadar
                 </a>
@@ -1376,44 +1375,44 @@ export default function VetPatientTracker() {
 
               <Link
                 href="/appointments"
-                className="px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 flex items-center gap-2 transition shadow-md text-sm"
+                className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 flex items-center gap-1.5 transition shadow-sm text-xs"
               >
-                <Calendar size={18} />
-                Today's Appointments
+                <Calendar size={14} />
+                Appointments
               </Link>
               <button
                 onClick={() => setShowKeyboardHelp(true)}
-                className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition"
+                className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition"
                 title="Keyboard shortcuts"
               >
-                <HelpCircle size={20} />
+                <HelpCircle size={16} />
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => toggleAll(true)}
-                  className="px-3 py-1 rounded-md text-sm border bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  className="px-2 py-1 rounded-md text-xs border bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 >
                   Expand All
                 </button>
                 <button
                   onClick={() => toggleAll(false)}
-                  className="px-3 py-1 rounded-md text-sm border bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  className="px-2 py-1 rounded-md text-xs border bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 >
                   Collapse All
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">View:</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-600">View:</span>
                 <button
                   onClick={() => setViewMode('full')}
-                  className={`px-3 py-1 rounded-md text-sm border ${viewMode === 'full' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  className={`px-2 py-1 rounded-md text-xs border ${viewMode === 'full' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300'}`}
                 >
                   Full
                 </button>
                 <button
                   onClick={() => setViewMode('compact')}
-                  className={`px-3 py-1 rounded-md text-sm border ${viewMode === 'compact' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+                  className={`px-2 py-1 rounded-md text-xs border ${viewMode === 'compact' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-gray-700 border-gray-300'}`}
                 >
                   Compact
                 </button>
@@ -1421,41 +1420,41 @@ export default function VetPatientTracker() {
 
               <button
                 onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
                   hideCompletedTasks
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
-                    : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:border-purple-400'
                 }`}
               >
                 {hideCompletedTasks ? '👁️ Show' : '🙈 Hide'} Completed
               </button>
 
               {user ? (
-                <button onClick={() => signOutUser(auth)} className="px-3 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm">
+                <button onClick={() => signOutUser(auth)} className="px-2 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-xs">
                   Sign Out
                 </button>
               ) : null}
             </div>
           </div>
           {/* Search, Filter, Sort */}
-          <div className="mb-4 space-y-3">
+          <div className="mb-3 space-y-2">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 id="search-input"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search patients by name, ID, breed, status... (Cmd+K)"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               )}
             </div>
@@ -1466,17 +1465,17 @@ export default function VetPatientTracker() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
               >
                 <option value="all">All Status</option>
                 {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
 
-              <span className="text-xs font-semibold text-gray-600 ml-3">Sort by:</span>
+              <span className="text-xs font-semibold text-gray-600 ml-2">Sort by:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
               >
                 <option value="name">Name</option>
                 <option value="status">Status</option>
@@ -1484,7 +1483,7 @@ export default function VetPatientTracker() {
                 <option value="tasks">Tasks Complete</option>
               </select>
 
-              <span className="text-xs font-semibold text-gray-600 ml-3">Date:</span>
+              <span className="text-xs font-semibold text-gray-600 ml-2">Date:</span>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => {
@@ -1492,7 +1491,7 @@ export default function VetPatientTracker() {
                     date.setDate(date.getDate() - 1);
                     setCurrentDate(date.toISOString().split('T')[0]);
                   }}
-                  className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                  className="px-1.5 py-0.5 text-xs bg-gray-200 hover:bg-gray-300 rounded"
                   title="Previous day"
                 >
                   ←
@@ -1501,7 +1500,7 @@ export default function VetPatientTracker() {
                   type="date"
                   value={currentDate}
                   onChange={(e) => setCurrentDate(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                  className="text-xs px-1 py-0.5 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                 />
                 <button
                   onClick={() => {
@@ -1509,14 +1508,14 @@ export default function VetPatientTracker() {
                     date.setDate(date.getDate() + 1);
                     setCurrentDate(date.toISOString().split('T')[0]);
                   }}
-                  className="px-2 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded"
+                  className="px-1.5 py-0.5 text-xs bg-gray-200 hover:bg-gray-300 rounded"
                   title="Next day"
                 >
                   →
                 </button>
                 <button
                   onClick={() => setCurrentDate(getTodayDate())}
-                  className="px-2 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded"
+                  className="px-2 py-0.5 text-xs bg-purple-600 text-white hover:bg-purple-700 rounded"
                   title="Go to today"
                 >
                   Today
@@ -1537,61 +1536,61 @@ export default function VetPatientTracker() {
               value={newPatient.name}
               onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
               onKeyDown={(e) => e.key === 'Enter' && addPatient()}
-              placeholder="Patient name (e.g., Max - Golden Retriever) 🐕"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Patient name (e.g., Mittens - DSH) 🐈"
+              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <select
               value={newPatient.type}
               onChange={(e) => setNewPatient({ ...newPatient, type: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               {procedureTypes.map(type => <option key={type} value={type}>{type}</option>)}
             </select>
             <button
               onClick={addPatient}
-              className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-2 rounded-lg hover:from-cyan-700 hover:to-blue-700 flex items-center gap-2 transition shadow-md"
+              className="bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white px-4 py-1.5 rounded-lg hover:from-purple-600 hover:to-fuchsia-600 flex items-center gap-1.5 transition shadow-sm text-sm"
             >
-              <Plus size={20} />
+              <Plus size={16} />
               Add Patient
             </button>
           </div>
         </div>
 
         {/* Medication Calculator */}
-        <div className="w-full bg-gradient-to-br from-cyan-50 via-blue-50 to-white rounded-lg shadow-lg p-4 mb-4 border-l-4 border-cyan-400">
+        <div className="w-full bg-white rounded-lg shadow p-3 mb-4 border-l-4 border-cyan-400">
           <button
             onClick={() => setShowMedCalculator(!showMedCalculator)}
-            className="w-full flex items-center justify-between hover:bg-gray-50 px-2 py-1 rounded transition mb-3"
+            className="w-full flex items-center justify-between hover:bg-gray-50 p-1 rounded transition mb-2"
           >
             <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold text-gray-800">💊 Medication Calculator & Discharge Templates</span>
+              <span className="text-base font-semibold text-gray-800">💊 Medication Calculator & Discharge Templates</span>
             </div>
-            <ChevronDown className={`transition-transform ${showMedCalculator ? 'rotate-180' : ''}`} size={20} />
+            <ChevronDown className={`transition-transform ${showMedCalculator ? 'rotate-180' : ''}`} size={18} />
           </button>
 
           {showMedCalculator && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Weight Input */}
-              <div className="p-3 bg-cyan-50 rounded-lg border border-cyan-200">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Patient Weight (kg)</label>
+              <div className="p-2 bg-cyan-50/50 rounded-lg border border-cyan-200">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Patient Weight (kg)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={medCalcWeight}
                   onChange={(e) => setMedCalcWeight(e.target.value)}
                   placeholder="Enter weight in kg..."
-                  className="w-full px-3 py-2 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
+                  className="w-full px-2 py-1 text-sm border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
               {/* Oral Medications Table */}
               <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-gradient-to-r from-cyan-100 to-blue-100">
+                <table className="w-full text-xs">
+                  <thead className="bg-gradient-to-r from-cyan-100 to-purple-100">
                     <tr>
-                      <th className="px-4 py-2 text-left font-semibold border-b">Medication</th>
-                      <th className="px-4 py-2 text-left font-semibold border-b">Dose</th>
-                      {medCalcWeight && <th className="px-4 py-2 text-left font-semibold border-b">Calculated Dose</th>}
+                      <th className="px-3 py-1.5 text-left font-semibold border-b">Medication</th>
+                      <th className="px-3 py-1.5 text-left font-semibold border-b">Dose</th>
+                      {medCalcWeight && <th className="px-3 py-1.5 text-left font-semibold border-b">Calculated Dose</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1607,11 +1606,11 @@ export default function VetPatientTracker() {
                     ].map((med, idx) => {
                       const weight = parseFloat(medCalcWeight);
                       return (
-                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                          <td className="px-4 py-2 border-b font-medium">{med.name}</td>
-                          <td className="px-4 py-2 border-b text-gray-600">{med.dose}</td>
+                        <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
+                          <td className="px-3 py-1.5 border-b font-medium">{med.name}</td>
+                          <td className="px-3 py-1.5 border-b text-gray-600">{med.dose}</td>
                           {medCalcWeight && !isNaN(weight) && (
-                            <td className="px-4 py-2 border-b font-semibold text-cyan-700">
+                            <td className="px-3 py-1.5 border-b font-semibold text-cyan-700">
                               {med.calc(weight)}
                             </td>
                           )}
@@ -1640,11 +1639,11 @@ export default function VetPatientTracker() {
                 else template = '> 55kg';
 
                 return (
-                  <div className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-lg border border-cyan-300">
-                    <h3 className="font-bold text-lg mb-2 text-cyan-900">
+                  <div className="p-3 bg-gradient-to-r from-cyan-50 to-purple-50 rounded-lg border border-cyan-300">
+                    <h3 className="font-bold text-sm mb-1 text-cyan-900">
                       Suggested Discharge Template for {weight.toFixed(1)}kg ({template})
                     </h3>
-                    <div className="text-sm text-gray-700 space-y-2 font-mono bg-white p-3 rounded border">
+                    <div className="text-xs text-gray-700 space-y-1 font-mono bg-white p-2 rounded border">
                       <p className="font-semibold">Weight Range: {template}</p>
                       <p className="text-xs text-gray-500 italic">See full discharge instructions template in reference section</p>
                     </div>
@@ -1657,46 +1656,46 @@ export default function VetPatientTracker() {
 
         {/* Rounding sheet with table/TSV toggle */}
         {(patients || []).length > 0 && (
-          <div className="w-full bg-white rounded-lg shadow p-4 mb-4 border-l-4 border-pink-400">
-            <div className="flex items-center justify-between mb-3">
+          <div className="w-full bg-white rounded-lg shadow p-3 mb-4 border-l-4 border-fuchsia-400">
+            <div className="flex items-center justify-between mb-2">
               <button
                 onClick={() => setShowRoundingSheet(!showRoundingSheet)}
-                className="flex items-center gap-2 hover:bg-gray-50 px-2 py-1 rounded transition"
+                className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded transition"
               >
                 <span className="text-sm font-semibold text-gray-700">Rounding Sheet</span>
-                <span className="text-lg">📋</span>
-                <ChevronDown className={`transition-transform ${showRoundingSheet ? 'rotate-180' : ''}`} size={20} />
+                <span className="text-base">📋</span>
+                <ChevronDown className={`transition-transform ${showRoundingSheet ? 'rotate-180' : ''}`} size={18} />
               </button>
               <div className="flex items-center gap-2">
                 <div className="flex items-center border rounded-lg overflow-hidden">
                   <button
                     onClick={() => setRoundingViewMode('table')}
-                    className={`px-3 py-1 text-sm flex items-center gap-1 transition ${
+                    className={`px-2 py-1 text-xs flex items-center gap-1 transition ${
                       roundingViewMode === 'table'
                         ? 'bg-purple-600 text-white'
                         : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <Table size={16} />
+                    <Table size={14} />
                     Table
                   </button>
                   <button
                     onClick={() => setRoundingViewMode('tsv')}
-                    className={`px-3 py-1 text-sm flex items-center gap-1 transition ${
+                    className={`px-2 py-1 text-xs flex items-center gap-1 transition ${
                       roundingViewMode === 'tsv'
                         ? 'bg-purple-600 text-white'
                         : 'bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
-                    <FileText size={16} />
+                    <FileText size={14} />
                     TSV
                   </button>
                 </div>
                 <button
                   onClick={() => navigator.clipboard.writeText(roundingTSV)}
-                  className="px-3 py-1 rounded-md text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition"
+                  className="px-2 py-1 rounded-md text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition"
                 >
-                  Copy to Clipboard
+                  Copy
                 </button>
                 <button
                   onClick={() => {
@@ -1708,30 +1707,30 @@ export default function VetPatientTracker() {
                     a.click();
                     window.URL.revokeObjectURL(url);
                   }}
-                  className="px-3 py-1 rounded-md text-sm font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
+                  className="px-2 py-1 rounded-md text-xs font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
                 >
-                  Download .tsv
+                  Download
                 </button>
               </div>
             </div>
 
             {showRoundingSheet && (
               <>
-                <div className="mb-4 p-3 bg-pink-50 border border-pink-200 rounded-lg">
-                  <label htmlFor="reverse-paste-input" className="block text-sm font-semibold text-gray-700 mb-2">
+                <div className="mb-3 p-2 bg-fuchsia-50/50 border border-fuchsia-200 rounded-lg">
+                  <label htmlFor="reverse-paste-input" className="block text-xs font-semibold text-gray-700 mb-1">
                     Paste Row from Spreadsheet to Update Patient
                   </label>
                   <textarea
                     id="reverse-paste-input"
                     value={reversePasteContent}
                     onChange={(e) => setReversePasteContent(e.target.value)}
-                    placeholder="Paste a single tab-separated row here (e.g., from Excel or Google Sheets). The first column must be the patient's name."
-                    rows={2}
-                    className="w-full p-2 text-xs border rounded-lg focus:ring-1 focus:ring-pink-400"
+                    placeholder="Paste a single tab-separated row here. The first column must be the patient's name."
+                    rows={1}
+                    className="w-full p-1.5 text-xs border rounded-lg focus:ring-1 focus:ring-fuchsia-400"
                   />
                   <button
                     onClick={handleReversePaste}
-                    className="mt-2 px-3 py-1 bg-pink-600 text-white text-xs font-semibold rounded-lg hover:bg-pink-700"
+                    className="mt-1 px-2 py-1 bg-fuchsia-600 text-white text-xs font-semibold rounded-lg hover:bg-fuchsia-700"
                   >
                     Update From Paste
                   </button>
@@ -1741,29 +1740,29 @@ export default function VetPatientTracker() {
                     readOnly
                     value={roundingTSV}
                     rows={4}
-                    className="w-full font-mono text-xs p-2 border rounded-lg bg-gray-50"
+                    className="w-full font-mono text-[10px] p-2 border rounded-lg bg-gray-50"
                     onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
                 ) : (
                   <div className="overflow-x-auto border rounded-lg">
                     <table className="w-full text-xs">
-                      <thead className="bg-gradient-to-r from-purple-100 to-pink-100 sticky top-0">
+                      <thead className="bg-gradient-to-r from-purple-100 to-fuchsia-100 sticky top-0">
                         <tr>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Name</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Signalment</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Location</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">ICU Criteria</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Code</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Problems</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Diagnostics</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Therapeutics</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">IVC</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Fluids</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">CRI</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Overnight Dx</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Concerns</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Comments</th>
-                          <th className="px-2 py-2 text-left font-semibold border-b">Actions</th>
+                          <th className="p-2 text-left font-semibold border-b">Name</th>
+                          <th className="p-2 text-left font-semibold border-b">Signalment</th>
+                          <th className="p-2 text-left font-semibold border-b">Location</th>
+                          <th className="p-2 text-left font-semibold border-b">ICU Criteria</th>
+                          <th className="p-2 text-left font-semibold border-b">Code</th>
+                          <th className="p-2 text-left font-semibold border-b">Problems</th>
+                          <th className="p-2 text-left font-semibold border-b">Diagnostics</th>
+                          <th className="p-2 text-left font-semibold border-b">Therapeutics</th>
+                          <th className="p-2 text-left font-semibold border-b">IVC</th>
+                          <th className="p-2 text-left font-semibold border-b">Fluids</th>
+                          <th className="p-2 text-left font-semibold border-b">CRI</th>
+                          <th className="p-2 text-left font-semibold border-b">Overnight Dx</th>
+                          <th className="p-2 text-left font-semibold border-b">Concerns</th>
+                          <th className="p-2 text-left font-semibold border-b">Comments</th>
+                          <th className="p-2 text-left font-semibold border-b">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1772,9 +1771,9 @@ export default function VetPatientTracker() {
                           const row = makeRoundingRow(patient);
                           const rowTsv = makeRoundingRow(patient).map(sanitizeCell).join('\t');
                           return (
-                            <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 hover:bg-blue-50'}>
+                            <tr key={patient.id} className={idx % 2 === 0 ? 'bg-white hover:bg-purple-50' : 'bg-gray-50/70 hover:bg-purple-50'}>
                               {row.map((cell, cellIdx) => (
-                                <td key={cellIdx} className="px-2 py-2 border-b align-top">
+                                <td key={cellIdx} className="p-1 border-b align-top">
                                   {cellIdx === 0 ? (
                                     <div className="font-semibold text-gray-900">{cell || '-'}</div>
                                   ) : (
@@ -1793,20 +1792,20 @@ export default function VetPatientTracker() {
                                              cellIdx === 12 ? (patient.roundingData?.overnightConcerns || '') :
                                              (patient.roundingData?.additionalComments || '')}
                                       onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
-                                      className="w-full min-w-[120px] px-2 py-1 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
+                                      className="w-full min-w-[100px] p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
                                       rows={2}
-                                      placeholder={`Enter ${fieldMap[cellIdx]}...`}
+                                      placeholder={`${fieldMap[cellIdx]}`}
                                     />
                                   )}
                                 </td>
                               ))}
-                              <td className="px-2 py-2 border-b align-top">
+                              <td className="p-1 border-b align-top">
                                 <button
                                   onClick={() => navigator.clipboard.writeText(rowTsv)}
                                   title="Copy row to clipboard"
-                                  className="p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-md"
+                                  className="p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-md"
                                 >
-                                  <Copy size={14} />
+                                  <Copy size={12} />
                                 </button>
                               </td>
                             </tr>
@@ -1822,34 +1821,34 @@ export default function VetPatientTracker() {
         )}
 
         {/* General Tasks */}
-        <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
-          <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-purple-400">
+          <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
             General Tasks (Not Patient-Specific)
-            <span className="text-lg">✅</span>
+            <span className="text-base">✅</span>
           </h2>
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-1 mb-2">
             {commonGeneralTasksTemplates.map(task => (
               <button
                 key={task.name}
                 onClick={() => addGeneralTask(task)}
-                className="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition"
+                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
               >
                 + {task.name}
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
             <input
               type="text"
               value={newGeneralTask.name}
               onChange={(e) => setNewGeneralTask(p => ({ ...p, name: e.target.value }))}
               placeholder="Add custom general task..."
-              className="md:col-span-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+              className="md:col-span-1 px-2 py-1 text-sm border border-gray-300 rounded-lg"
             />
             <select
                 value={newGeneralTask.category}
                 onChange={(e) => setNewGeneralTask(p => ({ ...p, category: e.target.value }))}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
             >
                 <option>Morning</option>
                 <option>Evening</option>
@@ -1857,7 +1856,7 @@ export default function VetPatientTracker() {
             <select
                 value={newGeneralTask.priority}
                 onChange={(e) => setNewGeneralTask(p => ({ ...p, priority: e.target.value }))}
-                className="px-3 py-2 text-sm border border-gray-300 rounded-lg"
+                className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
             >
                 <option>High</option>
                 <option>Medium</option>
@@ -1866,22 +1865,22 @@ export default function VetPatientTracker() {
           </div>
            <button
               onClick={() => addGeneralTask(newGeneralTask)}
-              className="w-full px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+              className="w-full px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition"
             >
               Add Task
             </button>
           
           {(generalTasks ?? []).length === 0 ? (
-            <p className="text-gray-400 text-sm italic py-2">No general tasks yet. Click quick-add or type a custom task.</p>
+            <p className="text-gray-400 text-xs italic py-2">No general tasks yet.</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
               <div>
-                <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Sun className="text-yellow-500" /> Morning</h3>
+                <h3 className="font-bold text-base mb-2 flex items-center gap-2"><Sun className="text-yellow-500" /> Morning</h3>
                 <div className="space-y-2">
                 {morningGeneralTasks.map((task: any) => (
                   <div
                     key={task.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
+                    className={`flex items-center gap-2 p-2 rounded-lg border transition ${
                       task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
                     }`}
                   >
@@ -1889,26 +1888,26 @@ export default function VetPatientTracker() {
                       type="checkbox"
                       checked={task.completed}
                       onChange={() => toggleGeneralTask(task.id, task.completed)}
-                      className="w-4 h-4 text-indigo-600 rounded"
+                      className="w-4 h-4 text-purple-600 rounded"
                     />
-                    <span className={`flex-1 text-sm font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
+                    <span className={`flex-1 text-xs font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
                       {task.name}
                     </span>
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full">{task.priority}</span>
+                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full">{task.priority}</span>
                     <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                      <X size={16} />
+                      <X size={14} />
                     </button>
                   </div>
                 ))}
                 </div>
               </div>
               <div>
-                <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Moon className="text-blue-500" /> Evening</h3>
+                <h3 className="font-bold text-base mb-2 flex items-center gap-2"><Moon className="text-blue-500" /> Evening</h3>
                 <div className="space-y-2">
                 {eveningGeneralTasks.map((task: any) => (
                   <div
                     key={task.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg border-2 transition ${
+                    className={`flex items-center gap-2 p-2 rounded-lg border transition ${
                       task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
                     }`}
                   >
@@ -1916,14 +1915,14 @@ export default function VetPatientTracker() {
                       type="checkbox"
                       checked={task.completed}
                       onChange={() => toggleGeneralTask(task.id, task.completed)}
-                      className="w-4 h-4 text-indigo-600 rounded"
+                      className="w-4 h-4 text-purple-600 rounded"
                     />
-                    <span className={`flex-1 text-sm font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
+                    <span className={`flex-1 text-xs font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
                       {task.name}
                     </span>
-                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full">{task.priority}</span>
+                     <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full">{task.priority}</span>
                     <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                      <X size={16} />
+                      <X size={14} />
                     </button>
                   </div>
                 ))}
@@ -1934,7 +1933,7 @@ export default function VetPatientTracker() {
         </div>
         
         {/* Rapid Task Check-off Tables */}
-        <div className="space-y-6 mb-6">
+        <div className="space-y-4 mb-4">
           <TaskTable
             title="Morning Tasks"
             icon={<Sun className="text-yellow-500" />}
@@ -1966,21 +1965,21 @@ export default function VetPatientTracker() {
 
         {/* Patients */}
         {patients.length === 0 ? (
-          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100 rounded-lg shadow-lg p-12 text-center border-2 border-blue-200">
-            <p className="text-gray-700 text-lg flex items-center justify-center gap-2 font-semibold">
-              <span className="text-3xl">🐾</span>
+          <div className="bg-white rounded-lg shadow-lg p-10 text-center border-2 border-purple-200">
+            <p className="text-gray-600 text-base flex items-center justify-center gap-2 font-semibold">
+              <span className="text-2xl">🐾</span>
               No patients added yet. Add your first patient above!
-              <span className="text-3xl">🐾</span>
+              <span className="text-2xl">🐾</span>
             </p>
           </div>
         ) : sortedPatients.length === 0 ? (
-          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100 rounded-lg shadow-lg p-12 text-center border-2 border-blue-200">
-            <p className="text-gray-700 text-lg font-semibold">No patients match your search. Try a different query!</p>
+          <div className="bg-white rounded-lg shadow-lg p-10 text-center border-2 border-purple-200">
+            <p className="text-gray-600 text-base font-semibold">No patients match your search. Try a different query!</p>
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={sortedPatients.map(p => p.id)} strategy={verticalListSortingStrategy}>
-              <div className="grid gap-4 pl-8">
+              <div className="grid gap-3 pl-6">
                 {sortedPatients.map((patient: any) => {
               const { completed, total, percentage } = getCompletionStatus(patient);
               const isExpanded = !!expandedPatients[patient.id];
@@ -1997,28 +1996,28 @@ export default function VetPatientTracker() {
 
               return (
                 <SortablePatient key={patient.id} id={patient.id}>
-                  <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/20 rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
+                  <div id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-sm border ${getPriorityColor(patient)} overflow-hidden hover:shadow-md transition-shadow`}>
                   {/* Header */}
-                  <div className="flex justify-between items-center p-4 border-b">
-                    <div className="flex items-center gap-3">
+                  <div className="flex justify-between items-center p-3 border-b">
+                    <div className="flex items-center gap-2">
                       {viewMode === 'compact' ? (
-                        <div className="w-12 h-12">
-                          <ProgressRing percentage={Math.round(percentage)} size={48} />
+                        <div className="w-10 h-10">
+                          <ProgressRing percentage={Math.round(percentage)} size={40} />
                         </div>
                       ) : (
-                        <button onClick={() => toggleExpanded(patient.id)} className="text-gray-600 hover:text-gray-800 p-1">
-                          {isExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+                        <button onClick={() => toggleExpanded(patient.id)} className="text-gray-500 hover:text-gray-800 p-1">
+                          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </button>
                       )}
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-3xl">{getBreedEmoji(patient)}</span>
-                          <h3 className="text-lg font-bold text-gray-900">{patient.name}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPatientTypeColor(patient.type)}`}>{patient.type}</span>
+                          <span className="text-2xl">{getBreedEmoji(patient)}</span>
+                          <h3 className="text-base font-bold text-gray-900">{patient.name}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${getPatientTypeColor(patient.type)}`}>{patient.type}</span>
 
                           {/* Rounding Status Badge */}
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
                               roundingComp.isComplete
                                 ? 'bg-green-100 text-green-800 border border-green-300'
                                 : roundingComp.percentage > 50
@@ -2030,62 +2029,62 @@ export default function VetPatientTracker() {
                             📋 {roundingComp.filled}/{roundingComp.total}
                           </span>
                           <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <Clock size={14} /> {patient.addedTime}
+                            <Clock size={12} /> {patient.addedTime}
                           </span>
                         </div>
                         {patient.roundingData?.problems && (
-                          <div className="text-sm font-semibold text-red-700 bg-red-50 px-3 py-1 rounded-lg inline-block mt-1 border border-red-200">
+                          <div className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-lg inline-block mt-1 border border-red-200">
                             🏥 {patient.roundingData.problems.split('\n')[0]}
                           </div>
                         )}
-                        <div className="text-sm text-gray-600 mt-1">
-                          {patient.roundingData?.signalment && <span className="mr-3">📋 {patient.roundingData.signalment}</span>}
-                          {patient.patientInfo?.weight && <span className="mr-3">⚖️ {patient.patientInfo.weight}</span>}
-                          {patient.patientInfo?.patientId && <span className="mr-3">🆔 {patient.patientInfo.patientId}</span>}
+                        <div className="text-xs text-gray-600 mt-1">
+                          {patient.roundingData?.signalment && <span className="mr-2">📋 {patient.roundingData.signalment}</span>}
+                          {patient.patientInfo?.weight && <span className="mr-2">⚖️ {patient.patientInfo.weight}</span>}
+                          {patient.patientInfo?.patientId && <span className="mr-2">🆔 {patient.patientInfo.patientId}</span>}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <select
                         value={patient.type}
                         onChange={(e) => updatePatientType(patient.id, e.target.value)}
-                        className="px-2 py-1 rounded-lg border text-sm"
+                        className="px-2 py-1 rounded-lg border text-xs"
                       >
                         {procedureTypes.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                       <select
                         value={patient.status}
                         onChange={(e) => updateStatus(patient.id, e.target.value)}
-                        className={'px-2 py-1 rounded-lg border text-sm ' + getStatusColor(patient.status)}
+                        className={'px-2 py-1 rounded-lg border text-xs ' + getStatusColor(patient.status)}
                       >
                         {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <button onClick={() => removePatient(patient.id)} className="text-red-500 hover:text-red-700 p-2" title="Remove patient">
-                        <Trash2 size={18} />
+                      <button onClick={() => removePatient(patient.id)} className="text-red-500 hover:text-red-700 p-1.5" title="Remove patient">
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
 
                   {viewMode === 'compact' && (
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-purple-50">
-                      <div className="flex items-center gap-3">
-                        <div className="text-sm font-bold text-gray-800">{completed}/{total} tasks</div>
-                        <div className="px-3 py-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-bold rounded-full shadow-lg">
+                    <div className="flex items-center justify-between px-3 py-2 bg-purple-50/50">
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs font-bold text-gray-800">{completed}/{total} tasks</div>
+                        <div className="px-2 py-0.5 bg-purple-600 text-white text-xs font-bold rounded-full shadow-md">
                           {Math.round(percentage)}% Complete
                         </div>
                       </div>
-                      <button onClick={() => toggleExpanded(patient.id)} className="px-4 py-2 text-sm bg-white border-2 border-purple-500 text-purple-700 font-semibold rounded-lg hover:bg-purple-50 shadow-md">
-                        {isExpanded ? 'Hide' : 'Open'} <ChevronRight className="inline-block ml-1" size={16} />
+                      <button onClick={() => toggleExpanded(patient.id)} className="px-3 py-1 text-xs bg-white border border-purple-500 text-purple-700 font-semibold rounded-lg hover:bg-purple-50 shadow-sm">
+                        {isExpanded ? 'Hide' : 'Open'} <ChevronRight className="inline-block ml-1" size={14} />
                       </button>
                     </div>
                   )}
 
                   {/* Body */}
                   {isExpanded && (
-                    <div className="p-4">
+                    <div className="p-3">
                       {/* Tabs */}
-                      <div className="border-b mb-4">
+                      <div className="border-b mb-3">
                         <nav className="flex flex-wrap gap-2">
                           {tabs.map(tab => {
                             const isActive = curTab === tab;
@@ -2093,7 +2092,7 @@ export default function VetPatientTracker() {
                               <button
                                 key={tab}
                                 onClick={() => setActiveTab(prev => ({ ...prev, [patient.id]: tab }))}
-                                className={`py-1.5 px-3 border-b-2 text-sm ${isActive ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-600 hover:border-gray-300'}`}
+                                className={`py-1 px-2.5 border-b-2 text-xs ${isActive ? 'border-purple-600 text-purple-700' : 'border-transparent text-gray-500 hover:border-gray-300'}`}
                               >
                                 {tab}
                               </button>
@@ -2106,41 +2105,41 @@ export default function VetPatientTracker() {
                       <div className="space-y-3">
                         {/* TASKS */}
                         {curTab === 'Tasks' && (
-                          <div className="space-y-4">
+                          <div className="space-y-3">
                              {/* Quick action buttons */}
-                            <div className="space-y-2">
-                              <h4 className="text-xs font-semibold text-gray-600 uppercase">Quick Add Tasks</h4>
+                            <div className="space-y-1">
+                              <h4 className="text-xs font-semibold text-gray-500 uppercase">Quick Add</h4>
                               <div className="flex flex-wrap gap-1">
-                                <button onClick={() => addMorningTasks(patient.id)} className="px-2 py-1 text-xs bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500">
+                                <button onClick={() => addMorningTasks(patient.id)} className="px-2 py-0.5 text-xs bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500">
                                   + Morning
                                 </button>
-                                <button onClick={() => addEveningTasks(patient.id)} className="px-2 py-1 text-xs bg-indigo-400 text-white rounded hover:bg-indigo-500">
+                                <button onClick={() => addEveningTasks(patient.id)} className="px-2 py-0.5 text-xs bg-indigo-400 text-white rounded hover:bg-indigo-500">
                                   + Evening
                                 </button>
                                 {patient.status === 'New Admit' && admitTasks[patient.type].map(task => (
                                   <button
                                     key={task}
                                     onClick={() => addTaskToPatient(patient.id, task)}
-                                    className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
+                                    className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
                                   >
                                     + {task}
                                   </button>
                                 ))}
-                                <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500 ml-auto">
+                                <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-0.5 text-xs bg-gray-400 text-white rounded hover:bg-gray-500 ml-auto">
                                   Clear Daily
                                 </button>
                               </div>
                             </div>
 
                             {/* Other Tasks */}
-                            <div className="p-3 bg-slate-100 rounded-lg border border-slate-200">
-                              <h4 className="text-xs font-semibold text-gray-600 uppercase mb-2">Other Tasks</h4>
+                            <div className="p-2 bg-slate-100/70 rounded-lg border">
+                              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Other Tasks</h4>
                               <div className="flex flex-wrap gap-1">
                                 {otherTasks.map(task => (
                                   <button
                                     key={task}
                                     onClick={() => addTaskToPatient(patient.id, task)}
-                                    className="px-2 py-1 text-xs bg-slate-200 text-slate-800 rounded hover:bg-slate-300"
+                                    className="px-2 py-0.5 text-xs bg-slate-200 text-slate-800 rounded hover:bg-slate-300"
                                   >
                                     + {task}
                                   </button>
@@ -2175,7 +2174,7 @@ export default function VetPatientTracker() {
                               </button>
                             </div>
 
-                            {/* Tasks list - big clickable checkboxes */}
+                            {/* Tasks list */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {tasksSorted.filter((task: any) => !hideCompletedTasks || !task.completed).map((task: any) => {
                                 const isMorning = morningTasksSet.has(task.name);
@@ -2184,7 +2183,7 @@ export default function VetPatientTracker() {
                                 return (
                                 <label
                                   key={task.id}
-                                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer transition hover:scale-[1.02] ${
+                                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg border cursor-pointer transition hover:scale-[1.02] ${
                                     getTaskBackgroundColor(task.name, task.completed, morningTasks, eveningTasks)
                                   }`}
                                 >
@@ -2192,9 +2191,9 @@ export default function VetPatientTracker() {
                                     type="checkbox"
                                     checked={task.completed}
                                     onChange={() => toggleTask(patient.id, task.id)}
-                                    className="w-5 h-5 rounded cursor-pointer flex-shrink-0 accent-purple-600"
+                                    className="w-4 h-4 rounded cursor-pointer flex-shrink-0 accent-purple-600"
                                   />
-                                  <span className={`flex-1 text-sm font-semibold ${task.completed ? 'text-green-800 line-through' : 'text-gray-900'}`} title={task.name}>
+                                  <span className={`flex-1 text-xs font-semibold ${task.completed ? 'text-green-800 line-through' : 'text-gray-900'}`} title={task.name}>
                                     {timeEmoji}{task.name}
                                   </span>
                                   <button
@@ -2204,7 +2203,7 @@ export default function VetPatientTracker() {
                                     }}
                                     className="text-gray-400 hover:text-red-600 flex-shrink-0"
                                   >
-                                    <X size={16} />
+                                    <X size={14} />
                                   </button>
                                 </label>
                                 );
@@ -2219,582 +2218,511 @@ export default function VetPatientTracker() {
                         {/* MRI CALCULATOR */}
                         {curTab === 'MRI Calculator' && patient.type === 'MRI' && (
                           <div className="border rounded-lg">
-                            <button onClick={() => toggleSection(patient.id, 'mri')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                              <span className="font-semibold">MRI Anesthesia Calculator</span>
-                              <ChevronDown className={expandedSections[patient.id]?.mri ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                            </button>
-                            {expandedSections[patient.id]?.mri && (
-                              <div className="p-3 border-t space-y-3">
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Weight</label>
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="number"
-                                        step="0.1"
-                                        value={safeStr(patient.mriData?.weight)}
-                                        onChange={(e) => updateMRIData(patient.id, 'weight', e.target.value)}
-                                        placeholder="Enter weight"
-                                        className="flex-1 px-3 py-2 text-sm border border-purple-300 rounded-lg"
-                                      />
-                                      <select
-                                        value={safeStr(patient.mriData?.weightUnit)}
-                                        onChange={(e) => updateMRIData(patient.id, 'weightUnit', e.target.value)}
-                                        className="px-3 py-2 text-sm border border-purple-300 rounded-lg"
-                                      >
-                                        <option value="kg">kg</option>
-                                        <option value="lbs">lbs</option>
-                                      </select>
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Scan Type</label>
+                            <div className="p-2 border-t space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-700 mb-1">Weight</label>
+                                  <div className="flex gap-1">
+                                    <input
+                                      type="number"
+                                      step="0.1"
+                                      value={safeStr(patient.mriData?.weight)}
+                                      onChange={(e) => updateMRIData(patient.id, 'weight', e.target.value)}
+                                      placeholder="Weight"
+                                      className="flex-1 px-2 py-1 text-sm border border-purple-300 rounded-lg"
+                                    />
                                     <select
-                                      value={safeStr(patient.mriData?.scanType)}
-                                      onChange={(e) => updateMRIData(patient.id, 'scanType', e.target.value)}
-                                      className="w-full px-3 py-2 text-sm border border-purple-300 rounded-lg"
+                                      value={safeStr(patient.mriData?.weightUnit)}
+                                      onChange={(e) => updateMRIData(patient.id, 'weightUnit', e.target.value)}
+                                      className="px-2 py-1 text-sm border border-purple-300 rounded-lg"
                                     >
-                                      <option>Brain</option>
-                                      <option>TL</option>
-                                      <option>LS</option>
-                                      <option>Cervical</option>
-                                      <option>Other</option>
+                                      <option value="kg">kg</option>
+                                      <option value="lbs">lbs</option>
                                     </select>
                                   </div>
                                 </div>
-                                <button
-                                  onClick={() => calculateMRIDrugs(patient.id)}
-                                  disabled={!safeStr(patient.mriData?.weight)}
-                                  className="w-full px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition"
-                                >
-                                  Calculate & Copy Line
-                                </button>
-
-                                {patient.mriData?.calculated && (
-                                  <>
-                                    <div className="bg-white p-3 rounded-lg border border-purple-200">
-                                      <div className="grid grid-cols-2 gap-3 text-sm">
-                                        <div className="col-span-2 bg-purple-100 p-2 rounded font-semibold text-purple-900">
-                                          Pre-med: {patient.mriData.preMedDrug} {patient.mriData.scanType === 'Brain' ? '(Brain)' : ''}
-                                        </div>
-                                        <div><span className="text-gray-600">Weight (kg, rounded):</span> <span className="font-bold ml-2">{safeStr(patient.mriData.weightKg)} kg</span></div>
-                                        <div><span className="text-gray-600">Valium:</span> <span className="font-bold ml-2">{safeStr(patient.mriData.valiumDose)} mg ({safeStr(patient.mriData.valiumVolume)} mL)</span></div>
-                                        <div><span className="text-gray-600">{safeStr(patient.mriData.preMedDrug)}:</span> <span className="font-bold ml-2">{safeStr(patient.mriData.preMedDose)} mg ({safeStr(patient.mriData.preMedVolume)} mL)</span></div>
-                                        <div><span className="text-gray-600">Contrast:</span> <span className="font-bold ml-2">{safeStr(patient.mriData.contrastVolume)} mL</span></div>
-                                      </div>
-                                    </div>
-                                    {patient.mriData.copyableString && (
-                                      <div className="mt-3">
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Line for MRI Sheet</label>
-                                        <textarea
-                                          readOnly
-                                          value={patient.mriData.copyableString}
-                                          rows={2}
-                                          className="w-full px-3 py-2 text-sm font-mono border bg-gray-50 rounded-lg"
-                                          onClick={(e) => (e.target as HTMLTextAreaElement).select()}
-                                        />
-                                      </div>
-                                    )}
-                                  </>
-                                )}
+                                <div>
+                                  <label className="block text-xs font-semibold text-gray-700 mb-1">Scan Type</label>
+                                  <select
+                                    value={safeStr(patient.mriData?.scanType)}
+                                    onChange={(e) => updateMRIData(patient.id, 'scanType', e.target.value)}
+                                    className="w-full px-2 py-1 text-sm border border-purple-300 rounded-lg"
+                                  >
+                                    <option>Brain</option>
+                                    <option>TL</option>
+                                    <option>LS</option>
+                                    <option>Cervical</option>
+                                    <option>Other</option>
+                                  </select>
+                                </div>
                               </div>
-                            )}
+                              <button
+                                onClick={() => calculateMRIDrugs(patient.id)}
+                                disabled={!safeStr(patient.mriData?.weight)}
+                                className="w-full px-3 py-1.5 bg-purple-600 text-white font-semibold text-sm rounded-lg hover:bg-purple-700 disabled:bg-gray-400 transition"
+                              >
+                                Calculate & Copy Line
+                              </button>
+
+                              {patient.mriData?.calculated && (
+                                <>
+                                  <div className="bg-white p-2 rounded-lg border border-purple-200">
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                      <div className="col-span-2 bg-purple-100 p-1 rounded font-semibold text-purple-900">
+                                        Pre-med: {patient.mriData.preMedDrug} {patient.mriData.scanType === 'Brain' ? '(Brain)' : ''}
+                                      </div>
+                                      <div><span className="text-gray-600">Weight (kg):</span> <span className="font-bold ml-1">{safeStr(patient.mriData.weightKg)} kg</span></div>
+                                      <div><span className="text-gray-600">Valium:</span> <span className="font-bold ml-1">{safeStr(patient.mriData.valiumDose)} mg ({safeStr(patient.mriData.valiumVolume)} mL)</span></div>
+                                      <div><span className="text-gray-600">{safeStr(patient.mriData.preMedDrug)}:</span> <span className="font-bold ml-1">{safeStr(patient.mriData.preMedDose)} mg ({safeStr(patient.mriData.preMedVolume)} mL)</span></div>
+                                      <div><span className="text-gray-600">Contrast:</span> <span className="font-bold ml-1">{safeStr(patient.mriData.contrastVolume)} mL</span></div>
+                                    </div>
+                                  </div>
+                                  {patient.mriData.copyableString && (
+                                    <div className="mt-2">
+                                      <label className="block text-xs font-semibold text-gray-700 mb-1">Line for MRI Sheet</label>
+                                      <textarea
+                                        readOnly
+                                        value={patient.mriData.copyableString}
+                                        rows={1}
+                                        className="w-full px-2 py-1 text-xs font-mono border bg-gray-50 rounded-lg"
+                                        onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+                                      />
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           </div>
                         )}
 
                         {/* PATIENT DATA (Info + Rounding) */}
                         {curTab === 'Patient Data' && (
                           <div className="border rounded-lg">
-                            <button onClick={() => toggleSection(patient.id, 'patientData')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                              <span className="font-semibold">Patient Data</span>
-                              <ChevronDown className={expandedSections[patient.id]?.patientData ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                            </button>
-                            {expandedSections[patient.id]?.patientData && (
-                              <div className="p-3 border-t space-y-3">
-                                {/* Quick Import */}
-                                <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                  <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import — Paste Patient Details</label>
-                                  <textarea
-                                    value={safeStr(patient.detailsInput)}
-                                    onChange={(e) => updatePatientField(patient.id, 'detailsInput', e.target.value)}
-                                    placeholder="Paste patient info from EzyVet, etc..."
-                                    rows={4}
-                                    className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
-                                  />
-                                  <div className="flex gap-2 items-center mb-2">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        checked={useAIForRounding}
-                                        onChange={(e) => setUseAIForRounding(e.target.checked)}
-                                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                                      />
-                                      <span className="text-xs font-semibold text-gray-700">
-                                        🤖 Use AI Parsing (More Comprehensive)
-                                      </span>
-                                    </label>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      if (useAIForRounding) {
-                                        parsePatientDetailsWithAI(patient.id, safeStr(patient.detailsInput));
-                                      } else {
-                                        parsePatientDetails(patient.id, safeStr(patient.detailsInput));
-                                      }
-                                    }}
-                                    disabled={aiParsingLoading}
-                                    className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    {aiParsingLoading ? '🤖 Processing with AI...' : useAIForRounding ? 'Extract with AI (All Fields)' : 'Extract Basics (Signalment, Weight, ID, Owner)'}
-                                  </button>
-                                  <p className="text-xs text-gray-600 mt-1 italic">
-                                    {useAIForRounding
-                                      ? 'AI extracts all rounding sheet fields including problem list, medications, diagnostics, and plan.'
-                                      : 'Non-AI parser for speed and reliability. Extracts basic patient info only.'}
-                                  </p>
+                            <div className="p-2 border-t space-y-3">
+                              {/* Quick Import */}
+                              <div className="col-span-2 p-2 bg-purple-50/50 border border-purple-200 rounded-lg">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import — Paste Patient Details</label>
+                                <textarea
+                                  value={safeStr(patient.detailsInput)}
+                                  onChange={(e) => updatePatientField(patient.id, 'detailsInput', e.target.value)}
+                                  placeholder="Paste patient info from EzyVet, etc..."
+                                  rows={3}
+                                  className="w-full px-2 py-1 text-xs border rounded-lg mb-1"
+                                />
+                                <div className="flex gap-2 items-center mb-1">
+                                  <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={useAIForRounding}
+                                      onChange={(e) => setUseAIForRounding(e.target.checked)}
+                                      className="w-3.5 h-3.5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                                    />
+                                    <span className="text-xs font-semibold text-gray-700">
+                                      🤖 Use AI Parsing
+                                    </span>
+                                  </label>
                                 </div>
-                                <h4 className="text-md font-bold text-gray-800 border-b pb-1 mb-2">Patient Info</h4>
-                                <div className="grid grid-cols-2 gap-3">
+                                <button
+                                  onClick={() => {
+                                    if (useAIForRounding) {
+                                      parsePatientDetailsWithAI(patient.id, safeStr(patient.detailsInput));
+                                    } else {
+                                      parsePatientDetails(patient.id, safeStr(patient.detailsInput));
+                                    }
+                                  }}
+                                  disabled={aiParsingLoading}
+                                  className="px-2 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                  {aiParsingLoading ? '🤖 Processing...' : useAIForRounding ? 'Extract with AI' : 'Extract Basics'}
+                                </button>
+                                <p className="text-[10px] text-gray-600 mt-1 italic">
+                                  {useAIForRounding
+                                    ? 'AI extracts all rounding fields.'
+                                    : 'Non-AI extracts basic signalment.'}
+                                </p>
+                              </div>
+                              <h4 className="text-sm font-bold text-gray-800 border-b pb-1 mb-1">Patient Info</h4>
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.patientId)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
+                                  placeholder="Patient ID"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.ownerName)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
+                                  placeholder="Owner Name"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.ownerPhone)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
+                                  placeholder="Owner Phone"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                                <select
+                                  value={safeStr(patient.patientInfo?.species) || 'Canine'}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                >
+                                  <option>Canine</option>
+                                  <option>Feline</option>
+                                </select>
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.breed)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
+                                  placeholder="Breed"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.sex)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
+                                  placeholder="Sex (MN/FS/MI/FI)"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.weight)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
+                                  placeholder="Weight (e.g., 4.9 kg)"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                                <input
+                                  type="text"
+                                  value={safeStr(patient.patientInfo?.age)}
+                                  onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
+                                  placeholder="Age (e.g., 4yo)"
+                                  className="px-2 py-1 text-xs border rounded-lg"
+                                />
+                              </div>
+                              <h4 className="text-sm font-bold text-gray-800 border-b pb-1 mb-1 mt-2">Rounding Sheet</h4>
+                               <div className="grid grid-cols-2 gap-2">
                                   <input
                                     type="text"
-                                    value={safeStr(patient.patientInfo?.patientId)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
-                                    placeholder="Patient ID"
-                                    className="px-3 py-2 text-sm border rounded-lg"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.patientInfo?.ownerName)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
-                                    placeholder="Owner Name"
-                                    className="px-3 py-2 text-sm border rounded-lg"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.patientInfo?.ownerPhone)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
-                                    placeholder="Owner Phone"
-                                    className="px-3 py-2 text-sm border rounded-lg"
+                                    value={safeStr(patient.roundingData?.signalment)}
+                                    onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
+                                    placeholder="Signalment (e.g., 4yo MN Frenchie)"
+                                    className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-2 py-1 text-xs border rounded-lg')}
                                   />
                                   <select
-                                    value={safeStr(patient.patientInfo?.species) || 'Canine'}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
-                                    className="px-3 py-2 text-sm border rounded-lg"
+                                    value={safeStr(patient.roundingData?.location) || ''}
+                                    onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
+                                    className={getRequiredFieldClass(patient, 'location', 'px-2 py-1 text-xs border rounded-lg')}
                                   >
-                                    <option>Canine</option>
-                                    <option>Feline</option>
+                                    <option value="">Location...</option>
+                                    <option value="IP">IP</option>
+                                    <option value="ICU">ICU</option>
                                   </select>
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.patientInfo?.breed)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
-                                    placeholder="Breed"
-                                    className="px-3 py-2 text-sm border rounded-lg"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.patientInfo?.sex)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
-                                    placeholder="Sex (MN/FS/MI/FI)"
-                                    className="px-3 py-2 text-sm border rounded-lg"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.patientInfo?.weight)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
-                                    placeholder="Weight (e.g., 4.9 kg)"
-                                    className="px-3 py-2 text-sm border rounded-lg"
-                                  />
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.patientInfo?.age)}
-                                    onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
-                                    placeholder="Age (e.g., 4yo)"
-                                    className="px-3 py-2 text-sm border rounded-lg"
-                                  />
-                                </div>
-                                <h4 className="text-md font-bold text-gray-800 border-b pb-1 mb-2 mt-4">Rounding Sheet</h4>
-                                 <div className="grid grid-cols-2 gap-3">
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.roundingData?.signalment)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
-                                      placeholder="Signalment (e.g., 4yo MN Frenchie)"
-                                      className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
-                                    />
-                                    <select
-                                      value={safeStr(patient.roundingData?.location) || ''}
-                                      onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
-                                      className={getRequiredFieldClass(patient, 'location', 'px-3 py-2 text-sm border rounded-lg')}
-                                    >
-                                      <option value="">Select Location...</option>
-                                      <option value="IP">IP</option>
-                                      <option value="ICU">ICU</option>
-                                    </select>
-                                    <select
-                                      value={safeStr(patient.roundingData?.icuCriteria) || ''}
-                                      onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    >
-                                      <option value="">ICU Criteria...</option>
-                                      <option value="Yes">Yes</option>
-                                      <option value="No">No</option>
-                                      <option value="N/A">N/A</option>
-                                    </select>
-                                    <select
-                                      value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
-                                      onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    >
-                                      <option>Yellow</option>
-                                      <option>Red</option>
-                                    </select>
+                                  <select
+                                    value={safeStr(patient.roundingData?.icuCriteria) || ''}
+                                    onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
+                                    className="px-2 py-1 text-xs border rounded-lg"
+                                  >
+                                    <option value="">ICU Criteria...</option>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                    <option value="N/A">N/A</option>
+                                  </select>
+                                  <select
+                                    value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
+                                    onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
+                                    className="px-2 py-1 text-xs border rounded-lg"
+                                  >
+                                    <option>Yellow</option>
+                                    <option>Red</option>
+                                  </select>
 
-                                    {/* Problems with chip selectors */}
-                                    <div className="col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                      <h5 className="text-sm font-bold text-yellow-900 mb-2">Problems</h5>
-                                      <div className="flex flex-wrap gap-1 mb-2">
-                                        {(commonProblems || []).slice(0, 12).map((pr: any) => (
-                                          <div key={pr.id} className="group relative">
-                                            <button
-                                              onClick={() => {
-                                                const current = safeStr(patient.roundingData?.problems);
-                                                const newValue = current ? current + '\n' + pr.name : pr.name;
-                                                updateRoundingData(patient.id, 'problems', newValue);
-                                              }}
-                                              className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full hover:scale-105 transition"
-                                            >
-                                              {pr.name}
-                                            </button>
-                                            <button
-                                              onClick={() => deleteCommonItem('commonProblems', pr.id)}
-                                              className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                              ×
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <div className="flex gap-2 mb-2">
-                                        <select
-                                          onChange={(e) => {
-                                            if (e.target.value) {
+                                  {/* Problems with chip selectors */}
+                                  <div className="col-span-2 p-2 bg-yellow-50/70 border border-yellow-200 rounded-lg">
+                                    <h5 className="text-xs font-bold text-yellow-900 mb-1">Problems</h5>
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {(commonProblems || []).slice(0, 10).map((pr: any) => (
+                                        <div key={pr.id} className="group relative">
+                                          <button
+                                            onClick={() => {
                                               const current = safeStr(patient.roundingData?.problems);
-                                              const newValue = current ? current + '\n' + e.target.value : e.target.value;
+                                              const newValue = current ? current + '\n' + pr.name : pr.name;
                                               updateRoundingData(patient.id, 'problems', newValue);
-                                              e.currentTarget.value = '';
-                                            }
-                                          }}
-                                          className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
-                                        >
-                                          <option value="">Select from all problems...</option>
-                                          {(commonProblems || []).map((p: any) => (
-                                            <option key={p.id} value={p.name}>{p.name}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <input
-                                          type="text"
-                                          placeholder="Add new problem to list..."
-                                          className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
-                                          onKeyDown={(e) => {
-                                            const val = (e.target as HTMLInputElement).value.trim();
-                                            if (e.key === 'Enter' && val) {
-                                              addCommonProblem(val);
-                                              (e.target as HTMLInputElement).value = '';
-                                            }
-                                          }}
-                                        />
-                                        <button
-                                          onClick={(e) => {
-                                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                                            const val = input.value.trim();
-                                            if (val) { addCommonProblem(val); input.value = ''; }
-                                          }}
-                                          className="px-2 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700"
-                                        >
-                                          Save
-                                        </button>
-                                      </div>
-                                      <textarea
-                                        value={safeStr(patient.roundingData?.problems)}
-                                        onChange={(e) => updateRoundingData(patient.id, 'problems', e.target.value)}
-                                        placeholder="Problems"
-                                        rows={3}
-                                        className={getRequiredFieldClass(patient, 'problems', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
-                                      />
-                                    </div>
-
-                                    {/* Bloodwork + CXR */}
-                                    <div className="col-span-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                      <h5 className="text-sm font-bold text-green-900 mb-2">Quick Add Diagnostics</h5>
-                                      <div className="mb-3">
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Work (paste full block)</label>
-                                        <textarea
-                                          value={safeStr(patient.bwInput)}
-                                          onChange={(e) => updatePatientField(patient.id, 'bwInput', e.target.value)}
-                                          placeholder="Paste blood work results..."
-                                          rows={3}
-                                          className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
-                                        />
-                                        <button
-                                          onClick={() => parseBloodWork(patient.id, safeStr(patient.bwInput))}
-                                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
-                                        >
-                                          Extract Abnormals
-                                        </button>
-                                      </div>
-                                      <div>
-                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Chest X-ray</label>
-                                        <div className="flex gap-2 mb-2">
-                                          <select
-                                            value={safeStr(patient.xrayStatus) || 'NSF'}
-                                            onChange={(e) => updatePatientField(patient.id, 'xrayStatus', e.target.value)}
-                                            className="px-3 py-2 text-sm border rounded-lg"
+                                            }}
+                                            className="px-1.5 py-0.5 text-[10px] bg-yellow-100 text-yellow-800 rounded-full hover:scale-105 transition"
                                           >
-                                            <option>NSF</option>
-                                            <option>Pending</option>
-                                            <option>Other</option>
-                                          </select>
-                                          {patient.xrayStatus === 'Other' && (
-                                            <input
-                                              type="text"
-                                              value={safeStr(patient.xrayOther)}
-                                              onChange={(e) => updatePatientField(patient.id, 'xrayOther', e.target.value)}
-                                              placeholder="Describe findings..."
-                                              className="flex-1 px-3 py-2 text-sm border rounded-lg"
-                                            />
-                                          )}
+                                            {pr.name}
+                                          </button>
+                                          <button
+                                            onClick={() => deleteCommonItem('commonProblems', pr.id)}
+                                            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-purple-500 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                          >
+                                            ×
+                                          </button>
                                         </div>
-                                        <button
-                                          onClick={() => {
-                                            const status = safeStr(patient.xrayStatus);
-                                            let line = 'CXR: ';
-                                            if (status === 'NSF') line += 'NSF';
-                                            else if (status === 'Pending') line += 'pending';
-                                            else line += safeStr(patient.xrayOther);
-                                            const currentDx = safeStr(patient.roundingData?.diagnosticFindings);
-                                            const newDx = currentDx ? currentDx + '\n' + line : line;
-                                            updateRoundingData(patient.id, 'diagnosticFindings', newDx);
-                                            updatePatientField(patient.id, 'xrayOther', '');
-                                          }}
-                                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
-                                        >
-                                          Add CXR to Findings
-                                        </button>
-                                      </div>
+                                      ))}
                                     </div>
+                                    <div className="flex gap-1 mb-1">
+                                      <select
+                                        onChange={(e) => {
+                                          if (e.target.value) {
+                                            const current = safeStr(patient.roundingData?.problems);
+                                            const newValue = current ? current + '\n' + e.target.value : e.target.value;
+                                            updateRoundingData(patient.id, 'problems', newValue);
+                                            e.currentTarget.value = '';
+                                          }
+                                        }}
+                                        className="flex-1 px-1.5 py-0.5 text-[11px] border border-yellow-300 rounded-lg"
+                                      >
+                                        <option value="">Select problem...</option>
+                                        {(commonProblems || []).map((p: any) => (
+                                          <option key={p.id} value={p.name}>{p.name}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <input
+                                        type="text"
+                                        placeholder="Add to list..."
+                                        className="flex-1 px-1.5 py-0.5 text-[11px] border border-yellow-300 rounded-lg"
+                                        onKeyDown={(e) => {
+                                          const val = (e.target as HTMLInputElement).value.trim();
+                                          if (e.key === 'Enter' && val) { addCommonProblem(val); (e.target as HTMLInputElement).value = ''; }
+                                        }}
+                                      />
+                                      <button
+                                        onClick={(e) => {
+                                          const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                          if (input.value.trim()) { addCommonProblem(input.value.trim()); input.value = ''; }
+                                        }}
+                                        className="px-1.5 py-0.5 bg-yellow-600 text-white text-[10px] rounded hover:bg-yellow-700"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                    <textarea
+                                      value={safeStr(patient.roundingData?.problems)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'problems', e.target.value)}
+                                      placeholder="Problems"
+                                      rows={2}
+                                      className={getRequiredFieldClass(patient, 'problems', 'w-full text-xs p-1.5 border rounded-lg mt-1')}
+                                    />
+                                  </div>
 
-                                    {/* Diagnostics text */}
+                                  {/* Diagnostics */}
+                                  <div className="col-span-2 space-y-1">
                                     <textarea
                                       value={safeStr(patient.roundingData?.diagnosticFindings)}
                                       onChange={(e) => updateRoundingData(patient.id, 'diagnosticFindings', e.target.value)}
                                       placeholder="Diagnostic Findings"
-                                      rows={3}
-                                      className={getRequiredFieldClass(patient, 'diagnosticFindings', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
+                                      rows={2}
+                                      className={getRequiredFieldClass(patient, 'diagnosticFindings')}
                                     />
-
-                                    {/* Therapeutics chip system */}
-                                    <div className="col-span-2 p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
-                                      <h5 className="text-sm font-bold text-cyan-900 mb-2">Current Therapeutics</h5>
-                                      <div className="flex flex-wrap gap-1 mb-2">
-                                        {(commonMedications || []).slice(0, 12).map((med: any) => (
-                                          <div key={med.id} className="group relative">
-                                            <button
-                                              onClick={() => {
-                                                const current = safeStr(patient.roundingData?.therapeutics);
-                                                const newValue = current ? current + '\n' + med.name : med.name;
-                                                updateRoundingData(patient.id, 'therapeutics', newValue);
-                                              }}
-                                              className="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded-full hover:scale-105 transition"
-                                            >
-                                              + {med.name}
-                                            </button>
-                                            <button
-                                              onClick={() => deleteCommonItem('commonMedications', med.id)}
-                                              className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                              ×
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <div className="flex gap-2 mb-2">
+                                    <div className="p-2 bg-green-50/70 border border-green-200 rounded-lg">
+                                      <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Work</label>
+                                      <textarea
+                                        value={safeStr(patient.bwInput)}
+                                        onChange={(e) => updatePatientField(patient.id, 'bwInput', e.target.value)}
+                                        placeholder="Paste blood work..."
+                                        rows={2}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg mb-1"
+                                      />
+                                      <button
+                                        onClick={() => parseBloodWork(patient.id, safeStr(patient.bwInput))}
+                                        className="px-2 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                                      >
+                                        Extract Abnormals
+                                      </button>
+                                    </div>
+                                    <div className="p-2 bg-blue-50/70 border border-blue-200 rounded-lg">
+                                      <label className="block text-xs font-semibold text-gray-700 mb-1">Chest X-ray</label>
+                                      <div className="flex gap-1 mb-1">
                                         <select
+                                          value={safeStr(patient.xrayStatus) || 'NSF'}
+                                          onChange={(e) => updatePatientField(patient.id, 'xrayStatus', e.target.value)}
+                                          className="px-2 py-1 text-xs border rounded-lg"
+                                        >
+                                          <option>NSF</option>
+                                          <option>Pending</option>
+                                          <option>Other</option>
+                                        </select>
+                                        {patient.xrayStatus === 'Other' && (
+                                          <input
+                                            type="text"
+                                            value={safeStr(patient.xrayOther)}
+                                            onChange={(e) => updatePatientField(patient.id, 'xrayOther', e.target.value)}
+                                            placeholder="Describe..."
+                                            className="flex-1 px-2 py-1 text-xs border rounded-lg"
+                                          />
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => {
+                                          let line = 'CXR: ' + (safeStr(patient.xrayStatus) === 'Other' ? safeStr(patient.xrayOther) : safeStr(patient.xrayStatus));
+                                          const currentDx = safeStr(patient.roundingData?.diagnosticFindings);
+                                          const newDx = currentDx ? currentDx + '\n' + line : line;
+                                          updateRoundingData(patient.id, 'diagnosticFindings', newDx);
+                                          updatePatientField(patient.id, 'xrayOther', '');
+                                        }}
+                                        className="px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700"
+                                      >
+                                        Add to Findings
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+
+                                  {/* Therapeutics chip system */}
+                                  <div className="col-span-2 p-2 bg-cyan-50/70 border border-cyan-200 rounded-lg">
+                                    <h5 className="text-xs font-bold text-cyan-900 mb-1">Therapeutics</h5>
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {(commonMedications || []).slice(0, 10).map((med: any) => (
+                                        <div key={med.id} className="group relative">
+                                          <button
+                                            onClick={() => {
+                                              const current = safeStr(patient.roundingData?.therapeutics);
+                                              updateRoundingData(patient.id, 'therapeutics', current ? `${current}\n${med.name}` : med.name);
+                                            }}
+                                            className="px-1.5 py-0.5 text-[10px] bg-cyan-100 text-cyan-800 rounded-full hover:scale-105 transition"
+                                          >
+                                            + {med.name}
+                                          </button>
+                                          <button
+                                            onClick={() => deleteCommonItem('commonMedications', med.id)}
+                                            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-purple-500 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="flex gap-1 mb-1">
+                                       <select
                                           onChange={(e) => {
                                             if (e.target.value) {
                                               const current = safeStr(patient.roundingData?.therapeutics);
-                                              const newValue = current ? current + '\n' + e.target.value : e.target.value;
-                                              updateRoundingData(patient.id, 'therapeutics', newValue);
+                                              updateRoundingData(patient.id, 'therapeutics', current ? `${current}\n${e.target.value}` : e.target.value);
                                               e.currentTarget.value = '';
                                             }
                                           }}
-                                          className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
+                                          className="flex-1 px-1.5 py-0.5 text-[11px] border border-cyan-300 rounded-lg"
                                         >
-                                          <option value="">Select from all medications...</option>
+                                          <option value="">Select medication...</option>
                                           {(commonMedications || []).map((med: any) => (
                                             <option key={med.id} value={med.name}>{med.name}</option>
                                           ))}
                                         </select>
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <input
-                                          type="text"
-                                          placeholder="Add new medication to list..."
-                                          className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
-                                          onKeyDown={(e) => {
-                                            const val = (e.target as HTMLInputElement).value.trim();
-                                            if (e.key === 'Enter' && val) {
-                                              addCommonMedication(val);
-                                              (e.target as HTMLInputElement).value = '';
-                                            }
-                                          }}
-                                        />
-                                        <button
-                                          onClick={(e) => {
-                                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                                            const val = input.value.trim();
-                                            if (val) { addCommonMedication(val); input.value = ''; }
-                                          }}
-                                          className="px-2 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700"
-                                        >
-                                          Save
-                                        </button>
-                                      </div>
-                                      <textarea
-                                        value={safeStr(patient.roundingData?.therapeutics)}
-                                        onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
-                                        placeholder="Current Therapeutics"
-                                        rows={3}
-                                        className={getRequiredFieldClass(patient, 'therapeutics', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
-                                      />
                                     </div>
-
-                                    {/* Replace IVC / Fluids / CRI with nuanced select */}
-                                    {['replaceIVC', 'replaceFluids', 'replaceCRI'].map((field) => {
-                                      const value = safeStr(patient.roundingData?.[field]);
-                                      const showNote = value.startsWith('Yes –') || value.startsWith('No –');
-                                      return (
-                                        <div key={field} className="col-span-2 md:col-span-1">
-                                          <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                            {field === 'replaceIVC' ? 'Replace IVC' : field === 'replaceFluids' ? 'Replace Fluids' : 'Replace CRI'}
-                                          </label>
-                                          <select
-                                            value={value || ''}
-                                            onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
-                                            className="w-full px-3 py-2 text-sm border rounded-lg"
-                                          >
-                                            <option value="">Select…</option>
-                                            <option>Yes</option>
-                                            <option>No</option>
-                                            <option>N/A</option>
-                                            <option>Yes – but…</option>
-                                            <option>No – but…</option>
-                                          </select>
-                                          {showNote && (
-                                            <input
-                                              type="text"
-                                              placeholder="Add note…"
-                                              className="mt-2 w-full px-3 py-2 text-sm border rounded-lg"
-                                              onChange={(e) => updateRoundingData(patient.id, field, `${value} ${e.target.value}`.trim())}
-                                            />
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-
-                                    {/* Overnight + Comments */}
-                                    <input
-                                      type="text"
-                                      value={safeStr(patient.roundingData?.overnightDiagnostics)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
-                                      placeholder="Overnight Diagnostics"
-                                      className="px-3 py-2 text-sm border rounded-lg"
-                                    />
+                                    <div className="flex gap-1">
+                                      <input
+                                        type="text"
+                                        placeholder="Add to list..."
+                                        className="flex-1 px-1.5 py-0.5 text-[11px] border border-cyan-300 rounded-lg"
+                                        onKeyDown={(e) => {
+                                          const val = e.currentTarget.value.trim();
+                                          if (e.key === 'Enter' && val) { addCommonMedication(val); e.currentTarget.value = ''; }
+                                        }}
+                                      />
+                                      <button
+                                        onClick={(e) => {
+                                          const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                          if (input.value.trim()) { addCommonMedication(input.value.trim()); input.value = ''; }
+                                        }}
+                                        className="px-1.5 py-0.5 bg-cyan-600 text-white text-[10px] rounded hover:bg-cyan-700"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
                                     <textarea
-                                      value={safeStr(patient.roundingData?.overnightConcerns)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
-                                      placeholder="Overnight Concerns/Alerts"
+                                      value={safeStr(patient.roundingData?.therapeutics)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
+                                      placeholder="Current Therapeutics"
                                       rows={2}
-                                      className="px-3 py-2 text-sm border rounded-lg"
+                                      className={getRequiredFieldClass(patient, 'therapeutics', 'w-full text-xs p-1.5 border rounded-lg mt-1')}
                                     />
-                                    <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                      <h5 className="text-sm font-bold text-blue-900 mb-2">Additional Comments</h5>
-                                      <div className="flex flex-wrap gap-1 mb-2">
-                                        {(commonComments || []).slice(0, 10).map((c: any) => (
-                                          <div key={c.id} className="group relative">
-                                            <button
-                                              onClick={() => {
-                                                const current = safeStr(patient.roundingData?.additionalComments);
-                                                const newValue = current ? current + '\n' + c.name : c.name;
-                                                updateRoundingData(patient.id, 'additionalComments', newValue);
-                                              }}
-                                              className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:scale-105 transition"
-                                            >
-                                              + {c.name.length > 40 ? c.name.substring(0, 40) + '…' : c.name}
-                                            </button>
-                                            <button
-                                              onClick={() => deleteCommonItem('commonComments', c.id)}
-                                              className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                              ×
-                                            </button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <div className="flex gap-2 mb-2">
-                                        <select
-                                          onChange={(e) => {
-                                            if (e.target.value) {
-                                              const current = safeStr(patient.roundingData?.additionalComments);
-                                              const newValue = current ? current + '\n' + e.target.value : e.target.value;
-                                              updateRoundingData(patient.id, 'additionalComments', newValue);
-                                              e.currentTarget.value = '';
-                                            }
-                                          }}
-                                          className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
-                                        >
-                                          <option value="">Select from all comments...</option>
-                                          {(commonComments || []).map((c: any) => (
-                                            <option key={c.id} value={c.name}>{c.name}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                      <div className="flex gap-2">
-                                        <input
-                                          type="text"
-                                          placeholder="Add new comment to list..."
-                                          className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
-                                          onKeyDown={(e) => {
-                                            const val = (e.target as HTMLInputElement).value.trim();
-                                            if (e.key === 'Enter' && val) {
-                                              addCommonComment(val);
-                                              (e.target as HTMLInputElement).value = '';
-                                            }
-                                          }}
-                                        />
-                                        <button
-                                          onClick={(e) => {
-                                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                                            const val = input.value.trim();
-                                            if (val) { addCommonComment(val); input.value = ''; }
-                                          }}
-                                          className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                        >
-                                          Save
-                                        </button>
-                                      </div>
-                                      <textarea
-                                        value={safeStr(patient.roundingData?.additionalComments)}
-                                        onChange={(e) => updateRoundingData(patient.id, 'additionalComments', e.target.value)}
-                                        placeholder="Additional Comments"
-                                        rows={3}
-                                        className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg mt-2"
-                                      />
-                                    </div>
                                   </div>
-                              </div>
-                            )}
+
+                                  {/* Replace IVC / Fluids / CRI */}
+                                  {['replaceIVC', 'replaceFluids', 'replaceCRI'].map((field) => (
+                                    <div key={field} className="col-span-2 md:col-span-1">
+                                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                        {field === 'replaceIVC' ? 'Replace IVC' : field === 'replaceFluids' ? 'Replace Fluids' : 'Replace CRI'}
+                                      </label>
+                                      <select
+                                        value={safeStr(patient.roundingData?.[field]) || ''}
+                                        onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg"
+                                      >
+                                        <option value="">Select…</option>
+                                        <option>Yes</option>
+                                        <option>No</option>
+                                        <option>N/A</option>
+                                      </select>
+                                    </div>
+                                  ))}
+
+                                  {/* Overnight + Comments */}
+                                  <textarea
+                                    value={safeStr(patient.roundingData?.overnightDiagnostics)}
+                                    onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
+                                    placeholder="Overnight Diagnostics"
+                                    rows={2}
+                                    className="px-2 py-1 text-xs border rounded-lg"
+                                  />
+                                  <textarea
+                                    value={safeStr(patient.roundingData?.overnightConcerns)}
+                                    onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
+                                    placeholder="Overnight Concerns/Alerts"
+                                    rows={2}
+                                    className="px-2 py-1 text-xs border rounded-lg"
+                                  />
+                                  <div className="col-span-2 p-2 bg-purple-50/70 border border-purple-200 rounded-lg">
+                                    <h5 className="text-xs font-bold text-purple-900 mb-1">Additional Comments</h5>
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                      {(commonComments || []).slice(0, 10).map((c: any) => (
+                                        <div key={c.id} className="group relative">
+                                          <button
+                                            onClick={() => {
+                                              const current = safeStr(patient.roundingData?.additionalComments);
+                                              updateRoundingData(patient.id, 'additionalComments', current ? `${current}\n${c.name}` : c.name);
+                                            }}
+                                            className="px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-800 rounded-full hover:scale-105 transition"
+                                          >
+                                            + {c.name.substring(0, 30)}...
+                                          </button>
+                                           <button
+                                            onClick={() => deleteCommonItem('commonComments', c.id)}
+                                            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-fuchsia-500 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <input
+                                        type="text"
+                                        placeholder="Add to list..."
+                                        className="flex-1 px-1.5 py-0.5 text-[11px] border border-purple-300 rounded-lg"
+                                        onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) { addCommonComment(e.currentTarget.value.trim()); e.currentTarget.value = ''; }}}
+                                      />
+                                      <button
+                                        onClick={(e) => { const input = (e.currentTarget.previousElementSibling as HTMLInputElement); if (input.value.trim()) { addCommonComment(input.value.trim()); input.value = ''; }}}
+                                        className="px-1.5 py-0.5 bg-purple-600 text-white text-[10px] rounded hover:bg-purple-700"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                    <textarea
+                                      value={safeStr(patient.roundingData?.additionalComments)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'additionalComments', e.target.value)}
+                                      placeholder="Additional Comments"
+                                      rows={2}
+                                      className="w-full text-xs p-1.5 border rounded-lg mt-1"
+                                    />
+                                  </div>
+                                </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2811,26 +2739,26 @@ export default function VetPatientTracker() {
       </div>
 
       {/* Floating Quick Add with Cat */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-4 right-4 z-50">
         <div className="flex flex-col items-end gap-2">
           <button
             onClick={() => addMorningTasksToAll()}
-            className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-lg shadow-lg hover:from-yellow-600 hover:to-amber-600 transition-all transform hover:scale-105 flex items-center gap-2"
+            className="px-3 py-1.5 bg-gradient-to-r from-yellow-400 to-amber-400 text-black rounded-lg shadow-lg hover:from-yellow-500 hover:to-amber-500 transition-all transform hover:scale-105 flex items-center gap-1.5 text-sm"
             title="Add Morning Tasks To All Patients"
           >
-            <span className="text-lg">☀️</span>
-            Morning to All
+            <span className="text-base">☀️</span>
+            Morning
           </button>
            <button
             onClick={() => addEveningTasksToAll()}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-600 transition-all transform hover:scale-105 flex items-center gap-2"
+            className="px-3 py-1.5 bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-lg shadow-lg hover:from-indigo-500 hover:to-purple-500 transition-all transform hover:scale-105 flex items-center gap-1.5 text-sm"
             title="Add Evening Tasks To All Patients"
           >
-            <span className="text-lg">🌙</span>
-            Evening to All
+            <span className="text-base">🌙</span>
+            Evening
           </button>
-          <div className="text-4xl cursor-pointer" title="You're doing great! 🐾">
-            🐾
+          <div className="text-3xl cursor-pointer" title="You're doing a great job! 🐾">
+            🐈
           </div>
         </div>
       </div>
