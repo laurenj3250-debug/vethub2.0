@@ -312,7 +312,7 @@ interface TaskTableProps {
   onPatientClick: (patientId: string) => void;
 }
 
-const TaskTable = ({ title, icon, patients, taskNames, onToggleTask, onPatientClick }: TaskTableProps) => {
+const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask, onPatientClick }: TaskTableProps) => {
   if (patients.length === 0) return null;
   // Don't render the table if there are no tasks
   if (taskNames.length === 0) return null;
@@ -334,7 +334,7 @@ const TaskTable = ({ title, icon, patients, taskNames, onToggleTask, onPatientCl
           </thead>
           <tbody>
             {patients.map((patient: any) => {
-              const patientTasks = (patient.tasks || []).filter((t: any) => !t.date || t.date === patient.currentDate);
+              const patientTasks = (patient.tasks || []).filter((t: any) => !t.date || t.date === currentDate);
               
               return (
                 <tr key={patient.id} className="hover:bg-purple-50/50">
@@ -1963,12 +1963,12 @@ export default function VetPatientTracker() {
             onToggleTask={toggleTask}
             onPatientClick={handlePatientClick}
           />
-          {Object.keys(otherTasksMap).length > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-4 border">
-              <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-                <Sparkles className="text-purple-500" />
-                Other Tasks List
-              </h3>
+          <div className="bg-white rounded-lg shadow-md p-4 border">
+            <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <Sparkles className="text-purple-500" />
+              Other Tasks List
+            </h3>
+            {Object.keys(otherTasksMap).length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {Object.entries(otherTasksMap).map(([taskName, tasks]) => (
                   <div key={taskName} className="p-3 bg-purple-50/70 border border-purple-200 rounded-lg">
@@ -1995,8 +1995,10 @@ export default function VetPatientTracker() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+               <p className="text-xs text-gray-500 italic">No other tasks assigned for today. Add custom tasks inside a patient's card.</p>
+            )}
+          </div>
         </div>
 
         {/* Patients */}
@@ -2774,3 +2776,5 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    
