@@ -30,7 +30,7 @@ import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebas
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
-import { parseRounding } from '@/ai/flows/parse-rounding-flow';
+import { parseRounding, type RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
 
@@ -122,10 +122,10 @@ function KittyFireworks({ show, onComplete }: KittyFireworksProps) {
               animationDelay: `${i * 0.1}s`,
             }}
           >
-            🦇
+            🐾
           </div>
         ))}
-        <div className="text-6xl animate-bounce">🎃</div>
+        <div className="text-6xl animate-bounce">⚕️</div>
       </div>
     </div>
   );
@@ -143,12 +143,12 @@ function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-orange-600 via-purple-600 to-black shadow-lg">
+    <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-r from-blue-600 via-purple-600 to-slate-900 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-3">
-        <Sparkles size={16} className="text-orange-300 flex-shrink-0" />
-        <div className="flex-1 bg-black/30 rounded-full h-4 overflow-hidden backdrop-blur-sm border border-orange-400">
+        <Sparkles size={16} className="text-cyan-300 flex-shrink-0" />
+        <div className="flex-1 bg-black/30 rounded-full h-4 overflow-hidden backdrop-blur-sm border border-cyan-400">
           <div
-            className="h-full bg-gradient-to-r from-orange-500 via-purple-500 to-orange-500 transition-all duration-500 ease-out relative overflow-hidden"
+            className="h-full bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500 transition-all duration-500 ease-out relative overflow-hidden"
             style={{ width: `${percentage}%` }}
           >
             <div className="absolute inset-0 bg-white/40 animate-pulse"></div>
@@ -157,7 +157,7 @@ function SparklyProgressBar({ completed, total }: SparklyProgressBarProps) {
         <span className="text-white font-bold text-sm flex-shrink-0 min-w-[80px] text-right">
           {completed}/{total} ({percentage}%)
         </span>
-        <span className="text-2xl flex-shrink-0">🎃</span>
+        <span className="text-2xl flex-shrink-0">🐾</span>
       </div>
     </div>
   );
@@ -602,6 +602,12 @@ export default function VetPatientTracker() {
     'Going home'
   ];
 
+  const otherTasks = [
+    'Seizure Watch',
+    'Add Cerenia',
+    'Add Fluids',
+  ];
+
   /* --------------------- Firestore helpers --------------------- */
 
   const getPatientRef = (patientId: string) => {
@@ -651,11 +657,15 @@ export default function VetPatientTracker() {
 
   const addPatient = () => {
     if (newPatient.name.trim() && firestore && user) {
+      let tasks = [];
+      if (newPatient.type === 'MRI') {
+        tasks = admitTasks.MRI.map(taskName => ({ name: taskName, completed: false, id: Date.now() + Math.random(), date: currentDate }));
+      }
       const patientData: any = {
         name: newPatient.name,
         type: newPatient.type,
         status: 'New Admit',
-        tasks: [],
+        tasks: tasks,
         customTask: '',
         bwInput: '',
         xrayStatus: 'NSF',
@@ -937,7 +947,7 @@ export default function VetPatientTracker() {
 
     setAiParsingLoading(true);
     try {
-      const parsed = await parseRounding(detailsText);
+      const parsed: RoundingParseOutput = await parseRounding(detailsText);
 
       // Merge the AI-parsed data into patient info and rounding data
       const newInfo: any = { ...(patient.patientInfo || {}), ...(parsed.patientInfo || {}) };
@@ -1049,47 +1059,47 @@ export default function VetPatientTracker() {
 
   // Tabs
   const getTabsForPatient = (p: any) => {
-    const base = ['Tasks', 'Rounding Sheet', 'Patient Info'];
+    const base = ['Tasks', 'Patient Data'];
     if (p.type === 'MRI') base.splice(1, 0, 'MRI Calculator');
     return base;
   };
-
-  // Get breed emoji for Halloween fun!
+  
+  // Get breed emoji
   const getBreedEmoji = (patient: any): string => {
-    const breed = (patient.patientInfo?.breed || patient.roundingData?.signalment || '').toLowerCase();
-    const species = (patient.patientInfo?.species || '').toLowerCase();
-
-    // Cats
-    if (species.includes('feline') || species.includes('cat') || breed.includes('cat') || breed.includes('dsh') || breed.includes('dmh') || breed.includes('dlh')) {
-      return '🐈‍⬛'; // Black cat for Halloween!
-    }
-
-    // Dogs by breed
-    if (breed.includes('husky') || breed.includes('malamute')) return '🐺';
-    if (breed.includes('poodle') || breed.includes('doodle')) return '🐩';
-    if (breed.includes('bulldog') || breed.includes('pug') || breed.includes('boston')) return '🐶';
-    if (breed.includes('shepherd') || breed.includes('collie')) return '🦮';
-    if (breed.includes('terrier') || breed.includes('schnauzer')) return '🐕';
-    if (breed.includes('retriever') || breed.includes('lab')) return '🦴';
-    if (breed.includes('chihuahua') || breed.includes('yorkie') || breed.includes('pomeranian')) return '🐕';
-    if (breed.includes('beagle') || breed.includes('hound')) return '🐕‍🦺';
-    if (breed.includes('corgi')) return '🦊';
-    if (breed.includes('dalmatian')) return '🐕';
-
-    // General species
-    if (species.includes('canine') || species.includes('dog')) return '🐕';
-    if (species.includes('equine') || species.includes('horse')) return '🐴';
-    if (species.includes('rabbit') || species.includes('lagomorph')) return '🐰';
-    if (species.includes('ferret')) return '🦦';
-    if (species.includes('bird') || species.includes('avian')) return '🦜';
-    if (species.includes('reptile') || breed.includes('lizard') || breed.includes('snake')) return '🦎';
-    if (species.includes('hamster') || breed.includes('hamster')) return '🐹';
-    if (species.includes('guinea') || breed.includes('guinea')) return '🐹';
-
-    // Default
-    return '🎃'; // Pumpkin for unknown!
+      const breed = (patient.patientInfo?.breed || patient.roundingData?.signalment || '').toLowerCase();
+      const species = (patient.patientInfo?.species || '').toLowerCase();
+  
+      // Cats
+      if (species.includes('feline') || species.includes('cat') || breed.includes('cat') || breed.includes('dsh') || breed.includes('dmh') || breed.includes('dlh')) {
+          return '🐈';
+      }
+  
+      // Dogs by breed
+      if (breed.includes('husky') || breed.includes('malamute')) return '🐺';
+      if (breed.includes('poodle') || breed.includes('doodle')) return '🐩';
+      if (breed.includes('bulldog') || breed.includes('pug') || breed.includes('boston')) return '🐶';
+      if (breed.includes('shepherd') || breed.includes('collie')) return '🦮';
+      if (breed.includes('terrier') || breed.includes('schnauzer')) return '🐕';
+      if (breed.includes('retriever') || breed.includes('lab')) return '🦴';
+      if (breed.includes('chihuahua') || breed.includes('yorkie') || breed.includes('pomeranian')) return '🐕';
+      if (breed.includes('beagle') || breed.includes('hound')) return '🐕‍🦺';
+      if (breed.includes('corgi')) return '🦊';
+      if (breed.includes('dalmatian')) return '🐕';
+  
+      // General species
+      if (species.includes('canine') || species.includes('dog')) return '🐕';
+      if (species.includes('equine') || species.includes('horse')) return '🐴';
+      if (species.includes('rabbit') || species.includes('lagomorph')) return '🐰';
+      if (species.includes('ferret')) return '🦦';
+      if (species.includes('bird') || species.includes('avian')) return '🦜';
+      if (species.includes('reptile') || breed.includes('lizard') || breed.includes('snake')) return '🦎';
+      if (species.includes('hamster') || breed.includes('hamster')) return '🐹';
+      if (species.includes('guinea') || breed.includes('guinea')) return '🐹';
+  
+      // Default
+      return '🐾'; 
   };
-
+  
   /* --------------------- TSV (no headers) --------------------- */
   const makeRoundingRow = (p: any): string[] => {
     const r = p.roundingData || {};
@@ -1166,13 +1176,13 @@ export default function VetPatientTracker() {
 
   if (isUserLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
         <div className="text-center">
-          <div className="text-6xl mb-4 animate-pulse">🐱</div>
-          <p className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <div className="text-6xl mb-4 animate-pulse">🐾</div>
+          <p className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Loading your VetCare Hub...
           </p>
-          <p className="text-gray-500 mt-2">Preparing the purr-fect experience! 🐾</p>
+          <p className="text-gray-500 mt-2">Preparing the purr-fect experience!</p>
         </div>
       </div>
     );
@@ -1189,11 +1199,11 @@ export default function VetPatientTracker() {
     };
 
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full border-t-4 border-purple-400">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100">
+        <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full border-t-4 border-blue-500">
           <div className="text-center mb-6">
-            <div className="text-6xl mb-4">🐱</div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+            <div className="text-6xl mb-4">🐾</div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
               VetCare Hub
             </h1>
             <p className="text-gray-600">{isSignUp ? 'Create Account' : 'Welcome Back!'}</p>
@@ -1214,13 +1224,13 @@ export default function VetPatientTracker() {
               placeholder="Password (min 6 characters)"
               required
               minLength={6}
-              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
-            <button type="submit" className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 font-semibold shadow-md transition">
+            <button type="submit" className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 font-semibold shadow-md transition">
               {isSignUp ? 'Sign Up 🐾' : 'Sign In 🐾'}
             </button>
           </form>
-          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-sm text-purple-600 hover:text-purple-800">
+          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-4 text-sm text-blue-600 hover:text-blue-800">
             {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
           </button>
         </div>
@@ -1229,7 +1239,7 @@ export default function VetPatientTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-purple-50 to-black/5 p-6 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50/50 p-6 pt-20">
       {/* Sparkly Progress Bar */}
       {overallTaskStats.total > 0 && (
         <SparklyProgressBar completed={overallTaskStats.completed} total={overallTaskStats.total} />
@@ -1241,15 +1251,15 @@ export default function VetPatientTracker() {
       <KeyboardHelpModal isOpen={showKeyboardHelp} onClose={() => setShowKeyboardHelp(false)} />
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 rounded-lg shadow-lg p-6 mb-4 border-t-4 border-purple-400">
+        <div className="bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 rounded-lg shadow-lg p-6 mb-4 border-t-4 border-blue-400">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-1">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-1">
                 VetCare Hub
               </h1>
               <p className="text-gray-600 flex items-center gap-2">
                 Track tasks and prep rounding sheets
-                <span className="text-xl" title="Purrfect for veterinary care!">🐱</span>
+                <span className="text-xl" title="Purrfect for veterinary care!">⚕️</span>
               </p>
             </div>
             <div className="flex items-center gap-4 flex-wrap">
@@ -1276,7 +1286,7 @@ export default function VetPatientTracker() {
 
               <Link
                 href="/appointments"
-                className="px-3 py-2 bg-gradient-to-r from-orange-600 to-purple-600 text-white rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md text-sm"
+                className="px-3 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 flex items-center gap-2 transition shadow-md text-sm"
               >
                 <Calendar size={18} />
                 Today's Appointments
@@ -1324,7 +1334,7 @@ export default function VetPatientTracker() {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md ${
                   hideCompletedTasks
                     ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
-                    : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-purple-400'
+                    : 'bg-white text-gray-700 border-2 border-gray-300 hover:border-blue-400'
                 }`}
               >
                 {hideCompletedTasks ? '👁️ Show' : '🙈 Hide'} Completed
@@ -1348,7 +1358,7 @@ export default function VetPatientTracker() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search patients by name, ID, breed, status... (Cmd+K)"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {searchQuery && (
                 <button
@@ -1366,7 +1376,7 @@ export default function VetPatientTracker() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Status</option>
                 {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
@@ -1376,7 +1386,7 @@ export default function VetPatientTracker() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               >
                 <option value="name">Name</option>
                 <option value="status">Status</option>
@@ -1401,7 +1411,7 @@ export default function VetPatientTracker() {
                   type="date"
                   value={currentDate}
                   onChange={(e) => setCurrentDate(e.target.value)}
-                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                  className="text-xs px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   onClick={() => {
@@ -1416,7 +1426,7 @@ export default function VetPatientTracker() {
                 </button>
                 <button
                   onClick={() => setCurrentDate(getTodayDate())}
-                  className="px-2 py-1 text-xs bg-purple-600 text-white hover:bg-purple-700 rounded"
+                  className="px-2 py-1 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded"
                   title="Go to today"
                 >
                   Today
@@ -1438,18 +1448,18 @@ export default function VetPatientTracker() {
               onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
               onKeyDown={(e) => e.key === 'Enter' && addPatient()}
               placeholder="Patient name (e.g., Max - Golden Retriever) 🐕"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={newPatient.type}
               onChange={(e) => setNewPatient({ ...newPatient, type: e.target.value })}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {procedureTypes.map(type => <option key={type} value={type}>{type}</option>)}
             </select>
             <button
               onClick={addPatient}
-              className="bg-gradient-to-r from-orange-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-orange-700 hover:to-purple-700 flex items-center gap-2 transition shadow-md"
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-6 py-2 rounded-lg hover:from-cyan-700 hover:to-blue-700 flex items-center gap-2 transition shadow-md"
             >
               <Plus size={20} />
               Add Patient
@@ -1834,13 +1844,13 @@ export default function VetPatientTracker() {
           )}
         </div>
         {/* All Tasks Overview - Always Visible, Beautiful & Colorful */}
-        <div className="bg-gradient-to-br from-orange-100 via-purple-100 to-pink-100 rounded-xl shadow-2xl p-6 mb-6">
+        <div className="bg-gradient-to-br from-cyan-100 via-blue-100 to-indigo-100 rounded-xl shadow-2xl p-6 mb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                🎃 All Tasks
+                ⚕️ All Tasks
               </h2>
-              <span className="px-4 py-2 bg-orange-500 text-white rounded-full text-lg font-bold shadow-lg">
+              <span className="px-4 py-2 bg-blue-500 text-white rounded-full text-lg font-bold shadow-lg">
                 {overallTaskStats.completed}/{overallTaskStats.total}
               </span>
             </div>
@@ -1933,7 +1943,7 @@ export default function VetPatientTracker() {
                                   type="checkbox"
                                   checked={task.completed}
                                   onChange={() => toggleTask(patient.id, task.id)}
-                                  className="w-6 h-6 text-orange-600 rounded-lg cursor-pointer flex-shrink-0 accent-orange-600"
+                                  className="w-6 h-6 text-orange-600 rounded-lg cursor-pointer flex-shrink-0 accent-blue-600"
                                 />
                                 <span
                                   className={`flex-1 text-sm font-semibold ${
@@ -1959,7 +1969,7 @@ export default function VetPatientTracker() {
 
         {/* Patients */}
         {patients.length === 0 ? (
-          <div className="bg-gradient-to-br from-orange-50 via-purple-50 to-pink-50 rounded-lg shadow-lg p-12 text-center border-2 border-purple-200">
+          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100 rounded-lg shadow-lg p-12 text-center border-2 border-blue-200">
             <p className="text-gray-700 text-lg flex items-center justify-center gap-2 font-semibold">
               <span className="text-3xl">🐾</span>
               No patients added yet. Add your first patient above!
@@ -1967,7 +1977,7 @@ export default function VetPatientTracker() {
             </p>
           </div>
         ) : sortedPatients.length === 0 ? (
-          <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 rounded-lg shadow-lg p-12 text-center border-2 border-blue-200">
+          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-100 rounded-lg shadow-lg p-12 text-center border-2 border-blue-200">
             <p className="text-gray-700 text-lg font-semibold">No patients match your search. Try a different query!</p>
           </div>
         ) : (
@@ -1993,7 +2003,7 @@ export default function VetPatientTracker() {
 
               return (
                 <SortablePatient key={patient.id} id={patient.id}>
-                  <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-orange-50/20 to-purple-50/20 rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
+                  <div id={`patient-${patient.id}`} className={`bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/20 rounded-lg shadow-md border ${getPriorityColor(patient)} overflow-hidden hover:shadow-lg transition-shadow`}>
                   {/* Header */}
                   <div className="flex justify-between items-center p-4 border-b">
                     <div className="flex items-center gap-3">
@@ -2057,7 +2067,7 @@ export default function VetPatientTracker() {
                       >
                         {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                      <button onClick={() => removePatient(patient.id)} className="text-purple-500 hover:text-purple-700 p-2" title="Remove patient">
+                      <button onClick={() => removePatient(patient.id)} className="text-red-500 hover:text-red-700 p-2" title="Remove patient">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -2102,29 +2112,48 @@ export default function VetPatientTracker() {
                       <div className="space-y-3">
                         {/* TASKS */}
                         {curTab === 'Tasks' && (
-                          <div className="space-y-2">
-                            {/* Quick action buttons - compact */}
-                            <div className="flex flex-wrap gap-1">
-                              <button onClick={() => addMorningTasks(patient.id)} className="px-2 py-1 text-xs bg-orange-500 text-white rounded hover:bg-orange-600">
-                                + Morning
-                              </button>
-                              <button onClick={() => addEveningTasks(patient.id)} className="px-2 py-1 text-xs bg-indigo-500 text-white rounded hover:bg-indigo-600">
-                                + Evening
-                              </button>
-                              {patient.status === 'New Admit' && admitTasks[patient.type].map(task => (
-                                <button
-                                  key={task}
-                                  onClick={() => addTaskToPatient(patient.id, task)}
-                                  className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
-                                >
-                                  + {task}
+                          <div className="space-y-4">
+                             {/* Quick action buttons */}
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-semibold text-gray-600 uppercase">Quick Add Tasks</h4>
+                              <div className="flex flex-wrap gap-1">
+                                <button onClick={() => addMorningTasks(patient.id)} className="px-2 py-1 text-xs bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500">
+                                  + Morning
                                 </button>
-                              ))}
-                              <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500 ml-auto">
-                                Clear Daily
-                              </button>
+                                <button onClick={() => addEveningTasks(patient.id)} className="px-2 py-1 text-xs bg-indigo-400 text-white rounded hover:bg-indigo-500">
+                                  + Evening
+                                </button>
+                                {patient.status === 'New Admit' && admitTasks[patient.type].map(task => (
+                                  <button
+                                    key={task}
+                                    onClick={() => addTaskToPatient(patient.id, task)}
+                                    className="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
+                                  >
+                                    + {task}
+                                  </button>
+                                ))}
+                                <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500 ml-auto">
+                                  Clear Daily
+                                </button>
+                              </div>
                             </div>
 
+                            {/* Other Tasks */}
+                            <div className="p-3 bg-slate-100 rounded-lg border border-slate-200">
+                              <h4 className="text-xs font-semibold text-gray-600 uppercase mb-2">Other Tasks</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {otherTasks.map(task => (
+                                  <button
+                                    key={task}
+                                    onClick={() => addTaskToPatient(patient.id, task)}
+                                    className="px-2 py-1 text-xs bg-slate-200 text-slate-800 rounded hover:bg-slate-300"
+                                  >
+                                    + {task}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            
                             {/* Custom task input */}
                             <div className="flex gap-1">
                               <input
@@ -2279,22 +2308,22 @@ export default function VetPatientTracker() {
                           </div>
                         )}
 
-                        {/* ROUNDING SHEET */}
-                        {curTab === 'Rounding Sheet' && (
+                        {/* PATIENT DATA (Info + Rounding) */}
+                        {curTab === 'Patient Data' && (
                           <div className="border rounded-lg">
-                            <button onClick={() => toggleSection(patient.id, 'rounding')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                              <span className="font-semibold">Rounding Sheet</span>
-                              <ChevronDown className={expandedSections[patient.id]?.rounding ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                            <button onClick={() => toggleSection(patient.id, 'patientData')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
+                              <span className="font-semibold">Patient Data</span>
+                              <ChevronDown className={expandedSections[patient.id]?.patientData ? 'rotate-180 transition-transform' : 'transition-transform'} />
                             </button>
-                            {expandedSections[patient.id]?.rounding && (
-                              <div className="p-3 border-t grid grid-cols-2 gap-3">
+                            {expandedSections[patient.id]?.patientData && (
+                              <div className="p-3 border-t space-y-3">
                                 {/* Quick Import */}
                                 <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                                   <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import — Paste Patient Details</label>
                                   <textarea
                                     value={safeStr(patient.detailsInput)}
                                     onChange={(e) => updatePatientField(patient.id, 'detailsInput', e.target.value)}
-                                    placeholder="Paste patient info from eVetPractice, Easy Vet, etc..."
+                                    placeholder="Paste patient info from EzyVet, etc..."
                                     rows={4}
                                     className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
                                   />
@@ -2329,457 +2358,447 @@ export default function VetPatientTracker() {
                                       : 'Non-AI parser for speed and reliability. Extracts basic patient info only.'}
                                   </p>
                                 </div>
-
-                                {/* Signalment / Location / ICU / Code */}
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.roundingData?.signalment)}
-                                  onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
-                                  placeholder="Signalment (e.g., 4yo MN Frenchie)"
-                                  className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
-                                />
-                                <select
-                                  value={safeStr(patient.roundingData?.location) || ''}
-                                  onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
-                                  className={getRequiredFieldClass(patient, 'location', 'px-3 py-2 text-sm border rounded-lg')}
-                                >
-                                  <option value="">Select Location...</option>
-                                  <option value="IP">IP</option>
-                                  <option value="ICU">ICU</option>
-                                </select>
-                                <select
-                                  value={safeStr(patient.roundingData?.icuCriteria) || ''}
-                                  onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                >
-                                  <option value="">ICU Criteria...</option>
-                                  <option value="Yes">Yes</option>
-                                  <option value="No">No</option>
-                                  <option value="N/A">N/A</option>
-                                </select>
-                                <select
-                                  value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
-                                  onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                >
-                                  <option>Yellow</option>
-                                  <option>Red</option>
-                                </select>
-
-                                {/* Problems with chip selectors */}
-                                <div className="col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                  <h5 className="text-sm font-bold text-yellow-900 mb-2">Problems</h5>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    {(commonProblems || []).slice(0, 12).map((pr: any) => (
-                                      <div key={pr.id} className="group relative">
-                                        <button
-                                          onClick={() => {
-                                            const current = safeStr(patient.roundingData?.problems);
-                                            const newValue = current ? current + '\n' + pr.name : pr.name;
-                                            updateRoundingData(patient.id, 'problems', newValue);
-                                          }}
-                                          className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full hover:scale-105 transition"
-                                        >
-                                          {pr.name}
-                                        </button>
-                                        <button
-                                          onClick={() => deleteCommonItem('commonProblems', pr.id)}
-                                          className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          ×
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                  <div className="flex gap-2 mb-2">
-                                    <select
-                                      onChange={(e) => {
-                                        if (e.target.value) {
-                                          const current = safeStr(patient.roundingData?.problems);
-                                          const newValue = current ? current + '\n' + e.target.value : e.target.value;
-                                          updateRoundingData(patient.id, 'problems', newValue);
-                                          e.currentTarget.value = '';
-                                        }
-                                      }}
-                                      className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
-                                    >
-                                      <option value="">Select from all problems...</option>
-                                      {(commonProblems || []).map((p: any) => (
-                                        <option key={p.id} value={p.name}>{p.name}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      placeholder="Add new problem to list..."
-                                      className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
-                                      onKeyDown={(e) => {
-                                        const val = (e.target as HTMLInputElement).value.trim();
-                                        if (e.key === 'Enter' && val) {
-                                          addCommonProblem(val);
-                                          (e.target as HTMLInputElement).value = '';
-                                        }
-                                      }}
-                                    />
-                                    <button
-                                      onClick={(e) => {
-                                        const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                                        const val = input.value.trim();
-                                        if (val) { addCommonProblem(val); input.value = ''; }
-                                      }}
-                                      className="px-2 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700"
-                                    >
-                                      Save
-                                    </button>
-                                  </div>
-                                  <textarea
-                                    value={safeStr(patient.roundingData?.problems)}
-                                    onChange={(e) => updateRoundingData(patient.id, 'problems', e.target.value)}
-                                    placeholder="Problems"
-                                    rows={3}
-                                    className={getRequiredFieldClass(patient, 'problems', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
+                                <h4 className="text-md font-bold text-gray-800 border-b pb-1 mb-2">Patient Info</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.patientId)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
+                                    placeholder="Patient ID"
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.ownerName)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
+                                    placeholder="Owner Name"
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.ownerPhone)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
+                                    placeholder="Owner Phone"
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  />
+                                  <select
+                                    value={safeStr(patient.patientInfo?.species) || 'Canine'}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  >
+                                    <option>Canine</option>
+                                    <option>Feline</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.breed)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
+                                    placeholder="Breed"
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.sex)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
+                                    placeholder="Sex (MN/FS/MI/FI)"
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.weight)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
+                                    placeholder="Weight (e.g., 4.9 kg)"
+                                    className="px-3 py-2 text-sm border rounded-lg"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={safeStr(patient.patientInfo?.age)}
+                                    onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
+                                    placeholder="Age (e.g., 4yo)"
+                                    className="px-3 py-2 text-sm border rounded-lg"
                                   />
                                 </div>
+                                <h4 className="text-md font-bold text-gray-800 border-b pb-1 mb-2 mt-4">Rounding Sheet</h4>
+                                 <div className="grid grid-cols-2 gap-3">
+                                    <input
+                                      type="text"
+                                      value={safeStr(patient.roundingData?.signalment)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
+                                      placeholder="Signalment (e.g., 4yo MN Frenchie)"
+                                      className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
+                                    />
+                                    <select
+                                      value={safeStr(patient.roundingData?.location) || ''}
+                                      onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
+                                      className={getRequiredFieldClass(patient, 'location', 'px-3 py-2 text-sm border rounded-lg')}
+                                    >
+                                      <option value="">Select Location...</option>
+                                      <option value="IP">IP</option>
+                                      <option value="ICU">ICU</option>
+                                    </select>
+                                    <select
+                                      value={safeStr(patient.roundingData?.icuCriteria) || ''}
+                                      onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
+                                      className="px-3 py-2 text-sm border rounded-lg"
+                                    >
+                                      <option value="">ICU Criteria...</option>
+                                      <option value="Yes">Yes</option>
+                                      <option value="No">No</option>
+                                      <option value="N/A">N/A</option>
+                                    </select>
+                                    <select
+                                      value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
+                                      onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
+                                      className="px-3 py-2 text-sm border rounded-lg"
+                                    >
+                                      <option>Yellow</option>
+                                      <option>Red</option>
+                                    </select>
 
-                                {/* Bloodwork + CXR */}
-                                <div className="col-span-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                  <h5 className="text-sm font-bold text-green-900 mb-2">Quick Add Diagnostics</h5>
-                                  <div className="mb-3">
-                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Work (paste full block)</label>
+                                    {/* Problems with chip selectors */}
+                                    <div className="col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                      <h5 className="text-sm font-bold text-yellow-900 mb-2">Problems</h5>
+                                      <div className="flex flex-wrap gap-1 mb-2">
+                                        {(commonProblems || []).slice(0, 12).map((pr: any) => (
+                                          <div key={pr.id} className="group relative">
+                                            <button
+                                              onClick={() => {
+                                                const current = safeStr(patient.roundingData?.problems);
+                                                const newValue = current ? current + '\n' + pr.name : pr.name;
+                                                updateRoundingData(patient.id, 'problems', newValue);
+                                              }}
+                                              className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full hover:scale-105 transition"
+                                            >
+                                              {pr.name}
+                                            </button>
+                                            <button
+                                              onClick={() => deleteCommonItem('commonProblems', pr.id)}
+                                              className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-2 mb-2">
+                                        <select
+                                          onChange={(e) => {
+                                            if (e.target.value) {
+                                              const current = safeStr(patient.roundingData?.problems);
+                                              const newValue = current ? current + '\n' + e.target.value : e.target.value;
+                                              updateRoundingData(patient.id, 'problems', newValue);
+                                              e.currentTarget.value = '';
+                                            }
+                                          }}
+                                          className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
+                                        >
+                                          <option value="">Select from all problems...</option>
+                                          {(commonProblems || []).map((p: any) => (
+                                            <option key={p.id} value={p.name}>{p.name}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <input
+                                          type="text"
+                                          placeholder="Add new problem to list..."
+                                          className="flex-1 px-2 py-1 text-xs border border-yellow-300 rounded-lg"
+                                          onKeyDown={(e) => {
+                                            const val = (e.target as HTMLInputElement).value.trim();
+                                            if (e.key === 'Enter' && val) {
+                                              addCommonProblem(val);
+                                              (e.target as HTMLInputElement).value = '';
+                                            }
+                                          }}
+                                        />
+                                        <button
+                                          onClick={(e) => {
+                                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                            const val = input.value.trim();
+                                            if (val) { addCommonProblem(val); input.value = ''; }
+                                          }}
+                                          className="px-2 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700"
+                                        >
+                                          Save
+                                        </button>
+                                      </div>
+                                      <textarea
+                                        value={safeStr(patient.roundingData?.problems)}
+                                        onChange={(e) => updateRoundingData(patient.id, 'problems', e.target.value)}
+                                        placeholder="Problems"
+                                        rows={3}
+                                        className={getRequiredFieldClass(patient, 'problems', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
+                                      />
+                                    </div>
+
+                                    {/* Bloodwork + CXR */}
+                                    <div className="col-span-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                      <h5 className="text-sm font-bold text-green-900 mb-2">Quick Add Diagnostics</h5>
+                                      <div className="mb-3">
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Work (paste full block)</label>
+                                        <textarea
+                                          value={safeStr(patient.bwInput)}
+                                          onChange={(e) => updatePatientField(patient.id, 'bwInput', e.target.value)}
+                                          placeholder="Paste blood work results..."
+                                          rows={3}
+                                          className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
+                                        />
+                                        <button
+                                          onClick={() => parseBloodWork(patient.id, safeStr(patient.bwInput))}
+                                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                                        >
+                                          Extract Abnormals
+                                        </button>
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-semibold text-gray-700 mb-1">Chest X-ray</label>
+                                        <div className="flex gap-2 mb-2">
+                                          <select
+                                            value={safeStr(patient.xrayStatus) || 'NSF'}
+                                            onChange={(e) => updatePatientField(patient.id, 'xrayStatus', e.target.value)}
+                                            className="px-3 py-2 text-sm border rounded-lg"
+                                          >
+                                            <option>NSF</option>
+                                            <option>Pending</option>
+                                            <option>Other</option>
+                                          </select>
+                                          {patient.xrayStatus === 'Other' && (
+                                            <input
+                                              type="text"
+                                              value={safeStr(patient.xrayOther)}
+                                              onChange={(e) => updatePatientField(patient.id, 'xrayOther', e.target.value)}
+                                              placeholder="Describe findings..."
+                                              className="flex-1 px-3 py-2 text-sm border rounded-lg"
+                                            />
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={() => {
+                                            const status = safeStr(patient.xrayStatus);
+                                            let line = 'CXR: ';
+                                            if (status === 'NSF') line += 'NSF';
+                                            else if (status === 'Pending') line += 'pending';
+                                            else line += safeStr(patient.xrayOther);
+                                            const currentDx = safeStr(patient.roundingData?.diagnosticFindings);
+                                            const newDx = currentDx ? currentDx + '\n' + line : line;
+                                            updateRoundingData(patient.id, 'diagnosticFindings', newDx);
+                                            updatePatientField(patient.id, 'xrayOther', '');
+                                          }}
+                                          className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
+                                        >
+                                          Add CXR to Findings
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Diagnostics text */}
                                     <textarea
-                                      value={safeStr(patient.bwInput)}
-                                      onChange={(e) => updatePatientField(patient.id, 'bwInput', e.target.value)}
-                                      placeholder="Paste blood work results..."
+                                      value={safeStr(patient.roundingData?.diagnosticFindings)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'diagnosticFindings', e.target.value)}
+                                      placeholder="Diagnostic Findings"
                                       rows={3}
-                                      className="w-full px-3 py-2 text-sm border rounded-lg mb-2"
+                                      className={getRequiredFieldClass(patient, 'diagnosticFindings', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
                                     />
-                                    <button
-                                      onClick={() => parseBloodWork(patient.id, safeStr(patient.bwInput))}
-                                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
-                                    >
-                                      Extract Abnormals
-                                    </button>
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-semibold text-gray-700 mb-1">Chest X-ray</label>
-                                    <div className="flex gap-2 mb-2">
-                                      <select
-                                        value={safeStr(patient.xrayStatus) || 'NSF'}
-                                        onChange={(e) => updatePatientField(patient.id, 'xrayStatus', e.target.value)}
-                                        className="px-3 py-2 text-sm border rounded-lg"
-                                      >
-                                        <option>NSF</option>
-                                        <option>Pending</option>
-                                        <option>Other</option>
-                                      </select>
-                                      {patient.xrayStatus === 'Other' && (
+
+                                    {/* Therapeutics chip system */}
+                                    <div className="col-span-2 p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
+                                      <h5 className="text-sm font-bold text-cyan-900 mb-2">Current Therapeutics</h5>
+                                      <div className="flex flex-wrap gap-1 mb-2">
+                                        {(commonMedications || []).slice(0, 12).map((med: any) => (
+                                          <div key={med.id} className="group relative">
+                                            <button
+                                              onClick={() => {
+                                                const current = safeStr(patient.roundingData?.therapeutics);
+                                                const newValue = current ? current + '\n' + med.name : med.name;
+                                                updateRoundingData(patient.id, 'therapeutics', newValue);
+                                              }}
+                                              className="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded-full hover:scale-105 transition"
+                                            >
+                                              + {med.name}
+                                            </button>
+                                            <button
+                                              onClick={() => deleteCommonItem('commonMedications', med.id)}
+                                              className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-2 mb-2">
+                                        <select
+                                          onChange={(e) => {
+                                            if (e.target.value) {
+                                              const current = safeStr(patient.roundingData?.therapeutics);
+                                              const newValue = current ? current + '\n' + e.target.value : e.target.value;
+                                              updateRoundingData(patient.id, 'therapeutics', newValue);
+                                              e.currentTarget.value = '';
+                                            }
+                                          }}
+                                          className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
+                                        >
+                                          <option value="">Select from all medications...</option>
+                                          {(commonMedications || []).map((med: any) => (
+                                            <option key={med.id} value={med.name}>{med.name}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="flex gap-2">
                                         <input
                                           type="text"
-                                          value={safeStr(patient.xrayOther)}
-                                          onChange={(e) => updatePatientField(patient.id, 'xrayOther', e.target.value)}
-                                          placeholder="Describe findings..."
-                                          className="flex-1 px-3 py-2 text-sm border rounded-lg"
-                                        />
-                                      )}
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        const status = safeStr(patient.xrayStatus);
-                                        let line = 'CXR: ';
-                                        if (status === 'NSF') line += 'NSF';
-                                        else if (status === 'Pending') line += 'pending';
-                                        else line += safeStr(patient.xrayOther);
-                                        const currentDx = safeStr(patient.roundingData?.diagnosticFindings);
-                                        const newDx = currentDx ? currentDx + '\n' + line : line;
-                                        updateRoundingData(patient.id, 'diagnosticFindings', newDx);
-                                        updatePatientField(patient.id, 'xrayOther', '');
-                                      }}
-                                      className="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
-                                    >
-                                      Add CXR to Findings
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Diagnostics text */}
-                                <textarea
-                                  value={safeStr(patient.roundingData?.diagnosticFindings)}
-                                  onChange={(e) => updateRoundingData(patient.id, 'diagnosticFindings', e.target.value)}
-                                  placeholder="Diagnostic Findings"
-                                  rows={3}
-                                  className={getRequiredFieldClass(patient, 'diagnosticFindings', 'col-span-2 px-3 py-2 text-sm border rounded-lg')}
-                                />
-
-                                {/* Therapeutics chip system */}
-                                <div className="col-span-2 p-3 bg-cyan-50 border border-cyan-200 rounded-lg">
-                                  <h5 className="text-sm font-bold text-cyan-900 mb-2">Current Therapeutics</h5>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    {(commonMedications || []).slice(0, 12).map((med: any) => (
-                                      <div key={med.id} className="group relative">
-                                        <button
-                                          onClick={() => {
-                                            const current = safeStr(patient.roundingData?.therapeutics);
-                                            const newValue = current ? current + '\n' + med.name : med.name;
-                                            updateRoundingData(patient.id, 'therapeutics', newValue);
+                                          placeholder="Add new medication to list..."
+                                          className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
+                                          onKeyDown={(e) => {
+                                            const val = (e.target as HTMLInputElement).value.trim();
+                                            if (e.key === 'Enter' && val) {
+                                              addCommonMedication(val);
+                                              (e.target as HTMLInputElement).value = '';
+                                            }
                                           }}
-                                          className="px-2 py-1 text-xs bg-cyan-100 text-cyan-800 rounded-full hover:scale-105 transition"
-                                        >
-                                          + {med.name}
-                                        </button>
+                                        />
                                         <button
-                                          onClick={() => deleteCommonItem('commonMedications', med.id)}
-                                          className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                          onClick={(e) => {
+                                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                            const val = input.value.trim();
+                                            if (val) { addCommonMedication(val); input.value = ''; }
+                                          }}
+                                          className="px-2 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700"
                                         >
-                                          ×
+                                          Save
                                         </button>
                                       </div>
-                                    ))}
-                                  </div>
-                                  <div className="flex gap-2 mb-2">
-                                    <select
-                                      onChange={(e) => {
-                                        if (e.target.value) {
-                                          const current = safeStr(patient.roundingData?.therapeutics);
-                                          const newValue = current ? current + '\n' + e.target.value : e.target.value;
-                                          updateRoundingData(patient.id, 'therapeutics', newValue);
-                                          e.currentTarget.value = '';
-                                        }
-                                      }}
-                                      className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
-                                    >
-                                      <option value="">Select from all medications...</option>
-                                      {(commonMedications || []).map((med: any) => (
-                                        <option key={med.id} value={med.name}>{med.name}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="flex gap-2">
+                                      <textarea
+                                        value={safeStr(patient.roundingData?.therapeutics)}
+                                        onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
+                                        placeholder="Current Therapeutics"
+                                        rows={3}
+                                        className={getRequiredFieldClass(patient, 'therapeutics', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
+                                      />
+                                    </div>
+
+                                    {/* Replace IVC / Fluids / CRI with nuanced select */}
+                                    {['replaceIVC', 'replaceFluids', 'replaceCRI'].map((field) => {
+                                      const value = safeStr(patient.roundingData?.[field]);
+                                      const showNote = value.startsWith('Yes –') || value.startsWith('No –');
+                                      return (
+                                        <div key={field} className="col-span-2 md:col-span-1">
+                                          <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                            {field === 'replaceIVC' ? 'Replace IVC' : field === 'replaceFluids' ? 'Replace Fluids' : 'Replace CRI'}
+                                          </label>
+                                          <select
+                                            value={value || ''}
+                                            onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
+                                            className="w-full px-3 py-2 text-sm border rounded-lg"
+                                          >
+                                            <option value="">Select…</option>
+                                            <option>Yes</option>
+                                            <option>No</option>
+                                            <option>N/A</option>
+                                            <option>Yes – but…</option>
+                                            <option>No – but…</option>
+                                          </select>
+                                          {showNote && (
+                                            <input
+                                              type="text"
+                                              placeholder="Add note…"
+                                              className="mt-2 w-full px-3 py-2 text-sm border rounded-lg"
+                                              onChange={(e) => updateRoundingData(patient.id, field, `${value} ${e.target.value}`.trim())}
+                                            />
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+
+                                    {/* Overnight + Comments */}
                                     <input
                                       type="text"
-                                      placeholder="Add new medication to list..."
-                                      className="flex-1 px-2 py-1 text-xs border border-cyan-300 rounded-lg"
-                                      onKeyDown={(e) => {
-                                        const val = (e.target as HTMLInputElement).value.trim();
-                                        if (e.key === 'Enter' && val) {
-                                          addCommonMedication(val);
-                                          (e.target as HTMLInputElement).value = '';
-                                        }
-                                      }}
+                                      value={safeStr(patient.roundingData?.overnightDiagnostics)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
+                                      placeholder="Overnight Diagnostics"
+                                      className="px-3 py-2 text-sm border rounded-lg"
                                     />
-                                    <button
-                                      onClick={(e) => {
-                                        const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                                        const val = input.value.trim();
-                                        if (val) { addCommonMedication(val); input.value = ''; }
-                                      }}
-                                      className="px-2 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700"
-                                    >
-                                      Save
-                                    </button>
-                                  </div>
-                                  <textarea
-                                    value={safeStr(patient.roundingData?.therapeutics)}
-                                    onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
-                                    placeholder="Current Therapeutics"
-                                    rows={3}
-                                    className={getRequiredFieldClass(patient, 'therapeutics', 'w-full px-3 py-2 text-sm border rounded-lg mt-2')}
-                                  />
-                                </div>
-
-                                {/* Replace IVC / Fluids / CRI with nuanced select */}
-                                {['replaceIVC', 'replaceFluids', 'replaceCRI'].map((field) => {
-                                  const value = safeStr(patient.roundingData?.[field]);
-                                  const showNote = value.startsWith('Yes –') || value.startsWith('No –');
-                                  return (
-                                    <div key={field} className="col-span-2 md:col-span-1">
-                                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                        {field === 'replaceIVC' ? 'Replace IVC' : field === 'replaceFluids' ? 'Replace Fluids' : 'Replace CRI'}
-                                      </label>
-                                      <select
-                                        value={value || ''}
-                                        onChange={(e) => updateRoundingData(patient.id, field, e.target.value)}
-                                        className="w-full px-3 py-2 text-sm border rounded-lg"
-                                      >
-                                        <option value="">Select…</option>
-                                        <option>Yes</option>
-                                        <option>No</option>
-                                        <option>N/A</option>
-                                        <option>Yes – but…</option>
-                                        <option>No – but…</option>
-                                      </select>
-                                      {showNote && (
+                                    <textarea
+                                      value={safeStr(patient.roundingData?.overnightConcerns)}
+                                      onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
+                                      placeholder="Overnight Concerns/Alerts"
+                                      rows={2}
+                                      className="px-3 py-2 text-sm border rounded-lg"
+                                    />
+                                    <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                      <h5 className="text-sm font-bold text-blue-900 mb-2">Additional Comments</h5>
+                                      <div className="flex flex-wrap gap-1 mb-2">
+                                        {(commonComments || []).slice(0, 10).map((c: any) => (
+                                          <div key={c.id} className="group relative">
+                                            <button
+                                              onClick={() => {
+                                                const current = safeStr(patient.roundingData?.additionalComments);
+                                                const newValue = current ? current + '\n' + c.name : c.name;
+                                                updateRoundingData(patient.id, 'additionalComments', newValue);
+                                              }}
+                                              className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:scale-105 transition"
+                                            >
+                                              + {c.name.length > 40 ? c.name.substring(0, 40) + '…' : c.name}
+                                            </button>
+                                            <button
+                                              onClick={() => deleteCommonItem('commonComments', c.id)}
+                                              className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                              ×
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex gap-2 mb-2">
+                                        <select
+                                          onChange={(e) => {
+                                            if (e.target.value) {
+                                              const current = safeStr(patient.roundingData?.additionalComments);
+                                              const newValue = current ? current + '\n' + e.target.value : e.target.value;
+                                              updateRoundingData(patient.id, 'additionalComments', newValue);
+                                              e.currentTarget.value = '';
+                                            }
+                                          }}
+                                          className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
+                                        >
+                                          <option value="">Select from all comments...</option>
+                                          {(commonComments || []).map((c: any) => (
+                                            <option key={c.id} value={c.name}>{c.name}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="flex gap-2">
                                         <input
                                           type="text"
-                                          placeholder="Add note…"
-                                          className="mt-2 w-full px-3 py-2 text-sm border rounded-lg"
-                                          onChange={(e) => updateRoundingData(patient.id, field, `${value} ${e.target.value}`.trim())}
-                                        />
-                                      )}
-                                    </div>
-                                  );
-                                })}
-
-                                {/* Overnight + Comments */}
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.roundingData?.overnightDiagnostics)}
-                                  onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
-                                  placeholder="Overnight Diagnostics"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <textarea
-                                  value={safeStr(patient.roundingData?.overnightConcerns)}
-                                  onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
-                                  placeholder="Overnight Concerns/Alerts"
-                                  rows={2}
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <div className="col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                  <h5 className="text-sm font-bold text-blue-900 mb-2">Additional Comments</h5>
-                                  <div className="flex flex-wrap gap-1 mb-2">
-                                    {(commonComments || []).slice(0, 10).map((c: any) => (
-                                      <div key={c.id} className="group relative">
-                                        <button
-                                          onClick={() => {
-                                            const current = safeStr(patient.roundingData?.additionalComments);
-                                            const newValue = current ? current + '\n' + c.name : c.name;
-                                            updateRoundingData(patient.id, 'additionalComments', newValue);
+                                          placeholder="Add new comment to list..."
+                                          className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
+                                          onKeyDown={(e) => {
+                                            const val = (e.target as HTMLInputElement).value.trim();
+                                            if (e.key === 'Enter' && val) {
+                                              addCommonComment(val);
+                                              (e.target as HTMLInputElement).value = '';
+                                            }
                                           }}
-                                          className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:scale-105 transition"
-                                        >
-                                          + {c.name.length > 40 ? c.name.substring(0, 40) + '…' : c.name}
-                                        </button>
+                                        />
                                         <button
-                                          onClick={() => deleteCommonItem('commonComments', c.id)}
-                                          className="absolute -top-2 -right-2 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                                          onClick={(e) => {
+                                            const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                            const val = input.value.trim();
+                                            if (val) { addCommonComment(val); input.value = ''; }
+                                          }}
+                                          className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
                                         >
-                                          ×
+                                          Save
                                         </button>
                                       </div>
-                                    ))}
+                                      <textarea
+                                        value={safeStr(patient.roundingData?.additionalComments)}
+                                        onChange={(e) => updateRoundingData(patient.id, 'additionalComments', e.target.value)}
+                                        placeholder="Additional Comments"
+                                        rows={3}
+                                        className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg mt-2"
+                                      />
+                                    </div>
                                   </div>
-                                  <div className="flex gap-2 mb-2">
-                                    <select
-                                      onChange={(e) => {
-                                        if (e.target.value) {
-                                          const current = safeStr(patient.roundingData?.additionalComments);
-                                          const newValue = current ? current + '\n' + e.target.value : e.target.value;
-                                          updateRoundingData(patient.id, 'additionalComments', newValue);
-                                          e.currentTarget.value = '';
-                                        }
-                                      }}
-                                      className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
-                                    >
-                                      <option value="">Select from all comments...</option>
-                                      {(commonComments || []).map((c: any) => (
-                                        <option key={c.id} value={c.name}>{c.name}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="text"
-                                      placeholder="Add new comment to list..."
-                                      className="flex-1 px-2 py-1 text-xs border border-blue-300 rounded-lg"
-                                      onKeyDown={(e) => {
-                                        const val = (e.target as HTMLInputElement).value.trim();
-                                        if (e.key === 'Enter' && val) {
-                                          addCommonComment(val);
-                                          (e.target as HTMLInputElement).value = '';
-                                        }
-                                      }}
-                                    />
-                                    <button
-                                      onClick={(e) => {
-                                        const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
-                                        const val = input.value.trim();
-                                        if (val) { addCommonComment(val); input.value = ''; }
-                                      }}
-                                      className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                    >
-                                      Save
-                                    </button>
-                                  </div>
-                                  <textarea
-                                    value={safeStr(patient.roundingData?.additionalComments)}
-                                    onChange={(e) => updateRoundingData(patient.id, 'additionalComments', e.target.value)}
-                                    placeholder="Additional Comments"
-                                    rows={3}
-                                    className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg mt-2"
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* PATIENT INFO */}
-                        {curTab === 'Patient Info' && (
-                          <div className="border rounded-lg">
-                            <button onClick={() => toggleSection(patient.id, 'info')} className="w-full flex justify-between items-center p-3 hover:bg-gray-50">
-                              <span className="font-semibold">Patient Info</span>
-                              <ChevronDown className={expandedSections[patient.id]?.info ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                            </button>
-                            {expandedSections[patient.id]?.info && (
-                              <div className="p-3 border-t grid grid-cols-2 gap-3">
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.patientId)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
-                                  placeholder="Patient ID"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.ownerName)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
-                                  placeholder="Owner Name"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.ownerPhone)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
-                                  placeholder="Owner Phone"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <select
-                                  value={safeStr(patient.patientInfo?.species) || 'Canine'}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                >
-                                  <option>Canine</option>
-                                  <option>Feline</option>
-                                </select>
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.breed)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
-                                  placeholder="Breed"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.sex)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
-                                  placeholder="Sex (MN/FS/MI/FI)"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.weight)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
-                                  placeholder="Weight (e.g., 4.9 kg)"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.age)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
-                                  placeholder="Age (e.g., 4yo)"
-                                  className="px-3 py-2 text-sm border rounded-lg"
-                                />
                               </div>
                             )}
                           </div>
@@ -2802,7 +2821,7 @@ export default function VetPatientTracker() {
         <div className="flex flex-col items-end gap-2">
           <button
             onClick={() => addMorningTasksToAll()}
-            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-lg shadow-lg hover:from-orange-600 hover:to-pink-600 transition-all transform hover:scale-105 flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-lg shadow-lg hover:from-yellow-600 hover:to-amber-600 transition-all transform hover:scale-105 flex items-center gap-2"
             title="Add Morning Tasks To All Patients"
           >
             <span className="text-lg">☀️</span>
@@ -2810,14 +2829,14 @@ export default function VetPatientTracker() {
           </button>
            <button
             onClick={() => addEveningTasksToAll()}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg shadow-lg hover:from-indigo-600 hover:to-purple-600 transition-all transform hover:scale-105 flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-lg hover:from-indigo-600 hover:to-blue-600 transition-all transform hover:scale-105 flex items-center gap-2"
             title="Add Evening Tasks To All Patients"
           >
             <span className="text-lg">🌙</span>
             Evening to All
           </button>
-          <div className="text-4xl cursor-pointer" title="You're doing great! 🐱">
-            🐱
+          <div className="text-4xl cursor-pointer" title="You're doing great! 🐾">
+            🐾
           </div>
         </div>
       </div>
