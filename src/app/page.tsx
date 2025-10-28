@@ -955,33 +955,30 @@ export default function VetPatientTracker() {
     try {
       const { data } = parseSignalment(detailsText);
 
-      const newInfo: any = { ...(patient.patientInfo || {}) };
-      Object.keys(data).forEach(key => {
-        const value = (data as any)[key];
-        if (value !== undefined) {
-          newInfo[key] = value;
-        }
-      });
-
+      const newInfo: any = { ...(patient.patientInfo || {}), ...data };
+      
       const newRounding = { ...(patient.roundingData || {}) };
       const parts: string[] = [];
       if (data.age) parts.push(data.age);
       if (data.sex) parts.push(data.sex);
       if (data.breed) parts.push(data.breed);
       newRounding.signalment = parts.join(' ');
-
+      
+      // Merge patientInfo and roundingData
+      const patientInfoAndRoundingData = { ...newInfo, ...newRounding };
+      
       // Add medications to therapeutics if found
       if (data.medications && data.medications.length > 0) {
-        const currentTherapeutics = newRounding.therapeutics || '';
+        const currentTherapeutics = patientInfoAndRoundingData.therapeutics || '';
         const newMeds = data.medications.join('\n');
-        newRounding.therapeutics = currentTherapeutics ? currentTherapeutics + '\n' + newMeds : newMeds;
+        patientInfoAndRoundingData.therapeutics = currentTherapeutics ? currentTherapeutics + '\n' + newMeds : newMeds;
       }
 
       // Add bloodwork to diagnosticFindings if found
       if (data.bloodwork) {
-        const currentDx = newRounding.diagnosticFindings || '';
+        const currentDx = patientInfoAndRoundingData.diagnosticFindings || '';
         const bwLine = 'CBC/CHEM: ' + data.bloodwork;
-        newRounding.diagnosticFindings = currentDx ? currentDx + '\n' + bwLine : bwLine;
+        patientInfoAndRoundingData.diagnosticFindings = currentDx ? currentDx + '\n' + bwLine : bwLine;
       }
 
       let updates: any = {
@@ -1022,7 +1019,7 @@ export default function VetPatientTracker() {
       // Merge the AI-parsed data into patient info and rounding data
       const newInfo: any = { ...(patient.patientInfo || {}), ...(parsed.patientInfo || {}) };
       const newRounding: any = { ...(patient.roundingData || {}), ...(parsed.roundingData || {}) };
-
+      
       let updates: any = {
         patientInfo: newInfo,
         roundingData: newRounding,
@@ -1252,14 +1249,14 @@ export default function VetPatientTracker() {
   
   // Create dynamic list of "Other" tasks from all patients
   const otherTasksList = useMemo(() => {
-    const allPatientTasks = patients.flatMap((p: any) => p.tasks || []);
+    const allPatientTasks = patients.flatMap((p: any) => getTasksForDate(p.tasks || [], currentDate));
     const morningAndEvening = new Set([...morningTasks, ...eveningTasks]);
     const uniqueOtherTasks = [...new Set(allPatientTasks
       .map((t: any) => t.name)
       .filter((name: string) => !morningAndEvening.has(name))
     )];
     return uniqueOtherTasks;
-  }, [patients]);
+  }, [patients, currentDate]);
   
 
   /* --------------------- UI --------------------- */
@@ -2300,7 +2297,7 @@ export default function VetPatientTracker() {
                           <div className="border rounded-lg">
                             <div className="p-2 border-t space-y-3">
                               {/* Quick Import */}
-                              <div className="col-span-2 p-2 bg-purple-50/50 border border-purple-200 rounded-lg">
+                              <div className="p-2 bg-purple-50/50 border border-purple-200 rounded-lg">
                                 <label className="block text-xs font-semibold text-gray-700 mb-1">Quick Import — Paste Patient Details</label>
                                 <textarea
                                   value={safeStr(patient.detailsInput)}
@@ -2341,104 +2338,70 @@ export default function VetPatientTracker() {
                                 </p>
                               </div>
                               <h4 className="text-sm font-bold text-gray-800 border-b pb-1 mb-1">Patient Info</h4>
-                              <div className="grid grid-cols-2 gap-2">
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.patientId)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'patientId', e.target.value)}
-                                  placeholder="Patient ID"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.ownerName)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'ownerName', e.target.value)}
-                                  placeholder="Owner Name"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.ownerPhone)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'ownerPhone', e.target.value)}
-                                  placeholder="Owner Phone"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                                <select
-                                  value={safeStr(patient.patientInfo?.species) || 'Canine'}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'species', e.target.value)}
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                >
-                                  <option>Canine</option>
-                                  <option>Feline</option>
-                                </select>
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.breed)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'breed', e.target.value)}
-                                  placeholder="Breed"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.sex)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'sex', e.target.value)}
-                                  placeholder="Sex (MN/FS/MI/FI)"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.weight)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'weight', e.target.value)}
-                                  placeholder="Weight (e.g., 4.9 kg)"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                                <input
-                                  type="text"
-                                  value={safeStr(patient.patientInfo?.age)}
-                                  onChange={(e) => updatePatientInfo(patient.id, 'age', e.target.value)}
-                                  placeholder="Age (e.g., 4yo)"
-                                  className="px-2 py-1 text-xs border rounded-lg"
-                                />
-                              </div>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {Object.entries(patient.patientInfo || {}).map(([key, value]) => (
+                                    <div key={key}>
+                                    <label className="block text-xs font-semibold text-gray-500">{key}</label>
+                                    <input
+                                        type="text"
+                                        value={safeStr(value)}
+                                        onChange={(e) => updatePatientInfo(patient.id, key, e.target.value)}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg"
+                                    />
+                                    </div>
+                                ))}
+                                </div>
                               <h4 className="text-sm font-bold text-gray-800 border-b pb-1 mb-1 mt-2">Rounding Sheet</h4>
-                               <div className="grid grid-cols-2 gap-2">
-                                  <input
-                                    type="text"
-                                    value={safeStr(patient.roundingData?.signalment)}
-                                    onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
-                                    placeholder="Signalment (e.g., 4yo MN Frenchie)"
-                                    className={getRequiredFieldClass(patient, 'signalment', 'col-span-2 px-2 py-1 text-xs border rounded-lg')}
-                                  />
-                                  <select
-                                    value={safeStr(patient.roundingData?.location) || ''}
-                                    onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
-                                    className={getRequiredFieldClass(patient, 'location', 'px-2 py-1 text-xs border rounded-lg')}
-                                  >
-                                    <option value="">Location...</option>
-                                    <option value="IP">IP</option>
-                                    <option value="ICU">ICU</option>
-                                  </select>
-                                  <select
-                                    value={safeStr(patient.roundingData?.icuCriteria) || ''}
-                                    onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
-                                    className="px-2 py-1 text-xs border rounded-lg"
-                                  >
-                                    <option value="">ICU Criteria...</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                    <option value="N/A">N/A</option>
-                                  </select>
-                                  <select
-                                    value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
-                                    onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
-                                    className="px-2 py-1 text-xs border rounded-lg"
-                                  >
-                                    <option>Yellow</option>
-                                    <option>Red</option>
-                                  </select>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <div className="md:col-span-2">
+                                     <label className="block text-xs font-semibold text-gray-500">Signalment</label>
+                                      <input
+                                        type="text"
+                                        value={safeStr(patient.roundingData?.signalment)}
+                                        onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
+                                        placeholder="e.g., 4yo MN Frenchie"
+                                        className={getRequiredFieldClass(patient, 'signalment', 'w-full px-2 py-1 text-xs border rounded-lg')}
+                                      />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-semibold text-gray-500">Location</label>
+                                    <select
+                                        value={safeStr(patient.roundingData?.location) || ''}
+                                        onChange={(e) => updateRoundingData(patient.id, 'location', e.target.value)}
+                                        className={getRequiredFieldClass(patient, 'location', 'w-full px-2 py-1 text-xs border rounded-lg')}
+                                    >
+                                        <option value="">Location...</option>
+                                        <option value="IP">IP</option>
+                                        <option value="ICU">ICU</option>
+                                    </select>
+                                   </div>
+                                    <div>
+                                    <label className="block text-xs font-semibold text-gray-500">ICU Criteria</label>
+                                      <select
+                                        value={safeStr(patient.roundingData?.icuCriteria) || ''}
+                                        onChange={(e) => updateRoundingData(patient.id, 'icuCriteria', e.target.value)}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg"
+                                      >
+                                        <option value="">ICU Criteria...</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                        <option value="N/A">N/A</option>
+                                      </select>
+                                    </div>
+                                    <div>
+                                    <label className="block text-xs font-semibold text-gray-500">Code Status</label>
+                                      <select
+                                        value={safeStr(patient.roundingData?.codeStatus) || 'Yellow'}
+                                        onChange={(e) => updateRoundingData(patient.id, 'codeStatus', e.target.value)}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg"
+                                      >
+                                        <option>Yellow</option>
+                                        <option>Red</option>
+                                      </select>
+                                    </div>
 
                                   {/* Problems with chip selectors */}
-                                  <div className="col-span-2 p-2 bg-yellow-50/70 border border-yellow-200 rounded-lg">
+                                  <div className="md:col-span-2 p-2 bg-yellow-50/70 border border-yellow-200 rounded-lg">
                                     <h5 className="text-xs font-bold text-yellow-900 mb-1">Problems</h5>
                                     <div className="flex flex-wrap gap-1 mb-1">
                                       {(commonProblems || []).slice(0, 10).map((pr: any) => (
@@ -2510,13 +2473,14 @@ export default function VetPatientTracker() {
                                   </div>
 
                                   {/* Diagnostics */}
-                                  <div className="col-span-2 space-y-1">
+                                  <div className="md:col-span-2 space-y-1">
+                                    <label className="block text-xs font-semibold text-gray-500">Diagnostic Findings</label>
                                     <textarea
                                       value={safeStr(patient.roundingData?.diagnosticFindings)}
                                       onChange={(e) => updateRoundingData(patient.id, 'diagnosticFindings', e.target.value)}
                                       placeholder="Diagnostic Findings"
                                       rows={2}
-                                      className={getRequiredFieldClass(patient, 'diagnosticFindings')}
+                                      className={getRequiredFieldClass(patient, 'diagnosticFindings', 'w-full px-2 py-1 text-xs border rounded-lg')}
                                     />
                                     <div className="p-2 bg-green-50/70 border border-green-200 rounded-lg">
                                       <label className="block text-xs font-semibold text-gray-700 mb-1">Blood Work</label>
@@ -2573,7 +2537,7 @@ export default function VetPatientTracker() {
                                   
 
                                   {/* Therapeutics chip system */}
-                                  <div className="col-span-2 p-2 bg-cyan-50/70 border border-cyan-200 rounded-lg">
+                                  <div className="md:col-span-2 p-2 bg-cyan-50/70 border border-cyan-200 rounded-lg">
                                     <h5 className="text-xs font-bold text-cyan-900 mb-1">Therapeutics</h5>
                                     <div className="flex flex-wrap gap-1 mb-1">
                                       {(commonMedications || []).slice(0, 10).map((med: any) => (
@@ -2644,8 +2608,8 @@ export default function VetPatientTracker() {
 
                                   {/* Replace IVC / Fluids / CRI */}
                                   {['replaceIVC', 'replaceFluids', 'replaceCRI'].map((field) => (
-                                    <div key={field} className="col-span-2 md:col-span-1">
-                                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                    <div key={field}>
+                                      <label className="block text-xs font-semibold text-gray-500">
                                         {field === 'replaceIVC' ? 'Replace IVC' : field === 'replaceFluids' ? 'Replace Fluids' : 'Replace CRI'}
                                       </label>
                                       <select
@@ -2662,21 +2626,27 @@ export default function VetPatientTracker() {
                                   ))}
 
                                   {/* Overnight + Comments */}
-                                  <textarea
-                                    value={safeStr(patient.roundingData?.overnightDiagnostics)}
-                                    onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
-                                    placeholder="Overnight Diagnostics"
-                                    rows={2}
-                                    className="px-2 py-1 text-xs border rounded-lg"
-                                  />
-                                  <textarea
-                                    value={safeStr(patient.roundingData?.overnightConcerns)}
-                                    onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
-                                    placeholder="Overnight Concerns/Alerts"
-                                    rows={2}
-                                    className="px-2 py-1 text-xs border rounded-lg"
-                                  />
-                                  <div className="col-span-2 p-2 bg-purple-50/70 border border-purple-200 rounded-lg">
+                                   <div className="md:col-span-2">
+                                     <label className="block text-xs font-semibold text-gray-500">Overnight Diagnostics</label>
+                                    <textarea
+                                        value={safeStr(patient.roundingData?.overnightDiagnostics)}
+                                        onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
+                                        placeholder="Overnight Diagnostics"
+                                        rows={2}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg"
+                                    />
+                                   </div>
+                                   <div className="md:col-span-2">
+                                     <label className="block text-xs font-semibold text-gray-500">Overnight Concerns</label>
+                                    <textarea
+                                        value={safeStr(patient.roundingData?.overnightConcerns)}
+                                        onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
+                                        placeholder="Overnight Concerns/Alerts"
+                                        rows={2}
+                                        className="w-full px-2 py-1 text-xs border rounded-lg"
+                                    />
+                                   </div>
+                                  <div className="md:col-span-2 p-2 bg-purple-50/70 border border-purple-200 rounded-lg">
                                     <h5 className="text-xs font-bold text-purple-900 mb-1">Additional Comments</h5>
                                     <div className="flex flex-wrap gap-1 mb-1">
                                       {(commonComments || []).slice(0, 10).map((c: any) => (
