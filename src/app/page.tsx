@@ -1787,21 +1787,20 @@ export default function VetPatientTracker() {
                                 <td key={cellIdx} className="p-1 border-b align-top">
                                   {cellIdx === 0 ? (
                                     <div className="font-semibold text-gray-900">{cell || '-'}</div>
+                                  ) : ['replaceIVC', 'replaceFluids', 'replaceCRI'].includes(fieldMap[cellIdx]) ? (
+                                    <select
+                                      value={safeStr(patient.roundingData?.[fieldMap[cellIdx]]) || ''}
+                                      onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
+                                      className="w-full min-w-[80px] p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white"
+                                    >
+                                      <option value="">Select...</option>
+                                      <option value="Yes">Yes</option>
+                                      <option value="No">No</option>
+                                      <option value="N/A">N/A</option>
+                                    </select>
                                   ) : (
                                     <textarea
-                                      value={cellIdx === 1 ? (patient.roundingData?.signalment || '') :
-                                             cellIdx === 2 ? (patient.roundingData?.location || '') :
-                                             cellIdx === 3 ? (patient.roundingData?.icuCriteria || '') :
-                                             cellIdx === 4 ? (patient.roundingData?.codeStatus || '') :
-                                             cellIdx === 5 ? (patient.roundingData?.problems || '') :
-                                             cellIdx === 6 ? (patient.roundingData?.diagnosticFindings || '') :
-                                             cellIdx === 7 ? (patient.roundingData?.therapeutics || '') :
-                                             cellIdx === 8 ? (patient.roundingData?.replaceIVC || '') :
-                                             cellIdx === 9 ? (patient.roundingData?.replaceFluids || '') :
-                                             cellIdx === 10 ? (patient.roundingData?.replaceCRI || '') :
-                                             cellIdx === 11 ? (patient.roundingData?.overnightDiagnostics || '') :
-                                             cellIdx === 12 ? (patient.roundingData?.overnightConcerns || '') :
-                                             (patient.roundingData?.additionalComments || '')}
+                                      value={cell}
                                       onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
                                       className="w-full min-w-[100px] p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
                                       rows={2}
@@ -2776,5 +2775,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
