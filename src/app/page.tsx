@@ -658,7 +658,7 @@ export default function VetPatientTracker() {
     'Daily SOAP Done',
     'Vet Radar Sheet Checked',
     'MRI Findings Inputted (if needed)',
-    // "Read appointments for next day" intentionally NOT included
+    'Discharge Instructions',
   ];
 
   const eveningTasks = [
