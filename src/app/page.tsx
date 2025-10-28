@@ -30,7 +30,8 @@ import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebas
 import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
-import { parseRounding, type RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
+import { parseRounding } from '@/ai/flows/parse-rounding-flow';
+import type { RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
 
