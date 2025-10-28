@@ -314,15 +314,12 @@ interface TaskTableProps {
 
 const TaskTable = ({ title, icon, patients, taskNames, onToggleTask, onPatientClick }: TaskTableProps) => {
   if (patients.length === 0) return null;
-  // Don't render the table if there are no tasks, UNLESS it's the "Other" table which should always be visible to show a message.
-  if (taskNames.length === 0 && title !== 'Other Patient Tasks') return null;
+  // Don't render the table if there are no tasks
+  if (taskNames.length === 0) return null;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 border">
       <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">{icon}{title}</h3>
-      {taskNames.length === 0 ? (
-         <p className="text-xs text-gray-500 italic">No other tasks assigned to any patients for today.</p>
-      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-xs border-collapse">
           <thead>
@@ -369,7 +366,6 @@ const TaskTable = ({ title, icon, patients, taskNames, onToggleTask, onPatientCl
           </tbody>
         </table>
       </div>
-      )}
     </div>
   );
 };
@@ -1253,15 +1249,27 @@ export default function VetPatientTracker() {
     }, 100);
   };
   
-  // Create dynamic list of "Other" tasks from all patients
-  const otherTasksList = useMemo(() => {
-    const allPatientTasks = patients.flatMap((p: any) => getTasksForDate(p.tasks || [], currentDate));
+  // Create dynamic map of "Other" tasks from all patients
+  const otherTasksMap = useMemo(() => {
+    const taskMap: Record<string, { patientId: string; taskId: number; completed: boolean }[]> = {};
     const morningAndEvening = new Set([...morningTasks, ...eveningTasks]);
-    const uniqueOtherTasks = [...new Set(allPatientTasks
-      .map((t: any) => t.name)
-      .filter((name: string) => !morningAndEvening.has(name))
-    )];
-    return uniqueOtherTasks;
+    
+    patients.forEach((patient: any) => {
+      const patientTasks = getTasksForDate(patient.tasks || [], currentDate);
+      patientTasks.forEach((task: any) => {
+        if (!morningAndEvening.has(task.name)) {
+          if (!taskMap[task.name]) {
+            taskMap[task.name] = [];
+          }
+          taskMap[task.name].push({
+            patientId: patient.id,
+            taskId: task.id,
+            completed: task.completed,
+          });
+        }
+      });
+    });
+    return taskMap;
   }, [patients, currentDate]);
   
 
@@ -1955,15 +1963,40 @@ export default function VetPatientTracker() {
             onToggleTask={toggleTask}
             onPatientClick={handlePatientClick}
           />
-          <TaskTable
-            title="Other Patient Tasks"
-            icon={<Sparkles className="text-purple-500" />}
-            patients={sortedPatients}
-            taskNames={otherTasksList}
-            currentDate={currentDate}
-            onToggleTask={toggleTask}
-            onPatientClick={handlePatientClick}
-          />
+          {Object.keys(otherTasksMap).length > 0 && (
+            <div className="bg-white rounded-lg shadow-md p-4 border">
+              <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+                <Sparkles className="text-purple-500" />
+                Other Tasks List
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {Object.entries(otherTasksMap).map(([taskName, tasks]) => (
+                  <div key={taskName} className="p-3 bg-purple-50/70 border border-purple-200 rounded-lg">
+                    <h4 className="font-bold text-sm text-purple-800 mb-2">{taskName}</h4>
+                    <div className="space-y-2">
+                      {tasks.map((task) => {
+                        const patient = patients.find(p => p.id === task.patientId);
+                        if (!patient) return null;
+                        return (
+                          <label key={task.taskId} className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-purple-100">
+                            <input
+                              type="checkbox"
+                              checked={task.completed}
+                              onChange={() => toggleTask(task.patientId, task.taskId)}
+                              className="w-4 h-4 accent-purple-600 cursor-pointer"
+                            />
+                            <span className={`text-xs font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                              {patient.name}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Patients */}
