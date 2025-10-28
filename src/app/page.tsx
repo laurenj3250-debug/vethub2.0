@@ -312,12 +312,17 @@ interface TaskTableProps {
   onPatientClick: (patientId: string) => void;
 }
 
-const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask, onPatientClick }: TaskTableProps) => {
-  if (patients.length === 0 || taskNames.length === 0) return null;
+const TaskTable = ({ title, icon, patients, taskNames, onToggleTask, onPatientClick }: TaskTableProps) => {
+  if (patients.length === 0) return null;
+  // Don't render the table if there are no tasks, UNLESS it's the "Other" table which should always be visible to show a message.
+  if (taskNames.length === 0 && title !== 'Other Patient Tasks') return null;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-4 border">
       <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">{icon}{title}</h3>
+      {taskNames.length === 0 ? (
+         <p className="text-xs text-gray-500 italic">No other tasks assigned to any patients for today.</p>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-full text-xs border-collapse">
           <thead>
@@ -332,7 +337,7 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
           </thead>
           <tbody>
             {patients.map((patient: any) => {
-              const patientTasks = (patient.tasks || []).filter((t: any) => !t.date || t.date === currentDate);
+              const patientTasks = (patient.tasks || []).filter((t: any) => !t.date || t.date === patient.currentDate);
               
               return (
                 <tr key={patient.id} className="hover:bg-purple-50/50">
@@ -364,6 +369,7 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 };
