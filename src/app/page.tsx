@@ -299,6 +299,76 @@ function KeyboardHelpModal({ isOpen, onClose }: KeyboardHelpProps) {
 }
 
 /* -----------------------------------------------------------
+   Task Table Component
+----------------------------------------------------------- */
+
+interface TaskTableProps {
+  title: string;
+  icon: React.ReactNode;
+  patients: any[];
+  taskNames: string[];
+  currentDate: string;
+  onToggleTask: (patientId: string, taskId: number) => void;
+  onPatientClick: (patientId: string) => void;
+}
+
+const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask, onPatientClick }: TaskTableProps) => {
+  if (patients.length === 0 || taskNames.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-4 border">
+      <h3 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">{icon}{title}</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-gray-50">
+              <th className="p-2 border text-left font-semibold text-gray-600 sticky left-0 bg-gray-50 z-10">Patient</th>
+              {taskNames.map(taskName => (
+                <th key={taskName} className="p-2 border text-center font-semibold text-gray-600 whitespace-nowrap" style={{ minWidth: '100px' }}>
+                  {taskName}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {patients.map((patient: any) => {
+              const patientTasks = (patient.tasks || []).filter((t: any) => !t.date || t.date === currentDate);
+              
+              return (
+                <tr key={patient.id} className="hover:bg-blue-50/50">
+                  <td className="p-2 border font-semibold sticky left-0 bg-white group-hover:bg-blue-50/50 z-10">
+                    <button onClick={() => onPatientClick(patient.id)} className="text-blue-600 hover:underline text-left w-full">
+                      {patient.name}
+                    </button>
+                  </td>
+                  {taskNames.map(taskName => {
+                    const task = patientTasks.find((t: any) => t.name === taskName);
+                    return (
+                      <td key={taskName} className="p-2 border text-center">
+                        {task ? (
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() => onToggleTask(patient.id, task.id)}
+                            className="w-5 h-5 accent-blue-600 cursor-pointer"
+                          />
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+/* -----------------------------------------------------------
    MAIN COMPONENT
 ----------------------------------------------------------- */
 
@@ -354,7 +424,6 @@ export default function VetPatientTracker() {
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState({ name: '', category: 'Morning', priority: 'Medium' });
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
-  const [showAllTasksDropdown, setShowAllTasksDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
   const [useAIForRounding, setUseAIForRounding] = useState(false);
@@ -1173,6 +1242,26 @@ export default function VetPatientTracker() {
   const morningGeneralTasks = useMemo(() => (generalTasks || []).filter(t => t.category === 'Morning'), [generalTasks]);
   const eveningGeneralTasks = useMemo(() => (generalTasks || []).filter(t => t.category === 'Evening'), [generalTasks]);
 
+  const handlePatientClick = (patientId: string) => {
+    setExpandedPatients(prev => ({ ...prev, [patientId]: true }));
+    setTimeout(() => {
+      const element = document.getElementById(`patient-${patientId}`);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  };
+  
+  // Create dynamic list of "Other" tasks from all patients
+  const otherTasksList = useMemo(() => {
+    const allPatientTasks = patients.flatMap((p: any) => p.tasks || []);
+    const morningAndEvening = new Set([...morningTasks, ...eveningTasks]);
+    const uniqueOtherTasks = [...new Set(allPatientTasks
+      .map((t: any) => t.name)
+      .filter((name: string) => !morningAndEvening.has(name))
+    )];
+    return uniqueOtherTasks;
+  }, [patients]);
+  
+
   /* --------------------- UI --------------------- */
 
   if (isUserLoading) {
@@ -1732,7 +1821,6 @@ export default function VetPatientTracker() {
           </div>
         )}
 
-
         {/* General Tasks */}
         <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-white rounded-lg shadow-lg p-6 mb-6 border-l-4 border-indigo-400">
           <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -1844,128 +1932,36 @@ export default function VetPatientTracker() {
             </div>
           )}
         </div>
-        {/* All Tasks Overview - Always Visible, Beautiful & Colorful */}
-        <div className="bg-gradient-to-br from-cyan-100 via-blue-100 to-indigo-100 rounded-xl shadow-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                ⚕️ All Tasks
-              </h2>
-              <span className="px-4 py-2 bg-blue-500 text-white rounded-full text-lg font-bold shadow-lg">
-                {overallTaskStats.completed}/{overallTaskStats.total}
-              </span>
-            </div>
-            <button
-              onClick={() => setShowAllTasksDropdown(!showAllTasksDropdown)}
-              className="px-4 py-2 bg-white/80 hover:bg-white rounded-lg shadow-md transition flex items-center gap-2"
-            >
-              <span className="text-sm font-semibold">{showAllTasksDropdown ? 'Hide' : 'Show'}</span>
-              <ChevronDown
-                className={`transition-transform ${showAllTasksDropdown ? 'rotate-180' : ''}`}
-                size={20}
-              />
-            </button>
-          </div>
-
-          {showAllTasksDropdown && (
-            <div className="space-y-4">
-              {patients.length === 0 ? (
-                <div className="bg-white/80 backdrop-blur rounded-xl p-12 text-center">
-                  <p className="text-gray-500 text-lg">No patients added yet 🐾</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {patients.map((patient: any, idx: number) => {
-                    const todayTasks = getTasksForDate(patient.tasks || [], currentDate);
-                    const tasksSorted = [...todayTasks].sort((a, b) =>
-                      Number(a.completed) - Number(b.completed)
-                    );
-                    const completedCount = tasksSorted.filter(t => t.completed).length;
-                    const totalCount = tasksSorted.length;
-                    const percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-                    
-                    const goToPatient = () => {
-                      setExpandedPatients(prev => ({ ...prev, [patient.id]: true }));
-                      setShowAllTasksDropdown(false);
-                      setTimeout(() => {
-                        const element = document.getElementById(`patient-${patient.id}`);
-                        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }, 100);
-                    };
-
-                    return (
-                      <div 
-                        key={patient.id} 
-                        className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10">
-                              <ProgressRing percentage={Math.round(percentage)} size={40} />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-2xl">{getBreedEmoji(patient)}</span>
-                                <button onClick={goToPatient} className="font-bold text-gray-900 hover:underline">
-                                  {patient.name}
-                                </button>
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getPatientTypeColor(patient.type)}`}>
-                                  {patient.type}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(patient.status)}`}>
-                                  {patient.status}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-600 mt-0.5">
-                                {completedCount}/{totalCount} tasks completed
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            onClick={goToPatient}
-                            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-                          >
-                            Go to Patient
-                          </button>
-                        </div>
-
-                        {totalCount === 0 ? (
-                          <p className="text-gray-400 text-sm italic p-3">No tasks yet</p>
-                        ) : (
-                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-                            {tasksSorted.filter(task => !hideCompletedTasks || !task.completed).map((task: any) => (
-                              <label
-                                key={task.id}
-                                className={`flex items-center gap-3 p-3 rounded-xl border-2 transition cursor-pointer hover:scale-[1.02] ${
-                                  getTaskBackgroundColor(task.name, task.completed, morningTasks, eveningTasks)
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={task.completed}
-                                  onChange={() => toggleTask(patient.id, task.id)}
-                                  className="w-6 h-6 text-orange-600 rounded-lg cursor-pointer flex-shrink-0 accent-blue-600"
-                                />
-                                <span
-                                  className={`flex-1 text-sm font-semibold ${
-                                    task.completed
-                                      ? 'text-green-800 line-through'
-                                      : 'text-gray-800'
-                                  }`}
-                                >
-                                  {task.name}
-                                </span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+        
+        {/* Rapid Task Check-off Tables */}
+        <div className="space-y-6 mb-6">
+          <TaskTable
+            title="Morning Tasks"
+            icon={<Sun className="text-yellow-500" />}
+            patients={sortedPatients}
+            taskNames={morningTasks}
+            currentDate={currentDate}
+            onToggleTask={toggleTask}
+            onPatientClick={handlePatientClick}
+          />
+          <TaskTable
+            title="Evening Tasks"
+            icon={<Moon className="text-blue-500" />}
+            patients={sortedPatients}
+            taskNames={eveningTasks}
+            currentDate={currentDate}
+            onToggleTask={toggleTask}
+            onPatientClick={handlePatientClick}
+          />
+          <TaskTable
+            title="Other Patient Tasks"
+            icon={<Sparkles className="text-purple-500" />}
+            patients={sortedPatients}
+            taskNames={otherTasksList}
+            currentDate={currentDate}
+            onToggleTask={toggleTask}
+            onPatientClick={handlePatientClick}
+          />
         </div>
 
         {/* Patients */}
@@ -1994,9 +1990,6 @@ export default function VetPatientTracker() {
               const tasksSorted = [...todayTasks].sort((a, b) => Number(a.completed) - Number(b.completed));
               const morningTasksSet = new Set(morningTasks);
               const eveningTasksSet = new Set(eveningTasks);
-              const patientMorningTasks = tasksSorted.filter(t => morningTasksSet.has(t.name));
-              const patientEveningTasks = tasksSorted.filter(t => eveningTasksSet.has(t.name));
-              const otherTasks = tasksSorted.filter(t => !morningTasksSet.has(t.name) && !eveningTasksSet.has(t.name));
 
               const tabs = getTabsForPatient(patient);
               const curTab = activeTab[patient.id] ?? tabs[0];
