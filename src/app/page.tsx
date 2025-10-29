@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -1390,6 +1390,13 @@ export default function VetPatientTracker() {
               >
                 <Calendar size={14} />
                 Appointments
+              </Link>
+              <Link
+                href="/mri-report-builder"
+                className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg hover:from-indigo-600 hover:to-blue-600 flex items-center gap-1.5 transition shadow-sm text-xs"
+              >
+                <BrainCircuit size={14} />
+                MRI Builder
               </Link>
               <button
                 onClick={() => setShowKeyboardHelp(true)}
