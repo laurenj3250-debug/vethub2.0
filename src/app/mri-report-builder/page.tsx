@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { BrainCircuit, ArrowLeft, Copy } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,18 +19,21 @@ const MeningiomaTemplate = () => {
     massEffectDescription: 'ventricular compression',
     calvarial: 'No calvarial changes are identified',
   });
+  
+  const [reportText, setReportText] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const generatedReport = useMemo(() => {
-    return `There is an ${formData.axiality} ${formData.enhancement} mass ${formData.attachment} to the ${formData.location}. The mass is ${formData.t1} on T1-weighted images and ${formData.t2} on T2-weighted images. Contrast enhancement is ${formData.contrast}. ${formData.duralTail}. The mass causes ${formData.massEffect} mass effect with ${formData.massEffectDescription}. ${formData.calvarial}.`;
+  useEffect(() => {
+    const generatedReport = `There is an ${formData.axiality} ${formData.enhancement} mass ${formData.attachment} to the ${formData.location}. The mass is ${formData.t1} on T1-weighted images and ${formData.t2} on T2-weighted images. Contrast enhancement is ${formData.contrast}. ${formData.duralTail}. The mass causes ${formData.massEffect} mass effect with ${formData.massEffectDescription}. ${formData.calvarial}.`;
+    setReportText(generatedReport);
   }, [formData]);
 
   const copyReport = () => {
-    navigator.clipboard.writeText(generatedReport);
+    navigator.clipboard.writeText(reportText);
     alert('Report copied to clipboard!');
   };
 
@@ -81,12 +84,12 @@ const MeningiomaTemplate = () => {
       </div>
 
       <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-600 mb-2">Generated Report:</h4>
+        <h4 className="text-sm font-semibold text-gray-600 mb-2">Generated Report (Editable):</h4>
         <textarea
-          readOnly
-          value={generatedReport}
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
           rows={5}
-          className="w-full text-sm font-mono bg-white p-2 border rounded"
+          className="w-full text-sm font-mono bg-white p-2 border rounded focus:ring-2 focus:ring-indigo-500 focus:outline-none"
         />
         <button
           onClick={copyReport}
