@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VetHub MRI Report Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        select, input[type="text"], textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .fields-container {
+            display: none;
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .fields-container.active {
+            display: block;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-copy {
+            background: #28a745;
+            color: white;
+            display: none;
+        }
+
+        .btn-copy:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-copy.active {
+            display: block;
+        }
+
+        .report-output {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+
+        .report-output.active {
+            display: block;
+        }
+
+        .report-output h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .report-text {
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .hint {
+            font-size: 0.9rem;
+            color: #666;
+            font-style: italic;
+            margin-top: 0.25rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VetHub MRI Report Generator</h1>
+            <p>Veterinary Neurology MRI Report Templates</p>
+        </div>
+
+        <div class="content">
+            <div class="form-group">
+                <label for="condition">Select Condition:</label>
+                <select id="condition" onchange="showFields()">
+                    <option value="">-- Select a condition --</option>
+                    <option value="meningioma">Meningioma</option>
+                    <option value="glioma">Glioma</option>
+                    <option value="ivdd">Intervertebral Disc Disease (IVDD)</option>
+                    <option value="fce">Fibrocartilaginous Embolism (FCE)</option>
+                    <option value="muo">Meningoencephalitis of Unknown Origin (MUO)</option>
+                    <option value="stroke">Stroke/Infarct</option>
+                    <option value="csm">Cervical Spondylomyelopathy (Wobbler Syndrome)</option>
+                    <option value="syrinx">Syringohydromyelia</option>
+                    <option value="spinal-tumor">Spinal Tumor</option>
+                </select>
+            </div>
+
+            <!-- Meningioma Fields -->
+            <div id="fields-meningioma" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Meningioma Report Fields</h3>
+                <div class="form-group">
+                    <label>Location:</label>
+                    <input type="text" id="mening-location" placeholder="e.g., left frontal lobe, right cerebellopontine angle">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Dimensions (cm):</label>
+                        <input type="text" id="mening-dimensions" placeholder="e.g., 2.1 × 1.8 × 1.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Margin:</label>
+                        <select id="mening-margin">
+                            <option value="well-defined">Well-defined</option>
+                            <option value="ill-defined">Ill-defined</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Shape:</label>
+                        <select id="mening-shape">
+                            <option value="ovoid">Ovoid</option>
+                            <option value="irregular">Irregular</option>
+                            <option value="lobulated">Lobulated</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2 Signal:</label>
+                        <select id="mening-t2">
+                            <option value="isointense">Isointense to gray matter</option>
+                            <option value="hyperintense">Hyperintense to gray matter</option>
+                            <option value="hypointense">Hypointense to gray matter</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="mening-t1">
+                            <option value="isointense">Isointense to gray matter</option>
+                            <option value="hyperintense">Hyperintense to gray matter</option>
+                            <option value="hypointense">Hypointense to gray matter</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="mening-contrast">
+                            <option value="homogeneous">Homogeneous</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                            <option value="ring-like">Ring-like</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Perilesional Edema:</label>
+                        <select id="mening-edema">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="severe">Severe</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mass Effect:</label>
+                    <input type="text" id="mening-mass-effect" placeholder="e.g., mild midline shift, ventricular compression">
+                </div>
+                <div class="form-group">
+                    <label>Dural Tail Sign:</label>
+                    <select id="mening-dural">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="mening-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- Glioma Fields -->
+            <div id="fields-glioma" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Glioma Report Fields</h3>
+                <div class="form-group">
+                    <label>Location:</label>
+                    <input type="text" id="glioma-location" placeholder="e.g., left thalamus, right temporal lobe">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Dimensions (cm):</label>
+                        <input type="text" id="glioma-dimensions" placeholder="e.g., 3.2 × 2.8 × 2.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Margin:</label>
+                        <select id="glioma-margin">
+                            <option value="ill-defined">Ill-defined</option>
+                            <option value="well-defined">Well-defined</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Shape:</label>
+                        <select id="glioma-shape">
+                            <option value="irregular">Irregular</option>
+                            <option value="ovoid">Ovoid</option>
+                            <option value="infiltrative">Infiltrative</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2/FLAIR Signal:</label>
+                        <select id="glioma-t2">
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="heterogeneous hyperintense">Heterogeneous hyperintense</option>
+                            <option value="isointense">Isointense</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="glioma-t1">
+                            <option value="hypointense">Hypointense</option>
+                            <option value="isointense">Isointense</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="glioma-contrast">
+                            <option value="minimal to absent">Minimal to absent</option>
+                            <option value="ring-like">Ring-like</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                            <option value="patchy">Patchy</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Perilesional Edema:</label>
+                        <select id="glioma-edema">
+                            <option value="moderate to severe">Moderate to severe</option>
+                            <option value="severe">Severe</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="mild">Mild</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Mass Effect:</label>
+                    <input type="text" id="glioma-mass-effect" placeholder="e.g., severe midline shift with ventricular compression">
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="glioma-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- IVDD Fields -->
+            <div id="fields-ivdd" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">IVDD Report Fields</h3>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Affected Disc Space:</label>
+                        <input type="text" id="ivdd-level" placeholder="e.g., T12-T13, L4-L5">
+                    </div>
+                    <div class="form-group">
+                        <label>Hansen Classification:</label>
+                        <select id="ivdd-hansen">
+                            <option value="Type I">Type I (extrusion)</option>
+                            <option value="Type II">Type II (protrusion)</option>
+                            <option value="Type III">Type III (acute non-compressive)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Lateralization:</label>
+                        <select id="ivdd-lateralization">
+                            <option value="left-sided">Left-sided</option>
+                            <option value="right-sided">Right-sided</option>
+                            <option value="midline">Midline</option>
+                            <option value="left-paramedian">Left-paramedian</option>
+                            <option value="right-paramedian">Right-paramedian</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Spinal Canal Stenosis:</label>
+                        <select id="ivdd-stenosis">
+                            <option value="severe (>75%)">Severe (>75%)</option>
+                            <option value="moderate (50-75%)">Moderate (50-75%)</option>
+                            <option value="mild (<50%)">Mild (<50%)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Cord Compression:</label>
+                        <select id="ivdd-compression">
+                            <option value="present with cord deformation">Present with cord deformation</option>
+                            <option value="present without cord deformation">Present without cord deformation</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T2 Hyperintensity:</label>
+                        <select id="ivdd-t2">
+                            <option value="present">Present (indicating edema/myelomalacia)</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>T2 Hyperintensity Characteristics (if present):</label>
+                    <select id="ivdd-t2-char">
+                        <option value="">Not applicable</option>
+                        <option value="focal, well-defined">Focal, well-defined (edema)</option>
+                        <option value="extensive, ill-defined">Extensive, ill-defined (myelomalacia)</option>
+                        <option value="spanning multiple segments">Spanning multiple segments</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Additional Disc Disease:</label>
+                    <input type="text" id="ivdd-additional-discs" placeholder="e.g., mild disc bulges at T11-T12, L3-L4">
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="ivdd-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- FCE Fields -->
+            <div id="fields-fce" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">FCE Report Fields</h3>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Affected Cord Level:</label>
+                        <input type="text" id="fce-level" placeholder="e.g., C6-C7, L4-L5">
+                    </div>
+                    <div class="form-group">
+                        <label>Lateralization:</label>
+                        <select id="fce-lateralization">
+                            <option value="left">Left</option>
+                            <option value="right">Right</option>
+                            <option value="bilateral">Bilateral</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Distribution:</label>
+                    <select id="fce-distribution">
+                        <option value="unilateral, involving gray and white matter">Unilateral, involving gray and white matter</option>
+                        <option value="involving primarily gray matter">Involving primarily gray matter</option>
+                        <option value="asymmetric, crossing midline">Asymmetric, crossing midline</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2 Signal:</label>
+                        <select id="fce-t2">
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="mildly hyperintense">Mildly hyperintense</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="fce-t1">
+                            <option value="isointense to hypointense">Isointense to hypointense</option>
+                            <option value="hypointense">Hypointense</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="fce-contrast">
+                            <option value="absent">Absent</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="mild peripheral enhancement">Mild peripheral enhancement</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cord Swelling:</label>
+                        <select id="fce-swelling">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="fce-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- MUO Fields -->
+            <div id="fields-muo" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">MUO Report Fields</h3>
+                <div class="form-group">
+                    <label>Primary Location:</label>
+                    <input type="text" id="muo-location" placeholder="e.g., forebrain, brainstem, multifocal">
+                </div>
+                <div class="form-group">
+                    <label>Distribution:</label>
+                    <select id="muo-distribution">
+                        <option value="multifocal">Multifocal</option>
+                        <option value="focal">Focal</option>
+                        <option value="diffuse">Diffuse</option>
+                        <option value="asymmetric">Asymmetric</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2/FLAIR Signal:</label>
+                        <select id="muo-t2">
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="heterogeneous hyperintense">Heterogeneous hyperintense</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="muo-t1">
+                            <option value="hypointense">Hypointense</option>
+                            <option value="isointense">Isointense</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="muo-contrast">
+                            <option value="variable, patchy">Variable, patchy</option>
+                            <option value="ring-like">Ring-like</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Mass Effect:</label>
+                        <select id="muo-mass-effect">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Meningeal Enhancement:</label>
+                    <select id="muo-meningeal">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Ventricular Changes:</label>
+                    <input type="text" id="muo-ventricles" placeholder="e.g., mild ventriculomegaly, normal">
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="muo-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- Stroke Fields -->
+            <div id="fields-stroke" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Stroke/Infarct Report Fields</h3>
+                <div class="form-group">
+                    <label>Location:</label>
+                    <input type="text" id="stroke-location" placeholder="e.g., middle cerebral artery territory, right thalamus">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Vascular Territory:</label>
+                        <select id="stroke-territory">
+                            <option value="middle cerebral artery">Middle cerebral artery</option>
+                            <option value="rostral cerebral artery">Rostral cerebral artery</option>
+                            <option value="caudal cerebral artery">Caudal cerebral artery</option>
+                            <option value="watershed zone">Watershed zone</option>
+                            <option value="unclear">Unclear</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Lateralization:</label>
+                        <select id="stroke-lateralization">
+                            <option value="unilateral left">Unilateral left</option>
+                            <option value="unilateral right">Unilateral right</option>
+                            <option value="bilateral">Bilateral</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2/FLAIR Signal:</label>
+                        <select id="stroke-t2">
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="mildly hyperintense">Mildly hyperintense</option>
+                            <option value="markedly hyperintense">Markedly hyperintense</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="stroke-t1">
+                            <option value="hypointense">Hypointense</option>
+                            <option value="isointense">Isointense</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="stroke-contrast">
+                            <option value="absent">Absent</option>
+                            <option value="minimal">Minimal</option>
+                            <option value="gyral pattern">Gyral pattern (subacute)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Mass Effect:</label>
+                        <select id="stroke-mass-effect">
+                            <option value="mild">Mild</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Stage:</label>
+                    <select id="stroke-stage">
+                        <option value="acute">Acute (hours to days)</option>
+                        <option value="subacute">Subacute (days to weeks)</option>
+                        <option value="chronic">Chronic (weeks to months)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="stroke-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- CSM Fields -->
+            <div id="fields-csm" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Cervical Spondylomyelopathy (Wobbler) Report Fields</h3>
+                <div class="form-group">
+                    <label>Affected Level(s):</label>
+                    <input type="text" id="csm-level" placeholder="e.g., C5-C6, C6-C7">
+                </div>
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="csm-type">
+                        <option value="disc-associated (type I)">Disc-associated (Type I)</option>
+                        <option value="osseous-associated (type II)">Osseous-associated (Type II)</option>
+                        <option value="mixed">Mixed</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Stenosis Degree:</label>
+                        <select id="csm-stenosis">
+                            <option value="severe (>50%)">Severe (>50%)</option>
+                            <option value="moderate (25-50%)">Moderate (25-50%)</option>
+                            <option value="mild (<25%)">Mild (<25%)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Dynamic Component:</label>
+                        <select id="csm-dynamic">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                            <option value="not assessed">Not assessed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Cord Signal (T2):</label>
+                        <select id="csm-cord-signal">
+                            <option value="normal">Normal</option>
+                            <option value="hyperintense">Hyperintense (myelomalacia)</option>
+                            <option value="mildly hyperintense">Mildly hyperintense (edema)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cord Atrophy:</label>
+                        <select id="csm-atrophy">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Contributing Factors:</label>
+                    <input type="text" id="csm-factors" placeholder="e.g., vertebral body osteophytes, facet hypertrophy, ligamentous hypertrophy">
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="csm-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- Syringohydromyelia Fields -->
+            <div id="fields-syrinx" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Syringohydromyelia Report Fields</h3>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Location:</label>
+                        <input type="text" id="syrinx-location" placeholder="e.g., C2-C5, T10-L1">
+                    </div>
+                    <div class="form-group">
+                        <label>Maximal Width (mm):</label>
+                        <input type="text" id="syrinx-width" placeholder="e.g., 3.2">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Syrinx Type:</label>
+                    <select id="syrinx-type">
+                        <option value="central canal dilatation (hydromyelia)">Central canal dilatation (hydromyelia)</option>
+                        <option value="parenchymal cavity (syringomyelia)">Parenchymal cavity (syringomyelia)</option>
+                        <option value="indeterminate">Indeterminate</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Associated Chiari-like Malformation:</label>
+                    <select id="syrinx-chiari">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chiari Details (if present):</label>
+                    <input type="text" id="syrinx-chiari-details" placeholder="e.g., caudal cerebellar herniation, occipital hypoplasia">
+                </div>
+                <div class="form-group">
+                    <label>Obstruction/Cause:</label>
+                    <input type="text" id="syrinx-cause" placeholder="e.g., arachnoid diverticulum at C3, spinal cord tumor">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Cord Atrophy:</label>
+                        <select id="syrinx-atrophy">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Septations:</label>
+                        <select id="syrinx-septations">
+                            <option value="present">Present</option>
+                            <option value="absent">Absent</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="syrinx-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <!-- Spinal Tumor Fields -->
+            <div id="fields-spinal-tumor" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Spinal Tumor Report Fields</h3>
+                <div class="form-group">
+                    <label>Location:</label>
+                    <input type="text" id="tumor-location" placeholder="e.g., C2-C3, L1-L2 vertebral level">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Tumor Type (Presumptive):</label>
+                        <select id="tumor-type">
+                            <option value="nerve sheath tumor">Nerve sheath tumor</option>
+                            <option value="meningioma">Meningioma</option>
+                            <option value="lymphoma">Lymphoma</option>
+                            <option value="nephroblastoma">Nephroblastoma</option>
+                            <option value="hemangiosarcoma">Hemangiosarcoma</option>
+                            <option value="metastatic carcinoma">Metastatic carcinoma</option>
+                            <option value="indeterminate mass">Indeterminate mass</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location Relative to Cord:</label>
+                        <select id="tumor-cord-location">
+                            <option value="intradural-extramedullary">Intradural-extramedullary</option>
+                            <option value="extradural">Extradural</option>
+                            <option value="intramedullary">Intramedullary</option>
+                            <option value="indeterminate">Indeterminate</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Dimensions (cm):</label>
+                        <input type="text" id="tumor-dimensions" placeholder="e.g., 1.8 × 1.2 × 2.4">
+                    </div>
+                    <div class="form-group">
+                        <label>Margin:</label>
+                        <select id="tumor-margin">
+                            <option value="well-defined">Well-defined</option>
+                            <option value="ill-defined">Ill-defined</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2 Signal:</label>
+                        <select id="tumor-t2">
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="isointense">Isointense</option>
+                            <option value="hypointense">Hypointense</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="tumor-t1">
+                            <option value="isointense">Isointense</option>
+                            <option value="hypointense">Hypointense</option>
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="tumor-contrast">
+                            <option value="homogeneous">Homogeneous</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                            <option value="ring-like">Ring-like</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Spinal Cord Compression:</label>
+                        <select id="tumor-compression">
+                            <option value="severe">Severe</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="mild">Mild</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Cord Signal Changes:</label>
+                    <select id="tumor-cord-signal">
+                        <option value="T2 hyperintensity present (edema/myelomalacia)">T2 hyperintensity present (edema/myelomalacia)</option>
+                        <option value="normal cord signal">Normal cord signal</option>
+                        <option value="cord atrophy present">Cord atrophy present</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bone Involvement:</label>
+                    <select id="tumor-bone">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bone Details (if present):</label>
+                    <input type="text" id="tumor-bone-details" placeholder="e.g., vertebral body lysis, pedicle destruction">
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="tumor-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-generate" onclick="generateReport()">Generate Report</button>
+                <button class="btn-copy" id="copyBtn" onclick="copyReport()">Copy to Clipboard</button>
+            </div>
+
+            <div class="report-output" id="reportOutput">
+                <h3>Generated Report:</h3>
+                <div class="report-text" id="reportText"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showFields() {
+            const condition = document.getElementById('condition').value;
+            const allFields = document.querySelectorAll('.fields-container');
+
+            allFields.forEach(field => {
+                field.classList.remove('active');
+            });
+
+            if (condition) {
+                const selectedFields = document.getElementById('fields-' + condition);
+                if (selectedFields) {
+                    selectedFields.classList.add('active');
+                }
+            }
+
+            // Hide report output when changing condition
+            document.getElementById('reportOutput').classList.remove('active');
+            document.getElementById('copyBtn').classList.remove('active');
+        }
+
+        function generateReport() {
+            const condition = document.getElementById('condition').value;
+            if (!condition) {
+                alert('Please select a condition first');
+                return;
+            }
+
+            let report = '';
+
+            switch(condition) {
+                case 'meningioma':
+                    report = generateMeningiomaReport();
+                    break;
+                case 'glioma':
+                    report = generateGliomaReport();
+                    break;
+                case 'ivdd':
+                    report = generateIVDDReport();
+                    break;
+                case 'fce':
+                    report = generateFCEReport();
+                    break;
+                case 'muo':
+                    report = generateMUOReport();
+                    break;
+                case 'stroke':
+                    report = generateStrokeReport();
+                    break;
+                case 'csm':
+                    report = generateCSMReport();
+                    break;
+                case 'syrinx':
+                    report = generateSyrinxReport();
+                    break;
+                case 'spinal-tumor':
+                    report = generateSpinalTumorReport();
+                    break;
+            }
+
+            document.getElementById('reportText').textContent = report;
+            document.getElementById('reportOutput').classList.add('active');
+            document.getElementById('copyBtn').classList.add('active');
+        }
+
+        function generateMeningiomaReport() {
+            const location = document.getElementById('mening-location').value || '[location]';
+            const dimensions = document.getElementById('mening-dimensions').value || '[___ × ___ × ___]';
+            const margin = document.getElementById('mening-margin').value;
+            const shape = document.getElementById('mening-shape').value;
+            const t2 = document.getElementById('mening-t2').value;
+            const t1 = document.getElementById('mening-t1').value;
+            const contrast = document.getElementById('mening-contrast').value;
+            const edema = document.getElementById('mening-edema').value;
+            const massEffect = document.getElementById('mening-mass-effect').value || 'no significant mass effect';
+            const duralTail = document.getElementById('mening-dural').value;
+            const additional = document.getElementById('mening-additional').value;
+
+            let report = `There is an extra-axial, dural-based mass in the ${location} measuring approximately ${dimensions} cm, which is ${margin} and ${shape}. The lesion is ${t2} on T2-weighted images and ${t1} on T1-weighted images, with ${contrast} contrast enhancement. `;
+
+            if (duralTail === 'present') {
+                report += `A dural tail sign is present. `;
+            }
+
+            report += `Surrounding ${edema} perilesional edema is present with ${massEffect}. `;
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, findings are most consistent with meningioma based on the extra-axial location, dural attachment, and imaging characteristics.`;
+
+            return report;
+        }
+
+        function generateGliomaReport() {
+            const location = document.getElementById('glioma-location').value || '[location]';
+            const dimensions = document.getElementById('glioma-dimensions').value || '[___ × ___ × ___]';
+            const margin = document.getElementById('glioma-margin').value;
+            const shape = document.getElementById('glioma-shape').value;
+            const t2 = document.getElementById('glioma-t2').value;
+            const t1 = document.getElementById('glioma-t1').value;
+            const contrast = document.getElementById('glioma-contrast').value;
+            const edema = document.getElementById('glioma-edema').value;
+            const massEffect = document.getElementById('glioma-mass-effect').value || 'mass effect is present';
+            const additional = document.getElementById('glioma-additional').value;
+
+            let report = `There is an intra-axial mass in the ${location} measuring approximately ${dimensions} cm, which is ${margin} and ${shape}. The lesion is ${t2} on T2/FLAIR sequences and ${t1} on T1-weighted images, with ${contrast} contrast enhancement. `;
+
+            report += `Surrounding ${edema} perilesional edema is present with ${massEffect}. `;
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, findings are most consistent with a glial neoplasm (glioma) based on the intra-axial location, infiltrative pattern, and imaging characteristics.`;
+
+            return report;
+        }
+
+        function generateIVDDReport() {
+            const level = document.getElementById('ivdd-level').value || '[disc space]';
+            const hansen = document.getElementById('ivdd-hansen').value;
+            const lateralization = document.getElementById('ivdd-lateralization').value;
+            const stenosis = document.getElementById('ivdd-stenosis').value;
+            const compression = document.getElementById('ivdd-compression').value;
+            const t2 = document.getElementById('ivdd-t2').value;
+            const t2Char = document.getElementById('ivdd-t2-char').value;
+            const additionalDiscs = document.getElementById('ivdd-additional-discs').value;
+            const additional = document.getElementById('ivdd-additional').value;
+
+            let report = `There is ${hansen} disc herniation at ${level} with ${lateralization} ${stenosis} spinal canal stenosis. The herniated disc material causes ${compression}. `;
+
+            if (t2 === 'present') {
+                if (t2Char) {
+                    report += `T2-hyperintense signal is present within the spinal cord at this level, ${t2Char}, consistent with edema/myelomalacia. `;
+                } else {
+                    report += `T2-hyperintense signal is present within the spinal cord at this level, consistent with edema/myelomalacia. `;
+                }
+            } else {
+                report += `No T2-hyperintense signal is identified within the spinal cord. `;
+            }
+
+            if (additionalDiscs) {
+                report += `Additional degenerative disc disease is noted at ${additionalDiscs}. `;
+            }
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, findings are consistent with ${hansen} intervertebral disc disease at ${level}.`;
+
+            return report;
+        }
+
+        function generateFCEReport() {
+            const level = document.getElementById('fce-level').value || '[cord level]';
+            const lateralization = document.getElementById('fce-lateralization').value;
+            const distribution = document.getElementById('fce-distribution').value;
+            const t2 = document.getElementById('fce-t2').value;
+            const t1 = document.getElementById('fce-t1').value;
+            const contrast = document.getElementById('fce-contrast').value;
+            const swelling = document.getElementById('fce-swelling').value;
+            const additional = document.getElementById('fce-additional').value;
+
+            let report = `There is a ${lateralization}-sided intramedullary lesion at the ${level} spinal cord level, ${distribution}. The lesion is ${t2} on T2-weighted images and ${t1} on T1-weighted images. `;
+
+            report += `Contrast enhancement is ${contrast}. ${swelling.charAt(0).toUpperCase() + swelling.slice(1)} cord swelling is present. `;
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `No compressive lesion is identified. Overall, findings are most consistent with an ischemic myelopathy, such as fibrocartilaginous embolism (FCE), based on the acute onset, asymmetric distribution, lack of mass effect, and absence of contrast enhancement.`;
+
+            return report;
+        }
+
+        function generateMUOReport() {
+            const location = document.getElementById('muo-location').value || '[location]';
+            const distribution = document.getElementById('muo-distribution').value;
+            const t2 = document.getElementById('muo-t2').value;
+            const t1 = document.getElementById('muo-t1').value;
+            const contrast = document.getElementById('muo-contrast').value;
+            const massEffect = document.getElementById('muo-mass-effect').value;
+            const meningeal = document.getElementById('muo-meningeal').value;
+            const ventricles = document.getElementById('muo-ventricles').value || 'normal';
+            const additional = document.getElementById('muo-additional').value;
+
+            let report = `There are ${distribution} lesions predominantly involving the ${location}, which are ${t2} on T2/FLAIR sequences and ${t1} on T1-weighted images. Contrast enhancement is ${contrast}. `;
+
+            report += `${massEffect.charAt(0).toUpperCase() + massEffect.slice(1)} mass effect is present. `;
+
+            if (meningeal === 'present') {
+                report += `Meningeal contrast enhancement is present. `;
+            }
+
+            report += `The ventricular system is ${ventricles}. `;
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, findings are most consistent with meningoencephalitis of unknown origin (MUO), though other inflammatory/infectious etiologies cannot be excluded. Clinical correlation and CSF analysis are recommended.`;
+
+            return report;
+        }
+
+        function generateStrokeReport() {
+            const location = document.getElementById('stroke-location').value || '[location]';
+            const territory = document.getElementById('stroke-territory').value;
+            const lateralization = document.getElementById('stroke-lateralization').value;
+            const t2 = document.getElementById('stroke-t2').value;
+            const t1 = document.getElementById('stroke-t1').value;
+            const contrast = document.getElementById('stroke-contrast').value;
+            const massEffect = document.getElementById('stroke-mass-effect').value;
+            const stage = document.getElementById('stroke-stage').value;
+            const additional = document.getElementById('stroke-additional').value;
+
+            let report = `There is a ${lateralization} lesion in the ${location}, corresponding to the ${territory} territory. The lesion is ${t2} on T2/FLAIR sequences and ${t1} on T1-weighted images. `;
+
+            report += `Contrast enhancement is ${contrast}. ${massEffect.charAt(0).toUpperCase() + massEffect.slice(1)} mass effect is present. `;
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `The imaging characteristics and distribution are consistent with an ${stage} cerebrovascular accident (stroke/infarct). Differential diagnoses include thromboembolism, vasculitis, or other vascular compromise.`;
+
+            return report;
+        }
+
+        function generateCSMReport() {
+            const level = document.getElementById('csm-level').value || '[level]';
+            const type = document.getElementById('csm-type').value;
+            const stenosis = document.getElementById('csm-stenosis').value;
+            const dynamic = document.getElementById('csm-dynamic').value;
+            const cordSignal = document.getElementById('csm-cord-signal').value;
+            const atrophy = document.getElementById('csm-atrophy').value;
+            const factors = document.getElementById('csm-factors').value || 'degenerative changes';
+            const additional = document.getElementById('csm-additional').value;
+
+            let report = `There is ${stenosis} spinal canal stenosis at ${level} due to ${type} cervical spondylomyelopathy. `;
+
+            report += `Contributing factors include ${factors}. `;
+
+            if (dynamic !== 'not assessed') {
+                report += `A dynamic component is ${dynamic}. `;
+            }
+
+            report += `The spinal cord signal is ${cordSignal}. `;
+
+            if (atrophy === 'present') {
+                report += `Spinal cord atrophy is present at the affected level. `;
+            }
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, findings are consistent with cervical spondylomyelopathy (Wobbler syndrome) at ${level}.`;
+
+            return report;
+        }
+
+        function generateSyrinxReport() {
+            const location = document.getElementById('syrinx-location').value || '[location]';
+            const width = document.getElementById('syrinx-width').value || '[width]';
+            const type = document.getElementById('syrinx-type').value;
+            const chiari = document.getElementById('syrinx-chiari').value;
+            const chiariDetails = document.getElementById('syrinx-chiari-details').value;
+            const cause = document.getElementById('syrinx-cause').value;
+            const atrophy = document.getElementById('syrinx-atrophy').value;
+            const septations = document.getElementById('syrinx-septations').value;
+            const additional = document.getElementById('syrinx-additional').value;
+
+            let report = `There is ${type} extending from ${location}, with a maximal width of ${width} mm. `;
+
+            if (septations === 'present') {
+                report += `Septations are present within the cavity. `;
+            }
+
+            if (chiari === 'present') {
+                if (chiariDetails) {
+                    report += `An associated Chiari-like malformation is present, characterized by ${chiariDetails}. `;
+                } else {
+                    report += `An associated Chiari-like malformation is present. `;
+                }
+            }
+
+            if (cause) {
+                report += `Additional findings include ${cause}. `;
+            }
+
+            if (atrophy === 'present') {
+                report += `Spinal cord atrophy is present. `;
+            }
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, findings are consistent with syringohydromyelia`;
+
+            if (chiari === 'present') {
+                report += ` secondary to Chiari-like malformation`;
+            } else if (cause) {
+                report += ` likely secondary to the identified cause`;
+            }
+
+            report += `.`;
+
+            return report;
+        }
+
+        function generateSpinalTumorReport() {
+            const location = document.getElementById('tumor-location').value || '[location]';
+            const tumorType = document.getElementById('tumor-type').value;
+            const cordLocation = document.getElementById('tumor-cord-location').value;
+            const dimensions = document.getElementById('tumor-dimensions').value || '[___ × ___ × ___]';
+            const margin = document.getElementById('tumor-margin').value;
+            const t2 = document.getElementById('tumor-t2').value;
+            const t1 = document.getElementById('tumor-t1').value;
+            const contrast = document.getElementById('tumor-contrast').value;
+            const compression = document.getElementById('tumor-compression').value;
+            const cordSignal = document.getElementById('tumor-cord-signal').value;
+            const bone = document.getElementById('tumor-bone').value;
+            const boneDetails = document.getElementById('tumor-bone-details').value;
+            const additional = document.getElementById('tumor-additional').value;
+
+            let report = `There is an ${cordLocation} mass at the ${location}, measuring approximately ${dimensions} cm, which is ${margin}. The lesion is ${t2} on T2-weighted images and ${t1} on T1-weighted images, with ${contrast} contrast enhancement. `;
+
+            report += `The mass causes ${compression} spinal cord compression. ${cordSignal.charAt(0).toUpperCase() + cordSignal.slice(1)} within the spinal cord at this level. `;
+
+            if (bone === 'present') {
+                if (boneDetails) {
+                    report += `Bone involvement is present, with ${boneDetails}. `;
+                } else {
+                    report += `Bone involvement is present. `;
+                }
+            } else {
+                report += `No bone involvement is identified. `;
+            }
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, imaging characteristics are most consistent with ${tumorType} based on the location, signal characteristics, and pattern of enhancement.`;
+
+            return report;
+        }
+
+        function copyReport() {
+            const reportText = document.getElementById('reportText').textContent;
+
+            navigator.clipboard.writeText(reportText).then(() => {
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.style.background = '#218838';
+
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '#28a745';
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy to clipboard');
+                console.error('Copy failed:', err);
+            });
+        }
+    </script>
+</body>
+</html>
