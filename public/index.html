@@ -194,6 +194,7 @@
                     <option value="stroke">Stroke/Infarct</option>
                     <option value="csm">Cervical Spondylomyelopathy (Wobbler Syndrome)</option>
                     <option value="syrinx">Syringohydromyelia</option>
+                    <option value="spinal-tumor">Spinal Tumor</option>
                 </select>
             </div>
 
@@ -758,6 +759,114 @@
                 </div>
             </div>
 
+            <!-- Spinal Tumor Fields -->
+            <div id="fields-spinal-tumor" class="fields-container">
+                <h3 style="margin-bottom: 1rem; color: #667eea;">Spinal Tumor Report Fields</h3>
+                <div class="form-group">
+                    <label>Location:</label>
+                    <input type="text" id="tumor-location" placeholder="e.g., C2-C3, L1-L2 vertebral level">
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Tumor Type (Presumptive):</label>
+                        <select id="tumor-type">
+                            <option value="nerve sheath tumor">Nerve sheath tumor</option>
+                            <option value="meningioma">Meningioma</option>
+                            <option value="lymphoma">Lymphoma</option>
+                            <option value="nephroblastoma">Nephroblastoma</option>
+                            <option value="hemangiosarcoma">Hemangiosarcoma</option>
+                            <option value="metastatic carcinoma">Metastatic carcinoma</option>
+                            <option value="indeterminate mass">Indeterminate mass</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Location Relative to Cord:</label>
+                        <select id="tumor-cord-location">
+                            <option value="intradural-extramedullary">Intradural-extramedullary</option>
+                            <option value="extradural">Extradural</option>
+                            <option value="intramedullary">Intramedullary</option>
+                            <option value="indeterminate">Indeterminate</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Dimensions (cm):</label>
+                        <input type="text" id="tumor-dimensions" placeholder="e.g., 1.8 × 1.2 × 2.4">
+                    </div>
+                    <div class="form-group">
+                        <label>Margin:</label>
+                        <select id="tumor-margin">
+                            <option value="well-defined">Well-defined</option>
+                            <option value="ill-defined">Ill-defined</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>T2 Signal:</label>
+                        <select id="tumor-t2">
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="isointense">Isointense</option>
+                            <option value="hypointense">Hypointense</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>T1 Signal:</label>
+                        <select id="tumor-t1">
+                            <option value="isointense">Isointense</option>
+                            <option value="hypointense">Hypointense</option>
+                            <option value="hyperintense">Hyperintense</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="form-group">
+                        <label>Contrast Enhancement:</label>
+                        <select id="tumor-contrast">
+                            <option value="homogeneous">Homogeneous</option>
+                            <option value="heterogeneous">Heterogeneous</option>
+                            <option value="ring-like">Ring-like</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Spinal Cord Compression:</label>
+                        <select id="tumor-compression">
+                            <option value="severe">Severe</option>
+                            <option value="moderate">Moderate</option>
+                            <option value="mild">Mild</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Cord Signal Changes:</label>
+                    <select id="tumor-cord-signal">
+                        <option value="T2 hyperintensity present (edema/myelomalacia)">T2 hyperintensity present (edema/myelomalacia)</option>
+                        <option value="normal cord signal">Normal cord signal</option>
+                        <option value="cord atrophy present">Cord atrophy present</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bone Involvement:</label>
+                    <select id="tumor-bone">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bone Details (if present):</label>
+                    <input type="text" id="tumor-bone-details" placeholder="e.g., vertebral body lysis, pedicle destruction">
+                </div>
+                <div class="form-group">
+                    <label>Additional Findings:</label>
+                    <input type="text" id="tumor-additional" placeholder="Any other relevant findings">
+                </div>
+            </div>
+
             <div class="button-group">
                 <button class="btn-generate" onclick="generateReport()">Generate Report</button>
                 <button class="btn-copy" id="copyBtn" onclick="copyReport()">Copy to Clipboard</button>
@@ -824,6 +933,9 @@
                     break;
                 case 'syrinx':
                     report = generateSyrinxReport();
+                    break;
+                case 'spinal-tumor':
+                    report = generateSpinalTumorReport();
                     break;
             }
 
@@ -1079,6 +1191,44 @@
             }
 
             report += `.`;
+
+            return report;
+        }
+
+        function generateSpinalTumorReport() {
+            const location = document.getElementById('tumor-location').value || '[location]';
+            const tumorType = document.getElementById('tumor-type').value;
+            const cordLocation = document.getElementById('tumor-cord-location').value;
+            const dimensions = document.getElementById('tumor-dimensions').value || '[___ × ___ × ___]';
+            const margin = document.getElementById('tumor-margin').value;
+            const t2 = document.getElementById('tumor-t2').value;
+            const t1 = document.getElementById('tumor-t1').value;
+            const contrast = document.getElementById('tumor-contrast').value;
+            const compression = document.getElementById('tumor-compression').value;
+            const cordSignal = document.getElementById('tumor-cord-signal').value;
+            const bone = document.getElementById('tumor-bone').value;
+            const boneDetails = document.getElementById('tumor-bone-details').value;
+            const additional = document.getElementById('tumor-additional').value;
+
+            let report = `There is an ${cordLocation} mass at the ${location}, measuring approximately ${dimensions} cm, which is ${margin}. The lesion is ${t2} on T2-weighted images and ${t1} on T1-weighted images, with ${contrast} contrast enhancement. `;
+
+            report += `The mass causes ${compression} spinal cord compression. ${cordSignal.charAt(0).toUpperCase() + cordSignal.slice(1)} within the spinal cord at this level. `;
+
+            if (bone === 'present') {
+                if (boneDetails) {
+                    report += `Bone involvement is present, with ${boneDetails}. `;
+                } else {
+                    report += `Bone involvement is present. `;
+                }
+            } else {
+                report += `No bone involvement is identified. `;
+            }
+
+            if (additional) {
+                report += `${additional}. `;
+            }
+
+            report += `Overall, imaging characteristics are most consistent with ${tumorType} based on the location, signal characteristics, and pattern of enhancement.`;
 
             return report;
         }
