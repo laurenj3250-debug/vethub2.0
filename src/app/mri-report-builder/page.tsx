@@ -38,6 +38,90 @@ const renderInput = (
     />
 );
 
+// Component for Chiari/Syringomyelia Template
+const ChiariSyringomyeliaTemplate = () => {
+  const [formData, setFormData] = useState({
+    cerebellarHerniation: 'cerebellar herniation',
+    cisternaMagna: 'reduced',
+    occipitalBone: 'Occipital dysplasia',
+    atlasPosition: 'close to',
+    odontoidPeg: 'increased angulation',
+    syrinxStart: 'C2',
+    syrinxEnd: 'C5',
+    syrinxWidth: '3',
+    syrinxHorn: 'extends to the dorsal horn',
+  });
+  
+  const [reportText, setReportText] = useState('');
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+There is ${formData.cerebellarHerniation} through the foramen magnum. The cisterna magna is ${formData.cisternaMagna}. ${formData.occipitalBone} is present.
+The atlas is positioned ${formData.atlasPosition} the skull. The odontoid peg demonstrates ${formData.odontoidPeg}.
+An intramedullary fluid-filled cavity consistent with syringomyelia extends from ${formData.syrinxStart} to ${formData.syrinxEnd}. The syrinx is strongly hyperintense on T2-weighted images, strongly hypointense on T1-weighted images, and isointense to CSF. The maximum transverse width measures ${formData.syrinxWidth} mm. The syrinx ${formData.syrinxHorn}.`;
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    alert('Report copied to clipboard!');
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6 border-l-4 border-red-500">
+      <h3 className="text-xl font-bold text-gray-800 mb-4">Chiari/Syringomyelia Report Template</h3>
+      <div className="text-base leading-relaxed text-gray-700 space-y-4">
+        <p>
+          There is
+          {renderSelect('cerebellarHerniation', formData.cerebellarHerniation, ['cerebellar herniation', 'no cerebellar herniation'], handleChange as any)}
+          through the foramen magnum. The cisterna magna is
+          {renderSelect('cisternaMagna', formData.cisternaMagna, ['reduced', 'absent', 'normal'], handleChange as any)}.
+          {renderSelect('occipitalBone', formData.occipitalBone, ['Occipital dysplasia', 'Normal occipital bone'], handleChange as any)}
+          is present.
+        </p>
+        <p>
+          The atlas is positioned
+          {renderSelect('atlasPosition', formData.atlasPosition, ['close to', 'normal distance from'], handleChange as any)}
+          the skull. The odontoid peg demonstrates
+          {renderSelect('odontoidPeg', formData.odontoidPeg, ['increased angulation', 'normal angulation'], handleChange as any)}.
+        </p>
+        <p>
+          An intramedullary fluid-filled cavity consistent with syringomyelia extends from
+          {renderInput('syrinxStart', formData.syrinxStart, 'e.g., C2', handleChange as any, 5)}
+          to
+          {renderInput('syrinxEnd', formData.syrinxEnd, 'e.g., C7', handleChange as any, 5)}.
+          The syrinx is strongly hyperintense on T2-weighted images, strongly hypointense on T1-weighted images, and isointense to CSF. The maximum transverse width measures
+          {renderInput('syrinxWidth', formData.syrinxWidth, 'e.g., 3', handleChange as any, 4)}
+          mm. The syrinx
+          {renderSelect('syrinxHorn', formData.syrinxHorn, ['extends to the dorsal horn', 'does not involve the dorsal horn', 'is centrally located'], handleChange as any)}.
+        </p>
+      </div>
+
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-600 mb-2">Generated Report (Editable):</h4>
+        <textarea
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
+          rows={7}
+          className="w-full text-sm font-mono bg-white p-2 border rounded focus:ring-2 focus:ring-red-500 focus:outline-none"
+        />
+        <button
+          onClick={copyReport}
+          className="mt-2 px-4 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 transition shadow-md"
+        >
+          <Copy size={16} />
+          Copy Report
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 // Component for Meningioma Template
 const MeningiomaTemplate = () => {
@@ -216,6 +300,8 @@ export default function MRIReportBuilderPage() {
         return <MeningiomaTemplate />;
       case 'ivdd':
         return <IVDDTemplate />;
+      case 'chiari':
+        return <ChiariSyringomyeliaTemplate />;
       default:
         return (
             <div className="bg-white rounded-lg shadow p-10 text-center border-2 border-dashed border-gray-300">
@@ -256,6 +342,7 @@ export default function MRIReportBuilderPage() {
           >
             <option value="meningioma">Meningioma</option>
             <option value="ivdd">IVDD</option>
+            <option value="chiari">Chiari/Syringomyelia</option>
             {/* Add other diseases here in the future */}
           </select>
         </div>
