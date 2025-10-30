@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -1458,6 +1458,13 @@ export default function VetPatientTracker() {
               >
                 <BookOpen size={14} />
                 Reference
+              </Link>
+              <Link
+                href="/residency-logging"
+                className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 flex items-center gap-1.5 transition shadow-sm text-xs"
+              >
+                <GraduationCap size={14} />
+                Residency
               </Link>
               <button
                 onClick={() => setShowKeyboardHelp(true)}
