@@ -459,3 +459,7 @@ export function getDischargeMedsByWeight(weight: number): DischargeMedGroup | un
   
   return undefined; // No match
 }
+
+export function getAllDischargeMeds() {
+  return dischargeMeds;
+}

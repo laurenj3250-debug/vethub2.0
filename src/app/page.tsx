@@ -34,6 +34,7 @@ import { parseRounding } from '@/ai/flows/parse-rounding-flow';
 import type { RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
+import { getDischargeMedsByWeight } from '@/lib/discharge-meds';
 
 /* -----------------------------------------------------------
    Helpers: safe guards and formatting
@@ -467,7 +468,7 @@ export default function VetPatientTracker() {
   const [roundingViewMode, setRoundingViewMode] = useState<'tsv' | 'table'>('table');
   const [patientOrder, setPatientOrder] = useState<string[]>([]);
   const [showRoundingSheet, setShowRoundingSheet] = useState(true);
-  const [showMedCalculator, setShowMedCalculator] = useState(false);
+  const [showMedCalculator, setShowMedCalculator] = useState(true);
   const [medCalcWeight, setMedCalcWeight] = useState('');
   const [showFireworks, setShowFireworks] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -1704,27 +1705,35 @@ export default function VetPatientTracker() {
               {medCalcWeight && (() => {
                 const weight = parseFloat(medCalcWeight);
                 if (isNaN(weight)) return null;
+                const group = getDischargeMedsByWeight(weight);
 
-                let template = '';
-                if (weight < 7) template = '< 7kg';
-                else if (weight <= 9) template = '7-9kg';
-                else if (weight <= 12) template = '10-12kg';
-                else if (weight <= 15) template = '13-15kg';
-                else if (weight <= 20) template = '16-20kg';
-                else if (weight <= 26) template = '21-26kg';
-                else if (weight <= 30) template = '27-30kg';
-                else if (weight <= 39) template = '> 30kg';
-                else if (weight <= 54) template = '40-54kg';
-                else template = '> 55kg';
+                if (!group) {
+                  return (
+                    <div className="p-3 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-300">
+                      <p className="text-xs text-red-800">No discharge template found for this weight.</p>
+                    </div>
+                  );
+                }
 
                 return (
                   <div className="p-3 bg-gradient-to-r from-cyan-50 to-purple-50 rounded-lg border border-cyan-300">
-                    <h3 className="font-bold text-sm mb-1 text-cyan-900">
-                      Suggested Discharge Template for {weight.toFixed(1)}kg ({template})
+                    <h3 className="font-bold text-sm mb-2 text-cyan-900">
+                      Suggested Discharge Meds for {weight.toFixed(1)}kg (Range: {group.range})
                     </h3>
-                    <div className="text-xs text-gray-700 space-y-1 font-mono bg-white p-2 rounded border">
-                      <p className="font-semibold">Weight Range: {template}</p>
-                      <p className="text-xs text-gray-500 italic">See full discharge instructions template in reference section</p>
+                    <div className="space-y-2">
+                      {group.meds.map((med, idx) => (
+                        <div key={idx} className="text-xs text-gray-700 font-mono bg-white p-2 rounded border">
+                          <p className="font-bold">{med.name}</p>
+                          <p>{med.instructions}</p>
+                          {med.nextDose && <p className="text-red-600">{med.nextDose}</p>}
+                        </div>
+                      ))}
+                      {group.recheckNote && (
+                        <div className="text-xs text-gray-700 font-mono bg-white p-2 rounded border mt-2">
+                           <p className="font-bold">Recheck</p>
+                           <p>{group.recheckNote}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1804,7 +1813,7 @@ export default function VetPatientTracker() {
                   />
                 ) : (
                   <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-xs whitespace-nowrap">
+                    <table className="w-full text-xs">
                       <thead className="bg-gradient-to-r from-purple-100 to-fuchsia-100 sticky top-0">
                         <tr>
                           <th className="p-2 text-left font-semibold border-b">Name</th>
@@ -1824,7 +1833,7 @@ export default function VetPatientTracker() {
                         </tr>
                       </thead>
                       <tbody>
-                        {patients.map((patient: any, idx: number) => {
+                        {sortedPatients.map((patient: any, idx: number) => {
                           const fieldMap = ['name', 'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems', 'diagnosticFindings', 'therapeutics', 'replaceIVC', 'replaceFluids', 'replaceCRI', 'overnightDiagnostics', 'overnightConcerns', 'additionalComments'];
                           const row = makeRoundingRow(patient);
                           const rowTsv = makeRoundingRow(patient).map(sanitizeCell).join('\t');
