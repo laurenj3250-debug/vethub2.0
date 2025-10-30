@@ -449,6 +449,9 @@ export default function VetPatientTracker() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
   const [reversePasteContent, setReversePasteContent] = useState('');
+  const [showGeneralTasks, setShowGeneralTasks] = useState(true);
+  const [showOtherTasks, setShowOtherTasks] = useState(true);
+
 
   // Date-based task management
   const getTodayDate = () => {
@@ -1839,113 +1842,124 @@ export default function VetPatientTracker() {
 
         {/* General Tasks */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-purple-400">
-          <h2 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-            General Tasks (Not Patient-Specific)
-            <span className="text-base">✅</span>
-          </h2>
-          <div className="flex flex-wrap gap-1 mb-2">
-            {commonGeneralTasksTemplates.map(task => (
-              <button
-                key={task.name}
-                onClick={() => addGeneralTask(task)}
-                className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
-              >
-                + {task.name}
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-            <input
-              type="text"
-              value={newGeneralTask.name}
-              onChange={(e) => setNewGeneralTask(p => ({ ...p, name: e.target.value }))}
-              placeholder="Add custom general task..."
-              className="md:col-span-1 px-2 py-1 text-sm border border-gray-300 rounded-lg"
-            />
-            <select
-                value={newGeneralTask.category}
-                onChange={(e) => setNewGeneralTask(p => ({ ...p, category: e.target.value }))}
-                className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
-            >
-                <option>Morning</option>
-                <option>Evening</option>
-            </select>
-            <select
-                value={newGeneralTask.priority}
-                onChange={(e) => setNewGeneralTask(p => ({ ...p, priority: e.target.value }))}
-                className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
-            >
-                <option>High</option>
-                <option>Medium</option>
-                <option>Low</option>
-            </select>
-          </div>
-           <button
-              onClick={() => addGeneralTask(newGeneralTask)}
-              className="w-full px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition"
-            >
-              Add Task
-            </button>
-          
-          {(generalTasks ?? []).length === 0 ? (
-            <p className="text-gray-400 text-xs italic py-2">No general tasks yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-              <div>
-                <h3 className="font-bold text-base mb-2 flex items-center gap-2"><Sun className="text-yellow-500" /> Morning</h3>
-                <div className="space-y-2">
-                {morningGeneralTasks.map((task: any) => (
-                  <div
-                    key={task.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg border transition ${
-                      task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleGeneralTask(task.id, task.completed)}
-                      className="w-4 h-4 text-purple-600 rounded"
-                    />
-                    <span className={`flex-1 text-xs font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
-                      {task.name}
-                    </span>
-                    <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full">{task.priority}</span>
-                    <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="font-bold text-base mb-2 flex items-center gap-2"><Moon className="text-blue-500" /> Evening</h3>
-                <div className="space-y-2">
-                {eveningGeneralTasks.map((task: any) => (
-                  <div
-                    key={task.id}
-                    className={`flex items-center gap-2 p-2 rounded-lg border transition ${
-                      task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleGeneralTask(task.id, task.completed)}
-                      className="w-4 h-4 text-purple-600 rounded"
-                    />
-                    <span className={`flex-1 text-xs font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
-                      {task.name}
-                    </span>
-                     <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full">{task.priority}</span>
-                    <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-                </div>
-              </div>
+          <button
+            onClick={() => setShowGeneralTasks(!showGeneralTasks)}
+            className="w-full flex items-center justify-between hover:bg-gray-50 p-1 rounded transition mb-2"
+          >
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-800">General Tasks (Not Patient-Specific)</h2>
+              <span className="text-base">✅</span>
             </div>
+            <ChevronDown className={`transition-transform ${showGeneralTasks ? 'rotate-180' : ''}`} size={20} />
+          </button>
+          
+          {showGeneralTasks && (
+            <>
+              <div className="flex flex-wrap gap-1 mb-2">
+                {commonGeneralTasksTemplates.map(task => (
+                  <button
+                    key={task.name}
+                    onClick={() => addGeneralTask(task)}
+                    className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition"
+                  >
+                    + {task.name}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                <input
+                  type="text"
+                  value={newGeneralTask.name}
+                  onChange={(e) => setNewGeneralTask(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Add custom general task..."
+                  className="md:col-span-1 px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                />
+                <select
+                    value={newGeneralTask.category}
+                    onChange={(e) => setNewGeneralTask(p => ({ ...p, category: e.target.value }))}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                >
+                    <option>Morning</option>
+                    <option>Evening</option>
+                </select>
+                <select
+                    value={newGeneralTask.priority}
+                    onChange={(e) => setNewGeneralTask(p => ({ ...p, priority: e.target.value }))}
+                    className="px-2 py-1 text-sm border border-gray-300 rounded-lg"
+                >
+                    <option>High</option>
+                    <option>Medium</option>
+                    <option>Low</option>
+                </select>
+              </div>
+              <button
+                  onClick={() => addGeneralTask(newGeneralTask)}
+                  className="w-full px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition"
+                >
+                  Add Task
+                </button>
+              
+              {(generalTasks ?? []).length === 0 ? (
+                <p className="text-gray-400 text-xs italic py-2">No general tasks yet.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <h3 className="font-bold text-base mb-2 flex items-center gap-2"><Sun className="text-yellow-500" /> Morning</h3>
+                    <div className="space-y-2">
+                    {morningGeneralTasks.map((task: any) => (
+                      <div
+                        key={task.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border transition ${
+                          task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => toggleGeneralTask(task.id, task.completed)}
+                          className="w-4 h-4 text-purple-600 rounded"
+                        />
+                        <span className={`flex-1 text-xs font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
+                          {task.name}
+                        </span>
+                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full">{task.priority}</span>
+                        <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-base mb-2 flex items-center gap-2"><Moon className="text-blue-500" /> Evening</h3>
+                    <div className="space-y-2">
+                    {eveningGeneralTasks.map((task: any) => (
+                      <div
+                        key={task.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg border transition ${
+                          task.completed ? 'bg-green-50 border-green-500' : getPriorityClasses(task.priority)
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => toggleGeneralTask(task.id, task.completed)}
+                          className="w-4 h-4 text-purple-600 rounded"
+                        />
+                        <span className={`flex-1 text-xs font-medium ${task.completed ? 'text-green-800 line-through' : 'text-gray-700'}`}>
+                          {task.name}
+                        </span>
+                         <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full">{task.priority}</span>
+                        <button onClick={() => removeGeneralTask(task.id)} className="text-gray-400 hover:text-purple-600 transition">
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
         
@@ -1970,39 +1984,52 @@ export default function VetPatientTracker() {
             onPatientClick={handlePatientClick}
           />
           <div className="bg-white rounded-lg shadow-md p-4 border">
-            <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <Sparkles className="text-purple-500" />
-              Other Tasks List
-            </h3>
-            {Object.keys(otherTasksMap).length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {Object.entries(otherTasksMap).map(([taskName, tasks]) => (
-                  <div key={taskName} className="p-3 bg-purple-50/70 border border-purple-200 rounded-lg">
-                    <h4 className="font-bold text-sm text-purple-800 mb-2">{taskName}</h4>
-                    <div className="space-y-2">
-                      {tasks.map((task) => {
-                        const patient = patients.find(p => p.id === task.patientId);
-                        if (!patient) return null;
-                        return (
-                          <label key={task.taskId} className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-purple-100">
-                            <input
-                              type="checkbox"
-                              checked={task.completed}
-                              onChange={() => toggleTask(task.patientId, task.taskId)}
-                              className="w-4 h-4 accent-purple-600 cursor-pointer"
-                            />
-                            <span className={`text-xs font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                              {patient.name}
-                            </span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+            <button
+              onClick={() => setShowOtherTasks(!showOtherTasks)}
+              className="w-full flex items-center justify-between hover:bg-gray-50 p-1 rounded transition mb-2"
+            >
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Sparkles className="text-purple-500" />
+                  Other Tasks List
+                </h3>
               </div>
-            ) : (
-               <p className="text-xs text-gray-500 italic">No other tasks assigned for today. Add custom tasks inside a patient's card.</p>
+              <ChevronDown className={`transition-transform ${showOtherTasks ? 'rotate-180' : ''}`} size={20} />
+            </button>
+            
+            {showOtherTasks && (
+              <>
+                {Object.keys(otherTasksMap).length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
+                    {Object.entries(otherTasksMap).map(([taskName, tasks]) => (
+                      <div key={taskName} className="p-3 bg-purple-50/70 border border-purple-200 rounded-lg">
+                        <h4 className="font-bold text-sm text-purple-800 mb-2">{taskName}</h4>
+                        <div className="space-y-2">
+                          {tasks.map((task) => {
+                            const patient = patients.find(p => p.id === task.patientId);
+                            if (!patient) return null;
+                            return (
+                              <label key={task.taskId} className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-purple-100">
+                                <input
+                                  type="checkbox"
+                                  checked={task.completed}
+                                  onChange={() => toggleTask(task.patientId, task.taskId)}
+                                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                                />
+                                <span className={`text-xs font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                                  {patient.name}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 italic mt-2">No other tasks assigned for today. Add custom tasks inside a patient's card.</p>
+                )}
+              </>
             )}
           </div>
         </div>
