@@ -310,9 +310,10 @@ interface TaskTableProps {
   currentDate: string;
   onToggleTask: (patientId: string, taskId: number) => void;
   onPatientClick: (patientId: string) => void;
+  onRemoveTask: (patientId: string, taskId: number) => void;
 }
 
-const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask, onPatientClick }: TaskTableProps) => {
+const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask, onPatientClick, onRemoveTask }: TaskTableProps) => {
   if (patients.length === 0) return null;
   // Don't render the table if there are no tasks
   if (taskNames.length === 0) return null;
@@ -348,12 +349,21 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
                     return (
                       <td key={taskName} className="p-1 border text-center">
                         {task ? (
-                          <input
-                            type="checkbox"
-                            checked={task.completed}
-                            onChange={() => onToggleTask(patient.id, task.id)}
-                            className="w-4 h-4 accent-purple-600 cursor-pointer"
-                          />
+                          <div className="flex items-center justify-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={task.completed}
+                              onChange={() => onToggleTask(patient.id, task.id)}
+                              className="w-4 h-4 accent-purple-600 cursor-pointer"
+                            />
+                            <button
+                              onClick={() => onRemoveTask(patient.id, task.id)}
+                              className="text-gray-400 hover:text-red-500"
+                              title="Remove task"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-gray-300">-</span>
                         )}
@@ -440,7 +450,7 @@ export default function VetPatientTracker() {
   // New feature states
   const [searchQuery, setSearchQuery] = useState('');
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
-  const [roundingViewMode, setRoundingViewMode] = useState<'tsv' | 'table'>('tsv');
+  const [roundingViewMode, setRoundingViewMode] = useState<'tsv' | 'table'>('table');
   const [patientOrder, setPatientOrder] = useState<string[]>([]);
   const [showRoundingSheet, setShowRoundingSheet] = useState(true);
   const [showMedCalculator, setShowMedCalculator] = useState(false);
@@ -1695,62 +1705,16 @@ export default function VetPatientTracker() {
         {/* Rounding sheet with table/TSV toggle */}
         {(patients || []).length > 0 && (
           <div className="w-full bg-white rounded-lg shadow p-3 mb-4 border-l-4 border-fuchsia-400">
-            <div className="flex items-center justify-between mb-2">
-              <button
+            <button
                 onClick={() => setShowRoundingSheet(!showRoundingSheet)}
-                className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded transition"
+                className="w-full flex items-center justify-between hover:bg-gray-50 p-1 rounded transition mb-2"
               >
-                <span className="text-sm font-semibold text-gray-700">Rounding Sheet</span>
-                <span className="text-base">📋</span>
-                <ChevronDown className={`transition-transform ${showRoundingSheet ? 'rotate-180' : ''}`} size={18} />
-              </button>
               <div className="flex items-center gap-2">
-                <div className="flex items-center border rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setRoundingViewMode('table')}
-                    className={`px-2 py-1 text-xs flex items-center gap-1 transition ${
-                      roundingViewMode === 'table'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Table size={14} />
-                    Table
-                  </button>
-                  <button
-                    onClick={() => setRoundingViewMode('tsv')}
-                    className={`px-2 py-1 text-xs flex items-center gap-1 transition ${
-                      roundingViewMode === 'tsv'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    <FileText size={14} />
-                    TSV
-                  </button>
-                </div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(roundingTSV)}
-                  className="px-2 py-1 rounded-md text-xs font-semibold bg-green-600 text-white hover:bg-green-700 transition"
-                >
-                  Copy
-                </button>
-                <button
-                  onClick={() => {
-                    const blob = new Blob([roundingTSV], { type: 'text/tab-separated-values;charset=utf-8;' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'rounding-sheet.tsv';
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                  }}
-                  className="px-2 py-1 rounded-md text-xs font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 transition"
-                >
-                  Download
-                </button>
+                <span className="text-lg font-bold text-gray-800">Rounding Sheet</span>
+                <span className="text-base">📋</span>
               </div>
-            </div>
+              <ChevronDown className={`transition-transform ${showRoundingSheet ? 'rotate-180' : ''}`} size={20} />
+            </button>
 
             {showRoundingSheet && (
               <>
@@ -1773,6 +1737,32 @@ export default function VetPatientTracker() {
                     Update From Paste
                   </button>
                 </div>
+                 <div className="flex items-center justify-end gap-2 mb-2">
+                    <div className="flex items-center border rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => setRoundingViewMode('table')}
+                        className={`px-2 py-1 text-xs flex items-center gap-1 transition ${
+                          roundingViewMode === 'table'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <Table size={14} />
+                        Table
+                      </button>
+                      <button
+                        onClick={() => setRoundingViewMode('tsv')}
+                        className={`px-2 py-1 text-xs flex items-center gap-1 transition ${
+                          roundingViewMode === 'tsv'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <FileText size={14} />
+                        TSV
+                      </button>
+                    </div>
+                  </div>
                 {roundingViewMode === 'tsv' ? (
                   <textarea
                     readOnly
@@ -1783,7 +1773,7 @@ export default function VetPatientTracker() {
                   />
                 ) : (
                   <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-xs">
+                    <table className="w-full text-xs whitespace-nowrap">
                       <thead className="bg-gradient-to-r from-purple-100 to-fuchsia-100 sticky top-0">
                         <tr>
                           <th className="p-2 text-left font-semibold border-b">Name</th>
@@ -1996,6 +1986,7 @@ export default function VetPatientTracker() {
             currentDate={currentDate}
             onToggleTask={toggleTask}
             onPatientClick={handlePatientClick}
+            onRemoveTask={removeTask}
           />
           <TaskTable
             title="Evening Tasks"
@@ -2005,6 +1996,7 @@ export default function VetPatientTracker() {
             currentDate={currentDate}
             onToggleTask={toggleTask}
             onPatientClick={handlePatientClick}
+            onRemoveTask={removeTask}
           />
           <div className="bg-white rounded-lg shadow-md p-4 border">
             <button
