@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -1450,6 +1450,13 @@ export default function VetPatientTracker() {
               >
                 <BrainCircuit size={14} />
                 MRI Builder
+              </Link>
+               <Link
+                href="/reference"
+                className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg hover:from-orange-600 hover:to-yellow-600 flex items-center gap-1.5 transition shadow-sm text-xs"
+              >
+                <BookOpen size={14} />
+                Reference
               </Link>
               <button
                 onClick={() => setShowKeyboardHelp(true)}
