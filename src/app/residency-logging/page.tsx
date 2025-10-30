@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, Trash2, Edit2, Save, X, Calendar, Brain, BookOpen, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
@@ -9,7 +9,16 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, query, orderBy, where, getDocs, writeBatch } from 'firebase/firestore';
+
+// Helper to get the start of the week (Monday) for a given date
+const getStartOfWeek = (dateString: string) => {
+  const date = new Date(dateString);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+  const monday = new Date(date.setDate(diff));
+  return monday.toISOString().split('T')[0];
+};
 
 export default function ResidencyLogging() {
   const auth = useAuth();
@@ -53,6 +62,53 @@ export default function ResidencyLogging() {
   const weeklyRes = useCollection(weeklyQuery);
   const weeklyActivities = weeklyRes?.data ?? [];
 
+  // --- Automation Logic ---
+  const updateNeurosurgeryHoursForWeek = async (dateString: string) => {
+    if (!firestore || !user) return;
+
+    const weekStart = getStartOfWeek(dateString);
+    const weekEnd = new Date(new Date(weekStart).setDate(new Date(weekStart).getDate() + 7)).toISOString().split('T')[0];
+
+    // Find all neurosurgery cases for that week
+    const casesInWeekQuery = query(
+      collection(firestore, `users/${user.uid}/neurosurgeryCases`),
+      where('date', '>=', weekStart),
+      where('date', '<', weekEnd)
+    );
+    const caseDocs = await getDocs(casesInWeekQuery);
+    const totalHours = caseDocs.docs.reduce((sum, doc) => sum + (parseFloat(doc.data().hours) || 0), 0);
+
+    // Find the weekly activity log for that week
+    const weeklyLogQuery = query(
+      collection(firestore, `users/${user.uid}/weeklyActivities`),
+      where('weekStart', '==', weekStart)
+    );
+    const weeklyLogDocs = await getDocs(weeklyLogQuery);
+
+    if (weeklyLogDocs.empty) {
+      // If no log exists, create one with the calculated hours
+      await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/weeklyActivities`), {
+        weekStart,
+        neurosurgery: totalHours,
+        clinicalNeurologyDirect: 0,
+        clinicalNeurologyIndirect: 0,
+        radiology: 0,
+        neuropathology: 0,
+        clinicalPathology: 0,
+        electrodiagnostics: 0,
+        journalClub: 0,
+        otherTime: '',
+        supervisingDiplomate: '',
+        year: '1', // Default to year 1, user can change
+      });
+    } else {
+      // If a log exists, update it
+      const logDocRef = weeklyLogDocs.docs[0].ref;
+      await updateDocumentNonBlocking(logDocRef, { neurosurgery: totalHours });
+    }
+  };
+
+
   // CRUD Operations
   const startEdit = (id: string, data: any) => {
     setEditingId(id);
@@ -64,22 +120,41 @@ export default function ResidencyLogging() {
     setEditingData({});
   };
 
-  const saveEdit = (collectionName: string, id: string) => {
+  const saveEdit = async (collectionName: string, id: string) => {
     if (!firestore || !user) return;
     const ref = doc(firestore, `users/${user.uid}/${collectionName}`, id);
-    updateDocumentNonBlocking(ref, editingData);
+    const originalDoc = (collectionName === 'neurosurgeryCases' ? neurosurgeryCases : journalClubs).find((item:any) => item.id === id);
+
+    await updateDocumentNonBlocking(ref, editingData);
+
+    if (collectionName === 'neurosurgeryCases') {
+      // Update hours for the new date's week
+      await updateNeurosurgeryHoursForWeek(editingData.date);
+      // If the date changed, also update the old date's week
+      if (originalDoc && originalDoc.date !== editingData.date) {
+        await updateNeurosurgeryHoursForWeek(originalDoc.date);
+      }
+    }
+
     setEditingId(null);
     setEditingData({});
   };
 
-  const deleteItem = (collectionName: string, id: string) => {
+  const deleteItem = async (collectionName: string, id: string) => {
     if (!firestore || !user) return;
     if (!confirm('Are you sure you want to delete this entry?')) return;
     const ref = doc(firestore, `users/${user.uid}/${collectionName}`, id);
-    deleteDocumentNonBlocking(ref);
+    
+    const docToDelete = (collectionName === 'neurosurgeryCases' ? neurosurgeryCases : journalClubs).find((item: any) => item.id === id);
+
+    await deleteDocumentNonBlocking(ref);
+
+    if (collectionName === 'neurosurgeryCases' && docToDelete) {
+      await updateNeurosurgeryHoursForWeek(docToDelete.date);
+    }
   };
 
-  const addNeurosurgeryCase = () => {
+  const addNeurosurgeryCase = async () => {
     if (!firestore || !user) return;
     const newCase = {
       procedureName: '',
@@ -89,7 +164,9 @@ export default function ResidencyLogging() {
       hours: 1,
       year: '1',
     };
-    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/neurosurgeryCases`), newCase);
+    await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/neurosurgeryCases`), newCase);
+    // After adding, update the corresponding week.
+    await updateNeurosurgeryHoursForWeek(newCase.date);
   };
 
   const addJournalClub = () => {
@@ -629,7 +706,8 @@ export default function ResidencyLogging() {
                               step="0.25"
                               value={editingData.neurosurgery || ''}
                               onChange={(e) => setEditingData({ ...editingData, neurosurgery: e.target.value })}
-                              className="w-16 px-1 py-1 text-xs border rounded"
+                              className="w-16 px-1 py-1 text-xs border rounded bg-gray-200"
+                              readOnly
                             />
                           </td>
                           <td className="px-2 py-2">
@@ -723,7 +801,7 @@ export default function ResidencyLogging() {
                           <td className="px-2 py-2 font-semibold">{week.weekStart}</td>
                           <td className="px-2 py-2 text-center">{week.clinicalNeurologyDirect || '-'}</td>
                           <td className="px-2 py-2 text-center">{week.clinicalNeurologyIndirect || '-'}</td>
-                          <td className="px-2 py-2 text-center">{week.neurosurgery || '-'}</td>
+                          <td className="px-2 py-2 text-center font-bold text-purple-700">{week.neurosurgery || '-'}</td>
                           <td className="px-2 py-2 text-center">{week.radiology || '-'}</td>
                           <td className="px-2 py-2 text-center">{week.neuropathology || '-'}</td>
                           <td className="px-2 py-2 text-center">{week.clinicalPathology || '-'}</td>
