@@ -482,6 +482,19 @@ export default function VetPatientTracker() {
     }
   }, [currentDate, patients]);
 
+  // Clear completed general tasks from previous days
+  useEffect(() => {
+    if (generalTasks.length > 0 && firestore && user) {
+      const today = getTodayDate();
+      generalTasks.forEach((task: any) => {
+        if (task.completed && task.completedDate && task.completedDate < today) {
+          const ref = doc(firestore, `users/${user.uid}/generalTasks`, task.id);
+          deleteDocumentNonBlocking(ref);
+        }
+      });
+    }
+  }, [currentDate, generalTasks, firestore, user]);
+
   const toggleSection = (patientId: string, section: string) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -692,13 +705,17 @@ export default function VetPatientTracker() {
 
   const addGeneralTask = (task: { name: string, category: string, priority: string }) => {
     if (!task.name.trim() || !firestore || !user) return;
-    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { ...task, completed: false });
+    addDocumentNonBlocking(collection(firestore, `users/${user.uid}/generalTasks`), { ...task, completed: false, completedDate: null });
     setNewGeneralTask({ name: '', category: 'Morning', priority: 'Medium' });
   };
   const toggleGeneralTask = (taskId: string, completed: boolean) => {
     if (!firestore || !user) return;
     const ref = doc(firestore, `users/${user.uid}/generalTasks`, taskId);
-    updateDocumentNonBlocking(ref, { completed: !completed });
+    const today = getTodayDate();
+    updateDocumentNonBlocking(ref, { 
+      completed: !completed,
+      completedDate: !completed ? today : null 
+    });
   };
   const removeGeneralTask = (taskId: string) => {
     if (!firestore || !user) return;
@@ -1765,24 +1782,24 @@ export default function VetPatientTracker() {
                     onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
                 ) : (
-                  <div className="border rounded-lg">
-                    <table className="w-full text-xs table-fixed">
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-xs">
                       <thead className="bg-gradient-to-r from-purple-100 to-fuchsia-100 sticky top-0">
                         <tr>
-                          <th className="p-2 text-left font-semibold border-b w-32">Name</th>
-                          <th className="p-2 text-left font-semibold border-b w-40">Signalment</th>
-                          <th className="p-2 text-left font-semibold border-b w-24">Location</th>
-                          <th className="p-2 text-left font-semibold border-b w-28">ICU Criteria</th>
-                          <th className="p-2 text-left font-semibold border-b w-24">Code</th>
-                          <th className="p-2 text-left font-semibold border-b w-48">Problems</th>
-                          <th className="p-2 text-left font-semibold border-b w-48">Diagnostics</th>
-                          <th className="p-2 text-left font-semibold border-b w-48">Therapeutics</th>
-                          <th className="p-2 text-left font-semibold border-b w-24">IVC</th>
-                          <th className="p-2 text-left font-semibold border-b w-24">Fluids</th>
-                          <th className="p-2 text-left font-semibold border-b w-24">CRI</th>
-                          <th className="p-2 text-left font-semibold border-b w-40">Overnight Dx</th>
-                          <th className="p-2 text-left font-semibold border-b w-40">Concerns</th>
-                          <th className="p-2 text-left font-semibold border-b w-48">Comments</th>
+                          <th className="p-2 text-left font-semibold border-b">Name</th>
+                          <th className="p-2 text-left font-semibold border-b">Signalment</th>
+                          <th className="p-2 text-left font-semibold border-b">Location</th>
+                          <th className="p-2 text-left font-semibold border-b">ICU Criteria</th>
+                          <th className="p-2 text-left font-semibold border-b">Code</th>
+                          <th className="p-2 text-left font-semibold border-b">Problems</th>
+                          <th className="p-2 text-left font-semibold border-b">Diagnostics</th>
+                          <th className="p-2 text-left font-semibold border-b">Therapeutics</th>
+                          <th className="p-2 text-left font-semibold border-b">IVC</th>
+                          <th className="p-2 text-left font-semibold border-b">Fluids</th>
+                          <th className="p-2 text-left font-semibold border-b">CRI</th>
+                          <th className="p-2 text-left font-semibold border-b">Overnight Dx</th>
+                          <th className="p-2 text-left font-semibold border-b">Concerns</th>
+                          <th className="p-2 text-left font-semibold border-b">Comments</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1819,7 +1836,14 @@ export default function VetPatientTracker() {
                                   ) : (
                                     <textarea
                                       value={cell}
-                                      onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
+                                      onChange={(e) => {
+                                        const fieldKey = cellIdx === 0 ? 'name' : fieldMap[cellIdx];
+                                        if (cellIdx === 0) {
+                                          updatePatientField(patient.id, 'name', e.target.value);
+                                        } else {
+                                          updateRoundingData(patient.id, fieldKey, e.target.value)
+                                        }
+                                      }}
                                       className="w-full p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
                                       rows={2}
                                       placeholder={`${fieldMap[cellIdx]}`}
