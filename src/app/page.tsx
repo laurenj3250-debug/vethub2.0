@@ -92,6 +92,20 @@ function parseBloodworkAbnormals(text: string, species: string = 'canine'): stri
   return result.abnormalValues;
 }
 
+// Function to convert 'hh:mm AM/PM' to minutes from midnight
+const timeToMinutes = (timeStr: string = '') => {
+  if (!timeStr) return 0;
+  const [time, modifier] = timeStr.split(' ');
+  if (!time || !modifier) return 0;
+  let [hours, minutes] = time.split(':').map(Number);
+  if (hours === 12) {
+    hours = modifier.toUpperCase() === 'AM' ? 0 : 12;
+  } else if (modifier.toUpperCase() === 'PM') {
+    hours += 12;
+  }
+  return hours * 60 + (minutes || 0);
+};
+
 /* -----------------------------------------------------------
    Kitty Fireworks Component
 ----------------------------------------------------------- */
@@ -457,7 +471,7 @@ export default function VetPatientTracker() {
   const [medCalcWeight, setMedCalcWeight] = useState('');
   const [showFireworks, setShowFireworks] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'status' | 'rounding' | 'tasks' | 'time'>('name');
   const [reversePasteContent, setReversePasteContent] = useState('');
   const [showGeneralTasks, setShowGeneralTasks] = useState(true);
   const [showOtherTasks, setShowOtherTasks] = useState(true);
@@ -600,21 +614,30 @@ export default function VetPatientTracker() {
           return bComp.percentage - aComp.percentage; // Most complete first
         });
         break;
+      case 'time':
+        sorted.sort((a, b) => timeToMinutes(a.addedTime) - timeToMinutes(b.addedTime));
+        break;
       case 'name':
       default:
-        sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        // Use custom order if no explicit sort or sorting by name
+        if (patientOrder.length > 0) {
+          sorted.sort((a, b) => {
+            const indexA = patientOrder.indexOf(a.id);
+            const indexB = patientOrder.indexOf(b.id);
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+          });
+        } else {
+          // Fallback to alphabetical if custom order not set
+          sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        }
         break;
     }
 
-    // Apply custom order if no explicit sort
-    if (sortBy === 'name' && patientOrder.length > 0) {
-      sorted.sort((a, b) => {
-        const indexA = patientOrder.indexOf(a.id);
-        const indexB = patientOrder.indexOf(b.id);
-        if (indexA === -1) return 1;
-        if (indexB === -1) return -1;
-        return indexA - indexB;
-      });
+    // If sorting is by name, apply alphabetical sort on top of any custom ordering
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
     return sorted;
@@ -1529,6 +1552,7 @@ export default function VetPatientTracker() {
                 <option value="status">Status</option>
                 <option value="rounding">Rounding Complete</option>
                 <option value="tasks">Tasks Complete</option>
+                <option value="time">Time Entered</option>
               </select>
 
               <span className="text-xs font-semibold text-gray-600 ml-2">Date:</span>
