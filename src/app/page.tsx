@@ -1765,25 +1765,24 @@ export default function VetPatientTracker() {
                     onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
                 ) : (
-                  <div className="overflow-x-auto border rounded-lg">
-                    <table className="w-full text-xs">
+                  <div className="border rounded-lg">
+                    <table className="w-full text-xs table-fixed">
                       <thead className="bg-gradient-to-r from-purple-100 to-fuchsia-100 sticky top-0">
                         <tr>
-                          <th className="p-2 text-left font-semibold border-b">Name</th>
-                          <th className="p-2 text-left font-semibold border-b">Signalment</th>
-                          <th className="p-2 text-left font-semibold border-b">Location</th>
-                          <th className="p-2 text-left font-semibold border-b">ICU Criteria</th>
-                          <th className="p-2 text-left font-semibold border-b">Code</th>
-                          <th className="p-2 text-left font-semibold border-b">Problems</th>
-                          <th className="p-2 text-left font-semibold border-b">Diagnostics</th>
-                          <th className="p-2 text-left font-semibold border-b">Therapeutics</th>
-                          <th className="p-2 text-left font-semibold border-b">IVC</th>
-                          <th className="p-2 text-left font-semibold border-b">Fluids</th>
-                          <th className="p-2 text-left font-semibold border-b">CRI</th>
-                          <th className="p-2 text-left font-semibold border-b">Overnight Dx</th>
-                          <th className="p-2 text-left font-semibold border-b">Concerns</th>
-                          <th className="p-2 text-left font-semibold border-b">Comments</th>
-                          <th className="p-2 text-left font-semibold border-b">Actions</th>
+                          <th className="p-2 text-left font-semibold border-b w-32">Name</th>
+                          <th className="p-2 text-left font-semibold border-b w-40">Signalment</th>
+                          <th className="p-2 text-left font-semibold border-b w-24">Location</th>
+                          <th className="p-2 text-left font-semibold border-b w-28">ICU Criteria</th>
+                          <th className="p-2 text-left font-semibold border-b w-24">Code</th>
+                          <th className="p-2 text-left font-semibold border-b w-48">Problems</th>
+                          <th className="p-2 text-left font-semibold border-b w-48">Diagnostics</th>
+                          <th className="p-2 text-left font-semibold border-b w-48">Therapeutics</th>
+                          <th className="p-2 text-left font-semibold border-b w-24">IVC</th>
+                          <th className="p-2 text-left font-semibold border-b w-24">Fluids</th>
+                          <th className="p-2 text-left font-semibold border-b w-24">CRI</th>
+                          <th className="p-2 text-left font-semibold border-b w-40">Overnight Dx</th>
+                          <th className="p-2 text-left font-semibold border-b w-40">Concerns</th>
+                          <th className="p-2 text-left font-semibold border-b w-48">Comments</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1796,12 +1795,21 @@ export default function VetPatientTracker() {
                               {row.map((cell, cellIdx) => (
                                 <td key={cellIdx} className="p-1 border-b align-top">
                                   {cellIdx === 0 ? (
-                                    <div className="font-semibold text-gray-900">{cell || '-'}</div>
+                                    <div className="font-semibold text-gray-900 flex items-center gap-1">
+                                      <span>{cell || '-'}</span>
+                                      <button
+                                          onClick={() => navigator.clipboard.writeText(rowTsv)}
+                                          title="Copy row to clipboard"
+                                          className="p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-700 rounded-md"
+                                        >
+                                          <Copy size={12} />
+                                        </button>
+                                    </div>
                                   ) : ['replaceIVC', 'replaceFluids', 'replaceCRI'].includes(fieldMap[cellIdx]) ? (
                                     <select
                                       value={safeStr(patient.roundingData?.[fieldMap[cellIdx]]) || ''}
                                       onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
-                                      className="w-full min-w-[80px] p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white"
+                                      className="w-full p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white"
                                     >
                                       <option value="">Select...</option>
                                       <option value="Yes">Yes</option>
@@ -1812,22 +1820,13 @@ export default function VetPatientTracker() {
                                     <textarea
                                       value={cell}
                                       onChange={(e) => updateRoundingData(patient.id, fieldMap[cellIdx], e.target.value)}
-                                      className="w-full min-w-[100px] p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
+                                      className="w-full p-1.5 text-xs border border-gray-200 rounded hover:border-purple-400 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white resize-none"
                                       rows={2}
                                       placeholder={`${fieldMap[cellIdx]}`}
                                     />
                                   )}
                                 </td>
                               ))}
-                              <td className="p-1 border-b align-top">
-                                <button
-                                  onClick={() => navigator.clipboard.writeText(rowTsv)}
-                                  title="Copy row to clipboard"
-                                  className="p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-800 rounded-md"
-                                >
-                                  <Copy size={12} />
-                                </button>
-                              </td>
                             </tr>
                           );
                         })}
