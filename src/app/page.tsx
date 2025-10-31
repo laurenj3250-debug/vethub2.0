@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen, GraduationCap, Download } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -476,6 +476,7 @@ export default function VetPatientTracker() {
   const [reversePasteContent, setReversePasteContent] = useState('');
   const [showGeneralTasks, setShowGeneralTasks] = useState(true);
   const [showOtherTasks, setShowOtherTasks] = useState(true);
+  const [mriExported, setMriExported] = useState(false);
 
 
   // Date-based task management
@@ -1325,6 +1326,30 @@ export default function VetPatientTracker() {
     });
     return taskMap;
   }, [patients, currentDate]);
+
+  const handleMriExport = () => {
+    const mriPatients = patients.filter((p: any) => p.type === 'MRI');
+    const tsvData = mriPatients
+      .map((p: any) => {
+        let weightKg = 0;
+        if (p.mriData?.weight) {
+          const weightNum = parseFloat(p.mriData.weight);
+          weightKg =
+            p.mriData.weightUnit === 'lbs'
+              ? weightNum / 2.20462
+              : weightNum;
+        }
+        const kgRounded = roundKgToInt(weightKg);
+        const name = p.name || '';
+        const id = safeStr(p.patientInfo?.patientId);
+        const scanType = p.mriData?.scanType || '';
+        return `${name}\t${id}\t${kgRounded}\t\t${scanType}`;
+      })
+      .join('\n');
+    navigator.clipboard.writeText(tsvData);
+    setMriExported(true);
+    setTimeout(() => setMriExported(false), 2000);
+  };
   
 
   /* --------------------- UI --------------------- */
@@ -1608,6 +1633,18 @@ export default function VetPatientTracker() {
                   Today
                 </button>
               </div>
+              
+              <button
+                onClick={handleMriExport}
+                className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
+                  mriExported
+                    ? 'bg-green-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:border-purple-400'
+                }`}
+              >
+                <Download size={14} />
+                {mriExported ? 'Copied!' : 'Export MRI List'}
+              </button>
 
               <div className="ml-auto text-xs text-gray-500">
                 Showing {sortedPatients.length} of {patients.length} patient{patients.length !== 1 ? 's' : ''}
@@ -2765,5 +2802,7 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    
 
     
