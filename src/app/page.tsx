@@ -1662,29 +1662,14 @@ export default function VetPatientTracker() {
 
           {/* Add patient */}
           <div className="flex gap-2">
-            <input
-              id="new-patient-input"
-              type="text"
-              value={newPatient.name}
-              onChange={(e) => setNewPatient({ ...newPatient, name: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && addPatient()}
-              placeholder="Patient name (e.g., Mittens - DSH) 🐈"
-              className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-            <select
-              value={newPatient.type}
-              onChange={(e) => setNewPatient({ ...newPatient, type: e.target.value })}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              {procedureTypes.map(type => <option key={type} value={type}>{type}</option>)}
-            </select>
-            <button
-              onClick={addPatient}
-              className="bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white px-4 py-1.5 rounded-lg hover:from-purple-600 hover:to-fuchsia-600 flex items-center gap-1.5 transition shadow-sm text-sm"
-            >
-              <Plus size={16} />
-              Add Patient
-            </button>
+            <Link href="/appointments" className="w-full">
+              <button
+                className="w-full bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-fuchsia-600 flex items-center justify-center gap-1.5 transition shadow-sm text-sm"
+              >
+                <Plus size={16} />
+                Add New Patient from Appointment
+              </button>
+            </Link>
           </div>
         </div>
 
