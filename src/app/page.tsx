@@ -31,11 +31,13 @@ import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
+import { parseAppointment } from '@/ai/flows/parse-appointment-flow';
 import type { RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
 import { getDischargeMedsByWeight } from '@/lib/discharge-meds';
 import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
+import { useToast } from '@/hooks/use-toast';
 
 
 /* -----------------------------------------------------------
@@ -405,6 +407,7 @@ export default function VetPatientTracker() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
 
 
   // Firestore queries scoped to user
@@ -449,7 +452,8 @@ export default function VetPatientTracker() {
   const isLoadingCommonMedications = commonMedicationsRes?.isLoading ?? false;
 
   // UI State
-  const [newPatient, setNewPatient] = useState({ name: '', type: 'MRI' });
+  const [newPatientBlurb, setNewPatientBlurb] = useState('');
+  const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState({ name: '', category: 'Morning', priority: 'Medium' });
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
@@ -661,7 +665,7 @@ export default function VetPatientTracker() {
       switch (e.key.toLowerCase()) {
         case 'n':
           e.preventDefault();
-          (document.getElementById('new-patient-input') as HTMLInputElement | null)?.focus();
+          (document.getElementById('new-patient-blurb-input') as HTMLTextAreaElement | null)?.focus();
           break;
         case 'e':
           e.preventDefault();
@@ -784,17 +788,20 @@ export default function VetPatientTracker() {
     deleteDocumentNonBlocking(ref);
   };
 
-  const addPatient = () => {
-    if (newPatient.name.trim() && firestore && user) {
-      let tasks = [];
-      if (newPatient.type === 'MRI') {
-        tasks = admitTasks.MRI.map(taskName => ({ name: taskName, completed: false, id: Date.now() + Math.random(), date: currentDate }));
-      }
+  const addPatientFromBlurb = async () => {
+    if (!newPatientBlurb.trim() || !firestore || !user) return;
+
+    setIsAddingPatient(true);
+    try {
+      // Use the appointment parser to get initial data
+      const parsedData = await parseAppointment(newPatientBlurb);
+
+      // Create the full patient object
       const patientData: any = {
-        name: newPatient.name,
-        type: newPatient.type,
+        name: parsedData.name || 'Unnamed Patient',
+        type: 'Admit', // Default type for new appointments
         status: 'New Admit',
-        tasks: tasks,
+        tasks: [],
         customTask: '',
         bwInput: '',
         xrayStatus: 'NSF',
@@ -805,42 +812,45 @@ export default function VetPatientTracker() {
           clientId: '',
           ownerName: '',
           ownerPhone: '',
-          species: 'Canine',
+          species: '',
           breed: '',
           color: '',
           sex: '',
           weight: '',
           dob: '',
-          age: ''
+          age: '',
         },
         roundingData: {
-          signalment: '',
+          signalment: parsedData.signalment || '',
           location: '',
           icuCriteria: '',
           codeStatus: 'Yellow',
-          problems: '',
-          diagnosticFindings: '',
-          therapeutics: '',
-          replaceIVC: '',
-          replaceFluids: '',
-          replaceCRI: '',
-          overnightDiagnostics: '',
-          overnightConcerns: '',
-          additionalComments: ''
+          problems: parsedData.problem || '',
+          diagnosticFindings: parsedData.mriDate ? `MRI ${parsedData.mriDate}: ${parsedData.mriFindings}` : '',
+          therapeutics: parsedData.medications || '',
+          plan: parsedData.lastPlan || '',
+          additionalComments: parsedData.otherConcerns || '',
         },
-        mriData: newPatient.type === 'MRI' ? {
-          weight: '',
-          weightUnit: 'kg',
-          scanType: 'LS',
-          calculated: false,
-          copyableString: ''
-        } : null,
-        addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       };
-      addDocumentNonBlocking(collection(firestore, `users/${user.uid}/patients`), patientData).then(docRef => {
-        if (docRef) setExpandedPatients(prev => ({ ...prev, [docRef.id]: true }));
+
+      await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/patients`), patientData);
+      
+      toast({
+        title: 'Patient Added!',
+        description: `${patientData.name} has been created from the blurb.`,
       });
-      setNewPatient({ name: '', type: 'MRI' });
+
+      setNewPatientBlurb('');
+    } catch (error: any) {
+      console.error("Error adding patient from blurb:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Parsing Failed',
+        description: error.message || 'Could not create patient from the provided text.',
+      });
+    } finally {
+      setIsAddingPatient(false);
     }
   };
 
@@ -1472,13 +1482,6 @@ export default function VetPatientTracker() {
               </div>
 
               <Link
-                href="/appointments"
-                className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 flex items-center gap-1.5 transition shadow-sm text-xs"
-              >
-                <Calendar size={14} />
-                Appointments
-              </Link>
-              <Link
                 href="/mri-report-builder"
                 className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg hover:from-indigo-600 hover:to-blue-600 flex items-center gap-1.5 transition shadow-sm text-xs"
               >
@@ -1660,16 +1663,33 @@ export default function VetPatientTracker() {
             </div>
           </div>
 
-          {/* Add patient */}
-          <div className="flex gap-2">
-            <Link href="/appointments" className="w-full">
-              <button
-                className="w-full bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-fuchsia-600 flex items-center justify-center gap-1.5 transition shadow-sm text-sm"
-              >
-                <Plus size={16} />
-                Add New Patient from Appointment
-              </button>
-            </Link>
+          {/* Add patient from blurb */}
+          <div className="space-y-2">
+            <textarea
+              id="new-patient-blurb-input"
+              value={newPatientBlurb}
+              onChange={(e) => setNewPatientBlurb(e.target.value)}
+              placeholder="Paste patient blurb here to add a new patient... (Cmd+N)"
+              rows={2}
+              className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <button
+              onClick={addPatientFromBlurb}
+              disabled={isAddingPatient || !newPatientBlurb.trim()}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white rounded-lg font-semibold shadow-sm transition hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isAddingPatient ? (
+                <>
+                  <Sparkles className="animate-spin" size={16} />
+                  Adding Patient...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  Add Patient from Blurb
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -2053,7 +2073,7 @@ export default function VetPatientTracker() {
 
               return (
                 <SortablePatient key={patient.id} id={patient.id}>
-                  <div id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-sm border ${getPriorityColor(patient)} overflow-hidden hover:shadow-md transition-shadow`}>
+                  <div id={`patient-${patient.id}`} className={`bg-white rounded-lg shadow-sm border ${getPriorityColor(patient.status)} overflow-hidden hover:shadow-md transition-shadow`}>
                   {/* Header */}
                   <div className="flex justify-between items-center p-3 border-b">
                     <div className="flex items-center gap-2">
@@ -2794,7 +2814,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
-
-    
