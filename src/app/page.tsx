@@ -1214,7 +1214,7 @@ export default function VetPatientTracker() {
       if (species.includes('equine') || species.includes('horse')) return '🐴';
       if (species.includes('rabbit') || species.includes('lagomorph')) return '🐰';
       if (species.includes('ferret')) return '🦦';
-      if (species.includes('bird') || species.includes('avian')) return '🦜';
+      if (species.includes('bird') || breed.includes('avian')) return '🦜';
       if (species.includes('reptile') || breed.includes('lizard') || breed.includes('snake')) return '🦎';
       if (species.includes('hamster') || breed.includes('hamster')) return '🐹';
       if (species.includes('guinea') || breed.includes('guinea')) return '🐹';
@@ -2765,3 +2765,5 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    
