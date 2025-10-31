@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen, GraduationCap, Download } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
@@ -35,6 +35,8 @@ import type { RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
 import { getDischargeMedsByWeight } from '@/lib/discharge-meds';
+import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
+
 
 /* -----------------------------------------------------------
    Helpers: safe guards and formatting
@@ -733,10 +735,10 @@ export default function VetPatientTracker() {
 
   /* --------------------- Firestore helpers --------------------- */
 
-  const getPatientRef = (patientId: string) => {
+  const getPatientRef = useCallback((patientId: string) => {
     if (!firestore || !user) return null;
     return doc(firestore, `users/${user.uid}/patients`, patientId);
-  };
+  }, [firestore, user]);
 
   const addGeneralTask = (task: { name: string, category: string, priority: string }) => {
     if (!task.name.trim() || !firestore || !user) return;
@@ -842,7 +844,7 @@ export default function VetPatientTracker() {
     }
   };
 
-  const removePatient = (id: string) => {
+  const removePatient = useCallback((id: string) => {
     const ref = getPatientRef(id);
     if (!ref) return;
     deleteDocumentNonBlocking(ref);
@@ -851,25 +853,27 @@ export default function VetPatientTracker() {
       delete n[id];
       return n;
     });
-  };
+  }, [getPatientRef]);
 
   const toggleExpanded = (patientId: string) =>
     setExpandedPatients(prev => ({ ...prev, [patientId]: !prev[patientId] }));
 
-  const updatePatientField = (patientId: string, field: string, value: any) => {
+  const updatePatientField = useCallback((patientId: string, field: string, value: any) => {
     const ref = getPatientRef(patientId);
     if (!ref) return;
     updateDocumentNonBlocking(ref, { [field]: value });
-  };
-  const updatePatientData = (patientId: string, data: any) => {
+  }, [getPatientRef]);
+  
+  const updatePatientData = useCallback((patientId: string, data: any) => {
     const ref = getPatientRef(patientId);
     if (!ref) return;
     updateDocumentNonBlocking(ref, data);
-  };
-  const updateStatus = (patientId: string, status: string) =>
-    updatePatientField(patientId, 'status', status);
+  }, [getPatientRef]);
 
-  const updatePatientType = (patientId: string, newType: string) => {
+  const updateStatus = useCallback((patientId: string, status: string) =>
+    updatePatientField(patientId, 'status', status), [updatePatientField]);
+
+  const updatePatientType = useCallback((patientId: string, newType: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const updateData: any = { type: newType };
@@ -883,23 +887,24 @@ export default function VetPatientTracker() {
       };
     }
     updatePatientData(patientId, updateData);
-  };
+  }, [patients, updatePatientData]);
 
-  const updateRoundingData = (patientId: string, field: string, value: any) => {
+  const updateRoundingData = useCallback((patientId: string, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const newData = { ...(patient.roundingData || {}), [field]: value };
     updatePatientField(patientId, 'roundingData', newData);
-  };
+  }, [patients, updatePatientField]);
 
-  const addTaskToPatient = (patientId: string, taskName: string) => {
+  const addTaskToPatient = useCallback((patientId: string, taskName: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     if ((patient.tasks || []).some((t: any) => t.name === taskName && t.date === currentDate)) return;
     const newTasks = [...(patient.tasks || []), { name: taskName, completed: false, id: Date.now() + Math.random(), date: currentDate }];
     updatePatientField(patientId, 'tasks', newTasks);
-  };
-  const addMorningTasks = (patientId: string) => {
+  }, [patients, currentDate, updatePatientField]);
+
+  const addMorningTasks = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const newTasks = [...(patient.tasks || [])];
@@ -907,8 +912,9 @@ export default function VetPatientTracker() {
       if (!newTasks.some((x: any) => x.name === t && x.date === currentDate)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random(), date: currentDate });
     });
     updatePatientField(patientId, 'tasks', newTasks);
-  };
-  const addEveningTasks = (patientId: string) => {
+  }, [patients, currentDate, updatePatientField]);
+
+  const addEveningTasks = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const newTasks = [...(patient.tasks || [])];
@@ -916,25 +922,27 @@ export default function VetPatientTracker() {
       if (!newTasks.some((x: any) => x.name === t && x.date === currentDate)) newTasks.push({ name: t, completed: false, id: Date.now() + Math.random(), date: currentDate });
     });
     updatePatientField(patientId, 'tasks', newTasks);
-  };
-  const addMorningTasksToAll = () => (patients || []).forEach(p => addMorningTasks(p.id));
-  const addEveningTasksToAll = () => (patients || []).forEach(p => addEveningTasks(p.id));
+  }, [patients, currentDate, updatePatientField]);
+  
+  const addMorningTasksToAll = useCallback(() => (patients || []).forEach(p => addMorningTasks(p.id)), [patients, addMorningTasks]);
+  const addEveningTasksToAll = useCallback(() => (patients || []).forEach(p => addEveningTasks(p.id)), [patients, addEveningTasks]);
 
-  const resetDailyTasks = (patientId: string) => {
+  const resetDailyTasks = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const allDaily = [...morningTasks, ...eveningTasks];
     const filtered = (patient.tasks || []).filter((t: any) => !allDaily.includes(t.name));
     updatePatientField(patientId, 'tasks', filtered);
-  };
+  }, [patients, updatePatientField]);
 
-  const removeTask = (patientId: string, taskId: number) => {
+  const removeTask = useCallback((patientId: string, taskId: number) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const newTasks = (patient.tasks || []).filter((t: any) => t.id !== taskId);
     updatePatientField(patientId, 'tasks', newTasks);
-  };
-  const toggleTask = (patientId: string, taskId: number) => {
+  }, [patients, updatePatientField]);
+
+  const toggleTask = useCallback((patientId: string, taskId: number) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const taskToToggle = (patient.tasks || []).find((t: any) => t.id === taskId);
@@ -949,23 +957,23 @@ export default function VetPatientTracker() {
     if (isBeingCompleted) {
       setShowFireworks(true);
     }
-  };
+  }, [patients, updatePatientField]);
 
-  const updatePatientInfo = (patientId: string, field: string, value: any) => {
+  const updatePatientInfo = useCallback((patientId: string, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
     const info = { ...(patient.patientInfo || {}), [field]: value };
     updatePatientField(patientId, 'patientInfo', info);
-  };
+  }, [patients, updatePatientField]);
 
-  const updateMRIData = (patientId: string, field: string, value: any) => {
+  const updateMRIData = useCallback((patientId: string, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !patient.mriData) return;
     const data = { ...patient.mriData, [field]: value, calculated: false, copyableString: '' };
     updatePatientField(patientId, 'mriData', data);
-  };
+  }, [patients, updatePatientField]);
 
-  const calculateMRIDrugs = (patientId: string) => {
+  const calculateMRIDrugs = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !patient.mriData || !patient.mriData.weight) return;
 
@@ -1000,10 +1008,10 @@ export default function VetPatientTracker() {
       copyableString
     };
     updatePatientField(patientId, 'mriData', newMriData);
-  };
+  }, [patients, updatePatientField]);
 
   // Parse patient details (no AI) and fill info + signalment
-  const parsePatientDetails = (patientId: string, detailsText: string) => {
+  const parsePatientDetails = useCallback((patientId: string, detailsText: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !detailsText.trim()) {
       alert('Please paste patient details first');
@@ -1059,10 +1067,10 @@ export default function VetPatientTracker() {
       console.error(err);
       alert('Parsing of patient details failed. Please check the log or enter the information manually.');
     }
-  };
+  }, [patients, updatePatientData]);
 
   // Parse patient details using AI
-  const parsePatientDetailsWithAI = async (patientId: string, detailsText: string) => {
+  const parsePatientDetailsWithAI = useCallback(async (patientId: string, detailsText: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !detailsText.trim()) {
       alert('Please paste patient details first');
@@ -1103,10 +1111,10 @@ export default function VetPatientTracker() {
     } finally {
       setAiParsingLoading(false);
     }
-  };
+  }, [patients, updatePatientData, parsePatientDetails]);
 
   // Parse bloodwork (LOCAL, no AI)
-  const parseBloodWork = (patientId: string, bwText: string) => {
+  const parseBloodWork = useCallback((patientId: string, bwText: string) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient || !bwText.trim()) {
       alert('Please paste blood work results first');
@@ -1126,7 +1134,7 @@ export default function VetPatientTracker() {
       console.error(e);
       alert('Bloodwork parsing failed. Please check the results manually.');
     }
-  };
+  }, [patients, updateRoundingData, updatePatientField]);
 
   // Helper to get tasks for current date (or all if task has no date - for backwards compatibility)
   const getTasksForDate = (tasks: any[], date: string) => {
@@ -2422,12 +2430,11 @@ export default function VetPatientTracker() {
                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                   <div className="md:col-span-2">
                                      <label className="block text-xs font-semibold text-gray-500">Signalment</label>
-                                      <input
-                                        type="text"
+                                      <DebouncedTextarea
                                         value={safeStr(patient.roundingData?.signalment)}
-                                        onChange={(e) => updateRoundingData(patient.id, 'signalment', e.target.value)}
+                                        onCommit={(value) => updateRoundingData(patient.id, 'signalment', value)}
                                         placeholder="e.g., 4yo MN Frenchie"
-                                        className={getRequiredFieldClass(patient, 'signalment', 'w-full px-2 py-1 text-xs border rounded-lg')}
+                                        className={getRequiredFieldClass(patient, 'signalment', 'w-full text-xs p-1.5 border rounded-lg')}
                                       />
                                   </div>
                                   <div>
@@ -2530,21 +2537,21 @@ export default function VetPatientTracker() {
                                         Save
                                       </button>
                                     </div>
-                                    <textarea
-                                      value={safeStr(patient.roundingData?.problems)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'problems', e.target.value)}
-                                      placeholder="Problems"
-                                      rows={2}
-                                      className={getRequiredFieldClass(patient, 'problems', 'w-full text-xs p-1.5 border rounded-lg mt-1')}
-                                    />
+                                    <DebouncedTextarea
+                                        value={safeStr(patient.roundingData?.problems)}
+                                        onCommit={(value) => updateRoundingData(patient.id, 'problems', value)}
+                                        placeholder="Problems"
+                                        rows={2}
+                                        className={getRequiredFieldClass(patient, 'problems', 'w-full text-xs p-1.5 border rounded-lg mt-1')}
+                                      />
                                   </div>
 
                                   {/* Diagnostics */}
                                   <div className="md:col-span-2 space-y-1">
                                     <label className="block text-xs font-semibold text-gray-500">Diagnostic Findings</label>
-                                    <textarea
+                                    <DebouncedTextarea
                                       value={safeStr(patient.roundingData?.diagnosticFindings)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'diagnosticFindings', e.target.value)}
+                                      onCommit={(value) => updateRoundingData(patient.id, 'diagnosticFindings', value)}
                                       placeholder="Diagnostic Findings"
                                       rows={2}
                                       className={getRequiredFieldClass(patient, 'diagnosticFindings', 'w-full px-2 py-1 text-xs border rounded-lg')}
@@ -2664,9 +2671,9 @@ export default function VetPatientTracker() {
                                         Save
                                       </button>
                                     </div>
-                                    <textarea
+                                    <DebouncedTextarea
                                       value={safeStr(patient.roundingData?.therapeutics)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'therapeutics', e.target.value)}
+                                      onCommit={(value) => updateRoundingData(patient.id, 'therapeutics', value)}
                                       placeholder="Current Therapeutics"
                                       rows={2}
                                       className={getRequiredFieldClass(patient, 'therapeutics', 'w-full text-xs p-1.5 border rounded-lg mt-1')}
@@ -2695,9 +2702,9 @@ export default function VetPatientTracker() {
                                   {/* Overnight + Comments */}
                                    <div className="md:col-span-2">
                                      <label className="block text-xs font-semibold text-gray-500">Overnight Diagnostics</label>
-                                    <textarea
+                                    <DebouncedTextarea
                                         value={safeStr(patient.roundingData?.overnightDiagnostics)}
-                                        onChange={(e) => updateRoundingData(patient.id, 'overnightDiagnostics', e.target.value)}
+                                        onCommit={(value) => updateRoundingData(patient.id, 'overnightDiagnostics', value)}
                                         placeholder="Overnight Diagnostics"
                                         rows={2}
                                         className="w-full px-2 py-1 text-xs border rounded-lg"
@@ -2705,9 +2712,9 @@ export default function VetPatientTracker() {
                                    </div>
                                    <div className="md:col-span-2">
                                      <label className="block text-xs font-semibold text-gray-500">Overnight Concerns</label>
-                                    <textarea
+                                    <DebouncedTextarea
                                         value={safeStr(patient.roundingData?.overnightConcerns)}
-                                        onChange={(e) => updateRoundingData(patient.id, 'overnightConcerns', e.target.value)}
+                                        onCommit={(value) => updateRoundingData(patient.id, 'overnightConcerns', value)}
                                         placeholder="Overnight Concerns/Alerts"
                                         rows={2}
                                         className="w-full px-2 py-1 text-xs border rounded-lg"
@@ -2750,9 +2757,9 @@ export default function VetPatientTracker() {
                                         Save
                                       </button>
                                     </div>
-                                    <textarea
+                                    <DebouncedTextarea
                                       value={safeStr(patient.roundingData?.additionalComments)}
-                                      onChange={(e) => updateRoundingData(patient.id, 'additionalComments', e.target.value)}
+                                      onCommit={(value) => updateRoundingData(patient.id, 'additionalComments', value)}
                                       placeholder="Additional Comments"
                                       rows={2}
                                       className="w-full text-xs p-1.5 border rounded-lg mt-1"
