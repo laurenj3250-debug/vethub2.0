@@ -829,7 +829,15 @@ export default function VetPatientTracker() {
     setIsAddingPatient(true);
     try {
       const { data: parsedData } = parseSignalment(newPatientBlurb);
-      const name = parsedData.patientName || 'Unnamed Patient';
+      
+      let patientFirstName = parsedData.patientName || 'Unnamed Patient';
+      let ownerLastName = '';
+      if (parsedData.ownerName) {
+        const ownerNameParts = parsedData.ownerName.split(' ');
+        ownerLastName = ownerNameParts[ownerNameParts.length - 1];
+      }
+      
+      const fullName = ownerLastName ? `${patientFirstName} ${ownerLastName}` : patientFirstName;
       
       const signalmentParts: string[] = [];
       if (parsedData.age) signalmentParts.push(parsedData.age);
@@ -839,7 +847,7 @@ export default function VetPatientTracker() {
   
       // Create the full patient object
       const patientData: any = {
-        name: name,
+        name: fullName,
         type: newPatientType,
         status: 'New Admit',
         tasks: [],
