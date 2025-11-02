@@ -401,6 +401,32 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
 };
 
 // Debounced text area state manager
+const useDebouncedValue = (initialValue: string, onCommit: (value: string) => void, debounceTimeout = 500) => {
+  const [localValue, setLocalValue] = useState(initialValue);
+
+  // Update local state if the initial (prop) value changes from outside
+  useEffect(() => {
+    setLocalValue(initialValue);
+  }, [initialValue]);
+
+  // Debounce effect to call onCommit
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      // Only commit if the value has actually changed
+      if (localValue !== initialValue) {
+        onCommit(localValue);
+      }
+    }, debounceTimeout);
+
+    // Cleanup function to cancel the timeout if the value changes again
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [localValue, initialValue, onCommit, debounceTimeout]);
+
+  return [localValue, setLocalValue] as const;
+};
+
 const DebouncedTextarea = ({
   initialValue,
   onCommit,
@@ -409,26 +435,8 @@ const DebouncedTextarea = ({
 }: {
   initialValue: string;
   onCommit: (value: string) => void;
-  debounceTimeout?: number;
-} & Omit<React.ComponentProps<'textarea'>, 'onCommit'>) => {
-  const [value, setValue] = useState(initialValue);
-  const debounceTimeout = props.debounceTimeout ?? 500;
-
-  useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (value !== initialValue) {
-        onCommit(value);
-      }
-    }, debounceTimeout);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, initialValue, onCommit, debounceTimeout]);
+} & Omit<React.ComponentProps<typeof Textarea>, 'onCommit' | 'value' | 'onChange'>) => {
+  const [value, setValue] = useDebouncedValue(initialValue, onCommit);
 
   return (
     <Textarea
@@ -439,6 +447,7 @@ const DebouncedTextarea = ({
     />
   );
 };
+
 
 /* -----------------------------------------------------------
    MAIN COMPONENT
@@ -501,7 +510,7 @@ export default function VetPatientTracker() {
   const [viewMode, setViewMode] = useState<'full' | 'compact'>('full');
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [expandedSections, setExpandedSections] = useState<Record<string, Record<string, boolean>>>({});
-  const [useAIForRounding, setUseAIForRounding] = useState(false);
+  const [useAIForRounding, setUseAIForRounding] = useState(true);
   const [aiParsingLoading, setAiParsingLoading] = useState(false);
   const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
 
@@ -1806,11 +1815,16 @@ export default function VetPatientTracker() {
                         <tbody>
                             {patients.filter((p: any) => p.type === 'MRI').map((p: any, idx: number) => {
                                 let weightKg = 0;
-                                if (p.mriData?.weight) {
-                                    const weightNum = parseFloat(p.mriData.weight);
-                                    weightKg = p.mriData.weightUnit === 'lbs' ? weightNum / 2.20462 : weightNum;
+                                let weightSource = p.mriData?.weight || p.patientInfo?.weight;
+                                if (weightSource) {
+                                    const weightMatch = String(weightSource).match(/(\d+(?:\.\d+)?)\s*(kg|lbs)?/i);
+                                    if (weightMatch) {
+                                        const weightNum = parseFloat(weightMatch[1]);
+                                        const unit = (weightMatch[2] || p.mriData?.weightUnit || 'kg').toLowerCase();
+                                        weightKg = unit === 'lbs' ? weightNum / 2.20462 : weightNum;
+                                    }
                                 }
-                                const kgRounded = roundKgToInt(weightKg);
+                                const kgRounded = weightKg > 0 ? roundKgToInt(weightKg) : 0;
                                 return (
                                     <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
                                         <td className="p-2 border-t">{p.name}</td>
@@ -2348,7 +2362,7 @@ export default function VetPatientTracker() {
                                     + {task}
                                   </button>
                                 ))}
-                                <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-0.5 text-xs bg-gray-400 text-white rounded hover:bg-gray-500 ml-auto">
+                                <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-0.5 text-xs bg-gray-400 text-white rounded hover:bg-gray-50 ml-auto">
                                   Clear Daily
                                 </button>
                               </div>
@@ -2960,5 +2974,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
