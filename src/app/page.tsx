@@ -793,9 +793,14 @@ export default function VetPatientTracker() {
   
     setIsAddingPatient(true);
     try {
-      const lines = newPatientBlurb.split('\n');
-      const nameLine = lines.find(line => line.toLowerCase().startsWith('patient name:'));
-      const name = nameLine ? nameLine.split(':')[1].trim() : lines[0].trim() || 'Unnamed Patient';
+      const { data: parsedData } = parseSignalment(newPatientBlurb);
+      const name = parsedData.patientName || 'Unnamed Patient';
+      
+      const signalmentParts: string[] = [];
+      if (parsedData.age) signalmentParts.push(parsedData.age);
+      if (parsedData.sex) signalmentParts.push(parsedData.sex);
+      if (parsedData.breed) signalmentParts.push(parsedData.breed);
+      const signalment = signalmentParts.join(' ');
   
       // Create the full patient object
       const patientData: any = {
@@ -809,27 +814,27 @@ export default function VetPatientTracker() {
         xrayOther: '',
         detailsInput: '',
         patientInfo: {
-          patientId: '',
-          clientId: '',
-          ownerName: '',
-          ownerPhone: '',
-          species: '',
-          breed: '',
-          color: '',
-          sex: '',
-          weight: '',
-          dob: '',
-          age: '',
+          patientId: parsedData.patientId || '',
+          clientId: parsedData.clientId || '',
+          ownerName: parsedData.ownerName || '',
+          ownerPhone: parsedData.ownerPhone || '',
+          species: parsedData.species || '',
+          breed: parsedData.breed || '',
+          color: parsedData.color || '',
+          sex: parsedData.sex || '',
+          weight: parsedData.weight || '',
+          dob: parsedData.dob || '',
+          age: parsedData.age || '',
         },
         roundingData: {
-          signalment: '',
+          signalment: signalment,
           location: '',
           icuCriteria: '',
           codeStatus: 'Yellow',
-          problems: '',
-          diagnosticFindings: '',
-          therapeutics: '',
-          plan: '',
+          problems: parsedData.problem || '',
+          diagnosticFindings: parsedData.bloodwork ? `CBC/CHEM: ${parsedData.bloodwork}`: '',
+          therapeutics: parsedData.medications?.join('\n') || '',
+          plan: parsedData.lastPlan || '',
           additionalComments: newPatientBlurb,
         },
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
