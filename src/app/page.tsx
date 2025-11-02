@@ -35,8 +35,8 @@ import type { RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
 import { getDischargeMedsByWeight } from '@/lib/discharge-meds';
-import { DebouncedTextarea } from '@/components/ui/debounced-textarea';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
 
 
 /* -----------------------------------------------------------
@@ -226,6 +226,43 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
     </svg>
   );
 };
+
+/* -----------------------------------------------------------
+   Debounced Text Area
+----------------------------------------------------------- */
+interface DebouncedTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  initialValue: string;
+  onCommit: (value: string) => void;
+  debounceTimeout?: number;
+}
+
+const DebouncedTextarea: React.FC<DebouncedTextareaProps> = ({
+  initialValue,
+  onCommit,
+  debounceTimeout = 500,
+  ...props
+}) => {
+  const [value, setValue] = useState(initialValue);
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (value !== initialValue) {
+        onCommit(value);
+      }
+    }, debounceTimeout);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, initialValue, onCommit, debounceTimeout]);
+
+  return <Textarea {...props} value={value} onChange={(e) => setValue(e.target.value)} />;
+};
+
 
 /* -----------------------------------------------------------
    Sortable Patient Wrapper Component
@@ -2506,7 +2543,7 @@ export default function VetPatientTracker() {
                                   <div className="md:col-span-2">
                                      <label className="block text-xs font-semibold text-gray-500">Signalment</label>
                                       <DebouncedTextarea
-                                        value={safeStr(patient.roundingData?.signalment)}
+                                        initialValue={safeStr(patient.roundingData?.signalment)}
                                         onCommit={(value) => updateRoundingData(patient.id, 'signalment', value)}
                                         placeholder="e.g., 4yo MN Frenchie"
                                         className={getRequiredFieldClass(patient, 'signalment', 'w-full text-xs p-1.5 border rounded-lg')}
@@ -2613,7 +2650,7 @@ export default function VetPatientTracker() {
                                       </button>
                                     </div>
                                     <DebouncedTextarea
-                                        value={safeStr(patient.roundingData?.problems)}
+                                        initialValue={safeStr(patient.roundingData?.problems)}
                                         onCommit={(value) => updateRoundingData(patient.id, 'problems', value)}
                                         placeholder="Problems"
                                         rows={2}
@@ -2625,7 +2662,7 @@ export default function VetPatientTracker() {
                                   <div className="md:col-span-2 space-y-1">
                                     <label className="block text-xs font-semibold text-gray-500">Diagnostic Findings</label>
                                     <DebouncedTextarea
-                                      value={safeStr(patient.roundingData?.diagnosticFindings)}
+                                      initialValue={safeStr(patient.roundingData?.diagnosticFindings)}
                                       onCommit={(value) => updateRoundingData(patient.id, 'diagnosticFindings', value)}
                                       placeholder="Diagnostic Findings"
                                       rows={2}
@@ -2747,7 +2784,7 @@ export default function VetPatientTracker() {
                                       </button>
                                     </div>
                                     <DebouncedTextarea
-                                      value={safeStr(patient.roundingData?.therapeutics)}
+                                      initialValue={safeStr(patient.roundingData?.therapeutics)}
                                       onCommit={(value) => updateRoundingData(patient.id, 'therapeutics', value)}
                                       placeholder="Current Therapeutics"
                                       rows={2}
@@ -2778,7 +2815,7 @@ export default function VetPatientTracker() {
                                    <div className="md:col-span-2">
                                      <label className="block text-xs font-semibold text-gray-500">Overnight Diagnostics</label>
                                     <DebouncedTextarea
-                                        value={safeStr(patient.roundingData?.overnightDiagnostics)}
+                                        initialValue={safeStr(patient.roundingData?.overnightDiagnostics)}
                                         onCommit={(value) => updateRoundingData(patient.id, 'overnightDiagnostics', value)}
                                         placeholder="Overnight Diagnostics"
                                         rows={2}
@@ -2788,7 +2825,7 @@ export default function VetPatientTracker() {
                                    <div className="md:col-span-2">
                                      <label className="block text-xs font-semibold text-gray-500">Overnight Concerns</label>
                                     <DebouncedTextarea
-                                        value={safeStr(patient.roundingData?.overnightConcerns)}
+                                        initialValue={safeStr(patient.roundingData?.overnightConcerns)}
                                         onCommit={(value) => updateRoundingData(patient.id, 'overnightConcerns', value)}
                                         placeholder="Overnight Concerns/Alerts"
                                         rows={2}
@@ -2833,7 +2870,7 @@ export default function VetPatientTracker() {
                                       </button>
                                     </div>
                                     <DebouncedTextarea
-                                      value={safeStr(patient.roundingData?.additionalComments)}
+                                      initialValue={safeStr(patient.roundingData?.additionalComments)}
                                       onCommit={(value) => updateRoundingData(patient.id, 'additionalComments', value)}
                                       placeholder="Additional Comments"
                                       rows={2}
