@@ -31,7 +31,6 @@ import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
-import { parseAppointment } from '@/ai/flows/parse-appointment-flow';
 import type { RoundingParseOutput } from '@/ai/flows/parse-rounding-flow';
 import type { AIHealthStatus } from '@/ai/genkit';
 import { checkAIHealth } from '@/ai/genkit';
@@ -793,12 +792,12 @@ export default function VetPatientTracker() {
 
     setIsAddingPatient(true);
     try {
-      // Use the appointment parser to get initial data
-      const parsedData = await parseAppointment(newPatientBlurb);
+      const lines = newPatientBlurb.split('\n');
+      const name = lines[0].trim() || 'Unnamed Patient';
 
       // Create the full patient object
       const patientData: any = {
-        name: parsedData.name || 'Unnamed Patient',
+        name: name,
         type: 'Admit', // Default type for new appointments
         status: 'New Admit',
         tasks: [],
@@ -821,15 +820,15 @@ export default function VetPatientTracker() {
           age: '',
         },
         roundingData: {
-          signalment: parsedData.signalment || '',
+          signalment: '',
           location: '',
           icuCriteria: '',
           codeStatus: 'Yellow',
-          problems: parsedData.problem || '',
-          diagnosticFindings: parsedData.mriDate ? `MRI ${parsedData.mriDate}: ${parsedData.mriFindings}` : '',
-          therapeutics: parsedData.medications || '',
-          plan: parsedData.lastPlan || '',
-          additionalComments: parsedData.otherConcerns || '',
+          problems: '',
+          diagnosticFindings: '',
+          therapeutics: '',
+          plan: '',
+          additionalComments: newPatientBlurb,
         },
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       };
@@ -846,7 +845,7 @@ export default function VetPatientTracker() {
       console.error("Error adding patient from blurb:", error);
       toast({
         variant: 'destructive',
-        title: 'Parsing Failed',
+        title: 'Adding Patient Failed',
         description: error.message || 'Could not create patient from the provided text.',
       });
     } finally {
@@ -1231,7 +1230,7 @@ export default function VetPatientTracker() {
       // General species
       if (species.includes('canine') || species.includes('dog')) return '🐕';
       if (species.includes('equine') || species.includes('horse')) return '🐴';
-      if (species.includes('rabbit') || species.includes('lagomorph')) return '🐰';
+      if (species.includes('rabbit') || breed.includes('lagomorph')) return '🐰';
       if (species.includes('ferret')) return '🦦';
       if (species.includes('bird') || breed.includes('avian')) return '🦜';
       if (species.includes('reptile') || breed.includes('lizard') || breed.includes('snake')) return '🦎';
