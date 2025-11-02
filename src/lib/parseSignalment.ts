@@ -97,7 +97,7 @@ export function parseSignalment(text: string): ParseResult {
   // 1) Direct K/V picks (highest confidence)
   // Patient name is usually the first line if it's just a name
   const firstLine = t.split('\n')[0].trim();
-  const nameMatch = firstLine.match(/^([A-Za-z\s.'-]+)/);
+  const nameMatch = firstLine.match(/^([A-Za-z\s.'-]+\s+[A-Za-z\s.'-]+)/);
   if (nameMatch && !data.patientName && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
       data.patientName = nameMatch[1].trim();
       diag.push(`patientName: ${data.patientName}`);

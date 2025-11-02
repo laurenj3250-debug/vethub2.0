@@ -835,7 +835,7 @@ export default function VetPatientTracker() {
           diagnosticFindings: parsedData.bloodwork ? `CBC/CHEM: ${parsedData.bloodwork}`: '',
           therapeutics: parsedData.medications?.join('\n') || '',
           plan: parsedData.lastPlan || '',
-          additionalComments: newPatientBlurb,
+          additionalComments: '',
         },
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       };
