@@ -1367,7 +1367,7 @@ export default function VetPatientTracker() {
         const name = p.name || '';
         const id = safeStr(p.patientInfo?.patientId);
         const scanType = p.mriData?.scanType || '';
-        return `${name}\t${id}\t${kgRounded}\t\t${scanType}`;
+        return `${name}\t${id}\t${kgRounded}\t${scanType}`;
       })
       .join('\n');
     navigator.clipboard.writeText(tsvData);
@@ -1651,18 +1651,6 @@ export default function VetPatientTracker() {
                 </button>
               </div>
               
-              <button
-                onClick={handleMriExport}
-                className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
-                  mriExported
-                    ? 'bg-green-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:border-purple-400'
-                }`}
-              >
-                <Download size={14} />
-                {mriExported ? 'Copied!' : 'Export MRI List'}
-              </button>
-
               <div className="ml-auto text-xs text-gray-500">
                 Showing {sortedPatients.length} of {patients.length} patient{patients.length !== 1 ? 's' : ''}
               </div>
@@ -1708,6 +1696,57 @@ export default function VetPatientTracker() {
               )}
             </button>
           </div>
+        </div>
+
+        {/* MRI Export List */}
+        <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-indigo-400">
+            <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <BrainCircuit className="text-indigo-600" />
+                    MRI Export List
+                </h2>
+                <button
+                    onClick={handleMriExport}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
+                        mriExported
+                            ? 'bg-green-600 text-white'
+                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                >
+                    <Copy size={14} />
+                    {mriExported ? 'Copied!' : 'Copy TSV'}
+                </button>
+            </div>
+            <div className="overflow-x-auto border rounded-lg">
+                <table className="w-full text-sm">
+                    <thead className="bg-indigo-50">
+                        <tr>
+                            <th className="p-2 text-left font-semibold text-indigo-900">Name</th>
+                            <th className="p-2 text-left font-semibold text-indigo-900">Patient ID</th>
+                            <th className="p-2 text-left font-semibold text-indigo-900">Weight (kg)</th>
+                            <th className="p-2 text-left font-semibold text-indigo-900">Scan Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {patients.filter((p: any) => p.type === 'MRI').map((p: any, idx: number) => {
+                            let weightKg = 0;
+                            if (p.mriData?.weight) {
+                                const weightNum = parseFloat(p.mriData.weight);
+                                weightKg = p.mriData.weightUnit === 'lbs' ? weightNum / 2.20462 : weightNum;
+                            }
+                            const kgRounded = roundKgToInt(weightKg);
+                            return (
+                                <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
+                                    <td className="p-2 border-t">{p.name}</td>
+                                    <td className="p-2 border-t">{safeStr(p.patientInfo?.patientId)}</td>
+                                    <td className="p-2 border-t">{kgRounded || ''}</td>
+                                    <td className="p-2 border-t">{safeStr(p.mriData?.scanType)}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         {/* Rounding sheet with table/TSV toggle */}
