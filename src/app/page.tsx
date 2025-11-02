@@ -452,6 +452,7 @@ export default function VetPatientTracker() {
 
   // UI State
   const [newPatientBlurb, setNewPatientBlurb] = useState('');
+  const [newPatientType, setNewPatientType] = useState('MRI');
   const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [expandedPatients, setExpandedPatients] = useState<Record<string, boolean>>({});
   const [newGeneralTask, setNewGeneralTask] = useState({ name: '', category: 'Morning', priority: 'Medium' });
@@ -798,7 +799,7 @@ export default function VetPatientTracker() {
       // Create the full patient object
       const patientData: any = {
         name: name,
-        type: 'Admit', // Default type for new appointments
+        type: newPatientType,
         status: 'New Admit',
         tasks: [],
         customTask: '',
@@ -1664,14 +1665,25 @@ export default function VetPatientTracker() {
 
           {/* Add patient from blurb */}
           <div className="space-y-2">
-            <textarea
-              id="new-patient-blurb-input"
-              value={newPatientBlurb}
-              onChange={(e) => setNewPatientBlurb(e.target.value)}
-              placeholder="Paste patient blurb here to add a new patient... (Cmd+N)"
-              rows={2}
-              className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
+            <div className="flex gap-2">
+              <textarea
+                id="new-patient-blurb-input"
+                value={newPatientBlurb}
+                onChange={(e) => setNewPatientBlurb(e.target.value)}
+                placeholder="Paste patient blurb here to add a new patient... (Cmd+N)"
+                rows={2}
+                className="w-full p-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              <select
+                value={newPatientType}
+                onChange={(e) => setNewPatientType(e.target.value)}
+                className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              >
+                {procedureTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={addPatientFromBlurb}
               disabled={isAddingPatient || !newPatientBlurb.trim()}
