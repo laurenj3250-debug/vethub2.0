@@ -121,9 +121,9 @@ export function parseSignalment(text: string): ParseResult {
   }
 
   // 1) Direct K/V picks (highest confidence)
-  // Patient name heuristic: first line without colon and short
+  // Patient name heuristic: first line without colon and short, excluding the word "Patient"
   const firstLine = t.split('\n')[0].trim();
-  const nameMatch = firstLine.match(/^([A-Za-z\s.'-]+\s+[A-Za-z\s.'-]+)/);
+  const nameMatch = firstLine.replace(/^patient:?\s*/i, '').match(/^([A-Za-z\s.'-]+\s+[A-Za-z\s.'-]+)/);
   if (nameMatch && !data.patientName && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
     data.patientName = nameMatch[1].trim();
     diag.push(`patientName:${data.patientName}`);
@@ -464,5 +464,3 @@ function compactAge(a: string) {
     .replace(/\s+days?/, " days")
     .trim();
 }
-
-    
