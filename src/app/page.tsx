@@ -49,15 +49,17 @@ const sanitizeCell = (v?: string) =>
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    'New Admit': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    'Pre-procedure': 'bg-blue-100 text-blue-800 border-blue-300',
-    'In Procedure': 'bg-purple-100 text-purple-800 border-purple-300',
-    'Recovery': 'bg-orange-100 text-orange-800 border-orange-300',
-    'Monitoring': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    'Ready for Discharge': 'bg-green-100 text-green-800 border-green-300',
-    'Discharged': 'bg-gray-100 text-gray-800 border-gray-300'
+    'New Admit': 'bg-yellow-200 text-yellow-900 border-yellow-400',
+    'In Hospital': 'bg-blue-200 text-blue-900 border-blue-400',
+    'Going home': 'bg-green-200 text-green-900 border-green-400',
+    'Pre-procedure': 'bg-cyan-200 text-cyan-900 border-cyan-400',
+    'In Procedure': 'bg-purple-200 text-purple-900 border-purple-400',
+    'Recovery': 'bg-orange-200 text-orange-900 border-orange-400',
+    'Monitoring': 'bg-indigo-200 text-indigo-900 border-indigo-400',
+    'Ready for Discharge': 'bg-lime-200 text-lime-900 border-lime-400',
+    'Discharged': 'bg-gray-200 text-gray-900 border-gray-400'
   };
-  return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
+  return colors[status] || 'bg-gray-200 text-gray-900 border-gray-400';
 };
 
 const getPriorityColor = (patient: any) => {
@@ -230,18 +232,7 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 /* -----------------------------------------------------------
    Debounced Text Area
 ----------------------------------------------------------- */
-interface DebouncedTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  initialValue: string;
-  onCommit: (value: string) => void;
-  debounceTimeout?: number;
-}
-
-const DebouncedTextarea: React.FC<DebouncedTextareaProps> = ({
-  initialValue,
-  onCommit,
-  debounceTimeout = 500,
-  ...props
-}) => {
+const DebouncedTextarea = ({ initialValue, onCommit, debounceTimeout = 500, ...props }) => {
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
@@ -766,7 +757,13 @@ export default function VetPatientTracker() {
   const statusOptions = [
     'New Admit',
     'In Hospital',
-    'Going home'
+    'Going home',
+    'Pre-procedure',
+    'In Procedure',
+    'Recovery',
+    'Monitoring',
+    'Ready for Discharge',
+    'Discharged',
   ];
 
   const otherTasks = [
@@ -2240,7 +2237,7 @@ export default function VetPatientTracker() {
                       <select
                         value={patient.status}
                         onChange={(e) => updateStatus(patient.id, e.target.value)}
-                        className={'px-2 py-1 rounded-lg border text-xs ' + getStatusColor(patient.status)}
+                        className={'px-2 py-1 rounded-lg border text-xs font-semibold ' + getStatusColor(patient.status)}
                       >
                         {statusOptions.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -2921,3 +2918,5 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    
