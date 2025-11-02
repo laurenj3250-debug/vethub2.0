@@ -483,6 +483,7 @@ export default function VetPatientTracker() {
   const [showGeneralTasks, setShowGeneralTasks] = useState(true);
   const [showOtherTasks, setShowOtherTasks] = useState(true);
   const [mriExported, setMriExported] = useState(false);
+  const [showMriExport, setShowMriExport] = useState(true);
 
 
   // Date-based task management
@@ -788,7 +789,7 @@ export default function VetPatientTracker() {
     deleteDocumentNonBlocking(ref);
   };
 
-  const addPatientFromBlurb = async () => {
+  const addPatientFromBlurb = useCallback(async () => {
     if (!newPatientBlurb.trim() || !firestore || !user) return;
   
     setIsAddingPatient(true);
@@ -858,7 +859,7 @@ export default function VetPatientTracker() {
     } finally {
       setIsAddingPatient(false);
     }
-  };
+  }, [newPatientBlurb, newPatientType, firestore, user, toast]);
 
   const removePatient = useCallback((id: string) => {
     const ref = getPatientRef(id);
@@ -1700,53 +1701,66 @@ export default function VetPatientTracker() {
 
         {/* MRI Export List */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-indigo-400">
-            <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setShowMriExport(!showMriExport)}
+              className="w-full flex items-center justify-between hover:bg-gray-50 p-1 rounded transition mb-2"
+            >
+              <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <BrainCircuit className="text-indigo-600" />
                     MRI Export List
                 </h2>
-                <button
-                    onClick={handleMriExport}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
-                        mriExported
-                            ? 'bg-green-600 text-white'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    }`}
-                >
-                    <Copy size={14} />
-                    {mriExported ? 'Copied!' : 'Copy TSV'}
-                </button>
-            </div>
-            <div className="overflow-x-auto border rounded-lg">
-                <table className="w-full text-sm">
-                    <thead className="bg-indigo-50">
-                        <tr>
-                            <th className="p-2 text-left font-semibold text-indigo-900">Name</th>
-                            <th className="p-2 text-left font-semibold text-indigo-900">Patient ID</th>
-                            <th className="p-2 text-left font-semibold text-indigo-900">Weight (kg)</th>
-                            <th className="p-2 text-left font-semibold text-indigo-900">Scan Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {patients.filter((p: any) => p.type === 'MRI').map((p: any, idx: number) => {
-                            let weightKg = 0;
-                            if (p.mriData?.weight) {
-                                const weightNum = parseFloat(p.mriData.weight);
-                                weightKg = p.mriData.weightUnit === 'lbs' ? weightNum / 2.20462 : weightNum;
-                            }
-                            const kgRounded = roundKgToInt(weightKg);
-                            return (
-                                <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
-                                    <td className="p-2 border-t">{p.name}</td>
-                                    <td className="p-2 border-t">{safeStr(p.patientInfo?.patientId)}</td>
-                                    <td className="p-2 border-t">{kgRounded || ''}</td>
-                                    <td className="p-2 border-t">{safeStr(p.mriData?.scanType)}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+              </div>
+              <ChevronDown className={`transition-transform ${showMriExport ? 'rotate-180' : ''}`} size={20} />
+            </button>
+
+            {showMriExport && (
+              <>
+                <div className="flex items-center justify-end mb-2">
+                    <button
+                        onClick={handleMriExport}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
+                            mriExported
+                                ? 'bg-green-600 text-white'
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        }`}
+                    >
+                        <Copy size={14} />
+                        {mriExported ? 'Copied!' : 'Copy TSV'}
+                    </button>
+                </div>
+                <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-sm">
+                        <thead className="bg-indigo-50">
+                            <tr>
+                                <th className="p-2 text-left font-semibold text-indigo-900">Name</th>
+                                <th className="p-2 text-left font-semibold text-indigo-900">Patient ID</th>
+                                <th className="p-2 text-left font-semibold text-indigo-900">Weight (kg)</th>
+                                <th className="p-2 text-left font-semibold text-indigo-900">Scan Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {patients.filter((p: any) => p.type === 'MRI').map((p: any, idx: number) => {
+                                let weightKg = 0;
+                                if (p.mriData?.weight) {
+                                    const weightNum = parseFloat(p.mriData.weight);
+                                    weightKg = p.mriData.weightUnit === 'lbs' ? weightNum / 2.20462 : weightNum;
+                                }
+                                const kgRounded = roundKgToInt(weightKg);
+                                return (
+                                    <tr key={p.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'}>
+                                        <td className="p-2 border-t">{p.name}</td>
+                                        <td className="p-2 border-t">{safeStr(p.patientInfo?.patientId)}</td>
+                                        <td className="p-2 border-t">{kgRounded || ''}</td>
+                                        <td className="p-2 border-t">{safeStr(p.mriData?.scanType)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+              </>
+            )}
         </div>
 
         {/* Rounding sheet with table/TSV toggle */}
