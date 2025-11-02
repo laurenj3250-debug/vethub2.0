@@ -790,12 +790,13 @@ export default function VetPatientTracker() {
 
   const addPatientFromBlurb = async () => {
     if (!newPatientBlurb.trim() || !firestore || !user) return;
-
+  
     setIsAddingPatient(true);
     try {
       const lines = newPatientBlurb.split('\n');
-      const name = lines[0].trim() || 'Unnamed Patient';
-
+      const nameLine = lines.find(line => line.toLowerCase().startsWith('patient name:'));
+      const name = nameLine ? nameLine.split(':')[1].trim() : lines[0].trim() || 'Unnamed Patient';
+  
       // Create the full patient object
       const patientData: any = {
         name: name,
@@ -833,14 +834,14 @@ export default function VetPatientTracker() {
         },
         addedTime: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       };
-
+  
       await addDocumentNonBlocking(collection(firestore, `users/${user.uid}/patients`), patientData);
       
       toast({
         title: 'Patient Added!',
         description: `${patientData.name} has been created from the blurb.`,
       });
-
+  
       setNewPatientBlurb('');
     } catch (error: any) {
       console.error("Error adding patient from blurb:", error);
