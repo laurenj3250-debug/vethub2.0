@@ -853,7 +853,7 @@ export default function VetPatientTracker() {
     try {
       const { data: parsedData } = parseSignalment(newPatientBlurb);
       
-      let patientFirstName = parsedData.patientName || 'Unnamed Patient';
+      let patientFirstName = (parsedData.patientName || 'Unnamed').replace(/^Patient\s/i, '');
       let ownerLastName = '';
       if (parsedData.ownerName) {
         const ownerNameParts = parsedData.ownerName.split(' ');
@@ -1058,10 +1058,10 @@ export default function VetPatientTracker() {
 
   const updateMRIData = useCallback((patientId: string, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
-    if (!patient || !patient.mriData) return;
-    const data = { ...patient.mriData, [field]: value, calculated: false, copyableString: '' };
+    if (!patient) return;
+    const data = { ...(patient.mriData || {}), [field]: value };
     updatePatientField(patientId, 'mriData', data);
-  }, [patients, updatePatientField]);
+}, [patients, updatePatientField]);
 
   const calculateMRIDrugs = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
@@ -1437,7 +1437,7 @@ export default function VetPatientTracker() {
               ? weightNum / 2.20462
               : weightNum;
         }
-        const kgRounded = roundKgToInt(weightKg);
+        const kgRounded = weightKg > 0 ? roundKgToInt(weightKg) : 0;
         const name = p.name || '';
         const id = safeStr(p.patientInfo?.patientId);
         const scanType = p.mriData?.scanType || '';
