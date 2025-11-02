@@ -1816,7 +1816,19 @@ export default function VetPatientTracker() {
                                         <td className="p-2 border-t">{p.name}</td>
                                         <td className="p-2 border-t">{safeStr(p.patientInfo?.patientId)}</td>
                                         <td className="p-2 border-t">{kgRounded || ''}</td>
-                                        <td className="p-2 border-t">{safeStr(p.mriData?.scanType)}</td>
+                                        <td className="p-2 border-t">
+                                            <select
+                                                value={safeStr(p.mriData?.scanType)}
+                                                onChange={(e) => updateMRIData(p.id, 'scanType', e.target.value)}
+                                                className="w-full bg-transparent p-1 border border-gray-200 rounded hover:border-indigo-400 focus:ring-1 focus:ring-indigo-500"
+                                            >
+                                                <option>Brain</option>
+                                                <option>Cervical</option>
+                                                <option>TL</option>
+                                                <option>LS</option>
+                                                <option>Other</option>
+                                            </select>
+                                        </td>
                                     </tr>
                                 );
                             })}
@@ -2948,3 +2960,5 @@ export default function VetPatientTracker() {
     </div>
   );
 }
+
+    
