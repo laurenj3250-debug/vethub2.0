@@ -230,32 +230,6 @@ const ProgressRing = ({ percentage, size = 60 }: { percentage: number; size?: nu
 };
 
 /* -----------------------------------------------------------
-   Debounced Text Area
------------------------------------------------------------ */
-const DebouncedTextarea = ({ initialValue, onCommit, debounceTimeout = 500, ...props }) => {
-  const [value, setValue] = useState(initialValue);
-
-  useEffect(() => {
-    setValue(initialValue);
-  }, [initialValue]);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (value !== initialValue) {
-        onCommit(value);
-      }
-    }, debounceTimeout);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, initialValue, onCommit, debounceTimeout]);
-
-  return <Textarea {...props} value={value} onChange={(e) => setValue(e.target.value)} />;
-};
-
-
-/* -----------------------------------------------------------
    Sortable Patient Wrapper Component
 ----------------------------------------------------------- */
 interface SortablePatientProps {
@@ -423,6 +397,46 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
         </table>
       </div>
     </div>
+  );
+};
+
+// Debounced text area state manager
+const DebouncedTextarea = ({
+  initialValue,
+  onCommit,
+  className,
+  ...props
+}: {
+  initialValue: string;
+  onCommit: (value: string) => void;
+  debounceTimeout?: number;
+} & Omit<React.ComponentProps<'textarea'>, 'onCommit'>) => {
+  const [value, setValue] = useState(initialValue);
+  const debounceTimeout = props.debounceTimeout ?? 500;
+
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (value !== initialValue) {
+        onCommit(value);
+      }
+    }, debounceTimeout);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, initialValue, onCommit, debounceTimeout]);
+
+  return (
+    <Textarea
+      {...props}
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      className={className}
+    />
   );
 };
 
@@ -838,6 +852,14 @@ export default function VetPatientTracker() {
       }
       
       const fullName = ownerLastName ? `${patientFirstName} ${ownerLastName}` : patientFirstName;
+
+      const tasksToAdd = [];
+      if (newPatientType === 'MRI') {
+        const mriTasks = admitTasks['MRI'] || [];
+        mriTasks.forEach(taskName => {
+          tasksToAdd.push({ name: taskName, completed: false, id: Date.now() + Math.random(), date: getTodayDate() });
+        });
+      }
       
       const signalmentParts: string[] = [];
       if (parsedData.age) signalmentParts.push(parsedData.age);
@@ -850,7 +872,7 @@ export default function VetPatientTracker() {
         name: fullName,
         type: newPatientType,
         status: 'New Admit',
-        tasks: [],
+        tasks: tasksToAdd,
         customTask: '',
         bwInput: '',
         xrayStatus: 'NSF',
@@ -901,7 +923,7 @@ export default function VetPatientTracker() {
     } finally {
       setIsAddingPatient(false);
     }
-  }, [newPatientBlurb, newPatientType, firestore, user, toast]);
+  }, [newPatientBlurb, newPatientType, firestore, user, toast, admitTasks]);
 
   const removePatient = useCallback((id: string) => {
     const ref = getPatientRef(id);
@@ -2926,5 +2948,3 @@ export default function VetPatientTracker() {
     </div>
   );
 }
-
-    
