@@ -123,10 +123,13 @@ export function parseSignalment(text: string): ParseResult {
   // 1) Direct K/V picks (highest confidence)
   // Patient name heuristic: first line without colon and short
   const firstLine = t.split('\n')[0].trim();
-  const nameMatch = firstLine.match(/^(?:patient:?\s*)?([A-Za-z\s.'-]+\s+[A-Za-z\s.'-]+)/i);
+  const nameMatch = firstLine.match(/^(?:Patient:?\s*)?([A-Za-z\s.'-]+\s+[A-Za-z\s.'-]+)/i);
   if (nameMatch && !data.patientName && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
-    data.patientName = nameMatch[1].trim();
-    diag.push(`patientName:${data.patientName}`);
+    const potentialName = nameMatch[1].trim();
+    if (potentialName.toLowerCase() !== 'patient') {
+      data.patientName = potentialName;
+      diag.push(`patientName:${data.patientName}`);
+    }
   }
 
   const spKV = t.match(speciesKVRe);
