@@ -857,30 +857,31 @@ export default function VetPatientTracker() {
 
   const addPatientFromBlurb = useCallback(async () => {
     if (!newPatientBlurb.trim() || !firestore || !user) return;
-  
+
     setIsAddingPatient(true);
     try {
-      const { data: parsedData } = parseSignalment(newPatientBlurb);
-      
-      const patientFirstName = (parsedData.patientName || 'Unnamed').replace(/^Patient\s/i, '');
-      let ownerLastName = '';
-  
-      if (parsedData.ownerName) {
-        // Remove titles, split by space or comma, and take the last non-empty part.
-        const ownerNameParts = parsedData.ownerName
-          .replace(/^(Mr|Mrs|Ms|Dr)\.?\s*/i, '')
-          .split(/[\s,]+/)
-          .filter(Boolean); // Filter out empty strings
-  
-        if (ownerNameParts.length > 1) {
-          ownerLastName = ownerNameParts[ownerNameParts.length - 1];
-        } else if (ownerNameParts.length === 1) {
-          // If there's only one name part, it might be the last name
-          ownerLastName = ownerNameParts[0];
+        const { data: parsedData } = parseSignalment(newPatientBlurb);
+        
+        const patientFirstName = (parsedData.patientName || 'Unnamed').replace(/^Patient\s/i, '');
+        let ownerLastName = '';
+
+        if (parsedData.ownerName) {
+            const ownerNameStr = parsedData.ownerName.replace(/^(Mr|Mrs|Ms|Dr)\.?\s*/i, '').trim();
+            if (ownerNameStr.includes(',')) {
+                // Handle "Last, First" format
+                ownerLastName = ownerNameStr.split(',')[0].trim();
+            } else {
+                // Handle "First Last" format
+                const nameParts = ownerNameStr.split(' ').filter(Boolean);
+                if (nameParts.length > 1) {
+                    ownerLastName = nameParts[nameParts.length - 1];
+                } else if (nameParts.length === 1) {
+                    ownerLastName = nameParts[0];
+                }
+            }
         }
-      }
-      
-      const fullName = ownerLastName ? `${patientFirstName} ${ownerLastName}` : patientFirstName;
+        
+        const fullName = ownerLastName ? `${patientFirstName} ${ownerLastName}` : patientFirstName;
 
       const tasksToAdd = [];
       if (newPatientType === 'MRI') {
