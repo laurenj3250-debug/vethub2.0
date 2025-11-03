@@ -366,6 +366,266 @@ const IVDDTemplate = () => {
   );
 };
 
+// Component for Ischemic/Hemorrhagic Infarct Template
+const StrokeTemplate = () => {
+  const [formData, setFormData] = useState({
+    patient: 'the patient',
+    signalment: 'dog',
+    onsetHours: '6',
+    clinical: 'peracute deficits consistent with focal cerebrovascular disease',
+
+    strokeType: 'Ischemic infarct',
+    stage: 'Acute (6–48 h)',
+    location: 'MCA territory (cerebrum)',
+    side: 'Left',
+    size: 'Moderate (1.5–3 cm)',
+
+    dwi: 'Marked hyperintense',
+    adc: 'Low signal (restricted diffusion)',
+    flair: 'Hyperintense',
+    t2star: 'No susceptibility',
+    ce: 'None',
+    mass: 'Mild sulcal effacement',
+
+    hemePattern: 'None observed',
+    vessel: 'Not seen',
+    perfusion: 'Not performed',
+
+    ddx: '',
+    impressionPreset: 'Acute non-hemorrhagic ischemic infarct',
+    confidence: 'High',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // handy helpers
+  const sentenceCase = (s: string) => (s ? s.trim().replace(/^./, c => c.toUpperCase()) : s);
+
+  useEffect(() => {
+    const loc = `${formData.side.toLowerCase()} ${formData.location.toLowerCase()}`;
+
+    const technique = `MRI brain including T2, FLAIR, DWI with ADC map, and T2* susceptibility; post-contrast T1 ${formData.ce === 'Not given' ? 'not performed' : 'performed'}.`;
+
+    let history = `Signalment: ${formData.signalment}. Clinical signs: ${sentenceCase(formData.clinical)}. Onset to imaging: ~${formData.onsetHours} hour(s).`;
+
+    // Findings logic
+    const sizeText = formData.size;
+    const findingsParts: string[] = [];
+
+    // Diffusion
+    if (formData.dwi.includes('hyperintense')) {
+      if (formData.adc.includes('Low')) {
+        findingsParts.push(
+          `Within the ${loc}, there is ${formData.dwi.toLowerCase()} signal on DWI with ${formData.adc.toLowerCase()}, consistent with true restricted diffusion.`
+        );
+      } else {
+        findingsParts.push(
+          `Within the ${loc}, there is ${formData.dwi.toLowerCase()} signal on DWI with ${formData.adc.toLowerCase()}, suggesting possible T2 shine-through rather than true restriction.`
+        );
+      }
+    } else {
+      findingsParts.push(`No diffusion restriction is identified within the ${loc}.`);
+    }
+
+    // FLAIR/T2
+    findingsParts.push(`Corresponding FLAIR/T2 signal is ${formData.flair.toLowerCase()}.`);
+
+    // T2*
+    if (formData.t2star === 'No susceptibility') {
+      findingsParts.push(`No abnormal susceptibility is detected on T2*.`);
+    } else if (formData.t2star === 'Sequence not acquired') {
+      findingsParts.push(`T2* sequence was not acquired.`);
+    } else {
+      findingsParts.push(`${formData.t2star} is present on T2*.`);
+    }
+
+    // Contrast
+    if (formData.ce !== 'Not given') {
+      findingsParts.push(`Post-contrast imaging shows ${formData.ce.toLowerCase()}.`);
+    }
+
+    // Mass effect
+    findingsParts.push(`Mass effect: ${formData.mass.toLowerCase()}.`);
+
+    // Hemorrhage/vessel/perfusion
+    if (formData.hemePattern !== 'None observed') {
+      findingsParts.push(`Hemorrhage pattern: ${formData.hemePattern.toLowerCase()}.`);
+    }
+    if (formData.vessel !== 'Not seen') {
+      findingsParts.push(`${formData.vessel}.`);
+    }
+    if (formData.perfusion !== 'Not performed') {
+      findingsParts.push(`Perfusion is compatible with ${formData.perfusion.toLowerCase()}.`);
+    }
+
+    // Size
+    findingsParts.push(`Lesion size category: ${sizeText}.`);
+
+    // Impression
+    let impression = `${formData.impressionPreset} involving the ${loc}. Stage: ${formData.stage}. ${formData.confidence} confidence.`;
+    if (
+      formData.impressionPreset.includes('Acute') &&
+      !(formData.dwi.includes('hyperintense') && formData.adc.includes('Low'))
+    ) {
+      impression += ` Note: DWI/ADC pattern is not classic for acute restricted diffusion; please correlate clinically.`;
+    }
+    if (formData.impressionPreset.toLowerCase().includes('hemorrhage') && formData.t2star === 'No susceptibility') {
+      impression += ` Note: No T2* susceptibility detected; early or low-volume hemorrhage cannot be excluded.`;
+    }
+    if (formData.hemePattern !== 'None observed' && !formData.impressionPreset.toLowerCase().includes('hemorrh')) {
+      impression += ` Hemorrhagic features are present; consider reclassifying if clinically indicated.`;
+    }
+    if (formData.ddx) impression += ` Differentials: ${sentenceCase(formData.ddx)}.`;
+
+    const report = `STUDY:
+${technique}
+
+HISTORY:
+${history}
+
+FINDINGS:
+${findingsParts.join(' ')}
+
+IMPRESSION:
+${impression}
+
+RECOMMENDATIONS:
+Blood pressure evaluation/control; baseline labs including coagulation profile; consider cardiac/embolic source screening; antithrombotic therapy per clinician if no active hemorrhage; repeat MRI if neurologic status changes.
+`;
+
+    setReportText(report);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-rose-50 to-red-50 rounded-2xl shadow-xl p-8 border-2 border-rose-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-rose-100 rounded-xl">
+          <FileText className="text-rose-600" size={24} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800">Ischemic/Hemorrhagic Infarct Report</h3>
+      </div>
+
+      {/* Form area */}
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-inner border border-rose-100">
+        <div className="text-base leading-relaxed text-gray-700 space-y-4">
+          <p className="flex flex-wrap items-center">
+            Patient
+            {renderInput('patient', formData.patient, 'e.g., Cooper', handleChange as any, 12)}
+            · Signalment
+            {renderInput('signalment', formData.signalment, 'e.g., 8y MN Lab', handleChange as any, 16)}
+            · Onset→MRI (h)
+            {renderInput('onsetHours', formData.onsetHours, 'e.g., 6', handleChange as any, 6)}
+          </p>
+
+          <p>
+            Clinical summary:
+            {renderInput('clinical', formData.clinical, 'key signs', handleChange as any, 42)}
+          </p>
+
+          <p>
+            Stroke type
+            {renderSelect('strokeType', formData.strokeType, ['Ischemic infarct', 'Hemorrhagic infarct', 'Primary intracerebral hemorrhage'], handleChange as any)}
+            · Stage
+            {renderSelect('stage', formData.stage, ['Hyperacute (<6 h)', 'Acute (6–48 h)', 'Early subacute (2–7 d)', 'Late subacute (7–14 d)', 'Chronic (>14 d)'], handleChange as any)}
+            · Location
+            {renderSelect('location', formData.location, ['MCA territory (cerebrum)', 'Internal capsule', 'Thalamus', 'Caudate/striatum', 'Hippocampus', 'Cerebellar hemisphere (LCA)', 'Cerebellar vermis', 'Brainstem (pons/medulla)'], handleChange as any)}
+            · Side
+            {renderSelect('side', formData.side, ['Left', 'Right', 'Midline', 'Bilateral asymmetric'], handleChange as any)}
+            · Size
+            {renderSelect('size', formData.size, ['Punctate (<5 mm)', 'Small (5–15 mm)', 'Moderate (1.5–3 cm)', 'Large (>3 cm)'], handleChange as any)}
+          </p>
+
+          <p>
+            DWI
+            {renderSelect('dwi', formData.dwi, ['Marked hyperintense', 'Mild–moderate hyperintense', 'No abnormality'], handleChange as any)}
+            · ADC
+            {renderSelect('adc', formData.adc, ['Low signal (restricted diffusion)', 'Near-normal (pseudonormalizing)', 'High signal', 'Not acquired'], handleChange as any)}
+            · FLAIR/T2
+            {renderSelect('flair', formData.flair, ['Hyperintense', 'Subtle/normal', 'Hypointense'], handleChange as any)}
+          </p>
+
+          <p>
+            T2*
+            {renderSelect('t2star', formData.t2star, ['No susceptibility', 'Focal susceptibility (microbleeds)', 'Patchy susceptibility (petechial)', 'Confluent susceptibility (parenchymal)', 'Intraluminal susceptibility (vessel sign)', 'Sequence not acquired'], handleChange as any)}
+            · Contrast
+            {renderSelect('ce', formData.ce, ['None', 'Mild rim enhancement', 'Patchy parenchymal', 'Leptomeningeal', 'Not given'], handleChange as any)}
+            · Mass effect
+            {renderSelect('mass', formData.mass, ['None', 'Mild sulcal effacement', 'Moderate with ventricle compression', 'Severe with midline shift', 'Posterior fossa crowding'], handleChange as any)}
+          </p>
+
+          <p>
+            Hemorrhage pattern
+            {renderSelect('hemePattern', formData.hemePattern, ['None observed', 'Petechial (hemorrhagic transformation)', 'Parenchymal (lobar)', 'Intraventricular extension', 'Subarachnoid component'], handleChange as any)}
+            · Vessel sign
+            {renderSelect('vessel', formData.vessel, ['Not seen', 'Susceptibility vessel sign present', 'Arterial flow void loss'], handleChange as any)}
+            · Perfusion
+            {renderSelect('perfusion', formData.perfusion, ['Not performed', 'Core pattern (↓CBF/CBV, ↑MTT/TTP)', 'Penumbra pattern (↓CBF, ↑MTT/TTP, preserved/↑CBV)'], handleChange as any)}
+          </p>
+
+          <p>
+            Optional differentials:
+            {renderInput('ddx', formData.ddx, 'e.g., inflammatory encephalitis less likely; consider hypertension coagulopathy', handleChange as any, 60)}
+          </p>
+
+          <p>
+            Impression
+            {renderSelect('impressionPreset', formData.impressionPreset, ['Acute non-hemorrhagic ischemic infarct', 'Ischemic infarct with hemorrhagic transformation', 'Primary intracerebral hemorrhage', 'Chronic infarct with encephalomalacia/gliosis'], handleChange as any)}
+            · Confidence
+            {renderSelect('confidence', formData.confidence, ['High', 'Moderate', 'Low'], handleChange as any)}
+          </p>
+        </div>
+      </div>
+
+      {/* Output area */}
+      <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-rose-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={18} className="text-rose-600" />
+          <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Generated Report</h4>
+        </div>
+        <textarea
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
+          rows={10}
+          className="w-full text-sm font-mono bg-gray-50 p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-400 focus:outline-none transition-all duration-200"
+        />
+        <button
+          onClick={copyReport}
+          className={`mt-4 px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-gradient-to-r from-rose-500 to-red-500 text-white hover:from-rose-600 hover:to-red-600'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
 export default function MRIReportBuilderPage() {
   const [selectedDisease, setSelectedDisease] = useState<string>('meningioma');
 
@@ -373,6 +633,7 @@ export default function MRIReportBuilderPage() {
     { id: 'meningioma', name: 'Meningioma', icon: BrainCircuit, color: 'indigo', gradient: 'from-indigo-500 to-purple-500' },
     { id: 'ivdd', name: 'IVDD', icon: Sparkles, color: 'teal', gradient: 'from-teal-500 to-cyan-500' },
     { id: 'chiari', name: 'Chiari/Syringomyelia', icon: Activity, color: 'red', gradient: 'from-red-500 to-pink-500' },
+    { id: 'stroke', name: 'Ischemic/Hemorrhagic Infarct', icon: FileText, color: 'rose', gradient: 'from-rose-500 to-red-500' },
   ];
 
   const renderTemplate = () => {
@@ -383,6 +644,8 @@ export default function MRIReportBuilderPage() {
         return <IVDDTemplate />;
       case 'chiari':
         return <ChiariSyringomyeliaTemplate />;
+      case 'stroke':
+        return <StrokeTemplate />;
       default:
         return null;
     }
