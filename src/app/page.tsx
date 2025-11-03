@@ -774,7 +774,7 @@ export default function VetPatientTracker() {
   const morningTasks = [
     'Owner Called',
     'Daily SOAP Done',
-    'Vet Radar Sheet Checked',
+    'Overnight Notes Checked',
     'MRI Findings Inputted (if needed)',
     'Discharge Instructions',
   ];
@@ -866,9 +866,17 @@ export default function VetPatientTracker() {
       let ownerLastName = '';
   
       if (parsedData.ownerName) {
-        const ownerNameParts = parsedData.ownerName.split(' ').filter(part => !part.match(/^(Mr|Mrs|Ms|Dr)\.?$/i));
+        // Remove titles, split by space or comma, and take the last non-empty part.
+        const ownerNameParts = parsedData.ownerName
+          .replace(/^(Mr|Mrs|Ms|Dr)\.?\s*/i, '')
+          .split(/[\s,]+/)
+          .filter(Boolean); // Filter out empty strings
+  
         if (ownerNameParts.length > 1) {
           ownerLastName = ownerNameParts[ownerNameParts.length - 1];
+        } else if (ownerNameParts.length === 1) {
+          // If there's only one name part, it might be the last name
+          ownerLastName = ownerNameParts[0];
         }
       }
       
