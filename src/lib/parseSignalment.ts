@@ -126,10 +126,8 @@ export function parseSignalment(text: string): ParseResult {
   const nameMatch = firstLine.match(/^(?:Patient:?\s*)?([A-Za-z\s.'-]+\s+[A-Za-z\s.'-]+)/i);
   if (nameMatch && !data.patientName && !firstLine.includes(':') && firstLine.split(' ').length < 5) {
     const potentialName = nameMatch[1].trim();
-    if (potentialName.toLowerCase() !== 'patient') {
-      data.patientName = potentialName;
-      diag.push(`patientName:${data.patientName}`);
-    }
+    data.patientName = potentialName.replace(/^Patient\s/i, '').trim();
+    diag.push(`patientName:${data.patientName}`);
   }
 
   const spKV = t.match(speciesKVRe);

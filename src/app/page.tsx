@@ -400,12 +400,21 @@ const TaskTable = ({ title, icon, patients, taskNames, currentDate, onToggleTask
   );
 };
 
-// Debounced text area state manager
-const useDebouncedValue = (initialValue: string, onCommit: (value: string) => void, debounceTimeout = 500) => {
+const useDebouncedValue = (
+  initialValue: string,
+  onCommit: (value: string) => void,
+  debounceTimeout = 500
+) => {
   const [localValue, setLocalValue] = useState(initialValue);
+  const isFirstRender = React.useRef(true);
 
-  // Update local state if the initial (prop) value changes from outside
+  // Update local state if the initial (prop) value changes from outside,
+  // but only after the first render.
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setLocalValue(initialValue);
   }, [initialValue]);
 
@@ -435,7 +444,7 @@ const DebouncedTextarea = ({
 }: {
   initialValue: string;
   onCommit: (value: string) => void;
-} & Omit<React.ComponentProps<typeof Textarea>, 'onCommit' | 'value' | 'onChange'>) => {
+} & Omit<React.ComponentProps<typeof Textarea>, 'value' | 'onChange'>) => {
   const [value, setValue] = useDebouncedValue(initialValue, onCommit);
 
   return (
@@ -853,11 +862,14 @@ export default function VetPatientTracker() {
     try {
       const { data: parsedData } = parseSignalment(newPatientBlurb);
       
-      let patientFirstName = (parsedData.patientName || 'Unnamed').replace(/^Patient\s/i, '');
+      const patientFirstName = (parsedData.patientName || 'Unnamed').replace(/^Patient\s/i, '');
       let ownerLastName = '';
+  
       if (parsedData.ownerName) {
-        const ownerNameParts = parsedData.ownerName.split(' ');
-        ownerLastName = ownerNameParts[ownerNameParts.length - 1];
+        const ownerNameParts = parsedData.ownerName.split(' ').filter(part => !part.match(/^(Mr|Mrs|Ms|Dr)\.?$/i));
+        if (ownerNameParts.length > 1) {
+          ownerLastName = ownerNameParts[ownerNameParts.length - 1];
+        }
       }
       
       const fullName = ownerLastName ? `${patientFirstName} ${ownerLastName}` : patientFirstName;
