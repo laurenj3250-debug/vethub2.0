@@ -113,7 +113,7 @@ const dischargeMeds: DischargeMedGroup[] = [
       },
       {
         name: 'Clavamox 250mg Tablets',
-        instructions: 'Give 1/2 tablet every 12 hours until gone.',
+        instructions: 'Give 1/2  tablet every 12 hours until gone.',
         nextDose: '**Next dose due at 8pm tonight**',
       },
       {
@@ -463,3 +463,5 @@ export function getDischargeMedsByWeight(weight: number): DischargeMedGroup | un
 export function getAllDischargeMeds() {
   return dischargeMeds;
 }
+
+    

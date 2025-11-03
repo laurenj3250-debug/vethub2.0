@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, ChevronDown, ChevronUp, TestTube, Pill, Stethoscope, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, TestTube, Pill, Stethoscope, Plus, Trash2, Edit2, Save, X, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
@@ -10,6 +10,112 @@ import {
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
 import { collection, doc, query } from 'firebase/firestore';
+import { getDischargeMedsByWeight, type DischargeMedGroup } from '@/lib/discharge-meds';
+
+
+const DischargeCocktailCalculator = () => {
+  const [weight, setWeight] = useState('');
+  const [selectedMedGroup, setSelectedMedGroup] = useState<DischargeMedGroup | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newWeight = e.target.value;
+    setWeight(newWeight);
+    const weightNum = parseFloat(newWeight);
+    if (!isNaN(weightNum) && weightNum > 0) {
+      const group = getDischargeMedsByWeight(weightNum);
+      setSelectedMedGroup(group || null);
+    } else {
+      setSelectedMedGroup(null);
+    }
+  };
+
+  const generateCopyText = () => {
+    if (!selectedMedGroup) return '';
+    let text = `MEDICATIONS:\n`;
+    selectedMedGroup.meds.forEach((med, index) => {
+      text += `${index + 1}) ${med.name} - ${med.instructions}\n`;
+      if (med.nextDose) {
+        text += `${med.nextDose}\n\n`;
+      }
+    });
+    if (selectedMedGroup.recheckNote) {
+      text += `${selectedMedGroup.recheckNote}\n`;
+    }
+    return text;
+  };
+
+  const handleCopy = () => {
+    const textToCopy = generateCopyText();
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-orange-400">
+      <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+        <Pill className="text-orange-500" />
+        Discharge Cocktail Calculator
+      </h2>
+      <div className="flex items-center gap-2 mb-4">
+        <label htmlFor="weight-input" className="text-sm font-semibold text-gray-700">
+          Enter Weight (kg):
+        </label>
+        <input
+          id="weight-input"
+          type="number"
+          value={weight}
+          onChange={handleWeightChange}
+          placeholder="e.g., 12.5"
+          className="w-32 px-3 py-1.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+        />
+      </div>
+
+      {selectedMedGroup ? (
+        <div className="p-4 bg-orange-50/70 border border-orange-200 rounded-lg">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-orange-900">
+              Meds for Weight Range: {selectedMedGroup.range}
+            </h3>
+            <button
+              onClick={handleCopy}
+              className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-2 text-xs transition-all duration-200 shadow-sm ${
+                copied
+                  ? 'bg-green-600 text-white'
+                  : 'bg-orange-500 text-white hover:bg-orange-600'
+              }`}
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? 'Copied!' : 'Copy Instructions'}
+            </button>
+          </div>
+          <div className="space-y-3">
+            {selectedMedGroup.meds.map((med, index) => (
+              <div key={index} className="text-sm">
+                <p className="font-semibold text-gray-800">{index + 1}) {med.name}</p>
+                <p className="text-gray-700 pl-4">{med.instructions}</p>
+                {med.nextDose && <p className="text-red-600 font-bold pl-4">{med.nextDose}</p>}
+              </div>
+            ))}
+            {selectedMedGroup.recheckNote && (
+              <p className="text-sm font-semibold text-blue-700 mt-4 pt-2 border-t border-orange-200">
+                {selectedMedGroup.recheckNote}
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        weight && (
+          <p className="text-sm text-red-600">
+            No medication protocol found for the entered weight.
+          </p>
+        )
+      )}
+    </div>
+  );
+};
+
 
 export default function VetReferenceGuide() {
   const auth = useAuth();
@@ -411,6 +517,9 @@ export default function VetReferenceGuide() {
             )}
           </div>
         </div>
+
+        {/* Discharge Cocktail Calculator */}
+        <DischargeCocktailCalculator />
 
         {/* Quick Tips */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-yellow-400">
@@ -885,3 +994,5 @@ export default function VetReferenceGuide() {
     </div>
   );
 }
+
+    
