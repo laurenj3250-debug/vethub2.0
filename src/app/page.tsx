@@ -559,16 +559,23 @@ export default function VetPatientTracker() {
     if (currentDate === today && patients.length > 0) {
       patients.forEach((patient: any) => {
         const tasks = patient.tasks || [];
-        const needsRollover = tasks.some((t: any) => t.date && t.date < today && !t.completed);
+        let needsUpdate = false;
+        
+        const updatedTasks = tasks.map((t: any) => {
+          // Roll over incomplete tasks from previous days to today
+          if (t.date && t.date < today && !t.completed) {
+            needsUpdate = true;
+            return { ...t, date: today };
+          }
+          // Reset 'MRI Findings Inputted' if it was for a previous day
+          if (t.name === 'MRI Findings Inputted (if needed)' && t.date && t.date < today) {
+            needsUpdate = true;
+            return { ...t, completed: false, date: today };
+          }
+          return t;
+        });
 
-        if (needsRollover) {
-          const updatedTasks = tasks.map((t: any) => {
-            // Roll over incomplete tasks from previous days to today
-            if (t.date && t.date < today && !t.completed) {
-              return { ...t, date: today };
-            }
-            return t;
-          });
+        if (needsUpdate) {
           updatePatientField(patient.id, 'tasks', updatedTasks);
         }
       });
@@ -1451,12 +1458,14 @@ export default function VetPatientTracker() {
     const tsvData = mriPatients
       .map((p: any) => {
         let weightKg = 0;
-        if (p.mriData?.weight) {
-          const weightNum = parseFloat(p.mriData.weight);
-          weightKg =
-            p.mriData.weightUnit === 'lbs'
-              ? weightNum / 2.20462
-              : weightNum;
+        let weightSource = p.mriData?.weight || p.patientInfo?.weight;
+        if (weightSource) {
+            const weightMatch = String(weightSource).match(/(\d+(?:\.\d+)?)\s*(kg|lbs)?/i);
+            if (weightMatch) {
+                const weightNum = parseFloat(weightMatch[1]);
+                const unit = (weightMatch[2] || p.mriData?.weightUnit || 'kg').toLowerCase();
+                weightKg = unit === 'lbs' ? weightNum / 2.20462 : weightNum;
+            }
         }
         const kgRounded = weightKg > 0 ? roundKgToInt(weightKg) : 0;
         const name = p.name || '';
