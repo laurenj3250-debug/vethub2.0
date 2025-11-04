@@ -1451,25 +1451,18 @@ export default function VetPatientTracker() {
   
   // Create dynamic map of "Other" tasks from all patients
   const otherTasksMap = useMemo(() => {
-    const taskMap: Record<string, { patientId: string; taskId: number; completed: boolean }[]> = {};
+    const taskSet = new Set<string>();
     const morningAndEvening = new Set([...morningTasks, ...eveningTasks]);
     
     patients.forEach((patient: any) => {
       const patientTasks = getTasksForDate(patient.tasks || [], currentDate);
       patientTasks.forEach((task: any) => {
         if (!morningAndEvening.has(task.name)) {
-          if (!taskMap[task.name]) {
-            taskMap[task.name] = [];
-          }
-          taskMap[task.name].push({
-            patientId: patient.id,
-            taskId: task.id,
-            completed: task.completed,
-          });
+          taskSet.add(task.name);
         }
       });
     });
-    return taskMap;
+    return Array.from(taskSet);
   }, [patients, currentDate]);
 
   const handleMriExport = () => {
@@ -2206,55 +2199,16 @@ export default function VetPatientTracker() {
             onPatientClick={handlePatientClick}
             onRemoveTask={removeTask}
           />
-          <div className="bg-white rounded-lg shadow-md p-4 border">
-            <button
-              onClick={() => setShowOtherTasks(!showOtherTasks)}
-              className="w-full flex items-center justify-between hover:bg-gray-50 p-1 rounded transition mb-2"
-            >
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <Sparkles className="text-purple-500" />
-                  Other Tasks List
-                </h3>
-              </div>
-              <ChevronDown className={`transition-transform ${showOtherTasks ? 'rotate-180' : ''}`} size={20} />
-            </button>
-            
-            {showOtherTasks && (
-              <>
-                {Object.keys(otherTasksMap).length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
-                    {Object.entries(otherTasksMap).map(([taskName, tasks]) => (
-                      <div key={taskName} className="p-3 bg-purple-50/70 border border-purple-200 rounded-lg">
-                        <h4 className="font-bold text-sm text-purple-800 mb-2">{taskName}</h4>
-                        <div className="space-y-2">
-                          {tasks.map((task) => {
-                            const patient = patients.find(p => p.id === task.patientId);
-                            if (!patient) return null;
-                            return (
-                              <label key={task.taskId} className="flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-purple-100">
-                                <input
-                                  type="checkbox"
-                                  checked={task.completed}
-                                  onChange={() => toggleTask(task.patientId, task.taskId)}
-                                  className="w-4 h-4 accent-purple-600 cursor-pointer"
-                                />
-                                <span className={`text-xs font-medium ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
-                                  {patient.name}
-                                </span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-500 italic mt-2">No other tasks assigned for today. Add custom tasks inside a patient's card.</p>
-                )}
-              </>
-            )}
-          </div>
+          <TaskTable
+            title="Other Tasks"
+            icon={<Sparkles className="text-purple-500" />}
+            patients={sortedPatients}
+            taskNames={otherTasksMap}
+            currentDate={currentDate}
+            onToggleTask={toggleTask}
+            onPatientClick={handlePatientClick}
+            onRemoveTask={removeTask}
+          />
         </div>
 
         {/* Patients */}
