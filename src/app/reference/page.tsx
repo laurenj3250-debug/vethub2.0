@@ -165,7 +165,7 @@ export default function VetReferenceGuide() {
     if (!firestore || !user) return;
 
     // Add default workups if none exist
-    if (workups.length === 0) {
+    if (!workupsRes.isLoading && workups.length === 0) {
       const defaultWorkups = [
         {
           title: 'Stroke Workup',
@@ -235,7 +235,7 @@ export default function VetReferenceGuide() {
     }
 
     // Add default medications if none exist
-    if (medicationCategories.length === 0) {
+    if (!medicationsRes.isLoading && medicationCategories.length === 0) {
       const defaultMeds = [
         {
           category: 'Anesthesia',
@@ -295,7 +295,7 @@ export default function VetReferenceGuide() {
     }
 
     // Add default normal values if none exist
-    if (normalValues.length === 0) {
+    if (!normalValuesRes.isLoading && normalValues.length === 0) {
       const defaultNormals = [
         {
           category: 'CBC - Canine',
@@ -350,7 +350,7 @@ export default function VetReferenceGuide() {
     }
 
     // Add default quick tips if none exist
-    if (quickTips.length === 0) {
+    if (!quickTipsRes.isLoading && quickTips.length === 0) {
       const defaultTips = [
         {
           title: 'IVDD Grading',
@@ -379,7 +379,7 @@ export default function VetReferenceGuide() {
         addDocumentNonBlocking(collection(firestore, `users/${user.uid}/quickTips`), t);
       });
     }
-  }, [firestore, user, workups.length, medicationCategories.length, normalValues.length, quickTips.length]);
+  }, [firestore, user, workups, workupsRes.isLoading, medicationCategories, medicationsRes.isLoading, normalValues, normalValuesRes.isLoading, quickTips, quickTipsRes.isLoading]);
 
   // CRUD Operations
   const startEdit = (id: string, data: any) => {
@@ -994,5 +994,3 @@ export default function VetReferenceGuide() {
     </div>
   );
 }
-
-    
