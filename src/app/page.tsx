@@ -1053,6 +1053,25 @@ export default function VetPatientTracker() {
     updatePatientField(patientId, 'tasks', filtered);
   }, [patients, updatePatientField]);
 
+  const clearLingeringTasks = useCallback(() => {
+    const today = getTodayDate();
+    patients.forEach(patient => {
+      const tasksToKeep = (patient.tasks || []).filter((task: any) => {
+        // Keep tasks that are completed OR tasks that are for today
+        return task.completed || !task.date || task.date >= today;
+      });
+
+      // Only update if the tasks list has changed
+      if (tasksToKeep.length !== (patient.tasks || []).length) {
+        updatePatientField(patient.id, 'tasks', tasksToKeep);
+      }
+    });
+    toast({
+      title: 'Lingering Tasks Cleared',
+      description: 'All incomplete tasks from previous days have been removed.',
+    });
+  }, [patients, updatePatientField, toast]);
+
   const removeTask = useCallback((patientId: string, taskId: number) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
@@ -1659,6 +1678,14 @@ export default function VetPatientTracker() {
                 }`}
               >
                 {hideCompletedTasks ? '👁️ Show' : '🙈 Hide'} Completed
+              </button>
+
+              <button
+                onClick={clearLingeringTasks}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm bg-red-500 text-white hover:bg-red-600"
+                title="Remove all incomplete tasks from previous days"
+              >
+                <Trash2 size={14} /> Clear Lingering
               </button>
 
               {user ? (
