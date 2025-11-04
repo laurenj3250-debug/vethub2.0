@@ -32,12 +32,13 @@ const DischargeCocktailCalculator = () => {
 
   const generateCopyText = () => {
     if (!selectedMedGroup) return '';
-    let text = `MEDICATIONS:\n`;
+    let text = `MEDICATIONS:\n\n`;
     selectedMedGroup.meds.forEach((med, index) => {
-      text += `${index + 1}) ${med.name} - ${med.instructions}\n`;
+      text += `${index + 1}) ${med.name}: ${med.instructions}\n`;
       if (med.nextDose) {
-        text += `${med.nextDose}\n\n`;
+        text += `${med.nextDose}\n`;
       }
+      text += `\n`;
     });
     if (selectedMedGroup.recheckNote) {
       text += `${selectedMedGroup.recheckNote}\n`;
@@ -164,8 +165,7 @@ export default function VetReferenceGuide() {
   React.useEffect(() => {
     if (!firestore || !user) return;
 
-    // Add default workups if none exist
-    if (!workupsRes.isLoading && workups.length === 0) {
+    if (workupsRes.isLoading === false && workups.length === 0) {
       const defaultWorkups = [
         {
           title: 'Stroke Workup',
@@ -234,8 +234,7 @@ export default function VetReferenceGuide() {
       });
     }
 
-    // Add default medications if none exist
-    if (!medicationsRes.isLoading && medicationCategories.length === 0) {
+    if (medicationsRes.isLoading === false && medicationCategories.length === 0) {
       const defaultMeds = [
         {
           category: 'Anesthesia',
@@ -294,8 +293,7 @@ export default function VetReferenceGuide() {
       });
     }
 
-    // Add default normal values if none exist
-    if (!normalValuesRes.isLoading && normalValues.length === 0) {
+    if (normalValuesRes.isLoading === false && normalValues.length === 0) {
       const defaultNormals = [
         {
           category: 'CBC - Canine',
@@ -349,8 +347,7 @@ export default function VetReferenceGuide() {
       });
     }
 
-    // Add default quick tips if none exist
-    if (!quickTipsRes.isLoading && quickTips.length === 0) {
+    if (quickTipsRes.isLoading === false && quickTips.length === 0) {
       const defaultTips = [
         {
           title: 'IVDD Grading',
@@ -551,8 +548,8 @@ export default function VetReferenceGuide() {
                       placeholder="Title"
                     />
                     <textarea
-                      value={(editingData.content || []).join('\n')}
-                      onChange={(e) => setEditingData({ ...editingData, content: e.target.value.split('\n') })}
+                      value={(editingData.content || []).join('\\n')}
+                      onChange={(e) => setEditingData({ ...editingData, content: e.target.value.split('\\n') })}
                       rows={4}
                       className="w-full px-2 py-1 text-xs border rounded"
                       placeholder="One item per line"
@@ -652,8 +649,8 @@ export default function VetReferenceGuide() {
                         placeholder="Category"
                       />
                       <textarea
-                        value={(editingData.tests || []).join('\n')}
-                        onChange={(e) => setEditingData({ ...editingData, tests: e.target.value.split('\n') })}
+                        value={(editingData.tests || []).join('\\n')}
+                        onChange={(e) => setEditingData({ ...editingData, tests: e.target.value.split('\\n') })}
                         rows={6}
                         className="w-full px-2 py-1 text-xs border rounded"
                         placeholder="One test per line"
