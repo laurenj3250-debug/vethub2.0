@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, ChevronDown, ChevronUp, TestTube, Pill, Stethoscope, Plus, Trash2, Edit2, Save, X, Copy, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
@@ -31,7 +31,7 @@ const DischargeCocktailCalculator = () => {
   };
 
   const generateCopyText = () => {
-    if (!selectedMedGroup) return '';
+    if (!selectedMedGroup) return 'MEDICATIONS:\n\n';
     let text = `MEDICATIONS:\n\n`;
     selectedMedGroup.meds.forEach((med, index) => {
       text += `${index + 1}) ${med.name}: ${med.instructions}\n`;
@@ -122,6 +122,7 @@ export default function VetReferenceGuide() {
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const dataInitialized = useRef(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -162,10 +163,19 @@ export default function VetReferenceGuide() {
   };
 
   // Initialize default data on first load
-  React.useEffect(() => {
-    if (!firestore || !user) return;
+  useEffect(() => {
+    if (dataInitialized.current || !firestore || !user) {
+      return;
+    }
 
-    if (workupsRes.isLoading === false && workups.length === 0) {
+    const allDataLoaded = !workupsRes.isLoading && !medicationsRes.isLoading && !normalValuesRes.isLoading && !quickTipsRes.isLoading;
+    if (!allDataLoaded) {
+      return;
+    }
+
+    dataInitialized.current = true; // Set flag to prevent re-running
+
+    if (workups.length === 0) {
       const defaultWorkups = [
         {
           title: 'Stroke Workup',
@@ -234,7 +244,7 @@ export default function VetReferenceGuide() {
       });
     }
 
-    if (medicationsRes.isLoading === false && medicationCategories.length === 0) {
+    if (medicationCategories.length === 0) {
       const defaultMeds = [
         {
           category: 'Anesthesia',
@@ -293,7 +303,7 @@ export default function VetReferenceGuide() {
       });
     }
 
-    if (normalValuesRes.isLoading === false && normalValues.length === 0) {
+    if (normalValues.length === 0) {
       const defaultNormals = [
         {
           category: 'CBC - Canine',
@@ -347,7 +357,7 @@ export default function VetReferenceGuide() {
       });
     }
 
-    if (quickTipsRes.isLoading === false && quickTips.length === 0) {
+    if (quickTips.length === 0) {
       const defaultTips = [
         {
           title: 'IVDD Grading',
@@ -376,7 +386,18 @@ export default function VetReferenceGuide() {
         addDocumentNonBlocking(collection(firestore, `users/${user.uid}/quickTips`), t);
       });
     }
-  }, [firestore, user, workups, workupsRes.isLoading, medicationCategories, medicationsRes.isLoading, normalValues, normalValuesRes.isLoading, quickTips, quickTipsRes.isLoading]);
+  }, [
+    firestore, 
+    user, 
+    workups, 
+    workupsRes.isLoading, 
+    medicationCategories, 
+    medicationsRes.isLoading, 
+    normalValues, 
+    normalValuesRes.isLoading, 
+    quickTips, 
+    quickTipsRes.isLoading
+  ]);
 
   // CRUD Operations
   const startEdit = (id: string, data: any) => {
