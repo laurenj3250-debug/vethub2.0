@@ -9,7 +9,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase/non-blocking-updates';
-import { collection, doc, query } from 'firebase/firestore';
+import { collection, doc, query, getDocs, writeBatch } from 'firebase/firestore';
 import { getDischargeMedsByWeight, type DischargeMedGroup } from '@/lib/discharge-meds';
 
 
@@ -32,6 +32,7 @@ const DischargeCocktailCalculator = () => {
 
   const generateCopyText = () => {
     if (!selectedMedGroup) return 'MEDICATIONS:\n\n';
+    
     let text = `MEDICATIONS:\n\n`;
     selectedMedGroup.meds.forEach((med, index) => {
       text += `${index + 1}) ${med.name}: ${med.instructions}\n`;
@@ -40,6 +41,7 @@ const DischargeCocktailCalculator = () => {
       }
       text += `\n`;
     });
+    
     if (selectedMedGroup.recheckNote) {
       text += `${selectedMedGroup.recheckNote}\n`;
     }
@@ -173,229 +175,67 @@ export default function VetReferenceGuide() {
       return;
     }
 
-    dataInitialized.current = true; // Set flag to prevent re-running
+    dataInitialized.current = true; 
 
-    if (workups.length === 0) {
-      const defaultWorkups = [
-        {
-          title: 'Stroke Workup',
-          icon: '🧠',
-          category: 'Neurology',
-          tests: [
-            'CBC/Chemistry',
-            'Urinalysis with UPC',
-            'Coagulation Panel (PT/PTT)',
-            'Blood Pressure',
-            'Tick Panel (4DX or PCR)',
-            'Thyroid Panel (T4, fT4)',
-            'ACTH Stim vs LDDST (if Cushingoid)',
-            'Abdominal Ultrasound',
-            'Chest X-rays (3 view)',
-            'Echocardiogram',
-            'MRI Brain (contrast)',
-          ]
-        },
-        {
-          title: 'Seizure Workup',
-          icon: '⚡',
-          category: 'Neurology',
-          tests: [
-            'CBC/Chemistry (fasted)',
-            'Bile Acids (pre/post)',
-            'Urinalysis',
-            'Blood Pressure',
-            'Toxin Screen (if indicated)',
-            'Lead Level (if indicated)',
-            'MRI Brain (if >6yo, focal seizures, or abnormal neuro exam)',
-            'CSF Analysis (with MRI)',
-          ]
-        },
-        {
-          title: 'Vestibular Workup',
-          icon: '🌀',
-          category: 'Neurology',
-          tests: [
-            'CBC/Chemistry',
-            'Urinalysis',
-            'Blood Pressure',
-            'Thyroid Panel',
-            'Otoscopic Exam / Ear Cytology',
-            'BAER Test (if chronic ear disease)',
-            'CT or MRI (if central signs)',
-            'CSF (if central)',
-          ]
-        },
-        {
-          title: 'IVDD Workup',
-          icon: '🦴',
-          category: 'Neurology',
-          tests: [
-            'Neurological Exam (localization)',
-            'CBC/Chemistry (pre-anesthetic)',
-            'Chest X-rays (if surgery planned)',
-            'MRI Spine (T2, T1, +/- contrast)',
-            'Consider CT Myelo if MRI unavailable',
-          ]
-        },
-      ];
+    const cleanupAndSeed = async () => {
+        const batch = writeBatch(firestore);
+        
+        // --- Workups ---
+        if (workups.length === 0) {
+            const defaultWorkups = [
+                { title: 'Stroke Workup', icon: '🧠', category: 'Neurology', tests: ['CBC/Chemistry', 'Urinalysis with UPC', 'Coagulation Panel (PT/PTT)', 'Blood Pressure', 'Tick Panel (4DX or PCR)', 'Thyroid Panel (T4, fT4)', 'ACTH Stim vs LDDST (if Cushingoid)', 'Abdominal Ultrasound', 'Chest X-rays (3 view)', 'Echocardiogram', 'MRI Brain (contrast)'] },
+                { title: 'Seizure Workup', icon: '⚡', category: 'Neurology', tests: ['CBC/Chemistry (fasted)', 'Bile Acids (pre/post)', 'Urinalysis', 'Blood Pressure', 'Toxin Screen (if indicated)', 'Lead Level (if indicated)', 'MRI Brain (if >6yo, focal seizures, or abnormal neuro exam)', 'CSF Analysis (with MRI)'] },
+                { title: 'Vestibular Workup', icon: '🌀', category: 'Neurology', tests: ['CBC/Chemistry', 'Urinalysis', 'Blood Pressure', 'Thyroid Panel', 'Otoscopic Exam / Ear Cytology', 'BAER Test (if chronic ear disease)', 'CT or MRI (if central signs)', 'CSF (if central)'] },
+                { title: 'IVDD Workup', icon: '🦴', category: 'Neurology', tests: ['Neurological Exam (localization)', 'CBC/Chemistry (pre-anesthetic)', 'Chest X-rays (if surgery planned)', 'MRI Spine (T2, T1, +/- contrast)', 'Consider CT Myelo if MRI unavailable'] },
+            ];
+            defaultWorkups.forEach(w => addDocumentNonBlocking(collection(firestore, `users/${user.uid}/workups`), w));
+        }
 
-      defaultWorkups.forEach(w => {
-        addDocumentNonBlocking(collection(firestore, `users/${user.uid}/workups`), w);
-      });
-    }
+        // --- Meds ---
+        if (medicationCategories.length === 0) {
+            const defaultMeds = [
+                { category: 'Anesthesia', drugs: [{ name: 'Propofol', dose: '4-6 mg/kg IV (to effect)', notes: 'Respiratory depression' }, { name: 'Alfaxalone', dose: '2-3 mg/kg IV', notes: 'Smoother than propofol' }, { name: 'Ketamine', dose: '5-10 mg/kg IM or 2-5 mg/kg IV', notes: 'With sedative' }, { name: 'Dexmedetomidine', dose: '5-10 mcg/kg IM', notes: 'Reversible with atipamezole' }, { name: 'Butorphanol', dose: '0.2-0.4 mg/kg IM/IV', notes: 'Sedation + mild analgesia' }] },
+                { category: 'Emergency', drugs: [{ name: 'Atropine', dose: '0.02-0.04 mg/kg IV/IM', notes: 'Bradycardia' }, { name: 'Epinephrine', dose: '0.01 mg/kg (0.1 mL/kg of 1:10,000) IV', notes: 'Cardiac arrest' }, { name: 'Naloxone', dose: '0.04 mg/kg IV', notes: 'Opioid reversal' }, { name: 'Atipamezole', dose: 'Same volume as dex given IM', notes: 'Alpha-2 reversal' }, { name: 'Mannitol', dose: '0.5-1 g/kg IV over 20 min', notes: 'Cerebral edema' }, { name: 'Dexamethasone SP', dose: '0.25-1 mg/kg IV', notes: 'Spinal trauma (controversial)' }] },
+                { category: 'Anti-Seizure', drugs: [{ name: 'Diazepam', dose: '0.5-1 mg/kg IV/rectal', notes: 'First-line acute seizure' }, { name: 'Levetiracetam', dose: '20 mg/kg IV, then 20 mg/kg PO TID', notes: 'Loading dose' }, { name: 'Phenobarbital', dose: '2-5 mg/kg PO BID', notes: 'Chronic control' }, { name: 'CRI Diazepam', dose: '0.5-2 mg/kg/hr IV', notes: 'Status epilepticus' }] },
+                { category: 'Pain Management', drugs: [{ name: 'Hydromorphone', dose: '0.05-0.2 mg/kg IV/IM q2-6h', notes: 'Strong opioid' }, { name: 'Fentanyl CRI', dose: '2-10 mcg/kg/hr IV', notes: 'Severe pain' }, { name 'Gabapentin', dose: '5-20 mg/kg PO BID-TID', notes: 'Neuropathic pain' }, { name: 'Carprofen', dose: '2.2 mg/kg PO BID or 4.4 mg/kg SID', notes: 'NSAID' }, { name: 'Robenacoxib', dose: '1-2 mg/kg PO SID (cat), 1 mg/kg SID (dog)', notes: 'COX-2 selective' }] },
+                { category: 'GI', drugs: [{ name: 'Maropitant', dose: '1 mg/kg SQ/IV SID', notes: 'Max 5 days injectable' }, { name: 'Ondansetron', dose: '0.1-0.2 mg/kg IV/PO BID-TID', notes: 'Strong antiemetic' }, { name: 'Metoclopramide', dose: '0.2-0.5 mg/kg PO/SQ TID-QID or 1-2 mg/kg/day CRI', notes: 'Prokinetic' }, { name: 'Sucralfate', dose: '0.5-1 g PO TID', notes: 'Give 2hr away from other meds' }, { name: 'Famotidine', dose: '0.5-1 mg/kg PO/IV BID', notes: 'H2 blocker' }] },
+            ];
+            defaultMeds.forEach(m => addDocumentNonBlocking(collection(firestore, `users/${user.uid}/medicationCategories`), m));
+        }
 
-    if (medicationCategories.length === 0) {
-      const defaultMeds = [
-        {
-          category: 'Anesthesia',
-          drugs: [
-            { name: 'Propofol', dose: '4-6 mg/kg IV (to effect)', notes: 'Respiratory depression' },
-            { name: 'Alfaxalone', dose: '2-3 mg/kg IV', notes: 'Smoother than propofol' },
-            { name: 'Ketamine', dose: '5-10 mg/kg IM or 2-5 mg/kg IV', notes: 'With sedative' },
-            { name: 'Dexmedetomidine', dose: '5-10 mcg/kg IM', notes: 'Reversible with atipamezole' },
-            { name: 'Butorphanol', dose: '0.2-0.4 mg/kg IM/IV', notes: 'Sedation + mild analgesia' },
-          ]
-        },
-        {
-          category: 'Emergency',
-          drugs: [
-            { name: 'Atropine', dose: '0.02-0.04 mg/kg IV/IM', notes: 'Bradycardia' },
-            { name: 'Epinephrine', dose: '0.01 mg/kg (0.1 mL/kg of 1:10,000) IV', notes: 'Cardiac arrest' },
-            { name: 'Naloxone', dose: '0.04 mg/kg IV', notes: 'Opioid reversal' },
-            { name: 'Atipamezole', dose: 'Same volume as dex given IM', notes: 'Alpha-2 reversal' },
-            { name: 'Mannitol', dose: '0.5-1 g/kg IV over 20 min', notes: 'Cerebral edema' },
-            { name: 'Dexamethasone SP', dose: '0.25-1 mg/kg IV', notes: 'Spinal trauma (controversial)' },
-          ]
-        },
-        {
-          category: 'Anti-Seizure',
-          drugs: [
-            { name: 'Diazepam', dose: '0.5-1 mg/kg IV/rectal', notes: 'First-line acute seizure' },
-            { name: 'Levetiracetam', dose: '20 mg/kg IV, then 20 mg/kg PO TID', notes: 'Loading dose' },
-            { name: 'Phenobarbital', dose: '2-5 mg/kg PO BID', notes: 'Chronic control' },
-            { name: 'CRI Diazepam', dose: '0.5-2 mg/kg/hr IV', notes: 'Status epilepticus' },
-          ]
-        },
-        {
-          category: 'Pain Management',
-          drugs: [
-            { name: 'Hydromorphone', dose: '0.05-0.2 mg/kg IV/IM q2-6h', notes: 'Strong opioid' },
-            { name: 'Fentanyl CRI', dose: '2-10 mcg/kg/hr IV', notes: 'Severe pain' },
-            { name: 'Gabapentin', dose: '5-20 mg/kg PO BID-TID', notes: 'Neuropathic pain' },
-            { name: 'Carprofen', dose: '2.2 mg/kg PO BID or 4.4 mg/kg SID', notes: 'NSAID' },
-            { name: 'Robenacoxib', dose: '1-2 mg/kg PO SID (cat), 1 mg/kg SID (dog)', notes: 'COX-2 selective' },
-          ]
-        },
-        {
-          category: 'GI',
-          drugs: [
-            { name: 'Maropitant', dose: '1 mg/kg SQ/IV SID', notes: 'Max 5 days injectable' },
-            { name: 'Ondansetron', dose: '0.1-0.2 mg/kg IV/PO BID-TID', notes: 'Strong antiemetic' },
-            { name: 'Metoclopramide', dose: '0.2-0.5 mg/kg PO/SQ TID-QID or 1-2 mg/kg/day CRI', notes: 'Prokinetic' },
-            { name: 'Sucralfate', dose: '0.5-1 g PO TID', notes: 'Give 2hr away from other meds' },
-            { name: 'Famotidine', dose: '0.5-1 mg/kg PO/IV BID', notes: 'H2 blocker' },
-          ]
-        },
-      ];
+        // --- Normals ---
+        if (normalValues.length === 0) {
+            const defaultNormals = [
+                { category: 'CBC - Canine', values: [{ test: 'WBC', range: '5.5-16.9 K/μL' }, { test: 'RBC', range: '5.65-8.87 M/μL' }, { test: 'Hemoglobin', range: '13.1-20.5 g/dL' }, { test: 'Hematocrit', range: '37.3-61.7%' }, { test: 'Platelets', range: '148-484 K/μL' }, { test: 'Neutrophils', range: '2.95-11.64 K/μL' }, { test: 'Lymphocytes', range: '1.05-5.10 K/μL' }] },
+                { category: 'CBC - Feline', values: [{ test: 'WBC', range: '5.5-19.5 K/μL' }, { test: 'RBC', range: '5.92-9.93 M/μL' }, { test: 'Hemoglobin', range: '9.8-15.4 g/dL' }, { test: 'Hematocrit', range: '29.3-48.9%' }, { test: 'Platelets', range: '151-600 K/μL' }] },
+                { category: 'Chemistry', values: [{ test: 'BUN', range: '7-27 mg/dL (dog), 16-36 mg/dL (cat)' }, { test: 'Creatinine', range: '0.5-1.8 mg/dL (dog), 0.8-2.4 mg/dL (cat)' }, { test: 'Glucose', range: '74-143 mg/dL (dog), 71-148 mg/dL (cat)' }, { test: 'Total Protein', range: '5.2-8.2 g/dL (dog), 5.4-7.8 g/dL (cat)' }, { test: 'Albumin', range: '2.3-4.0 g/dL (dog), 2.5-3.9 g/dL (cat)' }, { test: 'ALT', range: '10-125 U/L (dog), 6-83 U/L (cat)' }, { test: 'ALP', range: '5-160 U/L (dog), 10-90 U/L (cat)' }, { test: 'Total Bili', range: '0.0-0.9 mg/dL (dog), 0.0-0.4 mg/dL (cat)' }] },
+                { category: 'Electrolytes', values: [{ test: 'Sodium', range: '144-160 mEq/L (dog), 150-165 mEq/L (cat)' }, { test: 'Potassium', range: '3.5-5.8 mEq/L (dog), 3.5-5.8 mEq/L (cat)' }, { test: 'Chloride', range: '109-122 mEq/L (dog), 117-123 mEq/L (cat)' }, { test: 'Calcium', range: '7.9-12.0 mg/dL (dog), 6.2-10.2 mg/dL (cat)' }, { test: 'Phosphorus', range: '2.5-6.8 mg/dL (dog), 3.4-8.5 mg/dL (cat)' }] },
+            ];
+            defaultNormals.forEach(n => addDocumentNonBlocking(collection(firestore, `users/${user.uid}/normalValues`), n));
+        }
+        
+        // --- Tips ---
+        if (quickTips.length === 0) {
+            const defaultTips = [
+                { title: 'IVDD Grading', icon: '🔢', content: ['Grade 1: Pain only, ambulatory', 'Grade 2: Ambulatory paraparesis/ataxia', 'Grade 3: Non-ambulatory paraparesis', 'Grade 4: Paraplegia, intact DPP', 'Grade 5: Paraplegia, no DPP (emergency!)'] },
+                { title: 'Shock Fluid Doses', icon: '💉', content: ['Dog Shock Dose: 90 mL/kg/hr (give in 1/4 boluses)', 'Cat Shock Dose: 45-60 mL/kg/hr', 'Reassess after each bolus!', 'Watch for volume overload (increased RR, crackles)'] },
+            ];
+            defaultTips.forEach(t => addDocumentNonBlocking(collection(firestore, `users/${user.uid}/quickTips`), t));
+        }
+    };
 
-      defaultMeds.forEach(m => {
-        addDocumentNonBlocking(collection(firestore, `users/${user.uid}/medicationCategories`), m);
-      });
-    }
+    cleanupAndSeed();
 
-    if (normalValues.length === 0) {
-      const defaultNormals = [
-        {
-          category: 'CBC - Canine',
-          values: [
-            { test: 'WBC', range: '5.5-16.9 K/μL' },
-            { test: 'RBC', range: '5.65-8.87 M/μL' },
-            { test: 'Hemoglobin', range: '13.1-20.5 g/dL' },
-            { test: 'Hematocrit', range: '37.3-61.7%' },
-            { test: 'Platelets', range: '148-484 K/μL' },
-            { test: 'Neutrophils', range: '2.95-11.64 K/μL' },
-            { test: 'Lymphocytes', range: '1.05-5.10 K/μL' },
-          ]
-        },
-        {
-          category: 'CBC - Feline',
-          values: [
-            { test: 'WBC', range: '5.5-19.5 K/μL' },
-            { test: 'RBC', range: '5.92-9.93 M/μL' },
-            { test: 'Hemoglobin', range: '9.8-15.4 g/dL' },
-            { test: 'Hematocrit', range: '29.3-48.9%' },
-            { test: 'Platelets', range: '151-600 K/μL' },
-          ]
-        },
-        {
-          category: 'Chemistry',
-          values: [
-            { test: 'BUN', range: '7-27 mg/dL (dog), 16-36 mg/dL (cat)' },
-            { test: 'Creatinine', range: '0.5-1.8 mg/dL (dog), 0.8-2.4 mg/dL (cat)' },
-            { test: 'Glucose', range: '74-143 mg/dL (dog), 71-148 mg/dL (cat)' },
-            { test: 'Total Protein', range: '5.2-8.2 g/dL (dog), 5.4-7.8 g/dL (cat)' },
-            { test: 'Albumin', range: '2.3-4.0 g/dL (dog), 2.5-3.9 g/dL (cat)' },
-            { test: 'ALT', range: '10-125 U/L (dog), 6-83 U/L (cat)' },
-            { test: 'ALP', range: '5-160 U/L (dog), 10-90 U/L (cat)' },
-            { test: 'Total Bili', range: '0.0-0.9 mg/dL (dog), 0.0-0.4 mg/dL (cat)' },
-          ]
-        },
-        {
-          category: 'Electrolytes',
-          values: [
-            { test: 'Sodium', range: '144-160 mEq/L (dog), 150-165 mEq/L (cat)' },
-            { test: 'Potassium', range: '3.5-5.8 mEq/L (dog), 3.5-5.8 mEq/L (cat)' },
-            { test: 'Chloride', range: '109-122 mEq/L (dog), 117-123 mEq/L (cat)' },
-            { test: 'Calcium', range: '7.9-12.0 mg/dL (dog), 6.2-10.2 mg/dL (cat)' },
-            { test: 'Phosphorus', range: '2.5-6.8 mg/dL (dog), 3.4-8.5 mg/dL (cat)' },
-          ]
-        },
-      ];
-
-      defaultNormals.forEach(n => {
-        addDocumentNonBlocking(collection(firestore, `users/${user.uid}/normalValues`), n);
-      });
-    }
-
-    if (quickTips.length === 0) {
-      const defaultTips = [
-        {
-          title: 'IVDD Grading',
-          icon: '🔢',
-          content: [
-            'Grade 1: Pain only, ambulatory',
-            'Grade 2: Ambulatory paraparesis/ataxia',
-            'Grade 3: Non-ambulatory paraparesis',
-            'Grade 4: Paraplegia, intact DPP',
-            'Grade 5: Paraplegia, no DPP (emergency!)',
-          ]
-        },
-        {
-          title: 'Shock Fluid Doses',
-          icon: '💉',
-          content: [
-            'Dog Shock Dose: 90 mL/kg/hr (give in 1/4 boluses)',
-            'Cat Shock Dose: 45-60 mL/kg/hr',
-            'Reassess after each bolus!',
-            'Watch for volume overload (increased RR, crackles)',
-          ]
-        },
-      ];
-
-      defaultTips.forEach(t => {
-        addDocumentNonBlocking(collection(firestore, `users/${user.uid}/quickTips`), t);
-      });
-    }
   }, [
     firestore, 
     user, 
-    workups, 
-    workupsRes.isLoading, 
-    medicationCategories, 
-    medicationsRes.isLoading, 
-    normalValues, 
-    normalValuesRes.isLoading, 
-    quickTips, 
+    workups.length,
+    medicationCategories.length,
+    normalValues.length,
+    quickTips.length,
+    workupsRes.isLoading,
+    medicationsRes.isLoading,
+    normalValuesRes.isLoading,
     quickTipsRes.isLoading
   ]);
 
