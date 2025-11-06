@@ -94,7 +94,7 @@ const DischargeCocktailCalculator = () => {
           <div className="space-y-3">
             {selectedMedGroup.meds.map((med, index) => (
               <div key={index} className="text-sm">
-                <p className="font-semibold text-gray-800">{index + 1}) {med.name}</p>
+                <p className="font-semibold text-gray-800">{index + 1}) {med.name}:</p>
                 <p className="text-gray-700 pl-4">{med.instructions}</p>
                 {med.nextDose && <p className="text-red-600 font-bold pl-4">{med.nextDose}</p>}
               </div>
@@ -336,7 +336,7 @@ export default function VetReferenceGuide() {
             { test: 'Total Protein', range: '5.2-8.2 g/dL (dog), 5.4-7.8 g/dL (cat)' },
             { test: 'Albumin', range: '2.3-4.0 g/dL (dog), 2.5-3.9 g/dL (cat)' },
             { test: 'ALT', range: '10-125 U/L (dog), 6-83 U/L (cat)' },
-            { test: 'ALP', range: '23-212 U/L (dog), 10-90 U/L (cat)' },
+            { test: 'ALP', range: '5-160 U/L (dog), 10-90 U/L (cat)' },
             { test: 'Total Bili', range: '0.0-0.9 mg/dL (dog), 0.0-0.4 mg/dL (cat)' },
           ]
         },
