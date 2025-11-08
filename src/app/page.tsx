@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -25,6 +25,7 @@ export default function VetHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
+  const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
@@ -333,6 +334,55 @@ export default function VetHub() {
     }
   };
 
+  const handleExportRoundingSheets = () => {
+    try {
+      // Filter active patients (exclude Discharged)
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+
+      if (activePatients.length === 0) {
+        toast({ variant: 'destructive', title: 'No active patients', description: 'No patients to export' });
+        return;
+      }
+
+      // Build TSV with hospital format
+      const header = 'Name\tSignalment\tLocation\tICU Criteria\tCode\tProblems\tDiagnostics\tTherapeutics\tIVC\tFluids\tCRI\tOvernight Dx\tConcerns\tComments';
+
+      const rows = activePatients.map(patient => {
+        const rounding = patient.rounding_data || {};
+
+        return [
+          patient.name || '',
+          rounding.signalment || '',
+          rounding.location || '',
+          rounding.icuCriteria || '',
+          rounding.code || '',
+          rounding.problems || '',
+          rounding.diagnosticFindings || '',
+          rounding.therapeutics || '',
+          rounding.ivc || '',
+          rounding.fluids || '',
+          rounding.cri || '',
+          rounding.overnightDx || '',
+          rounding.concerns || '',
+          rounding.comments || ''
+        ].join('\t');
+      });
+
+      const tsvContent = [header, ...rows].join('\n');
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(tsvContent);
+
+      toast({
+        title: '✅ Rounding Sheets Copied!',
+        description: `${activePatients.length} patients ready to paste into hospital spreadsheet`
+      });
+    } catch (error) {
+      console.error('Rounding sheet export error:', error);
+      toast({ variant: 'destructive', title: 'Export failed', description: 'Could not generate rounding sheets' });
+    }
+  };
+
   // Load rounding data when modal opens
   useEffect(() => {
     if (roundingSheetPatient !== null) {
@@ -471,6 +521,13 @@ export default function VetHub() {
               Tasks: {taskStats.remaining}/{taskStats.total}
             </button>
             <button
+              onClick={() => setShowAllRoundingSheets(!showAllRoundingSheets)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <FileSpreadsheet size={18} />
+              All Rounds
+            </button>
+            <button
               onClick={handleExportMRISchedule}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
@@ -542,6 +599,203 @@ export default function VetHub() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* All Rounding Sheets View */}
+        {showAllRoundingSheets && (
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <FileSpreadsheet className="text-emerald-400" />
+                All Rounding Sheets
+              </h2>
+              <button
+                onClick={handleExportRoundingSheets}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              >
+                📋 Copy to Clipboard
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-700">
+                    <th className="text-left p-2 text-slate-300 font-bold">Name</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Signalment</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Location</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">ICU Criteria</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Code</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Problems</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Diagnostics</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Therapeutics</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">IVC</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Fluids</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">CRI</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Overnight Dx</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Concerns</th>
+                    <th className="text-left p-2 text-slate-300 font-bold">Comments</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.filter(p => p.status !== 'Discharged').map(patient => {
+                    const rounding = patient.rounding_data || {};
+                    return (
+                      <tr key={patient.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                        <td className="p-2 text-white font-medium">{patient.name}</td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.signalment || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, signalment: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.location || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, location: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.icuCriteria || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, icuCriteria: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <select
+                            value={rounding.code || 'Yellow'}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, code: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          >
+                            <option>Green</option>
+                            <option>Yellow</option>
+                            <option>Orange</option>
+                            <option>Red</option>
+                          </select>
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.problems || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, problems: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <textarea
+                            value={rounding.diagnosticFindings || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, diagnosticFindings: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs resize-none"
+                            rows={2}
+                          />
+                        </td>
+                        <td className="p-2">
+                          <textarea
+                            value={rounding.therapeutics || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, therapeutics: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs resize-none"
+                            rows={2}
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.ivc || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, ivc: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.fluids || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, fluids: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.cri || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, cri: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.overnightDx || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, overnightDx: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.concerns || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, concerns: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={rounding.comments || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, comments: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
