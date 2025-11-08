@@ -732,7 +732,20 @@ export default function VetHub() {
                     const rounding = patient.rounding_data || {};
                     return (
                       <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
-                        <td className="p-1 text-white font-medium text-xs">{patient.name}</td>
+                        <td className="p-1">
+                          <button
+                            onClick={() => {
+                              setShowAllRoundingSheets(false);
+                              setExpandedPatient(patient.id);
+                              setTimeout(() => {
+                                document.getElementById(`patient-${patient.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }, 100);
+                            }}
+                            className="text-white font-medium text-xs hover:text-cyan-400 transition cursor-pointer underline decoration-dotted"
+                          >
+                            {patient.name}
+                          </button>
+                        </td>
                         <td className="p-1">
                           <input
                             type="text"
@@ -962,7 +975,20 @@ export default function VetHub() {
                     const mriData = patient.mri_data || {};
                     return (
                       <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
-                        <td className="p-2 text-white font-medium">{patient.name}</td>
+                        <td className="p-2">
+                          <button
+                            onClick={() => {
+                              setShowMRISchedule(false);
+                              setExpandedPatient(patient.id);
+                              setTimeout(() => {
+                                document.getElementById(`patient-${patient.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              }, 100);
+                            }}
+                            className="text-white font-medium hover:text-cyan-400 transition cursor-pointer underline decoration-dotted"
+                          >
+                            {patient.name}
+                          </button>
+                        </td>
                         <td className="p-2">
                           <input
                             type="text"
@@ -1059,6 +1085,7 @@ export default function VetHub() {
               return (
                 <div
                   key={patient.id}
+                  id={`patient-${patient.id}`}
                   className="bg-slate-800/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden hover:shadow-cyan-500/20 hover:border-slate-600/50 transition-all"
                 >
                   <div className="p-3">
@@ -1067,7 +1094,12 @@ export default function VetHub() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="text-2xl">{emoji}</span>
-                          <h3 className="text-lg font-bold text-white">{patient.name}</h3>
+                          <button
+                            onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
+                            className="text-lg font-bold text-white hover:text-cyan-400 transition cursor-pointer"
+                          >
+                            {patient.name}
+                          </button>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg`}>
                             {patient.type}
                           </span>
