@@ -139,6 +139,15 @@ export default function VetHub() {
     }
   };
 
+  const handleDeleteTask = async (patientId: number, taskId: number) => {
+    try {
+      await apiClient.deleteTask(String(patientId), String(taskId));
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
+    }
+  };
+
   const handleDeletePatient = async (patientId: number) => {
     if (!confirm('Delete this patient?')) return;
     try {
@@ -166,6 +175,21 @@ export default function VetHub() {
     if (type === 'MRI') return 'from-cyan-500 to-blue-600';
     if (type === 'Surgery') return 'from-orange-500 to-red-600';
     return 'from-purple-500 to-pink-600';
+  };
+
+  const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
+    const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+    const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done'];
+
+    if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
+    if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
+    return 'general';
+  };
+
+  const getTaskIcon = (category: string) => {
+    if (category === 'morning') return '🌅';
+    if (category === 'evening') return '🌙';
+    return '📋';
   };
 
   if (authLoading) {
@@ -289,22 +313,40 @@ export default function VetHub() {
                   <div key={patient.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
                     <h3 className="text-white font-bold mb-2">{patient.name}</h3>
                     <div className="space-y-2">
-                      {tasks.map((task: any) => (
-                        <label
-                          key={task.id}
-                          className="flex items-center gap-2 text-sm cursor-pointer group"
-                          onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                        >
-                          {task.completed ? (
-                            <CheckCircle2 className="text-green-400 flex-shrink-0" size={16} />
-                          ) : (
-                            <Circle className="text-slate-600 group-hover:text-cyan-400 flex-shrink-0" size={16} />
-                          )}
-                          <span className={task.completed ? 'line-through text-slate-500' : 'text-slate-300'}>
-                            {task.name}
-                          </span>
-                        </label>
-                      ))}
+                      {tasks.map((task: any) => {
+                        const category = getTaskCategory(task.name);
+                        const icon = getTaskIcon(category);
+                        return (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-2 text-sm group"
+                          >
+                            <button
+                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                              className="flex-shrink-0"
+                            >
+                              {task.completed ? (
+                                <CheckCircle2 className="text-green-400" size={16} />
+                              ) : (
+                                <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
+                              )}
+                            </button>
+                            <span className="text-base">{icon}</span>
+                            <span
+                              className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
+                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                            >
+                              {task.name}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteTask(patient.id, task.id)}
+                              className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 rounded transition opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -525,22 +567,40 @@ export default function VetHub() {
                         Tasks ({completedTasks}/{totalTasks})
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {tasks.map((task: any) => (
-                          <label
-                            key={task.id}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition cursor-pointer group hover:bg-slate-700/30"
-                            onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                          >
-                            {task.completed ? (
-                              <CheckCircle2 className="text-green-400 flex-shrink-0" size={22} />
-                            ) : (
-                              <Circle className="text-slate-600 group-hover:text-cyan-400 flex-shrink-0" size={22} />
-                            )}
-                            <span className={`flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}>
-                              {task.name}
-                            </span>
-                          </label>
-                        ))}
+                        {tasks.map((task: any) => {
+                          const category = getTaskCategory(task.name);
+                          const icon = getTaskIcon(category);
+                          return (
+                            <div
+                              key={task.id}
+                              className="flex items-center gap-2 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group hover:bg-slate-700/30"
+                            >
+                              <button
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                className="flex-shrink-0"
+                              >
+                                {task.completed ? (
+                                  <CheckCircle2 className="text-green-400" size={22} />
+                                ) : (
+                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={22} />
+                                )}
+                              </button>
+                              <span className="text-lg">{icon}</span>
+                              <span
+                                className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                              >
+                                {task.name}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteTask(patient.id, task.id)}
+                                className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
