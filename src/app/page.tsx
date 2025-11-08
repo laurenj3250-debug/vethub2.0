@@ -25,6 +25,8 @@ export default function VetHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
+  const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
+  const [customTaskName, setCustomTaskName] = useState('');
 
   // Calculate task stats
   const taskStats = useMemo(() => {
@@ -80,7 +82,7 @@ export default function VetHub() {
       const typeTasks = patientType === 'MRI'
         ? ['Black Book', 'Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'NPO', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers']
         : patientType === 'Surgery'
-        ? ['Surgery Slip', 'Written on Board', 'Print Stickers', 'Post-op Check']
+        ? ['Surgery Slip', 'Written on Board', 'Print 4 Large Stickers', 'Print 2 Sheets Small Stickers', 'Print Surgery Sheet', 'Clear Daily']
         : ['Admission SOAP', 'Treatment Sheet Created'];
 
       const allTasks = [...morningTasks, ...eveningTasks, ...typeTasks];
@@ -146,6 +148,22 @@ export default function VetHub() {
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
+    }
+  };
+
+  const handleQuickAddTask = async (patientId: number, taskName: string) => {
+    try {
+      await apiClient.createTask(patientId, {
+        name: taskName,
+        completed: false,
+        date: new Date().toISOString().split('T')[0],
+      });
+      toast({ title: `✅ Added: ${taskName}` });
+      setQuickAddMenuPatient(null);
+      setCustomTaskName('');
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add task' });
     }
   };
 
@@ -551,13 +569,60 @@ export default function VetHub() {
                       </div>
                     </div>
 
-                    {/* Show Tasks Button */}
-                    <button
-                      onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                      className="text-cyan-400 font-bold hover:text-cyan-300 transition"
-                    >
-                      {isExpanded ? '🔼 Hide Tasks' : '🔽 Show Tasks'}
-                    </button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <button
+                        onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
+                        className="text-cyan-400 font-bold hover:text-cyan-300 transition"
+                      >
+                        {isExpanded ? '🔼 Hide Tasks' : '🔽 Show Tasks'}
+                      </button>
+                      <button
+                        onClick={() => setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id)}
+                        className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform"
+                      >
+                        ➕ Add Task
+                      </button>
+                    </div>
+
+                    {/* Quick Add Task Menu */}
+                    {quickAddMenuPatient === patient.id && (
+                      <div className="mt-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                        <h5 className="text-white font-bold mb-3">Quick Add Common Tasks:</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+                          {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled'].map(taskName => (
+                            <button
+                              key={taskName}
+                              onClick={() => handleQuickAddTask(patient.id, taskName)}
+                              className="px-3 py-2 bg-slate-800/50 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-500 rounded-lg text-slate-300 hover:text-cyan-300 text-sm transition"
+                            >
+                              {taskName}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={customTaskName}
+                            onChange={(e) => setCustomTaskName(e.target.value)}
+                            placeholder="Custom task name..."
+                            className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-cyan-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && customTaskName.trim()) {
+                                handleQuickAddTask(patient.id, customTaskName);
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => customTaskName.trim() && handleQuickAddTask(patient.id, customTaskName)}
+                            disabled={!customTaskName.trim()}
+                            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Tasks */}
