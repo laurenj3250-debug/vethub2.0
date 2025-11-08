@@ -27,6 +27,7 @@ export default function VetHub() {
   const [showTaskOverview, setShowTaskOverview] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task'>('by-patient');
   const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
+  const [showMRISchedule, setShowMRISchedule] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
@@ -295,7 +296,7 @@ export default function VetHub() {
     }
   };
 
-  const handleExportMRISchedule = async () => {
+  const handleExportMRISchedule = () => {
     try {
       // Filter MRI patients with 'New Admit' status
       const mriPatients = patients.filter(p => p.type === 'MRI' && p.status === 'New Admit');
@@ -305,28 +306,21 @@ export default function VetHub() {
         return;
       }
 
-      toast({ title: '🧠 Generating MRI schedule...', description: 'AI is determining scan types' });
-
       // Build TSV data with header
       const header = 'Name\tPatient ID\tWeight (kg)\tScan Type';
-      const rows = await Promise.all(
-        mriPatients.map(async (patient) => {
-          const name = patient.name || 'Unknown';
-          const patientId = patient.patient_info?.patientId || '';
-          const weight = patient.patient_info?.weight?.replace(/[^\d.]/g, '') || ''; // Extract just number
-          const problem = patient.rounding_data?.problems || patient.patient_info?.problem || '';
+      const rows = mriPatients.map((patient) => {
+        const name = patient.name || '';
+        const patientId = patient.patient_info?.patientId || '';
+        const weight = (patient.patient_info?.weight || '').replace(/[^\d.]/g, '');
+        const scanType = patient.mri_data?.scanType || '';
 
-          // Use AI to determine scan type
-          const scanType = await determineScanType(problem);
-
-          return `${name}\t${patientId}\t${weight}\t${scanType}`;
-        })
-      );
+        return `${name}\t${patientId}\t${weight}\t${scanType}`;
+      });
 
       const tsvContent = [header, ...rows].join('\n');
 
       // Copy to clipboard
-      await navigator.clipboard.writeText(tsvContent);
+      navigator.clipboard.writeText(tsvContent);
 
       toast({
         title: '✅ MRI Schedule Copied!',
@@ -532,11 +526,11 @@ export default function VetHub() {
               All Rounds
             </button>
             <button
-              onClick={handleExportMRISchedule}
+              onClick={() => setShowMRISchedule(!showMRISchedule)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <Brain size={18} />
-              Export MRI
+              MRI Schedule
             </button>
             <button
               onClick={logout}
@@ -967,6 +961,87 @@ export default function VetHub() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* MRI Schedule View */}
+        {showMRISchedule && (
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Brain className="text-blue-400" />
+                MRI Schedule
+              </h2>
+              <button
+                onClick={handleExportMRISchedule}
+                className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform text-sm"
+              >
+                📋 Copy to Clipboard
+              </button>
+            </div>
+            <div className="overflow-x-auto max-h-[70vh]">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-slate-800 z-10">
+                  <tr className="border-b-2 border-blue-500">
+                    <th className="text-left p-2 text-blue-400 font-bold">Name</th>
+                    <th className="text-left p-2 text-cyan-400 font-bold">Patient ID</th>
+                    <th className="text-left p-2 text-purple-400 font-bold">Weight (kg)</th>
+                    <th className="text-left p-2 text-pink-400 font-bold">Scan Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').map((patient, idx) => {
+                    const mriData = patient.mri_data || {};
+                    return (
+                      <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
+                        <td className="p-2 text-white font-medium">{patient.name}</td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={patient.patient_info?.patientId || ''}
+                            onChange={(e) => {
+                              const updatedInfo = { ...patient.patient_info, patientId: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={(patient.patient_info?.weight || '').replace(/[^\d.]/g, '')}
+                            onChange={(e) => {
+                              const updatedInfo = { ...patient.patient_info, weight: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                            placeholder="kg"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <input
+                            type="text"
+                            value={mriData.scanType || ''}
+                            onChange={(e) => {
+                              const updatedMRI = { ...mriData, scanType: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { mri_data: updatedMRI });
+                              refetch();
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                            placeholder="Brain, LS, C-Spine..."
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').length === 0 && (
+              <div className="text-center py-8 text-slate-400">
+                No MRI patients with 'New Admit' status
+              </div>
+            )}
           </div>
         )}
 
