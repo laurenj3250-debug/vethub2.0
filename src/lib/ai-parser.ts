@@ -81,7 +81,7 @@ Return ONLY the JSON object, no other text:`
   }
 }
 
-export async function analyzeBloodwork(bloodworkText: string, species: string = 'canine'): Promise<string[]> {
+export async function analyzeBloodwork(bloodworkText: string, species: string = 'canine'): Promise<string> {
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -90,33 +90,83 @@ export async function analyzeBloodwork(bloodworkText: string, species: string = 
       messages: [
         {
           role: 'user',
-          content: `Analyze this ${species} bloodwork and return ONLY a JSON array of abnormal findings.
+          content: `Analyze this ${species} bloodwork and return ONLY the abnormal findings as a formatted string.
 
-Format: ["WBC 25.3 (H)", "BUN 85 (H)", ...]
+Format as: "WBC 25.3 (H), BUN 85 (H), ALT 245 (H)"
 Use (H) for high, (L) for low.
 
 Bloodwork:
 ${bloodworkText}
 
-Return ONLY the JSON array, no other text:`
+Return ONLY the formatted abnormals, no other text:`
         }
       ]
     });
 
     const content = response.content[0];
-    if (content.type !== 'text') return [];
+    if (content.type !== 'text') return '';
 
-    // Extract JSON from response
-    let jsonText = content.text.trim();
-    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      jsonText = jsonMatch[0];
-    }
-
-    const result = JSON.parse(jsonText);
-    return Array.isArray(result) ? result : result.abnormals || [];
+    return content.text.trim();
   } catch (error) {
     console.error('Bloodwork analysis error:', error);
-    return [];
+    return '';
+  }
+}
+
+export async function analyzeRadiology(radiologyText: string): Promise<string> {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 512,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `Summarize these radiology findings concisely for a rounding sheet. Focus on abnormalities.
+
+Radiology report:
+${radiologyText}
+
+Return a brief summary (1-2 sentences):`
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') return '';
+
+    return content.text.trim();
+  } catch (error) {
+    console.error('Radiology analysis error:', error);
+    return '';
+  }
+}
+
+export async function parseMedications(medText: string): Promise<string> {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 512,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `Format this medication list cleanly for a rounding sheet. One medication per line.
+
+Medications:
+${medText}
+
+Return formatted list:`
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') return '';
+
+    return content.text.trim();
+  } catch (error) {
+    console.error('Medication parsing error:', error);
+    return '';
   }
 }

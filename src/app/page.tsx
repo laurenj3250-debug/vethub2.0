@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
-import { parsePatientBlurb } from '@/lib/ai-parser';
+import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -224,6 +224,46 @@ export default function VetHub() {
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to save rounding data' });
+    }
+  };
+
+  const handleSmartPaste = async (field: 'bloodwork' | 'radiology' | 'medications') => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const patient = patients.find(p => p.id === roundingSheetPatient);
+      const species = patient?.patient_info?.species || 'canine';
+
+      if (field === 'bloodwork') {
+        toast({ title: '🤖 Analyzing bloodwork...', description: 'Extracting abnormals' });
+        const abnormals = await analyzeBloodwork(text, species);
+        setRoundingFormData({
+          ...roundingFormData,
+          diagnosticFindings: roundingFormData.diagnosticFindings
+            ? `${roundingFormData.diagnosticFindings}\n${abnormals}`
+            : abnormals
+        });
+        toast({ title: '✅ Bloodwork analyzed!' });
+      } else if (field === 'radiology') {
+        toast({ title: '🤖 Analyzing imaging...', description: 'Summarizing findings' });
+        const summary = await analyzeRadiology(text);
+        setRoundingFormData({
+          ...roundingFormData,
+          diagnosticFindings: roundingFormData.diagnosticFindings
+            ? `${roundingFormData.diagnosticFindings}\n${summary}`
+            : summary
+        });
+        toast({ title: '✅ Imaging analyzed!' });
+      } else if (field === 'medications') {
+        toast({ title: '🤖 Formatting meds...', description: 'Cleaning list' });
+        const formatted = await parseMedications(text);
+        setRoundingFormData({
+          ...roundingFormData,
+          therapeutics: formatted
+        });
+        toast({ title: '✅ Medications formatted!' });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to parse data' });
     }
   };
 
@@ -819,8 +859,35 @@ export default function VetHub() {
                   const info = patient.patient_info || {};
                   const rounding = patient.rounding_data || {};
 
+                  // Common dropdown options
+                  const commonProblems = [
+                    'seizures', 'IVDD', 'suspected aa lux', 'vestibular disease',
+                    'meningitis', 'FCE', 'GME', 'brain tumor', 'post-op monitoring'
+                  ];
+
+                  const commonConcerns = [
+                    'none', 'seizure watch', 'pain management', 'recumbent care',
+                    'aspiration risk', 'dysphoria', 'not eating', 'vomiting'
+                  ];
+
+                  const commonComments = [
+                    'CARE WITH NECK', 'STRICT CAGE REST', 'NPO FOR MRI',
+                    'AMBULATING WELL', 'PAIN CONTROLLED', 'EATING WELL'
+                  ];
+
                   return (
                     <>
+                      {/* Quick Fill Helper */}
+                      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-xl p-3">
+                        <div className="flex items-center gap-2 text-sm text-cyan-300">
+                          <Sparkles size={16} />
+                          <span className="font-bold">Quick Tip:</span>
+                          <span className="text-slate-300">
+                            Copy from EzyVet/Vet Radar, click icons: 🩸 bloodwork, 📷 imaging, 💊 meds
+                          </span>
+                        </div>
+                      </div>
+
                       {/* Row 1: Basic Info */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
@@ -874,35 +941,69 @@ export default function VetHub() {
                           <label className="text-xs text-slate-400 uppercase block mb-1">Problems</label>
                           <input
                             type="text"
+                            list="common-problems"
                             value={roundingFormData.problems || ''}
                             onChange={(e) => setRoundingFormData({...roundingFormData, problems: e.target.value})}
                             className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                            placeholder="suspected aa lux"
+                            placeholder="Type or select from dropdown"
                           />
+                          <datalist id="common-problems">
+                            {commonProblems.map(p => <option key={p} value={p} />)}
+                          </datalist>
                         </div>
                       </div>
 
                       {/* Row 3: Diagnostics */}
                       <div>
-                        <label className="text-xs text-slate-400 uppercase block mb-1">Diagnostics</label>
+                        <div className="flex items-center gap-2 mb-1">
+                          <label className="text-xs text-slate-400 uppercase">Diagnostics</label>
+                          <div className="flex gap-1 text-xs text-slate-500">
+                            <button
+                              type="button"
+                              onClick={() => handleSmartPaste('bloodwork')}
+                              className="hover:text-pink-400 transition"
+                              title="Paste bloodwork (extracts abnormals)"
+                            >
+                              🩸
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSmartPaste('radiology')}
+                              className="hover:text-cyan-400 transition"
+                              title="Paste imaging/CXR (summarizes)"
+                            >
+                              📷
+                            </button>
+                          </div>
+                        </div>
                         <textarea
                           value={roundingFormData.diagnosticFindings || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, diagnosticFindings: e.target.value})}
-                          rows={2}
+                          rows={3}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
-                          placeholder="cbc/chem pending"
+                          placeholder="Type or use 🩸/📷 icons to paste & parse"
                         />
                       </div>
 
                       {/* Row 4: Therapeutics */}
                       <div>
-                        <label className="text-xs text-slate-400 uppercase block mb-1">Therapeutics (Medications)</label>
+                        <div className="flex items-center gap-2 mb-1">
+                          <label className="text-xs text-slate-400 uppercase">Therapeutics (Medications)</label>
+                          <button
+                            type="button"
+                            onClick={() => handleSmartPaste('medications')}
+                            className="text-xs hover:text-green-400 transition"
+                            title="Paste medications (formats nicely)"
+                          >
+                            💊
+                          </button>
+                        </div>
                         <textarea
                           value={roundingFormData.therapeutics || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, therapeutics: e.target.value})}
                           rows={3}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
-                          placeholder="Dex SP (Dexameth Sod Phos) 4mg/mL Inj&#10;Gabapentin Suspension 50mg/ml"
+                          placeholder="Type or use 💊 icon to paste & format"
                         />
                       </div>
 
@@ -958,23 +1059,31 @@ export default function VetHub() {
                         <label className="text-xs text-slate-400 uppercase block mb-1">Concerns</label>
                         <input
                           type="text"
+                          list="common-concerns"
                           value={roundingFormData.concerns || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, concerns: e.target.value})}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                          placeholder="none"
+                          placeholder="Type or select from dropdown"
                         />
+                        <datalist id="common-concerns">
+                          {commonConcerns.map(c => <option key={c} value={c} />)}
+                        </datalist>
                       </div>
 
                       {/* Row 8: Comments */}
                       <div>
                         <label className="text-xs text-slate-400 uppercase block mb-1">Comments</label>
-                        <textarea
+                        <input
+                          type="text"
+                          list="common-comments"
                           value={roundingFormData.comments || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, comments: e.target.value})}
-                          rows={2}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
-                          placeholder="CARE WITH NECK"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          placeholder="Type or select common comment"
                         />
+                        <datalist id="common-comments">
+                          {commonComments.map(c => <option key={c} value={c} />)}
+                        </datalist>
                       </div>
 
                       {/* Action Buttons */}
