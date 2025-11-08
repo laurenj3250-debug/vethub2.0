@@ -1,7 +1,7 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
-const openai = new OpenAI({
-  apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
+const anthropic = new Anthropic({
+  apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
   dangerouslyAllowBrowser: true, // Only for development
 });
 
@@ -24,11 +24,13 @@ export interface ParsedPatientData {
 
 export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientData> {
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Faster and cheaper
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307', // Fast and cheap
+      max_tokens: 1024,
+      temperature: 0,
       messages: [
         {
-          role: 'system',
+          role: 'user',
           content: `You are a veterinary medical record parser. Extract structured data from patient intake text.
 Return ONLY valid JSON with these fields (use null for missing data):
 {
@@ -46,23 +48,20 @@ Return ONLY valid JSON with these fields (use null for missing data):
   "bloodwork": "CBC/Chemistry values",
   "medications": ["list", "of", "meds"],
   "plan": "treatment plan"
-}`
-        },
-        {
-          role: 'user',
-          content: blurb
+}
+
+Patient text:
+${blurb}`
         }
-      ],
-      temperature: 0.1,
-      response_format: { type: 'json_object' }
+      ]
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) {
-      throw new Error('No response from OpenAI');
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('No text response from Claude');
     }
 
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(content.text);
     return parsed;
   } catch (error) {
     console.error('AI parsing error:', error);
@@ -72,29 +71,28 @@ Return ONLY valid JSON with these fields (use null for missing data):
 
 export async function analyzeBloodwork(bloodworkText: string, species: string = 'canine'): Promise<string[]> {
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 512,
+      temperature: 0,
       messages: [
         {
-          role: 'system',
+          role: 'user',
           content: `You are a veterinary diagnostician. Analyze bloodwork and identify abnormal values for ${species}.
 Return ONLY a JSON array of abnormal findings with their values: ["WBC 25.3 (H)", "BUN 85 (H)", ...]
-Use (H) for high, (L) for low. Be concise.`
-        },
-        {
-          role: 'user',
-          content: bloodworkText
+Use (H) for high, (L) for low. Be concise.
+
+Bloodwork:
+${bloodworkText}`
         }
-      ],
-      temperature: 0.1,
-      response_format: { type: 'json_object' }
+      ]
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) return [];
+    const content = response.content[0];
+    if (content.type !== 'text') return [];
 
-    const result = JSON.parse(content);
-    return result.abnormals || [];
+    const result = JSON.parse(content.text);
+    return Array.isArray(result) ? result : result.abnormals || [];
   } catch (error) {
     console.error('Bloodwork analysis error:', error);
     return [];
