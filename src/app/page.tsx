@@ -27,6 +27,8 @@ export default function VetHub() {
   const [showTaskOverview, setShowTaskOverview] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
+  const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
+  const [roundingFormData, setRoundingFormData] = useState<any>({});
 
   // Calculate task stats
   const taskStats = useMemo(() => {
@@ -177,6 +179,63 @@ export default function VetHub() {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete patient' });
     }
   };
+
+  const handleStatusChange = async (patientId: number, newStatus: string) => {
+    try {
+      await apiClient.updatePatient(String(patientId), { status: newStatus });
+      toast({ title: `✅ Status updated to ${newStatus}` });
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
+    }
+  };
+
+  const handleCompleteAllCategory = async (patientId: number, category: 'morning' | 'evening') => {
+    try {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      const tasks = patient.tasks || [];
+      const categoryTasks = tasks.filter((t: any) => {
+        const taskCategory = getTaskCategory(t.name);
+        return taskCategory === category && !t.completed;
+      });
+
+      for (const task of categoryTasks) {
+        await apiClient.updateTask(String(patientId), String(task.id), { completed: true });
+      }
+
+      toast({ title: `✅ Completed all ${category} tasks!` });
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to complete ${category} tasks` });
+    }
+  };
+
+  const handleSaveRoundingData = async () => {
+    if (!roundingSheetPatient) return;
+
+    try {
+      await apiClient.updatePatient(String(roundingSheetPatient), {
+        rounding_data: roundingFormData
+      });
+      toast({ title: '✅ Rounding data saved!' });
+      setRoundingSheetPatient(null);
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to save rounding data' });
+    }
+  };
+
+  // Load rounding data when modal opens
+  useEffect(() => {
+    if (roundingSheetPatient !== null) {
+      const patient = patients.find(p => p.id === roundingSheetPatient);
+      if (patient) {
+        setRoundingFormData(patient.rounding_data || {});
+      }
+    }
+  }, [roundingSheetPatient, patients]);
 
   const filteredPatients = patients.filter(p =>
     p.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -476,15 +535,25 @@ export default function VetHub() {
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <div className="flex items-center gap-3 mb-3 flex-wrap">
                           <span className="text-3xl">{emoji}</span>
                           <h3 className="text-2xl font-bold text-white">{patient.name}</h3>
                           <span className={`px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg`}>
                             {patient.type}
                           </span>
-                          <span className="px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-teal-500 to-emerald-500 text-white">
-                            {patient.status}
-                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500 uppercase">Status:</span>
+                          <select
+                            value={patient.status || 'New Admit'}
+                            onChange={(e) => handleStatusChange(patient.id, e.target.value)}
+                            className="px-3 py-1 rounded-lg text-sm font-bold bg-slate-700/50 border border-slate-600 text-white hover:bg-slate-700 transition cursor-pointer"
+                          >
+                            <option value="New Admit">New Admit</option>
+                            <option value="Hospitalized">Hospitalized</option>
+                            <option value="Discharging">Discharging</option>
+                            <option value="Discharged">Discharged</option>
+                          </select>
                         </div>
                       </div>
                       <button
@@ -494,66 +563,6 @@ export default function VetHub() {
                         <Trash2 size={18} />
                       </button>
                     </div>
-
-                    {/* Patient Info Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                      {rounding.signalment && (
-                        <div className="col-span-2 md:col-span-4">
-                          <p className="text-xs text-slate-500 uppercase">Signalment</p>
-                          <p className="text-slate-200 font-medium">{rounding.signalment}</p>
-                        </div>
-                      )}
-                      {info.ownerName && (
-                        <div>
-                          <p className="text-xs text-slate-500 uppercase">Owner</p>
-                          <p className="text-slate-200">{info.ownerName}</p>
-                        </div>
-                      )}
-                      {info.ownerPhone && (
-                        <div>
-                          <p className="text-xs text-slate-500 uppercase">Phone</p>
-                          <p className="text-slate-200">{info.ownerPhone}</p>
-                        </div>
-                      )}
-                      {info.weight && (
-                        <div>
-                          <p className="text-xs text-slate-500 uppercase">Weight</p>
-                          <p className="text-slate-200">{info.weight}</p>
-                        </div>
-                      )}
-                      {patient.added_time && (
-                        <div>
-                          <p className="text-xs text-slate-500 uppercase">Added</p>
-                          <p className="text-slate-200">{patient.added_time}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Rounding Data */}
-                    {rounding.problems && (
-                      <div className="mb-3">
-                        <p className="text-xs text-slate-500 uppercase mb-1">Problems</p>
-                        <p className="text-orange-400 font-medium">🏥 {rounding.problems}</p>
-                      </div>
-                    )}
-                    {rounding.diagnosticFindings && (
-                      <div className="mb-3">
-                        <p className="text-xs text-slate-500 uppercase mb-1">Diagnostics</p>
-                        <p className="text-slate-300 text-sm">{rounding.diagnosticFindings}</p>
-                      </div>
-                    )}
-                    {rounding.therapeutics && (
-                      <div className="mb-3">
-                        <p className="text-xs text-slate-500 uppercase mb-1">Medications</p>
-                        <p className="text-slate-300 text-sm whitespace-pre-line">{rounding.therapeutics}</p>
-                      </div>
-                    )}
-                    {rounding.plan && (
-                      <div className="mb-3">
-                        <p className="text-xs text-slate-500 uppercase mb-1">Plan</p>
-                        <p className="text-slate-300 text-sm">{rounding.plan}</p>
-                      </div>
-                    )}
 
                     {/* Progress */}
                     <div className="mb-4">
@@ -582,6 +591,12 @@ export default function VetHub() {
                         className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform"
                       >
                         ➕ Add Task
+                      </button>
+                      <button
+                        onClick={() => setRoundingSheetPatient(patient.id)}
+                        className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform"
+                      >
+                        📋 Rounding Sheet
                       </button>
                     </div>
 
@@ -625,54 +640,363 @@ export default function VetHub() {
                     )}
                   </div>
 
-                  {/* Tasks */}
+                  {/* Tasks - Grouped by Category */}
                   {isExpanded && (
                     <div className="border-t border-slate-700/50 p-6 bg-slate-900/30">
-                      <h4 className="text-white font-bold mb-3 flex items-center gap-2">
-                        <ListTodo size={18} className="text-cyan-400" />
-                        Tasks ({completedTasks}/{totalTasks})
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {tasks.map((task: any) => {
-                          const category = getTaskCategory(task.name);
-                          const icon = getTaskIcon(category);
-                          return (
-                            <div
-                              key={task.id}
-                              className="flex items-center gap-2 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group hover:bg-slate-700/30"
-                            >
-                              <button
-                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                className="flex-shrink-0"
-                              >
-                                {task.completed ? (
-                                  <CheckCircle2 className="text-green-400" size={22} />
-                                ) : (
-                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={22} />
-                                )}
-                              </button>
-                              <span className="text-lg">{icon}</span>
-                              <span
-                                className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
-                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                              >
-                                {task.name}
-                              </span>
-                              <button
-                                onClick={() => handleDeleteTask(patient.id, task.id)}
-                                className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          );
-                        })}
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-white font-bold flex items-center gap-2">
+                          <ListTodo size={18} className="text-cyan-400" />
+                          Tasks ({completedTasks}/{totalTasks})
+                        </h4>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
+                            className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                          >
+                            ✅ All Morning
+                          </button>
+                          <button
+                            onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
+                            className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                          >
+                            ✅ All Evening
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Morning Tasks */}
+                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').length > 0 && (
+                        <div className="mb-4">
+                          <h5 className="text-sm font-bold text-yellow-400 mb-2 flex items-center gap-2">
+                            🌅 Morning Tasks
+                          </h5>
+                          <div className="space-y-2">
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').map((task: any) => (
+                              <div
+                                key={task.id}
+                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
+                              >
+                                <button
+                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                  className="flex-shrink-0"
+                                >
+                                  {task.completed ? (
+                                    <CheckCircle2 className="text-green-400" size={20} />
+                                  ) : (
+                                    <Circle className="text-slate-600 group-hover:text-yellow-400" size={20} />
+                                  )}
+                                </button>
+                                <span
+                                  className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                >
+                                  {task.name}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteTask(patient.id, task.id)}
+                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Evening Tasks */}
+                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').length > 0 && (
+                        <div className="mb-4">
+                          <h5 className="text-sm font-bold text-indigo-400 mb-2 flex items-center gap-2">
+                            🌙 Evening Tasks
+                          </h5>
+                          <div className="space-y-2">
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').map((task: any) => (
+                              <div
+                                key={task.id}
+                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
+                              >
+                                <button
+                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                  className="flex-shrink-0"
+                                >
+                                  {task.completed ? (
+                                    <CheckCircle2 className="text-green-400" size={20} />
+                                  ) : (
+                                    <Circle className="text-slate-600 group-hover:text-indigo-400" size={20} />
+                                  )}
+                                </button>
+                                <span
+                                  className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                >
+                                  {task.name}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteTask(patient.id, task.id)}
+                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* General Tasks (MRI/Surgery/Conditional) */}
+                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').length > 0 && (
+                        <div>
+                          <h5 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                            📋 {patient.type} Tasks & Other
+                          </h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').map((task: any) => (
+                              <div
+                                key={task.id}
+                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
+                              >
+                                <button
+                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                  className="flex-shrink-0"
+                                >
+                                  {task.completed ? (
+                                    <CheckCircle2 className="text-green-400" size={20} />
+                                  ) : (
+                                    <Circle className="text-slate-600 group-hover:text-cyan-400" size={20} />
+                                  )}
+                                </button>
+                                <span
+                                  className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                >
+                                  {task.name}
+                                </span>
+                                <button
+                                  onClick={() => handleDeleteTask(patient.id, task.id)}
+                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Rounding Sheet Modal */}
+        {roundingSheetPatient !== null && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-4xl my-8">
+              <div className="p-6 border-b border-slate-700/50">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                    📋 Rounding Sheet
+                    <span className="text-cyan-400">
+                      {patients.find(p => p.id === roundingSheetPatient)?.name}
+                    </span>
+                  </h3>
+                  <button
+                    onClick={() => setRoundingSheetPatient(null)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                {(() => {
+                  const patient = patients.find(p => p.id === roundingSheetPatient);
+                  if (!patient) return null;
+                  const info = patient.patient_info || {};
+                  const rounding = patient.rounding_data || {};
+
+                  return (
+                    <>
+                      {/* Row 1: Basic Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">Signalment</label>
+                          <input
+                            type="text"
+                            value={roundingFormData.signalment || ''}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, signalment: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            placeholder="9 months Female Spayed Dachshund Mix"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">Location</label>
+                          <input
+                            type="text"
+                            value={roundingFormData.location || ''}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, location: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            placeholder="IP"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">ICU Criteria</label>
+                          <input
+                            type="text"
+                            value={roundingFormData.icuCriteria || ''}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, icuCriteria: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            placeholder="n/a"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 2: Code & Problems */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">Code</label>
+                          <select
+                            value={roundingFormData.code || 'Yellow'}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, code: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          >
+                            <option value="Green">Green</option>
+                            <option value="Yellow">Yellow</option>
+                            <option value="Orange">Orange</option>
+                            <option value="Red">Red</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">Problems</label>
+                          <input
+                            type="text"
+                            value={roundingFormData.problems || ''}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, problems: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            placeholder="suspected aa lux"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 3: Diagnostics */}
+                      <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Diagnostics</label>
+                        <textarea
+                          value={roundingFormData.diagnosticFindings || ''}
+                          onChange={(e) => setRoundingFormData({...roundingFormData, diagnosticFindings: e.target.value})}
+                          rows={2}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
+                          placeholder="cbc/chem pending"
+                        />
+                      </div>
+
+                      {/* Row 4: Therapeutics */}
+                      <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Therapeutics (Medications)</label>
+                        <textarea
+                          value={roundingFormData.therapeutics || ''}
+                          onChange={(e) => setRoundingFormData({...roundingFormData, therapeutics: e.target.value})}
+                          rows={3}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
+                          placeholder="Dex SP (Dexameth Sod Phos) 4mg/mL Inj&#10;Gabapentin Suspension 50mg/ml"
+                        />
+                      </div>
+
+                      {/* Row 5: IVC, Fluids, CRI */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">IVC</label>
+                          <select
+                            value={roundingFormData.ivc || 'No'}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, ivc: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          >
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">Fluids</label>
+                          <input
+                            type="text"
+                            value={roundingFormData.fluids || ''}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, fluids: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            placeholder="No or fluid rate"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 uppercase block mb-1">CRI</label>
+                          <input
+                            type="text"
+                            value={roundingFormData.cri || ''}
+                            onChange={(e) => setRoundingFormData({...roundingFormData, cri: e.target.value})}
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            placeholder="No or CRI details"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Row 6: Overnight Dx */}
+                      <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Overnight Dx</label>
+                        <input
+                          type="text"
+                          value={roundingFormData.overnightDx || ''}
+                          onChange={(e) => setRoundingFormData({...roundingFormData, overnightDx: e.target.value})}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          placeholder="none"
+                        />
+                      </div>
+
+                      {/* Row 7: Concerns */}
+                      <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Concerns</label>
+                        <input
+                          type="text"
+                          value={roundingFormData.concerns || ''}
+                          onChange={(e) => setRoundingFormData({...roundingFormData, concerns: e.target.value})}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          placeholder="none"
+                        />
+                      </div>
+
+                      {/* Row 8: Comments */}
+                      <div>
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Comments</label>
+                        <textarea
+                          value={roundingFormData.comments || ''}
+                          onChange={(e) => setRoundingFormData({...roundingFormData, comments: e.target.value})}
+                          rows={2}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
+                          placeholder="CARE WITH NECK"
+                        />
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-4 border-t border-slate-700/50">
+                        <button
+                          onClick={handleSaveRoundingData}
+                          className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-bold hover:scale-105 transition-transform"
+                        >
+                          💾 Save Changes
+                        </button>
+                        <button
+                          onClick={() => setRoundingSheetPatient(null)}
+                          className="px-6 py-3 bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-600 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         )}
       </main>
