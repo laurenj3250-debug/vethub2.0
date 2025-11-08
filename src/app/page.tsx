@@ -75,11 +75,12 @@ export default function VetHub() {
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done'];
+      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+
       const typeTasks = patientType === 'MRI'
-        ? ['Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'NPO']
+        ? ['Black Book', 'Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'NPO', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers']
         : patientType === 'Surgery'
-        ? ['Surgery Slip', 'Written on Board', 'Print Stickers']
+        ? ['Surgery Slip', 'Written on Board', 'Print Stickers', 'Post-op Check']
         : ['Admission SOAP', 'Treatment Sheet Created'];
 
       const allTasks = [...morningTasks, ...eveningTasks, ...typeTasks];
@@ -179,7 +180,7 @@ export default function VetHub() {
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
     const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-    const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done'];
+    const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
     if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
     if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
