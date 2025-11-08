@@ -25,6 +25,7 @@ export default function VetHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
+  const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task'>('by-patient');
   const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
@@ -32,14 +33,16 @@ export default function VetHub() {
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
   const [roundingFormData, setRoundingFormData] = useState<any>({});
 
-  // Calculate task stats
+  // Calculate task stats (today only)
   const taskStats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
     let total = 0;
     let completed = 0;
     patients.forEach(patient => {
       const tasks = patient.tasks || [];
-      total += tasks.length;
-      completed += tasks.filter((t: any) => t.completed).length;
+      const todayTasks = tasks.filter((t: any) => t.date === today);
+      total += todayTasks.length;
+      completed += todayTasks.filter((t: any) => t.completed).length;
     });
     return { total, completed, remaining: total - completed };
   }, [patients]);
@@ -550,57 +553,145 @@ export default function VetHub() {
         {/* Task Overview */}
         {showTaskOverview && (
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
-            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-              <ListTodo className="text-cyan-400" />
-              All Tasks Overview
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {patients.map(patient => {
-                const tasks = patient.tasks || [];
-                if (tasks.length === 0) return null;
-                return (
-                  <div key={patient.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
-                    <h3 className="text-white font-bold mb-2">{patient.name}</h3>
-                    <div className="space-y-2">
-                      {tasks.map((task: any) => {
-                        const category = getTaskCategory(task.name);
-                        const icon = getTaskIcon(category);
-                        return (
-                          <div
-                            key={task.id}
-                            className="flex items-center gap-2 text-sm group"
-                          >
-                            <button
-                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                              className="flex-shrink-0"
-                            >
-                              {task.completed ? (
-                                <CheckCircle2 className="text-green-400" size={16} />
-                              ) : (
-                                <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
-                              )}
-                            </button>
-                            <span className="text-base">{icon}</span>
-                            <span
-                              className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
-                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                            >
-                              {task.name}
-                            </span>
-                            <button
-                              onClick={() => handleDeleteTask(patient.id, task.id)}
-                              className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 rounded transition opacity-0 group-hover:opacity-100"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                <ListTodo className="text-cyan-400" />
+                Today's Tasks
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTaskViewMode('by-patient')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-sm transition ${
+                    taskViewMode === 'by-patient'
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  By Patient
+                </button>
+                <button
+                  onClick={() => setTaskViewMode('by-task')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-sm transition ${
+                    taskViewMode === 'by-task'
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  By Task
+                </button>
+              </div>
             </div>
+
+            {taskViewMode === 'by-patient' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {patients.map(patient => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const tasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                  if (tasks.length === 0) return null;
+                  return (
+                    <div key={patient.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                      <h3 className="text-white font-bold mb-2">{patient.name}</h3>
+                      <div className="space-y-2">
+                        {tasks.map((task: any) => {
+                          const category = getTaskCategory(task.name);
+                          const icon = getTaskIcon(category);
+                          return (
+                            <div
+                              key={task.id}
+                              className="flex items-center gap-2 text-sm group"
+                            >
+                              <button
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                className="flex-shrink-0"
+                              >
+                                {task.completed ? (
+                                  <CheckCircle2 className="text-green-400" size={16} />
+                                ) : (
+                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
+                                )}
+                              </button>
+                              <span className="text-base">{icon}</span>
+                              <span
+                                className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                              >
+                                {task.name}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteTask(patient.id, task.id)}
+                                className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 rounded transition opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
+
+                  patients.forEach(patient => {
+                    const tasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                    tasks.forEach((task: any) => {
+                      if (!taskGroups[task.name]) {
+                        taskGroups[task.name] = [];
+                      }
+                      taskGroups[task.name].push({ patient, task });
+                    });
+                  });
+
+                  return Object.entries(taskGroups).map(([taskName, items]) => {
+                    const category = getTaskCategory(taskName);
+                    const icon = getTaskIcon(category);
+                    const allCompleted = items.every(item => item.task.completed);
+
+                    return (
+                      <div key={taskName} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-2xl">{icon}</span>
+                          <h3 className="text-white font-bold flex-1">{taskName}</h3>
+                          <span className={`text-sm ${allCompleted ? 'text-green-400' : 'text-slate-400'}`}>
+                            {items.filter(i => i.task.completed).length}/{items.length}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {items.map(({ patient, task }) => (
+                            <div
+                              key={`${patient.id}-${task.id}`}
+                              className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-lg group"
+                            >
+                              <button
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                className="flex-shrink-0"
+                              >
+                                {task.completed ? (
+                                  <CheckCircle2 className="text-green-400" size={16} />
+                                ) : (
+                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
+                                )}
+                              </button>
+                              <span
+                                className={`flex-1 text-sm cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                              >
+                                {patient.name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
           </div>
         )}
 
