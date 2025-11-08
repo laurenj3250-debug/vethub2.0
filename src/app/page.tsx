@@ -26,6 +26,7 @@ export default function VetHub() {
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
   const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
@@ -605,44 +606,44 @@ export default function VetHub() {
 
         {/* All Rounding Sheets View */}
         {showAllRoundingSheets && (
-          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <FileSpreadsheet className="text-emerald-400" />
                 All Rounding Sheets
               </h2>
               <button
                 onClick={handleExportRoundingSheets}
-                className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+                className="px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform text-sm"
               >
                 📋 Copy to Clipboard
               </button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left p-2 text-slate-300 font-bold">Name</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Signalment</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Location</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">ICU Criteria</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Code</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Problems</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Diagnostics</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Therapeutics</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">IVC</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Fluids</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">CRI</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Overnight Dx</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Concerns</th>
-                    <th className="text-left p-2 text-slate-300 font-bold">Comments</th>
+            <div className="overflow-x-auto max-h-[70vh]">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-slate-800 z-10">
+                  <tr className="border-b-2 border-emerald-500">
+                    <th className="text-left p-1.5 text-emerald-400 font-bold">Name</th>
+                    <th className="text-left p-1.5 text-cyan-400 font-bold">Signalment</th>
+                    <th className="text-left p-1.5 text-purple-400 font-bold">Location</th>
+                    <th className="text-left p-1.5 text-pink-400 font-bold">ICU</th>
+                    <th className="text-left p-1.5 text-yellow-400 font-bold">Code</th>
+                    <th className="text-left p-1.5 text-red-400 font-bold">Problems</th>
+                    <th className="text-left p-1.5 text-blue-400 font-bold">Diagnostics</th>
+                    <th className="text-left p-1.5 text-green-400 font-bold">Therapeutics</th>
+                    <th className="text-left p-1.5 text-orange-400 font-bold">IVC</th>
+                    <th className="text-left p-1.5 text-teal-400 font-bold">Fluids</th>
+                    <th className="text-left p-1.5 text-indigo-400 font-bold">CRI</th>
+                    <th className="text-left p-1.5 text-violet-400 font-bold">O/N Dx</th>
+                    <th className="text-left p-1.5 text-rose-400 font-bold">Concerns</th>
+                    <th className="text-left p-1.5 text-amber-400 font-bold">Comments</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {patients.filter(p => p.status !== 'Discharged').map(patient => {
+                  {patients.filter(p => p.status !== 'Discharged').map((patient, idx) => {
                     const rounding = patient.rounding_data || {};
                     return (
-                      <tr key={patient.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
+                      <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
                         <td className="p-2 text-white font-medium">{patient.name}</td>
                         <td className="p-2">
                           <input
@@ -726,37 +727,115 @@ export default function VetHub() {
                           />
                         </td>
                         <td className="p-2">
-                          <input
-                            type="text"
-                            value={rounding.ivc || ''}
-                            onChange={(e) => {
-                              const updatedRounding = { ...rounding, ivc: e.target.value };
-                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                            }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-                          />
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              value={rounding.ivc || ''}
+                              onChange={(e) => {
+                                const updatedRounding = { ...rounding, ivc: e.target.value };
+                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                              }}
+                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            />
+                            <div className="flex gap-0.5">
+                              <button
+                                onClick={() => {
+                                  const updatedRounding = { ...rounding, ivc: 'No' };
+                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  refetch();
+                                }}
+                                className="px-1 py-0.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs"
+                                title="No"
+                              >
+                                N
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const updatedRounding = { ...rounding, ivc: 'Yes' };
+                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  refetch();
+                                }}
+                                className="px-1 py-0.5 bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded text-xs"
+                                title="Yes"
+                              >
+                                Y
+                              </button>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-2">
-                          <input
-                            type="text"
-                            value={rounding.fluids || ''}
-                            onChange={(e) => {
-                              const updatedRounding = { ...rounding, fluids: e.target.value };
-                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                            }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-                          />
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              value={rounding.fluids || ''}
+                              onChange={(e) => {
+                                const updatedRounding = { ...rounding, fluids: e.target.value };
+                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                              }}
+                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            />
+                            <div className="flex gap-0.5">
+                              <button
+                                onClick={() => {
+                                  const updatedRounding = { ...rounding, fluids: 'No' };
+                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  refetch();
+                                }}
+                                className="px-1 py-0.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs"
+                                title="No"
+                              >
+                                N
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const updatedRounding = { ...rounding, fluids: 'Yes' };
+                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  refetch();
+                                }}
+                                className="px-1 py-0.5 bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded text-xs"
+                                title="Yes"
+                              >
+                                Y
+                              </button>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-2">
-                          <input
-                            type="text"
-                            value={rounding.cri || ''}
-                            onChange={(e) => {
-                              const updatedRounding = { ...rounding, cri: e.target.value };
-                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                            }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
-                          />
+                          <div className="flex gap-1">
+                            <input
+                              type="text"
+                              value={rounding.cri || ''}
+                              onChange={(e) => {
+                                const updatedRounding = { ...rounding, cri: e.target.value };
+                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                              }}
+                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            />
+                            <div className="flex gap-0.5">
+                              <button
+                                onClick={() => {
+                                  const updatedRounding = { ...rounding, cri: 'No' };
+                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  refetch();
+                                }}
+                                className="px-1 py-0.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs"
+                                title="No"
+                              >
+                                N
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const updatedRounding = { ...rounding, cri: 'Yes' };
+                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  refetch();
+                                }}
+                                className="px-1 py-0.5 bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded text-xs"
+                                title="Yes"
+                              >
+                                Y
+                              </button>
+                            </div>
+                          </div>
                         </td>
                         <td className="p-2">
                           <input
@@ -800,64 +879,14 @@ export default function VetHub() {
           </div>
         )}
 
-        {/* Add Patient */}
-        <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Brain className="text-cyan-400" size={28} />
-            <h2 className="text-2xl font-bold text-white">Add Patient</h2>
-            <Sparkles className="text-yellow-400 animate-pulse" size={24} />
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-500 text-white">
-              AI-POWERED
-            </span>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              {(['MRI', 'Surgery', 'Medical'] as const).map((type) => {
-                const emojis = { MRI: '🧠', Surgery: '🔪', Medical: '💊' };
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setPatientType(type)}
-                    className={`px-5 py-3 rounded-xl font-bold transition-all ${
-                      patientType === type
-                        ? `bg-gradient-to-r ${getTypeColor(type)} text-white shadow-lg scale-105`
-                        : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600/50'
-                    }`}
-                  >
-                    {emojis[type]} {type}
-                  </button>
-                );
-              })}
-            </div>
-
-            <textarea
-              value={patientBlurb}
-              onChange={(e) => setPatientBlurb(e.target.value)}
-              placeholder="🐾 Paste patient info... Claude AI will extract everything! 🤖"
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-none"
-              rows={4}
-            />
-
-            <button
-              onClick={handleAddPatient}
-              disabled={isAddingPatient || !patientBlurb.trim()}
-              className="w-full py-4 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
-            >
-              {isAddingPatient ? (
-                <>
-                  <Loader2 className="animate-spin" size={20} />
-                  Claude is analyzing...
-                </>
-              ) : (
-                <>
-                  <Zap size={20} />
-                  Add Patient with Claude AI
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        {/* Floating Add Patient Button */}
+        <button
+          onClick={() => setShowAddPatientModal(true)}
+          className="fixed bottom-8 right-8 z-20 p-4 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold"
+        >
+          <Plus size={24} />
+          <span>Add Patient</span>
+        </button>
 
         {/* Search */}
         <div className="relative">
@@ -1442,6 +1471,83 @@ export default function VetHub() {
                     </>
                   );
                 })()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Patient Modal */}
+        {showAddPatientModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-2xl">
+              <div className="p-6 border-b border-slate-700/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Brain className="text-cyan-400" size={28} />
+                    <h3 className="text-2xl font-bold text-white">Add Patient</h3>
+                    <Sparkles className="text-yellow-400 animate-pulse" size={20} />
+                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-500 text-white">
+                      AI-POWERED
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowAddPatientModal(false)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="flex gap-2">
+                  {(['MRI', 'Surgery', 'Medical'] as const).map((type) => {
+                    const emojis = { MRI: '🧠', Surgery: '🔪', Medical: '💊' };
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setPatientType(type)}
+                        className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${
+                          patientType === type
+                            ? `bg-gradient-to-r ${getTypeColor(type)} text-white shadow-lg scale-105`
+                            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600/50'
+                        }`}
+                      >
+                        {emojis[type]} {type}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <textarea
+                  value={patientBlurb}
+                  onChange={(e) => setPatientBlurb(e.target.value)}
+                  placeholder="🐾 Paste patient info... Claude AI will extract everything! 🤖"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-none"
+                  rows={6}
+                />
+
+                <button
+                  onClick={() => {
+                    handleAddPatient();
+                    setShowAddPatientModal(false);
+                    setPatientBlurb('');
+                  }}
+                  disabled={isAddingPatient || !patientBlurb.trim()}
+                  className="w-full py-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                >
+                  {isAddingPatient ? (
+                    <>
+                      <Loader2 className="animate-spin" size={20} />
+                      Claude is analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={20} />
+                      Add Patient with Claude AI
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
