@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
-import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock } from '@/lib/ai-parser';
+import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -290,6 +290,49 @@ export default function VetHub() {
     }
   };
 
+  const handleExportMRISchedule = async () => {
+    try {
+      // Filter MRI patients with 'New Admit' status
+      const mriPatients = patients.filter(p => p.type === 'MRI' && p.status === 'New Admit');
+
+      if (mriPatients.length === 0) {
+        toast({ variant: 'destructive', title: 'No MRI patients', description: 'No patients marked as MRI with New Admit status' });
+        return;
+      }
+
+      toast({ title: '🧠 Generating MRI schedule...', description: 'AI is determining scan types' });
+
+      // Build TSV data with header
+      const header = 'Name\tPatient ID\tWeight (kg)\tScan Type';
+      const rows = await Promise.all(
+        mriPatients.map(async (patient) => {
+          const name = patient.name || 'Unknown';
+          const patientId = patient.patient_info?.patientId || '';
+          const weight = patient.patient_info?.weight?.replace(/[^\d.]/g, '') || ''; // Extract just number
+          const problem = patient.rounding_data?.problems || patient.patient_info?.problem || '';
+
+          // Use AI to determine scan type
+          const scanType = await determineScanType(problem);
+
+          return `${name}\t${patientId}\t${weight}\t${scanType}`;
+        })
+      );
+
+      const tsvContent = [header, ...rows].join('\n');
+
+      // Copy to clipboard
+      await navigator.clipboard.writeText(tsvContent);
+
+      toast({
+        title: '✅ MRI Schedule Copied!',
+        description: `${mriPatients.length} patients ready to paste into spreadsheet`
+      });
+    } catch (error) {
+      console.error('MRI export error:', error);
+      toast({ variant: 'destructive', title: 'Export failed', description: 'Could not generate MRI schedule' });
+    }
+  };
+
   // Load rounding data when modal opens
   useEffect(() => {
     if (roundingSheetPatient !== null) {
@@ -426,6 +469,13 @@ export default function VetHub() {
             >
               <ListTodo size={18} />
               Tasks: {taskStats.remaining}/{taskStats.total}
+            </button>
+            <button
+              onClick={handleExportMRISchedule}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <Brain size={18} />
+              Export MRI
             </button>
             <button
               onClick={logout}

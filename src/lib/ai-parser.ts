@@ -219,3 +219,41 @@ Return ONLY the JSON object, no other text:`
     throw error;
   }
 }
+
+export async function determineScanType(problemText: string): Promise<string> {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 64,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `Based on this veterinary presenting complaint, determine the MRI scan location needed. Return ONLY one of these options: Brain, C-Spine, T-Spine, LS, or Unknown.
+
+Common mappings:
+- Seizures, head tilt, circling, vestibular → Brain
+- Neck pain, front leg weakness → C-Spine
+- Back pain, hind limb weakness, IVDD, paralysis → LS (lumbar spine)
+- Thoracic pain → T-Spine
+
+Presenting complaint:
+${problemText || 'Not specified'}
+
+Return ONLY the scan location (Brain, C-Spine, T-Spine, LS, or Unknown):`
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') return 'Unknown';
+
+    const scanType = content.text.trim();
+    // Validate response
+    const validTypes = ['Brain', 'C-Spine', 'T-Spine', 'LS', 'Unknown'];
+    return validTypes.includes(scanType) ? scanType : 'Unknown';
+  } catch (error) {
+    console.error('Scan type determination error:', error);
+    return 'Unknown';
+  }
+}
