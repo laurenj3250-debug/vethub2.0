@@ -3,8 +3,7 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen, GraduationCap, Download } from 'lucide-react';
 import Link from 'next/link';
-import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
-import { apiClient } from '@/lib/api-client';
+import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
   DndContext,
   closestCenter,
@@ -22,6 +21,13 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import {
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from '@/firebase/non-blocking-updates';
+import { signOutUser, initiateEmailSignUp, initiateEmailSignIn } from '@/firebase/auth';
+import { collection, doc, query } from 'firebase/firestore';
 import { parseSignalment } from '@/lib/parseSignalment';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 import { parseRounding } from '@/ai/flows/parse-rounding-flow';
@@ -457,15 +463,52 @@ const DebouncedTextarea = ({
 ----------------------------------------------------------- */
 
 export default function VetPatientTracker() {
-  const { user, isLoading: isUserLoading, login, register, logout } = useApiAuth();
-  const { patients, isLoading: isLoadingPatients, refetch: refetchPatients } = usePatients();
-  const { tasks: generalTasks, isLoading: isLoadingGeneralTasks, refetch: refetchGeneralTasks } = useGeneralTasks();
-  const { problems: commonProblems, comments: commonComments, medications: commonMedications, isLoading: isLoadingCommonItems } = useCommonItems();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
 
-  const isLoadingCommonProblems = isLoadingCommonItems;
-  const isLoadingCommonComments = isLoadingCommonItems;
-  const isLoadingCommonMedications = isLoadingCommonItems;
+
+  // Firestore queries scoped to user
+  const patientsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/patients`));
+  }, [firestore, user]);
+  const patientsRes = useCollection(patientsQuery);
+  const patients = patientsRes?.data ?? [];
+  const isLoadingPatients = patientsRes?.isLoading ?? false;
+
+  const generalTasksQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/generalTasks`));
+  }, [firestore, user]);
+  const generalTasksRes = useCollection(generalTasksQuery);
+  const generalTasks = generalTasksRes?.data ?? [];
+  const isLoadingGeneralTasks = generalTasksRes?.isLoading ?? false;
+
+  const commonProblemsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonProblems`));
+  }, [firestore, user]);
+  const commonProblemsRes = useCollection(commonProblemsQuery);
+  const commonProblems = commonProblemsRes?.data ?? [];
+  const isLoadingCommonProblems = commonProblemsRes?.isLoading ?? false;
+
+  const commonCommentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonComments`));
+  }, [firestore, user]);
+  const commonCommentsRes = useCollection(commonCommentsQuery);
+  const commonComments = commonCommentsRes?.data ?? [];
+  const isLoadingCommonComments = commonCommentsRes?.isLoading ?? false;
+
+  const commonMedicationsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, `users/${user.uid}/commonMedications`));
+  }, [firestore, user]);
+  const commonMedicationsRes = useCollection(commonMedicationsQuery);
+  const commonMedications = commonMedicationsRes?.data ?? [];
+  const isLoadingCommonMedications = commonMedicationsRes?.isLoading ?? false;
 
   // UI State
   const [newPatientBlurb, setNewPatientBlurb] = useState('');
