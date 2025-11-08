@@ -1,0 +1,185 @@
+{
+  "entities": {
+    "Patient": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Patient",
+      "type": "object",
+      "description": "Represents a patient in the VetCare Hub, including their details, status, and associated rounding data.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Patient entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The patient's name."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of procedure the patient is undergoing (e.g., Surgery, MRI)."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the patient (e.g., New Admit, Pre-procedure)."
+        },
+        "patientInfo": {
+          "type": "object",
+          "description": "PatientInfo object"
+        },
+        "roundingData": {
+          "type": "object",
+          "description": "RoundingData object"
+        },
+        "mriData": {
+          "type": "object",
+          "description": "MRIData object"
+        },
+        "tasks": {
+          "type": "array",
+          "description": "References to Task.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "addedTime": {
+          "type": "string",
+          "description": "The time the patient was added to the system."
+        },
+        "customTask": {"type": "string" },
+        "bwInput": {"type": "string" },
+        "xrayStatus": {"type": "string" },
+        "xrayOther": {"type": "string" },
+        "detailsInput": {"type": "string" }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "status",
+        "tasks",
+        "addedTime"
+      ]
+    },
+    "GeneralTask": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GeneralTask",
+      "type": "object",
+      "description": "Represents a general task not associated with a specific patient, with category and priority.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the GeneralTask entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the general task."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates whether the general task is completed."
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Morning", "Evening"],
+          "description": "The category of the task (e.g., Morning, Evening)."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["High", "Medium", "Low"],
+          "description": "The priority level of the task."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "completed",
+        "category",
+        "priority"
+      ]
+    },
+    "CommonProblem": {
+       "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommonProblem",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+     "CommonComment": {
+       "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommonComment",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "CommonMedication": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CommonMedication",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/patients/{patientId}",
+        "definition": {
+          "entityName": "Patient",
+          "schema": {
+            "$ref": "#/backend/entities/Patient"
+          },
+          "description": "Stores patient data."
+        }
+      },
+      {
+        "path": "/users/{userId}/generalTasks/{generalTaskId}",
+        "definition": {
+          "entityName": "GeneralTask",
+          "schema": {
+            "$ref": "#/backend/entities/GeneralTask"
+          },
+          "description": "Stores general tasks not associated with a specific patient."
+        }
+      },
+      {
+        "path": "/users/{userId}/commonProblems/{commonProblemId}",
+        "definition": {
+          "entityName": "CommonProblem",
+          "schema": {
+            "$ref": "#/backend/entities/CommonProblem"
+          }
+        }
+      },
+       {
+        "path": "/users/{userId}/commonComments/{commonCommentId}",
+        "definition": {
+          "entityName": "CommonComment",
+          "schema": {
+            "$ref": "#/backend/entities/CommonComment"
+          }
+        }
+      },
+      {
+        "path": "/users/{userId}/commonMedications/{commonMedicationId}",
+        "definition": {
+          "entityName": "CommonMedication",
+          "schema": {
+            "$ref": "#/backend/entities/CommonMedication"
+          }
+        }
+      }
+    ]
+  }
+}
