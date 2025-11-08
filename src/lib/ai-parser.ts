@@ -31,10 +31,11 @@ export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientDat
       messages: [
         {
           role: 'user',
-          content: `You are a veterinary medical record parser. Extract structured data from patient intake text.
-Return ONLY valid JSON with these fields (use null for missing data):
+          content: `Extract structured data from this veterinary patient text and return ONLY a JSON object with no other text or explanation.
+
+Return this exact structure (use null for missing fields):
 {
-  "patientName": "pet name (WITHOUT 'Patient' prefix)",
+  "patientName": "pet name only, remove any 'Patient' prefix",
   "ownerName": "owner full name",
   "ownerPhone": "phone number",
   "species": "dog/cat/etc",
@@ -51,7 +52,9 @@ Return ONLY valid JSON with these fields (use null for missing data):
 }
 
 Patient text:
-${blurb}`
+${blurb}
+
+Return ONLY the JSON object, no other text:`
         }
       ]
     });
@@ -61,7 +64,16 @@ ${blurb}`
       throw new Error('No text response from Claude');
     }
 
-    const parsed = JSON.parse(content.text);
+    // Extract JSON from response (Claude might wrap it in text)
+    let jsonText = content.text.trim();
+
+    // Try to find JSON object in the response
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonText);
     return parsed;
   } catch (error) {
     console.error('AI parsing error:', error);
@@ -78,12 +90,15 @@ export async function analyzeBloodwork(bloodworkText: string, species: string = 
       messages: [
         {
           role: 'user',
-          content: `You are a veterinary diagnostician. Analyze bloodwork and identify abnormal values for ${species}.
-Return ONLY a JSON array of abnormal findings with their values: ["WBC 25.3 (H)", "BUN 85 (H)", ...]
-Use (H) for high, (L) for low. Be concise.
+          content: `Analyze this ${species} bloodwork and return ONLY a JSON array of abnormal findings.
+
+Format: ["WBC 25.3 (H)", "BUN 85 (H)", ...]
+Use (H) for high, (L) for low.
 
 Bloodwork:
-${bloodworkText}`
+${bloodworkText}
+
+Return ONLY the JSON array, no other text:`
         }
       ]
     });
@@ -91,7 +106,14 @@ ${bloodworkText}`
     const content = response.content[0];
     if (content.type !== 'text') return [];
 
-    const result = JSON.parse(content.text);
+    // Extract JSON from response
+    let jsonText = content.text.trim();
+    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    const result = JSON.parse(jsonText);
     return Array.isArray(result) ? result : result.abnormals || [];
   } catch (error) {
     console.error('Bloodwork analysis error:', error);
