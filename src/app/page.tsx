@@ -735,11 +735,7 @@ export default function VetHub() {
                         <td className="p-1">
                           <button
                             onClick={() => {
-                              setShowAllRoundingSheets(false);
-                              setExpandedPatient(patient.id);
-                              setTimeout(() => {
-                                document.getElementById(`patient-${patient.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              }, 100);
+                              setRoundingSheetPatient(patient.id);
                             }}
                             className="text-white font-medium text-xs hover:text-cyan-400 transition cursor-pointer underline decoration-dotted"
                           >
@@ -795,14 +791,14 @@ export default function VetHub() {
                           </select>
                         </td>
                         <td className="p-1">
-                          <input
-                            type="text"
+                          <textarea
                             value={rounding.problems || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, problems: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
+                            rows={2}
                           />
                         </td>
                         <td className="p-1">
@@ -812,8 +808,8 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, diagnosticFindings: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-none"
-                            rows={1}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[60px]"
+                            rows={3}
                           />
                         </td>
                         <td className="p-1 relative">
@@ -824,8 +820,8 @@ export default function VetHub() {
                                 const updatedRounding = { ...rounding, therapeutics: e.target.value };
                                 apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                               }}
-                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-none"
-                              rows={1}
+                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[60px]"
+                              rows={3}
                             />
                             <button
                               onClick={() => setShowMedicationSelector(showMedicationSelector === patient.id ? null : patient.id)}
@@ -904,36 +900,36 @@ export default function VetHub() {
                           </select>
                         </td>
                         <td className="p-1">
-                          <input
-                            type="text"
+                          <textarea
                             value={rounding.overnightDx || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, overnightDx: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
+                            rows={2}
                           />
                         </td>
                         <td className="p-1">
-                          <input
-                            type="text"
+                          <textarea
                             value={rounding.concerns || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, concerns: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
+                            rows={2}
                           />
                         </td>
                         <td className="p-1">
-                          <input
-                            type="text"
+                          <textarea
                             value={rounding.comments || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, comments: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
+                            rows={2}
                           />
                         </td>
                       </tr>
@@ -978,11 +974,7 @@ export default function VetHub() {
                         <td className="p-2">
                           <button
                             onClick={() => {
-                              setShowMRISchedule(false);
-                              setExpandedPatient(patient.id);
-                              setTimeout(() => {
-                                document.getElementById(`patient-${patient.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                              }, 100);
+                              setRoundingSheetPatient(patient.id);
                             }}
                             className="text-white font-medium hover:text-cyan-400 transition cursor-pointer underline decoration-dotted"
                           >
