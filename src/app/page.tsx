@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -24,6 +24,19 @@ export default function VetHub() {
   const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
+  const [showTaskOverview, setShowTaskOverview] = useState(false);
+
+  // Calculate task stats
+  const taskStats = useMemo(() => {
+    let total = 0;
+    let completed = 0;
+    patients.forEach(patient => {
+      const tasks = patient.tasks || [];
+      total += tasks.length;
+      completed += tasks.filter((t: any) => t.completed).length;
+    });
+    return { total, completed, remaining: total - completed };
+  }, [patients]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,10 +63,7 @@ export default function VetHub() {
 
     setIsAddingPatient(true);
     try {
-      // AI parse the blurb
       const parsed = await parsePatientBlurb(patientBlurb);
-
-      // Extract name properly
       const patientName = parsed.patientName?.replace(/^Patient\s/i, '') || 'Unnamed';
       let ownerLastName = '';
 
@@ -64,7 +74,6 @@ export default function VetHub() {
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
-      // Create tasks based on type
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done'];
       const typeTasks = patientType === 'MRI'
@@ -75,7 +84,6 @@ export default function VetHub() {
 
       const allTasks = [...morningTasks, ...eveningTasks, ...typeTasks];
 
-      // Create patient
       const patientData = {
         name: fullName,
         type: patientType,
@@ -103,7 +111,6 @@ export default function VetHub() {
 
       const newPatient = await apiClient.createPatient(patientData);
 
-      // Add tasks
       for (const taskName of allTasks) {
         await apiClient.createTask(newPatient.id, {
           name: taskName,
@@ -112,20 +119,12 @@ export default function VetHub() {
         });
       }
 
-      toast({
-        title: '✨ Patient Added!',
-        description: `${fullName} has been created with AI-parsed data`
-      });
-
+      toast({ title: '✨ Patient Added!', description: `${fullName} created with AI-parsed data` });
       setPatientBlurb('');
       refetch();
     } catch (error: any) {
       console.error('Add patient error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Failed to add patient',
-        description: error.message || 'Please try again'
-      });
+      toast({ variant: 'destructive', title: 'Failed to add patient', description: error.message || 'Try again' });
     } finally {
       setIsAddingPatient(false);
     }
@@ -142,7 +141,6 @@ export default function VetHub() {
 
   const handleDeletePatient = async (patientId: number) => {
     if (!confirm('Delete this patient?')) return;
-
     try {
       await apiClient.deletePatient(String(patientId));
       toast({ title: '🗑️ Patient deleted' });
@@ -170,7 +168,6 @@ export default function VetHub() {
     return 'from-purple-500 to-pink-600';
   };
 
-  // Loading state
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -179,7 +176,6 @@ export default function VetHub() {
     );
   }
 
-  // Login screen
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
@@ -216,9 +212,7 @@ export default function VetHub() {
               className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
             />
 
-            {authError && (
-              <p className="text-red-400 text-sm">{authError}</p>
-            )}
+            {authError && <p className="text-red-400 text-sm">{authError}</p>}
 
             <button
               type="submit"
@@ -240,17 +234,14 @@ export default function VetHub() {
     );
   }
 
-  // Main app
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Animated background blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute top-1/2 right-1/3 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
-      {/* Header */}
       <header className="relative bg-slate-800/40 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-10 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -263,18 +254,66 @@ export default function VetHub() {
             </div>
           </div>
 
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-red-400 transition rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowTaskOverview(!showTaskOverview)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <ListTodo size={18} />
+              Tasks: {taskStats.remaining}/{taskStats.total}
+            </button>
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-red-400 transition rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
-        {/* Add Patient Section */}
+        {/* Task Overview */}
+        {showTaskOverview && (
+          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
+            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <ListTodo className="text-cyan-400" />
+              All Tasks Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {patients.map(patient => {
+                const tasks = patient.tasks || [];
+                if (tasks.length === 0) return null;
+                return (
+                  <div key={patient.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                    <h3 className="text-white font-bold mb-2">{patient.name}</h3>
+                    <div className="space-y-2">
+                      {tasks.map((task: any) => (
+                        <label
+                          key={task.id}
+                          className="flex items-center gap-2 text-sm cursor-pointer group"
+                          onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                        >
+                          {task.completed ? (
+                            <CheckCircle2 className="text-green-400 flex-shrink-0" size={16} />
+                          ) : (
+                            <Circle className="text-slate-600 group-hover:text-cyan-400 flex-shrink-0" size={16} />
+                          )}
+                          <span className={task.completed ? 'line-through text-slate-500' : 'text-slate-300'}>
+                            {task.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Add Patient */}
         <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
           <div className="flex items-center gap-3 mb-6">
             <Brain className="text-cyan-400" size={28} />
@@ -345,7 +384,7 @@ export default function VetHub() {
           />
         </div>
 
-        {/* Patient List */}
+        {/* Patients */}
         {patientsLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
@@ -363,16 +402,17 @@ export default function VetHub() {
               const totalTasks = tasks.length;
               const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
               const isExpanded = expandedPatient === patient.id;
-              const species = patient.patient_info?.species;
-              const emoji = getSpeciesEmoji(species);
+              const info = patient.patient_info || {};
+              const rounding = patient.rounding_data || {};
+              const emoji = getSpeciesEmoji(info.species);
 
               return (
                 <div
                   key={patient.id}
                   className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 overflow-hidden hover:shadow-cyan-500/20 hover:border-slate-600/50 transition-all"
                 >
-                  {/* Patient Header */}
                   <div className="p-6">
+                    {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -385,32 +425,79 @@ export default function VetHub() {
                             {patient.status}
                           </span>
                         </div>
-
-                        {patient.rounding_data?.signalment && (
-                          <p className="text-slate-300 font-medium">{patient.rounding_data.signalment}</p>
-                        )}
-
-                        {patient.rounding_data?.problems && (
-                          <p className="text-orange-400 font-bold mt-2 flex items-center gap-2">
-                            🏥 {patient.rounding_data.problems}
-                          </p>
-                        )}
                       </div>
-
                       <button
                         onClick={() => handleDeletePatient(patient.id)}
-                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition border border-transparent hover:border-red-500/30"
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
 
-                    {/* Progress Bar */}
+                    {/* Patient Info Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                      {rounding.signalment && (
+                        <div className="col-span-2 md:col-span-4">
+                          <p className="text-xs text-slate-500 uppercase">Signalment</p>
+                          <p className="text-slate-200 font-medium">{rounding.signalment}</p>
+                        </div>
+                      )}
+                      {info.ownerName && (
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase">Owner</p>
+                          <p className="text-slate-200">{info.ownerName}</p>
+                        </div>
+                      )}
+                      {info.ownerPhone && (
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase">Phone</p>
+                          <p className="text-slate-200">{info.ownerPhone}</p>
+                        </div>
+                      )}
+                      {info.weight && (
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase">Weight</p>
+                          <p className="text-slate-200">{info.weight}</p>
+                        </div>
+                      )}
+                      {patient.added_time && (
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase">Added</p>
+                          <p className="text-slate-200">{patient.added_time}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Rounding Data */}
+                    {rounding.problems && (
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 uppercase mb-1">Problems</p>
+                        <p className="text-orange-400 font-medium">🏥 {rounding.problems}</p>
+                      </div>
+                    )}
+                    {rounding.diagnosticFindings && (
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 uppercase mb-1">Diagnostics</p>
+                        <p className="text-slate-300 text-sm">{rounding.diagnosticFindings}</p>
+                      </div>
+                    )}
+                    {rounding.therapeutics && (
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 uppercase mb-1">Medications</p>
+                        <p className="text-slate-300 text-sm whitespace-pre-line">{rounding.therapeutics}</p>
+                      </div>
+                    )}
+                    {rounding.plan && (
+                      <div className="mb-3">
+                        <p className="text-xs text-slate-500 uppercase mb-1">Plan</p>
+                        <p className="text-slate-300 text-sm">{rounding.plan}</p>
+                      </div>
+                    )}
+
+                    {/* Progress */}
                     <div className="mb-4">
                       <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-slate-400 font-medium">
-                          Tasks: {completedTasks}/{totalTasks}
-                        </span>
+                        <span className="text-slate-400 font-medium">Tasks: {completedTasks}/{totalTasks}</span>
                         <span className="text-cyan-400 font-bold text-lg">{Math.round(progress)}%</span>
                       </div>
                       <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden border border-slate-600/50">
@@ -421,33 +508,34 @@ export default function VetHub() {
                       </div>
                     </div>
 
+                    {/* Show Tasks Button */}
                     <button
                       onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                      className="text-cyan-400 font-bold hover:text-cyan-300 transition flex items-center gap-2"
+                      className="text-cyan-400 font-bold hover:text-cyan-300 transition"
                     >
                       {isExpanded ? '🔼 Hide Tasks' : '🔽 Show Tasks'}
                     </button>
                   </div>
 
-                  {/* Tasks (Expanded) */}
+                  {/* Tasks */}
                   {isExpanded && (
                     <div className="border-t border-slate-700/50 p-6 bg-slate-900/30">
+                      <h4 className="text-white font-bold mb-3 flex items-center gap-2">
+                        <ListTodo size={18} className="text-cyan-400" />
+                        Tasks ({completedTasks}/{totalTasks})
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {tasks.map((task: any) => (
                           <label
                             key={task.id}
                             className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition cursor-pointer group hover:bg-slate-700/30"
+                            onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                           >
-                            <button
-                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                              className="flex-shrink-0"
-                            >
-                              {task.completed ? (
-                                <CheckCircle2 className="text-green-400" size={22} />
-                              ) : (
-                                <Circle className="text-slate-600 group-hover:text-cyan-400" size={22} />
-                              )}
-                            </button>
+                            {task.completed ? (
+                              <CheckCircle2 className="text-green-400 flex-shrink-0" size={22} />
+                            ) : (
+                              <Circle className="text-slate-600 group-hover:text-cyan-400 flex-shrink-0" size={22} />
+                            )}
                             <span className={`flex-1 ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}>
                               {task.name}
                             </span>

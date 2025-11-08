@@ -62,9 +62,11 @@ export function usePatients() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) {
+        setIsLoading(true);
+      }
       const data = await apiClient.getPatients();
       setPatients(data);
       setError(null);
@@ -72,19 +74,21 @@ export function usePatients() {
       console.error('Fetch patients error:', err);
       setError(err as Error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchPatients();
+    fetchPatients(true); // Show loading on initial fetch
 
-    // Poll for updates every 3 seconds
-    const interval = setInterval(fetchPatients, 3000);
+    // Poll for updates every 5 seconds (no loading indicator)
+    const interval = setInterval(() => fetchPatients(false), 5000);
     return () => clearInterval(interval);
   }, []);
 
-  return { patients, isLoading, error, refetch: fetchPatients };
+  return { patients, isLoading, error, refetch: () => fetchPatients(true) };
 }
 
 export function useGeneralTasks() {
