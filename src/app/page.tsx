@@ -521,7 +521,13 @@ export default function VetHub() {
               Tasks: {taskStats.remaining}/{taskStats.total}
             </button>
             <button
-              onClick={() => setShowAllRoundingSheets(!showAllRoundingSheets)}
+              onClick={() => {
+                setShowAllRoundingSheets(!showAllRoundingSheets);
+                if (!showAllRoundingSheets) {
+                  setShowTaskOverview(false);
+                  setShowMRISchedule(false);
+                }
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <FileSpreadsheet size={18} />
@@ -579,34 +585,34 @@ export default function VetHub() {
             </div>
 
             {taskViewMode === 'by-patient' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {patients.map(patient => {
                   const today = new Date().toISOString().split('T')[0];
                   const tasks = (patient.tasks || []).filter((t: any) => t.date === today);
                   if (tasks.length === 0) return null;
                   return (
-                    <div key={patient.id} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
-                      <h3 className="text-white font-bold mb-2">{patient.name}</h3>
-                      <div className="space-y-2">
+                    <div key={patient.id} className="bg-slate-900/50 rounded-lg p-2 border border-slate-700/50">
+                      <h3 className="text-white font-bold mb-1.5 text-sm">{patient.name}</h3>
+                      <div className="space-y-1">
                         {tasks.map((task: any) => {
                           const category = getTaskCategory(task.name);
                           const icon = getTaskIcon(category);
                           return (
                             <div
                               key={task.id}
-                              className="flex items-center gap-2 text-sm group"
+                              className="flex items-center gap-1.5 text-xs group"
                             >
                               <button
                                 onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 className="flex-shrink-0"
                               >
                                 {task.completed ? (
-                                  <CheckCircle2 className="text-green-400" size={16} />
+                                  <CheckCircle2 className="text-green-400" size={14} />
                                 ) : (
-                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
+                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={14} />
                                 )}
                               </button>
-                              <span className="text-base">{icon}</span>
+                              <span className="text-sm">{icon}</span>
                               <span
                                 className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
                                 onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
@@ -615,9 +621,9 @@ export default function VetHub() {
                               </span>
                               <button
                                 onClick={() => handleDeleteTask(patient.id, task.id)}
-                                className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 rounded transition opacity-0 group-hover:opacity-100"
+                                className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 rounded transition opacity-0 group-hover:opacity-100"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={12} />
                               </button>
                             </div>
                           );
@@ -1039,7 +1045,7 @@ export default function VetHub() {
             <p className="text-slate-400 text-lg">No patients yet. Add your first furry friend above!</p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredPatients.map((patient) => {
               const tasks = patient.tasks || [];
               const completedTasks = tasks.filter((t: any) => t.completed).length;
@@ -1053,25 +1059,25 @@ export default function VetHub() {
               return (
                 <div
                   key={patient.id}
-                  className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 overflow-hidden hover:shadow-cyan-500/20 hover:border-slate-600/50 transition-all"
+                  className="bg-slate-800/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden hover:shadow-cyan-500/20 hover:border-slate-600/50 transition-all"
                 >
-                  <div className="p-6">
+                  <div className="p-3">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3 flex-wrap">
-                          <span className="text-3xl">{emoji}</span>
-                          <h3 className="text-2xl font-bold text-white">{patient.name}</h3>
-                          <span className={`px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg`}>
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span className="text-2xl">{emoji}</span>
+                          <h3 className="text-lg font-bold text-white">{patient.name}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg`}>
                             {patient.type}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500 uppercase">Status:</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-slate-500">Status:</span>
                           <select
                             value={patient.status || 'New Admit'}
                             onChange={(e) => handleStatusChange(patient.id, e.target.value)}
-                            className="px-3 py-1 rounded-lg text-sm font-bold bg-slate-700/50 border border-slate-600 text-white hover:bg-slate-700 transition cursor-pointer"
+                            className="px-2 py-0.5 rounded text-xs font-bold bg-slate-700/50 border border-slate-600 text-white hover:bg-slate-700 transition cursor-pointer"
                           >
                             <option value="New Admit">New Admit</option>
                             <option value="Hospitalized">Hospitalized</option>
@@ -1082,19 +1088,19 @@ export default function VetHub() {
                       </div>
                       <button
                         onClick={() => handleDeletePatient(patient.id)}
-                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                        className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
 
                     {/* Progress */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-slate-400 font-medium">Tasks: {completedTasks}/{totalTasks}</span>
-                        <span className="text-cyan-400 font-bold text-lg">{Math.round(progress)}%</span>
+                    <div className="mb-2">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-slate-400">Tasks: {completedTasks}/{totalTasks}</span>
+                        <span className="text-cyan-400 font-bold">{Math.round(progress)}%</span>
                       </div>
-                      <div className="h-3 bg-slate-700/50 rounded-full overflow-hidden border border-slate-600/50">
+                      <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden border border-slate-600/50">
                         <div
                           className={`h-full bg-gradient-to-r ${getTypeColor(patient.type)} transition-all duration-500`}
                           style={{ width: `${progress}%` }}
@@ -1103,24 +1109,24 @@ export default function VetHub() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                        className="text-cyan-400 font-bold hover:text-cyan-300 transition"
+                        className="text-cyan-400 text-xs font-bold hover:text-cyan-300 transition"
                       >
-                        {isExpanded ? '🔼 Hide Tasks' : '🔽 Show Tasks'}
+                        {isExpanded ? '🔼 Hide' : '🔽 Tasks'}
                       </button>
                       <button
                         onClick={() => setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id)}
-                        className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
                       >
-                        ➕ Add Task
+                        ➕ Task
                       </button>
                       <button
                         onClick={() => setRoundingSheetPatient(patient.id)}
-                        className="px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
                       >
-                        📋 Rounding Sheet
+                        📋 Rounds
                       </button>
                     </div>
 
