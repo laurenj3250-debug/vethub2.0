@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
-import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications } from '@/lib/ai-parser';
+import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -264,6 +264,29 @@ export default function VetHub() {
       }
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to parse data' });
+    }
+  };
+
+  const handleMagicPaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+
+      toast({ title: '✨ Magic parsing...', description: 'Claude is extracting all fields from EzyVet/Vet Radar' });
+      const parsed = await parseEzyVetBlock(text);
+
+      setRoundingFormData({
+        ...roundingFormData,
+        signalment: parsed.signalment || roundingFormData.signalment,
+        problems: parsed.problems || roundingFormData.problems,
+        diagnosticFindings: parsed.diagnosticFindings || roundingFormData.diagnosticFindings,
+        therapeutics: parsed.therapeutics || roundingFormData.therapeutics,
+        concerns: parsed.concerns || roundingFormData.concerns,
+        comments: parsed.comments || roundingFormData.comments,
+      });
+
+      toast({ title: '✅ All fields filled!', description: 'Review and save when ready' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to parse data. Try using the individual icons.' });
     }
   };
 
@@ -877,13 +900,24 @@ export default function VetHub() {
 
                   return (
                     <>
+                      {/* Magic Paste Button */}
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleMagicPaste}
+                          className="flex-1 px-6 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-500/50 flex items-center justify-center gap-2"
+                        >
+                          <Sparkles size={20} className="animate-pulse" />
+                          ✨ Magic Paste from EzyVet/Vet Radar
+                          <Sparkles size={20} className="animate-pulse" />
+                        </button>
+                      </div>
+
                       {/* Quick Fill Helper */}
-                      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-xl p-3">
-                        <div className="flex items-center gap-2 text-sm text-cyan-300">
-                          <Sparkles size={16} />
-                          <span className="font-bold">Quick Tip:</span>
-                          <span className="text-slate-300">
-                            Copy from EzyVet/Vet Radar, click icons: 🩸 bloodwork, 📷 imaging, 💊 meds
+                      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-xl p-2">
+                        <div className="flex items-center gap-2 text-xs text-cyan-300">
+                          <span className="text-slate-400">
+                            Or use: 🩸 bloodwork, 📷 imaging, 💊 meds for specific fields
                           </span>
                         </div>
                       </div>

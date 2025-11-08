@@ -170,3 +170,52 @@ Return formatted list:`
     return '';
   }
 }
+
+export async function parseEzyVetBlock(fullText: string): Promise<any> {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 1024,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `Extract rounding sheet data from this EzyVet/Vet Radar export and return ONLY a JSON object.
+
+Return this exact structure (use "" for missing fields):
+{
+  "signalment": "age sex species breed",
+  "problems": "primary problem/diagnosis",
+  "diagnosticFindings": "CBC/Chem abnormals only, imaging findings",
+  "therapeutics": "current medications with doses",
+  "concerns": "clinical concerns",
+  "comments": "important care notes"
+}
+
+EzyVet Data:
+${fullText}
+
+Return ONLY the JSON object, no other text:`
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('No text response from Claude');
+    }
+
+    // Extract JSON from response
+    let jsonText = content.text.trim();
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonText);
+    return parsed;
+  } catch (error) {
+    console.error('EzyVet parsing error:', error);
+    throw error;
+  }
+}
