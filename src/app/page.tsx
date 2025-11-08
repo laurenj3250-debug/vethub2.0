@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth as useApiAuth, usePatients } from '@/hooks/use-api';
+import { useAuth as useApiAuth, usePatients, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet } from 'lucide-react';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
   const { patients, isLoading: patientsLoading, refetch } = usePatients();
+  const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
   // Auth state
@@ -33,6 +34,7 @@ export default function VetHub() {
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
   const [roundingFormData, setRoundingFormData] = useState<any>({});
+  const [showMedicationSelector, setShowMedicationSelector] = useState<number | null>(null);
 
   // Calculate task stats (today only)
   const taskStats = useMemo(() => {
@@ -626,7 +628,7 @@ export default function VetHub() {
                 })}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
                   const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
@@ -647,37 +649,32 @@ export default function VetHub() {
                     const allCompleted = items.every(item => item.task.completed);
 
                     return (
-                      <div key={taskName} className="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-2xl">{icon}</span>
-                          <h3 className="text-white font-bold flex-1">{taskName}</h3>
-                          <span className={`text-sm ${allCompleted ? 'text-green-400' : 'text-slate-400'}`}>
+                      <div key={taskName} className="bg-slate-900/50 rounded-lg p-2 border border-slate-700/50">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-lg">{icon}</span>
+                          <h3 className="text-white font-bold flex-1 text-sm">{taskName}</h3>
+                          <span className={`text-xs ${allCompleted ? 'text-green-400' : 'text-slate-400'}`}>
                             {items.filter(i => i.task.completed).length}/{items.length}
                           </span>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="flex flex-wrap gap-1">
                           {items.map(({ patient, task }) => (
-                            <div
+                            <button
                               key={`${patient.id}-${task.id}`}
-                              className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-lg group"
+                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                                task.completed
+                                  ? 'bg-green-500/20 text-green-300 line-through'
+                                  : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50'
+                              }`}
                             >
-                              <button
-                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                className="flex-shrink-0"
-                              >
-                                {task.completed ? (
-                                  <CheckCircle2 className="text-green-400" size={16} />
-                                ) : (
-                                  <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
-                                )}
-                              </button>
-                              <span
-                                className={`flex-1 text-sm cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
-                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                              >
-                                {patient.name}
-                              </span>
-                            </div>
+                              {task.completed ? (
+                                <CheckCircle2 size={12} />
+                              ) : (
+                                <Circle size={12} />
+                              )}
+                              {patient.name}
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -704,24 +701,24 @@ export default function VetHub() {
                 📋 Copy to Clipboard
               </button>
             </div>
-            <div className="overflow-x-auto max-h-[70vh]">
+            <div className="overflow-x-auto max-h-[85vh] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-slate-800 z-10">
                   <tr className="border-b-2 border-emerald-500">
-                    <th className="text-left p-1.5 text-emerald-400 font-bold">Name</th>
-                    <th className="text-left p-1.5 text-cyan-400 font-bold">Signalment</th>
-                    <th className="text-left p-1.5 text-purple-400 font-bold">Location</th>
-                    <th className="text-left p-1.5 text-pink-400 font-bold">ICU</th>
-                    <th className="text-left p-1.5 text-yellow-400 font-bold">Code</th>
-                    <th className="text-left p-1.5 text-red-400 font-bold">Problems</th>
-                    <th className="text-left p-1.5 text-blue-400 font-bold">Diagnostics</th>
-                    <th className="text-left p-1.5 text-green-400 font-bold">Therapeutics</th>
-                    <th className="text-left p-1.5 text-orange-400 font-bold">IVC</th>
-                    <th className="text-left p-1.5 text-teal-400 font-bold">Fluids</th>
-                    <th className="text-left p-1.5 text-indigo-400 font-bold">CRI</th>
-                    <th className="text-left p-1.5 text-violet-400 font-bold">O/N Dx</th>
-                    <th className="text-left p-1.5 text-rose-400 font-bold">Concerns</th>
-                    <th className="text-left p-1.5 text-amber-400 font-bold">Comments</th>
+                    <th className="text-left p-1 text-emerald-400 font-bold">Name</th>
+                    <th className="text-left p-1 text-cyan-400 font-bold">Signalment</th>
+                    <th className="text-left p-1 text-purple-400 font-bold">Location</th>
+                    <th className="text-left p-1 text-pink-400 font-bold">ICU</th>
+                    <th className="text-left p-1 text-yellow-400 font-bold">Code</th>
+                    <th className="text-left p-1 text-red-400 font-bold">Problems</th>
+                    <th className="text-left p-1 text-blue-400 font-bold">Diagnostics</th>
+                    <th className="text-left p-1 text-green-400 font-bold">Therapeutics</th>
+                    <th className="text-left p-1 text-orange-400 font-bold">IVC</th>
+                    <th className="text-left p-1 text-teal-400 font-bold">Fluids</th>
+                    <th className="text-left p-1 text-indigo-400 font-bold">CRI</th>
+                    <th className="text-left p-1 text-violet-400 font-bold">O/N Dx</th>
+                    <th className="text-left p-1 text-rose-400 font-bold">Concerns</th>
+                    <th className="text-left p-1 text-amber-400 font-bold">Comments</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -729,8 +726,8 @@ export default function VetHub() {
                     const rounding = patient.rounding_data || {};
                     return (
                       <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
-                        <td className="p-2 text-white font-medium">{patient.name}</td>
-                        <td className="p-2">
+                        <td className="p-1 text-white font-medium text-xs">{patient.name}</td>
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.signalment || ''}
@@ -738,10 +735,10 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, signalment: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.location || ''}
@@ -749,10 +746,10 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, location: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.icuCriteria || ''}
@@ -760,17 +757,17 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, icuCriteria: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <select
                             value={rounding.code || 'Yellow'}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, code: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           >
                             <option>Green</option>
                             <option>Yellow</option>
@@ -778,7 +775,7 @@ export default function VetHub() {
                             <option>Red</option>
                           </select>
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.problems || ''}
@@ -786,143 +783,108 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, problems: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <textarea
                             value={rounding.diagnosticFindings || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, diagnosticFindings: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs resize-none"
-                            rows={2}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-none"
+                            rows={1}
                           />
                         </td>
-                        <td className="p-2">
-                          <textarea
-                            value={rounding.therapeutics || ''}
+                        <td className="p-1 relative">
+                          <div className="flex gap-1">
+                            <textarea
+                              value={rounding.therapeutics || ''}
+                              onChange={(e) => {
+                                const updatedRounding = { ...rounding, therapeutics: e.target.value };
+                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                              }}
+                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-none"
+                              rows={1}
+                            />
+                            <button
+                              onClick={() => setShowMedicationSelector(showMedicationSelector === patient.id ? null : patient.id)}
+                              className="px-1.5 py-0.5 bg-purple-500/20 hover:bg-purple-500/40 text-purple-300 rounded text-xs h-fit"
+                              title="Add common medications"
+                            >
+                              +
+                            </button>
+                          </div>
+                          {showMedicationSelector === patient.id && (
+                            <div className="absolute z-20 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-2 max-h-48 overflow-y-auto" style={{ minWidth: '200px' }}>
+                              <div className="text-xs text-slate-300 font-bold mb-1">Common Medications:</div>
+                              {commonMedications.map((med: any) => (
+                                <button
+                                  key={med.id}
+                                  onClick={() => {
+                                    const currentMeds = rounding.therapeutics || '';
+                                    const newMeds = currentMeds ? `${currentMeds}\n${med.name}` : med.name;
+                                    const updatedRounding = { ...rounding, therapeutics: newMeds };
+                                    apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                                  }}
+                                  className="block w-full text-left px-2 py-1 text-xs text-white hover:bg-slate-700 rounded"
+                                >
+                                  {med.name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-1">
+                          <select
+                            value={rounding.ivc || ''}
                             onChange={(e) => {
-                              const updatedRounding = { ...rounding, therapeutics: e.target.value };
+                              const updatedRounding = { ...rounding, ivc: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs resize-none"
-                            rows={2}
-                          />
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-white text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                            <option value="Yes but...">Yes but...</option>
+                            <option value="Not but...">Not but...</option>
+                          </select>
                         </td>
-                        <td className="p-2">
-                          <div className="flex gap-1">
-                            <input
-                              type="text"
-                              value={rounding.ivc || ''}
-                              onChange={(e) => {
-                                const updatedRounding = { ...rounding, ivc: e.target.value };
-                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                              }}
-                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
-                            />
-                            <div className="flex gap-0.5">
-                              <button
-                                onClick={() => {
-                                  const updatedRounding = { ...rounding, ivc: 'No' };
-                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                                  refetch();
-                                }}
-                                className="px-1 py-0.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs"
-                                title="No"
-                              >
-                                N
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const updatedRounding = { ...rounding, ivc: 'Yes' };
-                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                                  refetch();
-                                }}
-                                className="px-1 py-0.5 bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded text-xs"
-                                title="Yes"
-                              >
-                                Y
-                              </button>
-                            </div>
-                          </div>
+                        <td className="p-1">
+                          <select
+                            value={rounding.fluids || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, fluids: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-white text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                            <option value="Yes but...">Yes but...</option>
+                            <option value="Not but...">Not but...</option>
+                          </select>
                         </td>
-                        <td className="p-2">
-                          <div className="flex gap-1">
-                            <input
-                              type="text"
-                              value={rounding.fluids || ''}
-                              onChange={(e) => {
-                                const updatedRounding = { ...rounding, fluids: e.target.value };
-                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                              }}
-                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
-                            />
-                            <div className="flex gap-0.5">
-                              <button
-                                onClick={() => {
-                                  const updatedRounding = { ...rounding, fluids: 'No' };
-                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                                  refetch();
-                                }}
-                                className="px-1 py-0.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs"
-                                title="No"
-                              >
-                                N
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const updatedRounding = { ...rounding, fluids: 'Yes' };
-                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                                  refetch();
-                                }}
-                                className="px-1 py-0.5 bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded text-xs"
-                                title="Yes"
-                              >
-                                Y
-                              </button>
-                            </div>
-                          </div>
+                        <td className="p-1">
+                          <select
+                            value={rounding.cri || ''}
+                            onChange={(e) => {
+                              const updatedRounding = { ...rounding, cri: e.target.value };
+                              apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
+                            }}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-white text-xs"
+                          >
+                            <option value="">-</option>
+                            <option value="Y">Y</option>
+                            <option value="N">N</option>
+                            <option value="Yes but...">Yes but...</option>
+                            <option value="Not but...">Not but...</option>
+                          </select>
                         </td>
-                        <td className="p-2">
-                          <div className="flex gap-1">
-                            <input
-                              type="text"
-                              value={rounding.cri || ''}
-                              onChange={(e) => {
-                                const updatedRounding = { ...rounding, cri: e.target.value };
-                                apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                              }}
-                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
-                            />
-                            <div className="flex gap-0.5">
-                              <button
-                                onClick={() => {
-                                  const updatedRounding = { ...rounding, cri: 'No' };
-                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                                  refetch();
-                                }}
-                                className="px-1 py-0.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded text-xs"
-                                title="No"
-                              >
-                                N
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const updatedRounding = { ...rounding, cri: 'Yes' };
-                                  apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
-                                  refetch();
-                                }}
-                                className="px-1 py-0.5 bg-green-500/20 hover:bg-green-500/40 text-green-300 rounded text-xs"
-                                title="Yes"
-                              >
-                                Y
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.overnightDx || ''}
@@ -930,10 +892,10 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, overnightDx: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.concerns || ''}
@@ -941,10 +903,10 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, concerns: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="p-1">
                           <input
                             type="text"
                             value={rounding.comments || ''}
@@ -952,7 +914,7 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, comments: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
                           />
                         </td>
                       </tr>
