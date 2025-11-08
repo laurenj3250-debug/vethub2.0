@@ -406,9 +406,9 @@ export default function VetHub() {
   };
 
   const getTypeColor = (type: string) => {
-    if (type === 'MRI') return 'from-cyan-500 to-blue-600';
+    if (type === 'MRI') return 'from-cyan-500 to-emerald-600';
     if (type === 'Surgery') return 'from-orange-500 to-red-600';
-    return 'from-purple-500 to-pink-600';
+    return 'from-emerald-500 to-pink-600';
   };
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
@@ -428,7 +428,7 @@ export default function VetHub() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-cyan-400" />
       </div>
     );
@@ -436,16 +436,16 @@ export default function VetHub() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse"></div>
         </div>
 
         <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-slate-700/50">
           <div className="text-center mb-8">
             <div className="text-7xl mb-4 animate-bounce">🧠</div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-emerald-400 to-pink-400 bg-clip-text text-transparent">
               VetHub
             </h1>
             <p className="text-slate-400 mt-3 text-lg">AI-Powered Neuro Vet Portal 🐾</p>
@@ -474,7 +474,7 @@ export default function VetHub() {
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-500/50"
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 via-emerald-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-emerald-500/50"
             >
               {isSignUp ? '✨ Create Account' : '🚀 Sign In'}
             </button>
@@ -493,10 +493,10 @@ export default function VetHub() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute top-1/2 right-1/3 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
       </div>
 
@@ -505,7 +505,7 @@ export default function VetHub() {
           <div className="flex items-center gap-4">
             <div className="text-4xl animate-pulse">🧠</div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-emerald-400 to-pink-400 bg-clip-text text-transparent">
                 VetHub
               </h1>
               <p className="text-xs text-slate-400">{user.email}</p>
@@ -515,7 +515,7 @@ export default function VetHub() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setShowTaskOverview(!showTaskOverview)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <ListTodo size={18} />
               Tasks: {taskStats.remaining}/{taskStats.total}
@@ -535,7 +535,7 @@ export default function VetHub() {
             </button>
             <button
               onClick={() => setShowMRISchedule(!showMRISchedule)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <Brain size={18} />
               MRI Schedule
@@ -713,11 +713,11 @@ export default function VetHub() {
                   <tr className="border-b-2 border-emerald-500">
                     <th className="text-left p-1 text-emerald-400 font-bold">Name</th>
                     <th className="text-left p-1 text-cyan-400 font-bold">Signalment</th>
-                    <th className="text-left p-1 text-purple-400 font-bold">Location</th>
+                    <th className="text-left p-1 text-emerald-400 font-bold">Location</th>
                     <th className="text-left p-1 text-pink-400 font-bold">ICU</th>
                     <th className="text-left p-1 text-yellow-400 font-bold">Code</th>
                     <th className="text-left p-1 text-red-400 font-bold">Problems</th>
-                    <th className="text-left p-1 text-blue-400 font-bold">Diagnostics</th>
+                    <th className="text-left p-1 text-emerald-400 font-bold">Diagnostics</th>
                     <th className="text-left p-1 text-green-400 font-bold">Therapeutics</th>
                     <th className="text-left p-1 text-orange-400 font-bold">IVC</th>
                     <th className="text-left p-1 text-teal-400 font-bold">Fluids</th>
@@ -797,8 +797,8 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, problems: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
-                            rows={2}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[60px]"
+                            rows={4}
                           />
                         </td>
                         <td className="p-1">
@@ -808,8 +808,8 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, diagnosticFindings: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[60px]"
-                            rows={3}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[80px]"
+                            rows={5}
                           />
                         </td>
                         <td className="p-1 relative">
@@ -820,12 +820,12 @@ export default function VetHub() {
                                 const updatedRounding = { ...rounding, therapeutics: e.target.value };
                                 apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                               }}
-                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[60px]"
-                              rows={3}
+                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[80px]"
+                              rows={5}
                             />
                             <button
                               onClick={() => setShowMedicationSelector(showMedicationSelector === patient.id ? null : patient.id)}
-                              className="px-1.5 py-0.5 bg-purple-500/20 hover:bg-purple-500/40 text-purple-300 rounded text-xs h-fit"
+                              className="px-1.5 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 rounded text-xs h-fit"
                               title="Add common medications"
                             >
                               +
@@ -906,8 +906,8 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, overnightDx: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
-                            rows={2}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[50px]"
+                            rows={3}
                           />
                         </td>
                         <td className="p-1">
@@ -917,8 +917,8 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, concerns: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
-                            rows={2}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[50px]"
+                            rows={3}
                           />
                         </td>
                         <td className="p-1">
@@ -928,8 +928,8 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, comments: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[40px]"
-                            rows={2}
+                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[50px]"
+                            rows={3}
                           />
                         </td>
                       </tr>
@@ -946,12 +946,12 @@ export default function VetHub() {
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-4">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Brain className="text-blue-400" />
+                <Brain className="text-emerald-400" />
                 MRI Schedule
               </h2>
               <button
                 onClick={handleExportMRISchedule}
-                className="px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform text-sm"
+                className="px-3 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform text-sm"
               >
                 📋 Copy to Clipboard
               </button>
@@ -959,10 +959,10 @@ export default function VetHub() {
             <div className="overflow-x-auto max-h-[70vh]">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-slate-800 z-10">
-                  <tr className="border-b-2 border-blue-500">
-                    <th className="text-left p-2 text-blue-400 font-bold">Name</th>
+                  <tr className="border-b-2 border-emerald-500">
+                    <th className="text-left p-2 text-emerald-400 font-bold">Name</th>
                     <th className="text-left p-2 text-cyan-400 font-bold">Patient ID</th>
-                    <th className="text-left p-2 text-purple-400 font-bold">Weight (kg)</th>
+                    <th className="text-left p-2 text-emerald-400 font-bold">Weight (kg)</th>
                     <th className="text-left p-2 text-pink-400 font-bold">Scan Type</th>
                   </tr>
                 </thead>
@@ -1034,7 +1034,7 @@ export default function VetHub() {
         {/* Floating Add Patient Button */}
         <button
           onClick={() => setShowAddPatientModal(true)}
-          className="fixed bottom-8 right-8 z-20 p-4 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold"
+          className="fixed bottom-8 right-8 z-20 p-4 bg-gradient-to-r from-cyan-500 via-emerald-500 to-pink-500 text-white rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold"
         >
           <Plus size={24} />
           <span>Add Patient</span>
@@ -1142,7 +1142,7 @@ export default function VetHub() {
                       </button>
                       <button
                         onClick={() => setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id)}
-                        className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-pink-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
                       >
                         ➕ Task
                       </button>
@@ -1211,7 +1211,7 @@ export default function VetHub() {
                           </button>
                           <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
-                            className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
                           >
                             ✅ All Evening
                           </button>
@@ -1366,7 +1366,7 @@ export default function VetHub() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="p-6 space-y-4 max-h-[90vh] overflow-y-auto">
                 {(() => {
                   const patient = patients.find(p => p.id === roundingSheetPatient);
                   if (!patient) return null;
@@ -1396,7 +1396,7 @@ export default function VetHub() {
                         <button
                           type="button"
                           onClick={handleMagicPaste}
-                          className="flex-1 px-6 py-4 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-500/50 flex items-center justify-center gap-2"
+                          className="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-600 via-pink-600 to-red-600 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-emerald-500/50 flex items-center justify-center gap-2"
                         >
                           <Sparkles size={20} className="animate-pulse" />
                           ✨ Magic Paste from EzyVet/Vet Radar
@@ -1405,7 +1405,7 @@ export default function VetHub() {
                       </div>
 
                       {/* Quick Fill Helper */}
-                      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 border border-cyan-500/30 rounded-xl p-2">
+                      <div className="bg-gradient-to-r from-cyan-500/10 to-emerald-500/10 border border-cyan-500/30 rounded-xl p-2">
                         <div className="flex items-center gap-2 text-xs text-cyan-300">
                           <span className="text-slate-400">
                             Or use: 🩸 bloodwork, 📷 imaging, 💊 meds for specific fields
@@ -1464,13 +1464,13 @@ export default function VetHub() {
                         </div>
                         <div>
                           <label className="text-xs text-slate-400 uppercase block mb-1">Problems</label>
-                          <input
-                            type="text"
+                          <textarea
                             list="common-problems"
                             value={roundingFormData.problems || ''}
                             onChange={(e) => setRoundingFormData({...roundingFormData, problems: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                             placeholder="Type or select from dropdown"
+                            rows={4}
                           />
                           <datalist id="common-problems">
                             {commonProblems.map(p => <option key={p} value={p} />)}
@@ -1504,8 +1504,8 @@ export default function VetHub() {
                         <textarea
                           value={roundingFormData.diagnosticFindings || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, diagnosticFindings: e.target.value})}
-                          rows={3}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
+                          rows={5}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or use 🩸/📷 icons to paste & parse"
                         />
                       </div>
@@ -1526,8 +1526,8 @@ export default function VetHub() {
                         <textarea
                           value={roundingFormData.therapeutics || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, therapeutics: e.target.value})}
-                          rows={3}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-none"
+                          rows={5}
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or use 💊 icon to paste & format"
                         />
                       </div>
@@ -1570,25 +1570,25 @@ export default function VetHub() {
                       {/* Row 6: Overnight Dx */}
                       <div>
                         <label className="text-xs text-slate-400 uppercase block mb-1">Overnight Dx</label>
-                        <input
-                          type="text"
+                        <textarea
                           value={roundingFormData.overnightDx || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, overnightDx: e.target.value})}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="none"
+                          rows={3}
                         />
                       </div>
 
                       {/* Row 7: Concerns */}
                       <div>
                         <label className="text-xs text-slate-400 uppercase block mb-1">Concerns</label>
-                        <input
-                          type="text"
+                        <textarea
                           list="common-concerns"
                           value={roundingFormData.concerns || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, concerns: e.target.value})}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or select from dropdown"
+                          rows={3}
                         />
                         <datalist id="common-concerns">
                           {commonConcerns.map(c => <option key={c} value={c} />)}
@@ -1598,13 +1598,13 @@ export default function VetHub() {
                       {/* Row 8: Comments */}
                       <div>
                         <label className="text-xs text-slate-400 uppercase block mb-1">Comments</label>
-                        <input
-                          type="text"
+                        <textarea
                           list="common-comments"
                           value={roundingFormData.comments || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, comments: e.target.value})}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or select common comment"
+                          rows={3}
                         />
                         <datalist id="common-comments">
                           {commonComments.map(c => <option key={c} value={c} />)}
@@ -1615,7 +1615,7 @@ export default function VetHub() {
                       <div className="flex gap-3 pt-4 border-t border-slate-700/50">
                         <button
                           onClick={handleSaveRoundingData}
-                          className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-bold hover:scale-105 transition-transform"
+                          className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-xl font-bold hover:scale-105 transition-transform"
                         >
                           💾 Save Changes
                         </button>
@@ -1644,7 +1644,7 @@ export default function VetHub() {
                     <Brain className="text-cyan-400" size={28} />
                     <h3 className="text-2xl font-bold text-white">Add Patient</h3>
                     <Sparkles className="text-yellow-400 animate-pulse" size={20} />
-                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-500 text-white">
+                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-500 to-emerald-500 text-white">
                       AI-POWERED
                     </span>
                   </div>
@@ -1692,7 +1692,7 @@ export default function VetHub() {
                     setPatientBlurb('');
                   }}
                   disabled={isAddingPatient || !patientBlurb.trim()}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gradient-to-r from-cyan-500 via-emerald-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
                 >
                   {isAddingPatient ? (
                     <>
