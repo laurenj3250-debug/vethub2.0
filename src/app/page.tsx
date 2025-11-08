@@ -890,7 +890,14 @@ export default function VetPatientTracker() {
         
         const fullName = ownerLastName ? `${patientFirstName} ${ownerLastName}` : patientFirstName;
 
+      // Auto-add Standard Daily tasks (morning + evening) to all new patients
       const tasksToAdd = [];
+      const standardDaily = [...morningTasks, ...eveningTasks];
+      standardDaily.forEach(taskName => {
+        tasksToAdd.push({ name: taskName, completed: false, id: Date.now() + Math.random(), date: getTodayDate() });
+      });
+
+      // Add type-specific tasks for MRI patients
       if (newPatientType === 'MRI') {
         const mriTasks = admitTasks['MRI'] || [];
         mriTasks.forEach(taskName => {
@@ -1044,6 +1051,26 @@ export default function VetPatientTracker() {
   
   const addMorningTasksToAll = useCallback(() => (patients || []).forEach(p => addMorningTasks(p.id)), [patients, addMorningTasks]);
   const addEveningTasksToAll = useCallback(() => (patients || []).forEach(p => addEveningTasks(p.id)), [patients, addEveningTasks]);
+
+  // Task Presets - one-click task bundles
+  const taskPresets = {
+    'Standard Daily': [...morningTasks, ...eveningTasks],
+    'Morning Only': morningTasks,
+    'Evening Only': eveningTasks,
+  };
+
+  const applyTaskPreset = useCallback((patientId: string, presetName: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+    const newTasks = [...(patient.tasks || [])];
+    const tasksToAdd = taskPresets[presetName as keyof typeof taskPresets] || [];
+    tasksToAdd.forEach(t => {
+      if (!newTasks.some((x: any) => x.name === t && x.date === currentDate)) {
+        newTasks.push({ name: t, completed: false, id: Date.now() + Math.random(), date: currentDate });
+      }
+    });
+    updatePatientField(patientId, 'tasks', newTasks);
+  }, [patients, currentDate, updatePatientField]);
 
   const resetDailyTasks = useCallback((patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
@@ -2177,39 +2204,6 @@ export default function VetPatientTracker() {
           )}
         </div>
         
-        {/* Rapid Task Check-off Tables */}
-        <div className="space-y-4 mb-4">
-          <TaskTable
-            title="Morning Tasks"
-            icon={<Sun className="text-yellow-500" />}
-            patients={sortedPatients}
-            taskNames={morningTasks}
-            currentDate={currentDate}
-            onToggleTask={toggleTask}
-            onPatientClick={handlePatientClick}
-            onRemoveTask={removeTask}
-          />
-          <TaskTable
-            title="Evening Tasks"
-            icon={<Moon className="text-blue-500" />}
-            patients={sortedPatients}
-            taskNames={eveningTasks}
-            currentDate={currentDate}
-            onToggleTask={toggleTask}
-            onPatientClick={handlePatientClick}
-            onRemoveTask={removeTask}
-          />
-          <TaskTable
-            title="Other Tasks"
-            icon={<Sparkles className="text-purple-500" />}
-            patients={sortedPatients}
-            taskNames={otherTasksMap}
-            currentDate={currentDate}
-            onToggleTask={toggleTask}
-            onPatientClick={handlePatientClick}
-            onRemoveTask={removeTask}
-          />
-        </div>
 
         {/* Patients */}
         {patients.length === 0 ? (
@@ -2354,46 +2348,46 @@ export default function VetPatientTracker() {
                         {/* TASKS */}
                         {curTab === 'Tasks' && (
                           <div className="space-y-3">
-                             {/* Quick action buttons */}
-                            <div className="space-y-1">
-                              <h4 className="text-xs font-semibold text-gray-500 uppercase">Quick Add</h4>
-                              <div className="flex flex-wrap gap-1">
-                                <button onClick={() => addMorningTasks(patient.id)} className="px-2 py-0.5 text-xs bg-yellow-400 text-yellow-900 rounded hover:bg-yellow-500">
-                                  + Morning
-                                </button>
-                                <button onClick={() => addEveningTasks(patient.id)} className="px-2 py-0.5 text-xs bg-indigo-400 text-white rounded hover:bg-indigo-500">
-                                  + Evening
-                                </button>
-                                {patient.status === 'New Admit' && admitTasks[patient.type].map(task => (
-                                  <button
-                                    key={task}
-                                    onClick={() => addTaskToPatient(patient.id, task)}
-                                    className="px-2 py-0.5 text-xs bg-amber-100 text-amber-800 rounded hover:bg-amber-200"
-                                  >
-                                    + {task}
-                                  </button>
-                                ))}
-                                <button onClick={() => resetDailyTasks(patient.id)} className="px-2 py-0.5 text-xs bg-gray-400 text-white rounded hover:bg-gray-50 ml-auto">
-                                  Clear Daily
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Other Tasks */}
-                            <div className="p-2 bg-slate-100/70 rounded-lg border">
-                              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-1">Other Tasks</h4>
-                              <div className="flex flex-wrap gap-1">
+                            {/* Task Presets - Simplified */}
+                            <div className="grid grid-cols-2 gap-2">
+                              <select
+                                className="px-3 py-1.5 text-xs border rounded-lg bg-white font-semibold focus:ring-2 focus:ring-purple-500"
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    applyTaskPreset(patient.id, e.target.value);
+                                    e.target.value = '';
+                                  }
+                                }}
+                                defaultValue=""
+                              >
+                                <option value="" disabled>📋 Daily Task Presets</option>
+                                <option value="Standard Daily">🌅🌙 Standard Daily</option>
+                                <option value="Morning Only">🌅 Morning Only</option>
+                                <option value="Evening Only">🌙 Evening Only</option>
+                              </select>
+                              <select
+                                className="px-3 py-1.5 text-xs border rounded-lg bg-white font-semibold focus:ring-2 focus:ring-purple-500"
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    addTaskToPatient(patient.id, e.target.value);
+                                    e.target.value = '';
+                                  }
+                                }}
+                                defaultValue=""
+                              >
+                                <option value="" disabled>➕ Quick Add Tasks</option>
                                 {otherTasks.map(task => (
-                                  <button
-                                    key={task}
-                                    onClick={() => addTaskToPatient(patient.id, task)}
-                                    className="px-2 py-0.5 text-xs bg-slate-200 text-slate-800 rounded hover:bg-slate-300"
-                                  >
-                                    + {task}
-                                  </button>
+                                  <option key={task} value={task}>{task}</option>
                                 ))}
-                              </div>
+                              </select>
                             </div>
+                            <button
+                              onClick={() => resetDailyTasks(patient.id)}
+                              className="w-full px-3 py-1 text-xs bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 border border-gray-200"
+                              title="Clear all morning/evening tasks"
+                            >
+                              🗑️ Clear All Daily Tasks
+                            </button>
                             
                             {/* Custom task input */}
                             <div className="flex gap-1">
