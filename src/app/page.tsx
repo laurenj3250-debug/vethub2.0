@@ -28,6 +28,9 @@ export default function VetHub() {
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task'>('by-patient');
+  const [taskTimeFilter, setTaskTimeFilter] = useState<'day' | 'night' | 'all'>('all');
+  const [quickTaskInput, setQuickTaskInput] = useState('');
+  const [quickTaskPatient, setQuickTaskPatient] = useState<number | null>(null);
   const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
   const [showMRISchedule, setShowMRISchedule] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
@@ -344,6 +347,37 @@ export default function VetHub() {
     }
   };
 
+  const handleQuickAddTaskFromOverview = async () => {
+    if (!quickTaskInput.trim()) return;
+
+    try {
+      if (quickTaskPatient) {
+        // Add to specific patient
+        await apiClient.createTask(quickTaskPatient, {
+          name: quickTaskInput,
+          completed: false,
+          date: new Date().toISOString().split('T')[0],
+        });
+        const patient = patients.find(p => p.id === quickTaskPatient);
+        toast({ title: `✅ Added task to ${patient?.name}: ${quickTaskInput}` });
+        refetch();
+      } else {
+        // Add as general task
+        await apiClient.createGeneralTask({
+          name: quickTaskInput,
+          completed: false,
+          date: new Date().toISOString().split('T')[0],
+        });
+        toast({ title: `✅ Added general task: ${quickTaskInput}` });
+        refetchGeneralTasks();
+      }
+      setQuickTaskInput('');
+      setQuickTaskPatient(null);
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add task' });
+    }
+  };
+
   const handleSmartPaste = async (field: 'bloodwork' | 'radiology' | 'medications') => {
     try {
       const text = await navigator.clipboard.readText();
@@ -571,6 +605,23 @@ export default function VetHub() {
     return '📋';
   };
 
+  const filterTasksByTime = (tasks: any[]) => {
+    if (taskTimeFilter === 'all') return tasks;
+    if (taskTimeFilter === 'day') {
+      return tasks.filter(t => {
+        const category = getTaskCategory(t.name);
+        return category === 'morning' || category === 'general';
+      });
+    }
+    if (taskTimeFilter === 'night') {
+      return tasks.filter(t => {
+        const category = getTaskCategory(t.name);
+        return category === 'evening';
+      });
+    }
+    return tasks;
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
@@ -714,20 +765,6 @@ export default function VetHub() {
               </h2>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setShowAddGeneralTask(true)}
-                  className="px-3 py-1.5 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1"
-                >
-                  <Plus size={16} />
-                  General Task
-                </button>
-                <button
-                  onClick={() => setShowAddPatientTaskFromOverview(true)}
-                  className="px-3 py-1.5 rounded-lg font-bold text-sm bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1"
-                >
-                  <Plus size={16} />
-                  Patient Task
-                </button>
-                <button
                   onClick={() => setTaskViewMode('by-patient')}
                   className={`px-3 py-1.5 rounded-lg font-bold text-sm transition ${
                     taskViewMode === 'by-patient'
@@ -750,18 +787,89 @@ export default function VetHub() {
               </div>
             </div>
 
+            {/* Quick Add Task Input */}
+            <div className="mb-4 bg-slate-900/50 rounded-xl p-4 border border-slate-700">
+              <div className="flex gap-2">
+                <select
+                  value={quickTaskPatient || ''}
+                  onChange={(e) => setQuickTaskPatient(e.target.value ? Number(e.target.value) : null)}
+                  className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="">General/Hospital-Wide</option>
+                  {patients.map(patient => (
+                    <option key={patient.id} value={patient.id}>{patient.name}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={quickTaskInput}
+                  onChange={(e) => setQuickTaskInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && quickTaskInput.trim()) {
+                      handleQuickAddTaskFromOverview();
+                    }
+                  }}
+                  placeholder="Type task name and press Enter..."
+                  className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                />
+                <button
+                  onClick={handleQuickAddTaskFromOverview}
+                  disabled={!quickTaskInput.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white rounded-lg font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  Add
+                </button>
+              </div>
+            </div>
+
+            {/* Day/Night Filter Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setTaskTimeFilter('all')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                  taskTimeFilter === 'all'
+                    ? 'bg-gradient-to-r from-cyan-500 to-emerald-500 text-white'
+                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                All Tasks
+              </button>
+              <button
+                onClick={() => setTaskTimeFilter('day')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                  taskTimeFilter === 'day'
+                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
+                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                🌅 Day/Morning
+              </button>
+              <button
+                onClick={() => setTaskTimeFilter('night')}
+                className={`px-4 py-2 rounded-lg font-bold text-sm transition ${
+                  taskTimeFilter === 'night'
+                    ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white'
+                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                🌙 Night/Evening
+              </button>
+            </div>
+
             {taskViewMode === 'by-patient' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* General/Hospital-wide Tasks */}
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
                   const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
-                  if (todayGeneralTasks.length > 0) {
+                  const filteredGeneralTasks = filterTasksByTime(todayGeneralTasks);
+                  if (filteredGeneralTasks.length > 0) {
                     return (
                       <div className="bg-emerald-900/30 rounded-lg p-2 border border-emerald-700/50">
                         <h3 className="text-emerald-300 font-bold mb-1.5 text-sm">Hospital-Wide / General</h3>
                         <div className="space-y-1">
-                          {todayGeneralTasks.map((task: any) => (
+                          {filteredGeneralTasks.map((task: any) => (
                             <div
                               key={task.id}
                               className="flex items-center gap-1.5 text-xs group"
@@ -800,7 +908,8 @@ export default function VetHub() {
                 {/* Patient Tasks */}
                 {patients.map(patient => {
                   const today = new Date().toISOString().split('T')[0];
-                  const tasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                  const todayTasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                  const tasks = filterTasksByTime(todayTasks);
                   if (tasks.length === 0) return null;
                   return (
                     <div key={patient.id} className="bg-slate-900/50 rounded-lg p-2 border border-slate-700/50">
@@ -852,7 +961,8 @@ export default function VetHub() {
                   const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
 
                   patients.forEach(patient => {
-                    const tasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                    const todayTasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                    const tasks = filterTasksByTime(todayTasks);
                     tasks.forEach((task: any) => {
                       if (!taskGroups[task.name]) {
                         taskGroups[task.name] = [];
