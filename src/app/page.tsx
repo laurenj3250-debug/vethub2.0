@@ -4054,12 +4054,27 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-400 mb-1">{soapData.visitType === 'recheck' ? 'Discussion/Changes' : 'Outcome'}</label>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-xs text-slate-400">{soapData.visitType === 'recheck' ? 'Discussion/Changes' : 'Outcome'}</label>
+                            {soapData.visitType === 'initial' && (
+                              <button
+                                onClick={() => {
+                                  const patientName = soapData.name || '[patient name]';
+                                  const template = `Discussed options with owners regarding ${patientName}'s condition.\n\nAdmit for MRI, with pre-anesthetic blood work and xrays, and to scan tomorrow AM\nSystemic Work Up\nTrial at home starting anticonvulsants\nHospitalize and monitor\nOwner opted for `;
+                                  setSOAPData({ ...soapData, discussionChanges: template });
+                                  toast({ title: '📋 Outcome template loaded!' });
+                                }}
+                                className="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-bold transition"
+                              >
+                                Use Template
+                              </button>
+                            )}
+                          </div>
                           <textarea
                             placeholder={soapData.visitType === 'recheck' ? 'Discussion with owner and plan changes...' : 'Discussion with owner and recommendations...'}
                             value={soapData.discussionChanges}
                             onChange={(e) => setSOAPData({ ...soapData, discussionChanges: e.target.value })}
-                            rows={2}
+                            rows={soapData.visitType === 'initial' ? 5 : 2}
                             className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                           />
                         </div>
@@ -4223,14 +4238,14 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}${soapData.visitType ===
                       <button
                         onClick={() => {
                           let output = '';
-                          if (soapData.neurolocalization) output += `**Neurolocalization:**\n${soapData.neurolocalization}\n\n`;
-                          if (soapData.visitType === 'recheck' && soapData.progression) output += `**PROGRESSION**\n${soapData.progression}\n\n`;
-                          if (soapData.ddx) output += `**DDx:**\n${soapData.ddx}\n\n`;
-                          if (soapData.diagnosticsToday) output += `**Diagnostics:**\n${soapData.diagnosticsToday}\n\n`;
-                          if (soapData.treatments) output += `**TREATMENTS:**\n${soapData.treatments}\n\n`;
+                          if (soapData.neurolocalization) output += `Neurolocalization:\n${soapData.neurolocalization}\n\n`;
+                          if (soapData.visitType === 'recheck' && soapData.progression) output += `PROGRESSION:\n${soapData.progression}\n\n`;
+                          if (soapData.ddx) output += `DDx:\n${soapData.ddx}\n\n`;
+                          if (soapData.diagnosticsToday) output += `Diagnostics:\n${soapData.diagnosticsToday}\n\n`;
+                          if (soapData.treatments) output += `TREATMENTS:\n${soapData.treatments}\n\n`;
                           if (soapData.discussionChanges) {
                             const label = soapData.visitType === 'recheck' ? 'DISCUSSION/CHANGES' : 'OUTCOME';
-                            output += `**${label}:**\n${soapData.discussionChanges}`;
+                            output += `${label}:\n${soapData.discussionChanges}`;
                           }
 
                           navigator.clipboard.writeText(output.trim());
@@ -4258,7 +4273,7 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}${soapData.visitType ===
                       </button>
                     </div>
                     <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-tight p-2 max-h-48 overflow-y-auto">
-{`${soapData.neurolocalization ? `**Neurolocalization:**\n${soapData.neurolocalization}\n\n` : ''}${soapData.visitType === 'recheck' && soapData.progression ? `**PROGRESSION**\n${soapData.progression}\n\n` : ''}${soapData.ddx ? `**DDx:**\n${soapData.ddx || '[differential diagnoses]'}\n\n` : ''}${soapData.diagnosticsToday ? `**Diagnostics:**\n${soapData.diagnosticsToday || '[diagnostics]'}\n\n` : ''}${soapData.treatments ? `**TREATMENTS:**\n${soapData.treatments || '[treatments]'}\n\n` : ''}${soapData.discussionChanges ? `**${soapData.visitType === 'recheck' ? 'DISCUSSION/CHANGES' : 'OUTCOME'}:**\n${soapData.discussionChanges || '[outcome/discussion]'}` : ''}`}
+{`${soapData.neurolocalization ? `Neurolocalization:\n${soapData.neurolocalization}\n\n` : ''}${soapData.visitType === 'recheck' && soapData.progression ? `PROGRESSION:\n${soapData.progression}\n\n` : ''}${soapData.ddx ? `DDx:\n${soapData.ddx || '[differential diagnoses]'}\n\n` : ''}${soapData.diagnosticsToday ? `Diagnostics:\n${soapData.diagnosticsToday || '[diagnostics]'}\n\n` : ''}${soapData.treatments ? `TREATMENTS:\n${soapData.treatments || '[treatments]'}\n\n` : ''}${soapData.discussionChanges ? `${soapData.visitType === 'recheck' ? 'DISCUSSION/CHANGES' : 'OUTCOME'}:\n${soapData.discussionChanges || '[outcome/discussion]'}` : ''}`}
                     </pre>
                   </div>
 
