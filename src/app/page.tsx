@@ -127,6 +127,15 @@ export default function VetHub() {
     discussionChanges: '',
   });
 
+  // Helper function to get saved SOAP exams from memory
+  const getSavedExams = () => {
+    try {
+      return JSON.parse(localStorage.getItem('soapMemory') || '{}');
+    } catch {
+      return {};
+    }
+  };
+
   // Calculate task stats (today only)
   const taskStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -671,6 +680,21 @@ export default function VetHub() {
       }
     }
   }, [roundingSheetPatient, patients]);
+
+  // Smart defaults when SOAP Builder opens
+  useEffect(() => {
+    if (showSOAPBuilder) {
+      const savedExams = getSavedExams();
+      const mostRecent = Object.entries(savedExams)
+        .sort((a: any, b: any) => new Date(b[1].savedAt).getTime() - new Date(a[1].savedAt).getTime())[0];
+
+      if (mostRecent && !soapData.neurolocalization) {
+        // Suggest most recently used template
+        const [neuroLoc] = mostRecent;
+        console.log(`Hint: Your most recent template is ${neuroLoc}`);
+      }
+    }
+  }, [showSOAPBuilder]);
 
   const filteredPatients = patients.filter(p =>
     p.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -2863,12 +2887,39 @@ Please schedule a recheck appointment with the Neurology department to have stap
                     <FileText size={24} />
                     SOAP Builder
                   </h2>
-                  <button
-                    onClick={() => setShowSOAPBuilder(false)}
-                    className="text-slate-400 hover:text-white transition text-xl"
-                  >
-                    ✕
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const savedExams = getSavedExams();
+                        const count = Object.keys(savedExams).length;
+
+                        if (count === 0) {
+                          alert('No saved exam templates yet. Complete and copy a SOAP note to save it!');
+                          return;
+                        }
+
+                        const message = `You have ${count} saved exam template(s):\n\n` +
+                          Object.entries(savedExams).map(([neuroLoc, data]: [string, any]) =>
+                            `• ${neuroLoc} (${new Date(data.savedAt).toLocaleDateString()})`
+                          ).join('\n') +
+                          '\n\nClear all saved templates?';
+
+                        if (confirm(message)) {
+                          localStorage.removeItem('soapMemory');
+                          toast({ title: 'All saved exam templates cleared!' });
+                        }
+                      }}
+                      className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded"
+                    >
+                      Manage Templates
+                    </button>
+                    <button
+                      onClick={() => setShowSOAPBuilder(false)}
+                      className="text-slate-400 hover:text-white transition text-xl"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
                 {/* Visit Type and Neuro Localization on same line */}
@@ -2904,8 +2955,31 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       value={soapData.neurolocalization}
                       onChange={(e) => {
                         const value = e.target.value;
+                        const savedExams = getSavedExams();
 
-                        // AI autofill based on selection
+                        // Check if we have a saved exam for this condition
+                        if (savedExams[value]) {
+                          // Ask user if they want to use saved exam or default template
+                          if (confirm(`Found previous ${value} exam from ${new Date(savedExams[value].savedAt).toLocaleDateString()}. Use saved exam findings?`)) {
+                            // Load from memory
+                            setSOAPData({
+                              ...soapData,
+                              ...savedExams[value],
+                              // Keep current patient info, just load exam findings
+                              name: soapData.name,
+                              age: soapData.age,
+                              sex: soapData.sex,
+                              breed: soapData.breed,
+                              species: soapData.species,
+                              reasonForVisit: soapData.reasonForVisit,
+                              visitType: soapData.visitType,
+                            });
+                            toast({ title: 'Loaded your previous exam template!' });
+                            return;
+                          }
+                        }
+
+                        // AI autofill based on selection (default templates)
                         if (value === 'T3-L3 myelopathy') {
                           setSOAPData({
                             ...soapData,
@@ -2997,15 +3071,39 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
                     >
                       <option value="">Select to autofill exam...</option>
-                      <option value="T3-L3 myelopathy">T3-L3 myelopathy</option>
-                      <option value="Cervical hyperpathia">Cervical hyperpathia</option>
-                      <option value="C1-C5 myelopathy">C1-C5 myelopathy</option>
-                      <option value="C6-T2 myelopathy">C6-T2 myelopathy</option>
-                      <option value="L-S myelopathy">L-S myelopathy</option>
-                      <option value="Peripheral vestibular disease">Peripheral vestibular disease</option>
-                      <option value="Prosencephalon">Prosencephalon (Seizures)</option>
-                      <option value="Discospondylitis">Discospondylitis</option>
+                      {[
+                        'T3-L3 myelopathy',
+                        'Cervical hyperpathia',
+                        'C1-C5 myelopathy',
+                        'C6-T2 myelopathy',
+                        'L-S myelopathy',
+                        'Peripheral vestibular disease',
+                        'Prosencephalon',
+                        'Discospondylitis'
+                      ].map(neuroLoc => {
+                        const savedExams = getSavedExams();
+                        const hasSaved = savedExams[neuroLoc];
+                        return (
+                          <option key={neuroLoc} value={neuroLoc}>
+                            {neuroLoc === 'Prosencephalon' ? 'Prosencephalon (Seizures)' : neuroLoc} {hasSaved ? '' : ''}
+                          </option>
+                        );
+                      })}
                     </select>
+
+                    {/* Show info about saved exam */}
+                    {soapData.neurolocalization && (() => {
+                      const savedExams = getSavedExams();
+                      const saved = savedExams[soapData.neurolocalization];
+                      if (saved) {
+                        return (
+                          <div className="mt-1 text-xs text-emerald-400">
+                            Last used: {new Date(saved.savedAt).toLocaleDateString()} at {new Date(saved.savedAt).toLocaleTimeString()}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
               </div>
@@ -3641,7 +3739,17 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       }}
                       className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
                     >
-                      <h3 className="text-sm font-bold text-purple-400">Assessment & Plan</h3>
+                      <h3 className="text-sm font-bold text-purple-400 flex items-center gap-2">
+                        Assessment & Plan
+                        {(() => {
+                          const savedExams = getSavedExams();
+                          const count = Object.keys(savedExams).length;
+                          if (count > 0) {
+                            return <span className="text-xs text-emerald-400">({count} saved templates)</span>;
+                          }
+                          return null;
+                        })()}
+                      </h3>
                       <span className="text-xs">{expandedSections.includes('assessment') ? '▼' : '▶'}</span>
                     </button>
                     {expandedSections.includes('assessment') && (
@@ -3786,6 +3894,24 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression
 
                           navigator.clipboard.writeText(output);
                           toast({ title: 'SOAP note copied to clipboard!' });
+
+                          // Save to memory
+                          if (soapData.neurolocalization) {
+                            try {
+                              const savedExams = getSavedExams();
+
+                              // Save current exam data with timestamp
+                              savedExams[soapData.neurolocalization] = {
+                                ...soapData,
+                                savedAt: new Date().toISOString(),
+                              };
+
+                              localStorage.setItem('soapMemory', JSON.stringify(savedExams));
+                              toast({ title: 'Exam saved to memory for future use!' });
+                            } catch (err) {
+                              console.error('Failed to save exam:', err);
+                            }
+                          }
                         }}
                         className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold flex items-center gap-1"
                       >
