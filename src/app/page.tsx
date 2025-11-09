@@ -1586,7 +1586,7 @@ export default function VetPatientTracker() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-fuchsia-50/50 p-4 pt-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 p-4 pt-12">
       {/* Sparkly Progress Bar */}
       {overallTaskStats.total > 0 && (
         <SparklyProgressBar completed={overallTaskStats.completed} total={overallTaskStats.total} />
