@@ -126,7 +126,7 @@ export default function VetHub() {
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
       const typeTasks = patientType === 'MRI'
-        ? ['Black Book', 'Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'NPO', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers']
+        ? ['Black Book', 'Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'MRI Meds Sheet', 'NPO', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers']
         : patientType === 'Surgery'
         ? ['Surgery Slip', 'Written on Board', 'Print 4 Large Stickers', 'Print 2 Sheets Small Stickers', 'Print Surgery Sheet', 'Clear Daily']
         : ['Admission SOAP', 'Treatment Sheet Created'];
@@ -251,6 +251,42 @@ export default function VetHub() {
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
+    }
+  };
+
+  const handleTypeChange = async (patientId: number, newType: string) => {
+    try {
+      await apiClient.updatePatient(String(patientId), { type: newType });
+      toast({ title: `✅ Type updated to ${newType}` });
+
+      // Auto-create MRI tasks when type changes to "MRI"
+      if (newType === 'MRI') {
+        const patient = patients.find(p => p.id === patientId);
+        const today = new Date().toISOString().split('T')[0];
+        const existingTasks = patient?.tasks || [];
+
+        const mriTasks = ['MRI Anesthesia Sheet', 'Blood Work', 'Chest X-rays', 'MRI Meds Sheet'];
+
+        for (const taskName of mriTasks) {
+          const hasTask = existingTasks.some((t: any) =>
+            t.name === taskName && t.date === today
+          );
+
+          if (!hasTask) {
+            await apiClient.createTask(patientId, {
+              name: taskName,
+              completed: false,
+              date: today,
+            });
+          }
+        }
+
+        toast({ title: '📋 Added MRI tasks', description: 'MRI Anesthesia Sheet, Blood Work, Chest X-rays, MRI Meds Sheet' });
+      }
+
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update type' });
     }
   };
 
@@ -1472,9 +1508,15 @@ export default function VetHub() {
                           >
                             {patient.name}
                           </button>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg`}>
-                            {patient.type}
-                          </span>
+                          <select
+                            value={patient.type || 'Medical'}
+                            onChange={(e) => handleTypeChange(patient.id, e.target.value)}
+                            className={`px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg border-0 cursor-pointer hover:opacity-90 transition`}
+                          >
+                            <option value="Medical">Medical</option>
+                            <option value="MRI">MRI</option>
+                            <option value="Surgery">Surgery</option>
+                          </select>
                         </div>
                         <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-xs text-slate-500">Status:</span>
