@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -63,6 +63,59 @@ export default function VetHub() {
   const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', index: number} | null>(null);
   const [newReferenceItem, setNewReferenceItem] = useState<any>({});
   const [cocktailWeight, setCocktailWeight] = useState('');
+
+  // SOAP Builder state
+  const [showSOAPBuilder, setShowSOAPBuilder] = useState(false);
+  const [soapTemplate, setSOAPTemplate] = useState('blank');
+  const [soapData, setSOAPData] = useState<any>({
+    // Patient info
+    name: '',
+    age: '',
+    sex: '',
+    breed: '',
+    weight: '',
+    visitType: '',
+    reasonForVisit: '',
+    // History
+    lastMRIDate: '',
+    lastMRIFindings: '',
+    lastVisitDate: '',
+    lastVisitSummary: '',
+    currentHistory: '',
+    pain: 'None',
+    ambulation: '',
+    continence: 'Normal',
+    csvd: 'None',
+    pupd: 'None',
+    appetite: 'Normal',
+    medications: [],
+    prevDiagnostics: [],
+    // Neuro Exam
+    mentalStatus: 'BAR',
+    gait: '',
+    cranialNerves: '',
+    posturalReactions: '',
+    spinalReflexes: '',
+    tone: 'Normal',
+    musclemass: 'Normal',
+    nociception: '',
+    // Physical Exam
+    peENT: '',
+    peOral: '',
+    pePLN: '',
+    peCV: '',
+    peResp: '',
+    peAbd: '',
+    peRectal: '',
+    peMS: '',
+    peInteg: '',
+    // A&P
+    neurolocalization: '',
+    ddx: '',
+    diagnostics: '',
+    treatments: '',
+    outcome: '',
+  });
 
   // Calculate task stats (today only)
   const taskStats = useMemo(() => {
@@ -779,6 +832,13 @@ export default function VetHub() {
             >
               <BookOpen size={18} />
               Quick Reference
+            </button>
+            <button
+              onClick={() => setShowSOAPBuilder(!showSOAPBuilder)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <FileText size={18} />
+              SOAP Builder
             </button>
             <button
               onClick={logout}
@@ -2776,6 +2836,437 @@ Please schedule a recheck appointment with the Neurology department to have stap
                         </div>
                       );
                     })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SOAP Builder Modal */}
+        {showSOAPBuilder && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-7xl my-8">
+              <div className="p-6 border-b border-slate-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent flex items-center gap-3">
+                    <FileText size={32} />
+                    SOAP Note Builder
+                  </h2>
+                  <button
+                    onClick={() => setShowSOAPBuilder(false)}
+                    className="text-slate-400 hover:text-white transition text-2xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Template Selector */}
+                <div className="mt-4">
+                  <label className="block text-sm font-bold text-slate-300 mb-2">Select Condition Template:</label>
+                  <select
+                    value={soapTemplate}
+                    onChange={(e) => {
+                      setSOAPTemplate(e.target.value);
+                      // Prepopulate based on template
+                      if (e.target.value === 't3l3-paraparetic') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia',
+                          cranialNerves: 'CN intact',
+                          posturalReactions: 'Delayed/decreased in pelvic limbs, normal thoracic limbs',
+                          spinalReflexes: 'Normal to hyperreflexic pelvic limbs',
+                          tone: 'Normal tone',
+                          musclemass: 'Mild hind end muscle atrophy',
+                          nociception: 'Intact, no hyperpathia on spinal palpation',
+                          neurolocalization: 'T3-L3 myelopathy',
+                          ddx: 'IVDD vs FCE vs inflammatory vs neoplasia',
+                        });
+                      } else if (e.target.value === 'cervical-hyperpathia') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory with no ataxia or paresis',
+                          cranialNerves: 'CN intact',
+                          posturalReactions: 'Normal hopping and proprioceptive placement in all four limbs',
+                          spinalReflexes: 'All reflexes normal',
+                          tone: 'Normal tone',
+                          musclemass: 'Normal mass',
+                          nociception: 'Intact, moderate cervical hyperpathia on palpation',
+                          neurolocalization: 'Cervical hyperpathia',
+                          ddx: 'IVDD vs infectious vs inflammatory vs other',
+                        });
+                      } else if (e.target.value === 'vestibular') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory with vestibular quality ataxia',
+                          cranialNerves: 'Head tilt, absent palpebral reflex, positional nystagmus',
+                          posturalReactions: 'Normal',
+                          spinalReflexes: 'Intact',
+                          tone: 'Normal',
+                          musclemass: 'Normal',
+                          nociception: 'Intact, no hyperpathia',
+                          neurolocalization: 'Peripheral vestibular disease',
+                          ddx: 'OM/OI vs polycranial neuritis vs idiopathic vestibular disease',
+                        });
+                      } else if (e.target.value === 'seizures') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory without ataxia or paresis',
+                          cranialNerves: 'Normal',
+                          posturalReactions: 'Intact hopping and proprioceptive placement in all four limbs',
+                          spinalReflexes: 'Normal',
+                          tone: 'Normal',
+                          musclemass: 'Normal',
+                          nociception: 'Intact, no reaction to palpation of the neck or back',
+                          neurolocalization: 'Prosencephalon',
+                          ddx: 'Idiopathic epilepsy vs structural disease (tumor, cyst, stroke) vs infectious vs metabolic',
+                        });
+                      } else if (e.target.value === 'discospondylitis') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory with short stride gait, variable paresis',
+                          cranialNerves: 'Intact',
+                          posturalReactions: 'Normal to delayed',
+                          spinalReflexes: 'Intact',
+                          tone: 'Normal',
+                          musclemass: 'Normal',
+                          nociception: 'Intact, hyperpathia on thoracolumbar palpation',
+                          neurolocalization: 'T3-L3 myelopathy',
+                          ddx: 'Discospondylitis (bacterial vs fungal)',
+                        });
+                      } else if (e.target.value === 'c1c5') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory with mild tetraparesis and UMN general proprioceptive ataxia',
+                          cranialNerves: 'CN intact',
+                          posturalReactions: 'Delayed in all four limbs or delay in hind > front',
+                          spinalReflexes: 'All reflexes normal',
+                          tone: 'Normal tone',
+                          musclemass: 'Normal muscle mass',
+                          nociception: 'Intact, mild to moderate cervical hyperpathia',
+                          neurolocalization: 'C1-C5 myelopathy',
+                          ddx: 'COMS vs IVDD vs inflammatory/infectious',
+                        });
+                      } else if (e.target.value === 'ls') {
+                        setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory with LMN hind limb paresis',
+                          cranialNerves: 'Intact',
+                          posturalReactions: 'Delayed in pelvic limbs',
+                          spinalReflexes: 'Decreased to absent pelvic limb reflexes',
+                          tone: 'Decreased to normal',
+                          musclemass: 'Normal to mild atrophy',
+                          nociception: 'Intact, hyperesthesia on lumbosacral palpation',
+                          neurolocalization: 'L-S myelopathy',
+                          ddx: 'IVDD vs disc protrusion vs degenerative lumbosacral stenosis',
+                        });
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="blank">Start Blank</option>
+                    <option value="t3l3-paraparetic">T3-L3 Paraparetic</option>
+                    <option value="t3l3-plegic">T3-L3 Paraplegic</option>
+                    <option value="cervical-hyperpathia">Cervical Hyperpathia</option>
+                    <option value="c1c5">C1-C5 Myelopathy</option>
+                    <option value="c6t2">C6-T2 Myelopathy</option>
+                    <option value="ls">L-S Myelopathy</option>
+                    <option value="vestibular">Vestibular Disease (OM/OI)</option>
+                    <option value="seizures">Seizures/Epilepsy</option>
+                    <option value="discospondylitis">Discospondylitis</option>
+                    <option value="mue">MUE</option>
+                    <option value="postop-recheck">Post-op Recheck</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Patient Info Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Patient Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <input
+                        type="text"
+                        placeholder="Patient Name"
+                        value={soapData.name}
+                        onChange={(e) => setSOAPData({ ...soapData, name: e.target.value })}
+                        className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Age (e.g., 5 y 3 m)"
+                        value={soapData.age}
+                        onChange={(e) => setSOAPData({ ...soapData, age: e.target.value })}
+                        className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                      <select
+                        value={soapData.sex}
+                        onChange={(e) => setSOAPData({ ...soapData, sex: e.target.value })}
+                        className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      >
+                        <option value="">Sex</option>
+                        <option value="MN">MN</option>
+                        <option value="M">M</option>
+                        <option value="FS">FS</option>
+                        <option value="F">F</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Breed"
+                        value={soapData.breed}
+                        onChange={(e) => setSOAPData({ ...soapData, breed: e.target.value })}
+                        className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Weight (kg)"
+                        value={soapData.weight}
+                        onChange={(e) => setSOAPData({ ...soapData, weight: e.target.value })}
+                        className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                      <select
+                        value={soapData.visitType}
+                        onChange={(e) => setSOAPData({ ...soapData, visitType: e.target.value })}
+                        className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      >
+                        <option value="">Visit Type</option>
+                        <option value="recheck">Recheck</option>
+                        <option value="initial">Initial Consultation</option>
+                        <option value="postop">Post-op Recheck</option>
+                      </select>
+                    </div>
+                    <textarea
+                      placeholder="Reason for visit (e.g., 2 week recheck post COMS surgery)"
+                      value={soapData.reasonForVisit}
+                      onChange={(e) => setSOAPData({ ...soapData, reasonForVisit: e.target.value })}
+                      rows={2}
+                      className="w-full mt-4 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Current History Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Current History</h3>
+                    <textarea
+                      placeholder="Owner's update since last visit..."
+                      value={soapData.currentHistory}
+                      onChange={(e) => setSOAPData({ ...soapData, currentHistory: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                    />
+                    <div className="grid grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">CSVD</label>
+                        <select
+                          value={soapData.csvd}
+                          onChange={(e) => setSOAPData({ ...soapData, csvd: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                        >
+                          <option value="None">None</option>
+                          <option value="Vomiting">Vomiting</option>
+                          <option value="Diarrhea">Diarrhea</option>
+                          <option value="Both">Both V/D</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">PU/PD</label>
+                        <select
+                          value={soapData.pupd}
+                          onChange={(e) => setSOAPData({ ...soapData, pupd: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                        >
+                          <option value="None">None</option>
+                          <option value="PU/PD">PU/PD</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Appetite</label>
+                        <select
+                          value={soapData.appetite}
+                          onChange={(e) => setSOAPData({ ...soapData, appetite: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                        >
+                          <option value="Normal">Normal</option>
+                          <option value="Good">Good</option>
+                          <option value="Decreased">Decreased</option>
+                          <option value="Increased">Increased</option>
+                          <option value="Poor">Poor</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Neuro Exam Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Neurologic Exam</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Mental Status</label>
+                        <select
+                          value={soapData.mentalStatus}
+                          onChange={(e) => setSOAPData({ ...soapData, mentalStatus: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                        >
+                          <option value="BAR">BAR</option>
+                          <option value="QAR">QAR</option>
+                          <option value="Obtunded">Obtunded</option>
+                          <option value="Stuporous">Stuporous</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Gait & Posture</label>
+                        <textarea
+                          placeholder="e.g., Ambulatory with moderate pelvic limb UMN paresis..."
+                          value={soapData.gait}
+                          onChange={(e) => setSOAPData({ ...soapData, gait: e.target.value })}
+                          rows={2}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Cranial Nerves</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., CN intact"
+                          value={soapData.cranialNerves}
+                          onChange={(e) => setSOAPData({ ...soapData, cranialNerves: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Postural Reactions</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., Delayed in pelvic limbs"
+                          value={soapData.posturalReactions}
+                          onChange={(e) => setSOAPData({ ...soapData, posturalReactions: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Nociception</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., Intact, no hyperpathia"
+                          value={soapData.nociception}
+                          onChange={(e) => setSOAPData({ ...soapData, nociception: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assessment & Plan Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Assessment & Plan</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Neurolocalization</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., T3-L3 myelopathy"
+                          value={soapData.neurolocalization}
+                          onChange={(e) => setSOAPData({ ...soapData, neurolocalization: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">DDx</label>
+                        <input
+                          type="text"
+                          placeholder="e.g., IVDD vs FCE vs inflammatory vs neoplasia"
+                          value={soapData.ddx}
+                          onChange={(e) => setSOAPData({ ...soapData, ddx: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Outcome/Plan</label>
+                        <textarea
+                          placeholder="Recheck plan, medications, owner instructions..."
+                          value={soapData.outcome}
+                          onChange={(e) => setSOAPData({ ...soapData, outcome: e.target.value })}
+                          rows={4}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Generated Output */}
+                  <div className="bg-slate-900/50 border border-emerald-500/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xl font-bold text-emerald-400">📋 Generated SOAP Note</h3>
+                      <button
+                        onClick={() => {
+                          const output = `${soapData.name}, a ${soapData.age} ${soapData.sex} ${soapData.breed}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit}.
+
+Current History
+${soapData.currentHistory || 'No concerns reported'}
+
+CSVD: ${soapData.csvd}
+PU/PD: ${soapData.pupd}
+Appetite: ${soapData.appetite}
+
+NEUROLOGIC EXAM
+Mental Status: ${soapData.mentalStatus}
+Gait & posture: ${soapData.gait || 'Not specified'}
+Cranial nerves: ${soapData.cranialNerves || 'Not specified'}
+Postural reactions: ${soapData.posturalReactions || 'Not specified'}
+Nociception: ${soapData.nociception || 'Not specified'}
+
+Neurolocalization:
+${soapData.neurolocalization || 'Not specified'}
+
+DDx:
+${soapData.ddx || 'Not specified'}
+
+OUTCOME:
+${soapData.outcome || 'Not specified'}`;
+
+                          navigator.clipboard.writeText(output);
+                          toast({ title: '✅ SOAP note copied to clipboard!' });
+                        }}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold flex items-center gap-2 transition"
+                      >
+                        <Copy size={16} />
+                        Copy All
+                      </button>
+                    </div>
+                    <pre className="text-slate-200 text-sm whitespace-pre-wrap font-sans bg-slate-800 p-4 rounded-lg overflow-y-auto max-h-96">
+{`${soapData.name ? `${soapData.name}, a ${soapData.age} ${soapData.sex} ${soapData.breed}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit}.` : 'Enter patient information...'}
+
+Current History
+${soapData.currentHistory || 'Enter current history...'}
+
+CSVD: ${soapData.csvd}
+PU/PD: ${soapData.pupd}
+Appetite: ${soapData.appetite}
+
+NEUROLOGIC EXAM
+Mental Status: ${soapData.mentalStatus}
+Gait & posture: ${soapData.gait || 'Enter gait description...'}
+Cranial nerves: ${soapData.cranialNerves || 'Enter CN findings...'}
+Postural reactions: ${soapData.posturalReactions || 'Enter postural reactions...'}
+Nociception: ${soapData.nociception || 'Enter pain findings...'}
+
+Neurolocalization:
+${soapData.neurolocalization || 'Enter neurolocalization...'}
+
+DDx:
+${soapData.ddx || 'Enter differentials...'}
+
+OUTCOME:
+${soapData.outcome || 'Enter plan...'}`}
+                    </pre>
                   </div>
                 </div>
               </div>
