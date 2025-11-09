@@ -917,7 +917,7 @@ export default function VetHub() {
                     }
                   }}
                   placeholder="Type task name and press Enter..."
-                  className="flex-1 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  className="flex-1 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                 />
                 <button
                   onClick={handleQuickAddTaskFromOverview}
@@ -2490,7 +2490,7 @@ export default function VetHub() {
                       + Add Protocol
                     </button>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {referenceData.protocols
                       .filter((protocol: any) =>
                         !referenceSearch ||
@@ -2572,7 +2572,7 @@ export default function VetHub() {
                         value={cocktailWeight}
                         onChange={(e) => setCocktailWeight(e.target.value)}
                         placeholder="Enter weight in kg..."
-                        className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-pink-500"
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-pink-500"
                         step="0.1"
                       />
                     </div>
@@ -3023,32 +3023,32 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           setExpandedSections([...expandedSections, 'patient']);
                         }
                       }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
+                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-800/50 transition"
                     >
-                      <h3 className="text-sm font-bold text-purple-400">Patient Information</h3>
-                      <span className="text-xs">{expandedSections.includes('patient') ? '▼' : '▶'}</span>
+                      <h3 className="text-base font-bold text-purple-400">Patient Information</h3>
+                      <span className="text-slate-400">{expandedSections.includes('patient') ? '▼' : '▶'}</span>
                     </button>
                     {expandedSections.includes('patient') && (
-                      <div className="p-2">
+                      <div className="p-3 pt-0">
                         <div className="grid grid-cols-2 gap-2">
                           <input
                             type="text"
                             placeholder="Patient Name"
                             value={soapData.name}
                             onChange={(e) => setSOAPData({ ...soapData, name: e.target.value })}
-                            className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                            className="px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                           />
                           <input
                             type="text"
                             placeholder="Age (e.g., 5 y 3 m)"
                             value={soapData.age}
                             onChange={(e) => setSOAPData({ ...soapData, age: e.target.value })}
-                            className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                            className="px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                           />
                           <select
                             value={soapData.sex}
                             onChange={(e) => setSOAPData({ ...soapData, sex: e.target.value })}
-                            className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                            className="px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
                           >
                             <option value="">Sex</option>
                             <option value="MN">MN</option>
@@ -3061,7 +3061,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             placeholder="Breed"
                             value={soapData.breed}
                             onChange={(e) => setSOAPData({ ...soapData, breed: e.target.value })}
-                            className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                            className="px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                           />
                         </div>
                         <textarea
@@ -3069,7 +3069,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           value={soapData.reasonForVisit}
                           onChange={(e) => setSOAPData({ ...soapData, reasonForVisit: e.target.value })}
                           rows={2}
-                          className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                          className="w-full mt-2 px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                         />
                       </div>
                     )}
@@ -3085,13 +3085,13 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           setExpandedSections([...expandedSections, 'history']);
                         }
                       }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
+                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-800/50 transition"
                     >
-                      <h3 className="text-sm font-bold text-purple-400">History</h3>
-                      <span className="text-xs">{expandedSections.includes('history') ? '▼' : '▶'}</span>
+                      <h3 className="text-base font-bold text-purple-400">History</h3>
+                      <span className="text-slate-400">{expandedSections.includes('history') ? '▼' : '▶'}</span>
                     </button>
                     {expandedSections.includes('history') && (
-                      <div className="p-2 space-y-2">
+                      <div className="p-3 pt-0 space-y-2">
                         {soapData.visitType === 'initial' ? (
                           <>
                             <div>
@@ -3101,7 +3101,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                                 value={soapData.lastVisit}
                                 onChange={(e) => setSOAPData({ ...soapData, lastVisit: e.target.value })}
                                 rows={2}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                                className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                               />
                             </div>
                             <div>
@@ -3111,7 +3111,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                                 value={soapData.whyHereToday}
                                 onChange={(e) => setSOAPData({ ...soapData, whyHereToday: e.target.value })}
                                 rows={2}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                                className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                               />
                             </div>
                           </>
@@ -3124,7 +3124,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                                 value={soapData.lastVisit}
                                 onChange={(e) => setSOAPData({ ...soapData, lastVisit: e.target.value })}
                                 rows={2}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                                className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                               />
                             </div>
                             <div>
@@ -3134,7 +3134,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                                 value={soapData.currentHistory}
                                 onChange={(e) => setSOAPData({ ...soapData, currentHistory: e.target.value })}
                                 rows={2}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                                className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
                               />
                             </div>
                           </>
@@ -3153,20 +3153,20 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           setExpandedSections([...expandedSections, 'clinical']);
                         }
                       }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
+                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-800/50 transition"
                     >
-                      <h3 className="text-sm font-bold text-purple-400">Clinical Signs</h3>
-                      <span className="text-xs">{expandedSections.includes('clinical') ? '▼' : '▶'}</span>
+                      <h3 className="text-base font-bold text-purple-400">Clinical Signs</h3>
+                      <span className="text-slate-400">{expandedSections.includes('clinical') ? '▼' : '▶'}</span>
                     </button>
                     {expandedSections.includes('clinical') && (
-                      <div className="p-2">
+                      <div className="p-3 pt-0">
                         <div className="grid grid-cols-3 gap-2">
                           <div>
                             <label className="block text-xs text-slate-400 mb-1">CSVD</label>
                             <select
                               value={soapData.csvd}
                               onChange={(e) => setSOAPData({ ...soapData, csvd: e.target.value })}
-                              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                              className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
                             >
                               <option value="none">none</option>
                               <option value="vomiting">vomiting</option>
@@ -3179,7 +3179,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             <select
                               value={soapData.pupd}
                               onChange={(e) => setSOAPData({ ...soapData, pupd: e.target.value })}
-                              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                              className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
                             >
                               <option value="none">none</option>
                               <option value="PU">PU</option>
@@ -3192,7 +3192,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             <select
                               value={soapData.appetite}
                               onChange={(e) => setSOAPData({ ...soapData, appetite: e.target.value })}
-                              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                              className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
                             >
                               <option value="normal">normal</option>
                               <option value="good">good</option>
@@ -3208,176 +3208,134 @@ Please schedule a recheck appointment with the Neurology department to have stap
 
                   {/* Extended History Section (Initial Consultation Only) */}
                   {soapData.visitType === 'initial' && (
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => {
-                          if (expandedSections.includes('extended')) {
-                            setExpandedSections(expandedSections.filter(s => s !== 'extended'));
-                          } else {
-                            setExpandedSections([...expandedSections, 'extended']);
-                          }
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
-                      >
-                        <h3 className="text-sm font-bold text-purple-400">Initial History Questions</h3>
-                        <span className="text-xs">{expandedSections.includes('extended') ? '▼' : '▶'}</span>
-                      </button>
-                      {expandedSections.includes('extended') && (
-                        <div className="p-2 space-y-2">
-                          <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Initial History Questions</h3>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Painful/vocalizing?</label>
-                            <input type="text" placeholder="None" value={soapData.painfulVocalizing} onChange={(e) => setSOAPData({ ...soapData, painfulVocalizing: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
+                            <label className="block text-sm text-slate-400 mb-1">Painful/vocalizing?</label>
+                            <input type="text" placeholder="None" value={soapData.painfulVocalizing} onChange={(e) => setSOAPData({ ...soapData, painfulVocalizing: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Diet</label>
-                            <input type="text" placeholder="dry/wet/raw" value={soapData.diet} onChange={(e) => setSOAPData({ ...soapData, diet: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
+                            <label className="block text-sm text-slate-400 mb-1">Diet</label>
+                            <input type="text" placeholder="dry/wet/raw" value={soapData.diet} onChange={(e) => setSOAPData({ ...soapData, diet: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Allergies/food sensitivities</label>
-                            <input type="text" placeholder="none" value={soapData.allergies} onChange={(e) => setSOAPData({ ...soapData, allergies: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
+                            <label className="block text-sm text-slate-400 mb-1">Allergies/food sensitivities</label>
+                            <input type="text" placeholder="none" value={soapData.allergies} onChange={(e) => setSOAPData({ ...soapData, allergies: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
                           </div>
                           <div>
-                            <label className="block text-xs text-slate-400 mb-1">Other pets</label>
-                            <input type="text" placeholder="e.g., 1 dog, 2 cats" value={soapData.otherPets} onChange={(e) => setSOAPData({ ...soapData, otherPets: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
+                            <label className="block text-sm text-slate-400 mb-1">Other pets</label>
+                            <input type="text" placeholder="e.g., 1 dog, 2 cats" value={soapData.otherPets} onChange={(e) => setSOAPData({ ...soapData, otherPets: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
                           </div>
-                          <select value={soapData.indoorOutdoor} onChange={(e) => setSOAPData({ ...soapData, indoorOutdoor: e.target.value })} className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white">
+                          <select value={soapData.indoorOutdoor} onChange={(e) => setSOAPData({ ...soapData, indoorOutdoor: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
                             <option value="indoor">Indoor</option>
                             <option value="outdoor">Outdoor</option>
                             <option value="both">Indoor/Outdoor</option>
                           </select>
-                          <select value={soapData.trauma} onChange={(e) => setSOAPData({ ...soapData, trauma: e.target.value })} className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white">
+                          <select value={soapData.trauma} onChange={(e) => setSOAPData({ ...soapData, trauma: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
                             <option value="No">Trauma: No</option>
                             <option value="Yes">Trauma: Yes</option>
                           </select>
-                          <select value={soapData.travel} onChange={(e) => setSOAPData({ ...soapData, travel: e.target.value })} className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white">
+                          <select value={soapData.travel} onChange={(e) => setSOAPData({ ...soapData, travel: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
                             <option value="No">Travel: No</option>
                             <option value="Yes">Travel: Yes</option>
                           </select>
-                          <select value={soapData.heartwormPrev} onChange={(e) => setSOAPData({ ...soapData, heartwormPrev: e.target.value })} className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white">
+                          <select value={soapData.heartwormPrev} onChange={(e) => setSOAPData({ ...soapData, heartwormPrev: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
                             <option value="Yes">Heartworm Prev: Yes</option>
                             <option value="No">Heartworm Prev: No</option>
                           </select>
-                          <select value={soapData.fleaTick} onChange={(e) => setSOAPData({ ...soapData, fleaTick: e.target.value })} className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white">
+                          <select value={soapData.fleaTick} onChange={(e) => setSOAPData({ ...soapData, fleaTick: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
                             <option value="Yes">Flea/Tick: Yes</option>
                             <option value="No">Flea/Tick: No</option>
                           </select>
-                          <select value={soapData.vaccinesUTD} onChange={(e) => setSOAPData({ ...soapData, vaccinesUTD: e.target.value })} className="px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white">
+                          <select value={soapData.vaccinesUTD} onChange={(e) => setSOAPData({ ...soapData, vaccinesUTD: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
                             <option value="Yes">Vaccines UTD: Yes</option>
                             <option value="No">Vaccines UTD: No</option>
                           </select>
                         </div>
-                          <textarea
-                            placeholder="Other medical history"
-                            value={soapData.otherMedicalHistory}
-                            onChange={(e) => setSOAPData({ ...soapData, otherMedicalHistory: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                          />
-                        </div>
-                      )}
+                        <textarea
+                          placeholder="Other medical history"
+                          value={soapData.otherMedicalHistory}
+                          onChange={(e) => setSOAPData({ ...soapData, otherMedicalHistory: e.target.value })}
+                          rows={2}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
                     </div>
                   )}
 
-                  {/* Diagnostics/MRI/Medications - Collapsible */}
-                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => {
-                        if (expandedSections.includes('diagnostics')) {
-                          setExpandedSections(expandedSections.filter(s => s !== 'diagnostics'));
-                        } else {
-                          setExpandedSections([...expandedSections, 'diagnostics']);
-                        }
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
-                    >
-                      <h3 className="text-sm font-bold text-purple-400">Diagnostics & Meds</h3>
-                      <span className="text-xs">{expandedSections.includes('diagnostics') ? '▼' : '▶'}</span>
-                    </button>
-                    {expandedSections.includes('diagnostics') && (
-                      <div className="p-2 space-y-2">
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">Previous Diagnostics</label>
-                          <textarea
-                            placeholder="List previous test results with dates..."
-                            value={soapData.prevDiagnostics}
-                            onChange={(e) => setSOAPData({ ...soapData, prevDiagnostics: e.target.value })}
-                            rows={3}
-                            className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                          />
-                        </div>
-                        {soapData.visitType === 'recheck' && (
-                          <>
-                            <div>
-                              <label className="block text-xs text-slate-400 mb-1">Last MRI</label>
-                              <textarea
-                                placeholder="e.g., 7/3/25 mild intraparenchymal changes..."
-                                value={soapData.lastMRI}
-                                onChange={(e) => setSOAPData({ ...soapData, lastMRI: e.target.value })}
-                                rows={2}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-slate-400 mb-1">Medications</label>
-                              <textarea
-                                placeholder="List current medications with dosing..."
-                                value={soapData.medications}
-                                onChange={(e) => setSOAPData({ ...soapData, medications: e.target.value })}
-                                rows={3}
-                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
+                  {/* Previous Diagnostics Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Previous Diagnostics</h3>
+                    <textarea
+                      placeholder="List previous test results with dates..."
+                      value={soapData.prevDiagnostics}
+                      onChange={(e) => setSOAPData({ ...soapData, prevDiagnostics: e.target.value })}
+                      rows={4}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                    />
                   </div>
 
-                  {/* Neuro Exam Section - Collapsible */}
-                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => {
-                        if (expandedSections.includes('neuro')) {
-                          setExpandedSections(expandedSections.filter(s => s !== 'neuro'));
-                        } else {
-                          setExpandedSections([...expandedSections, 'neuro']);
-                        }
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
-                    >
-                      <h3 className="text-sm font-bold text-purple-400">Neurologic Exam</h3>
-                      <span className="text-xs">{expandedSections.includes('neuro') ? '▼' : '▶'}</span>
-                    </button>
-                    {expandedSections.includes('neuro') && (
-                      <div className="p-2">
-                        {/* Quick Fill Button */}
-                        <div className="flex gap-2 mb-2">
-                          <button
-                            onClick={() => setSOAPData({
-                              ...soapData,
-                              mentalStatus: 'BAR',
-                              gait: 'Ambulatory without ataxia or paresis',
-                              cranialNerves: 'intact',
-                              posturalReactions: 'normal',
-                              spinalReflexes: 'normal',
-                              tone: 'normal',
-                              muscleMass: 'normal',
-                              nociception: 'intact, no pain on palpation'
-                            })}
-                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold"
-                          >
-                            Normal Neuro Exam
-                          </button>
-                        </div>
+                  {/* Last MRI Section - Recheck Only */}
+                  {soapData.visitType === 'recheck' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Last MRI</h3>
+                      <textarea
+                        placeholder="e.g., 7/3/25 mild intraparenchymal changes (hyperintensity on T2 weighted images) - cervical spinal cord"
+                        value={soapData.lastMRI}
+                        onChange={(e) => setSOAPData({ ...soapData, lastMRI: e.target.value })}
+                        rows={2}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                    </div>
+                  )}
 
-                        <div className="space-y-2">
+                  {/* Medications Section - Recheck Only */}
+                  {soapData.visitType === 'recheck' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Medications</h3>
+                      <textarea
+                        placeholder="List current medications with dosing..."
+                        value={soapData.medications}
+                        onChange={(e) => setSOAPData({ ...soapData, medications: e.target.value })}
+                        rows={4}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Neuro Exam Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Neurologic Exam</h3>
+
+                    {/* Quick Fill Button */}
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        onClick={() => setSOAPData({
+                          ...soapData,
+                          mentalStatus: 'BAR',
+                          gait: 'Ambulatory without ataxia or paresis',
+                          cranialNerves: 'intact',
+                          posturalReactions: 'normal',
+                          spinalReflexes: 'normal',
+                          tone: 'normal',
+                          muscleMass: 'normal',
+                          nociception: 'intact, no pain on palpation'
+                        })}
+                        className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm"
+                      >
+                        Normal Neuro Exam
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Mental Status</label>
+                        <label className="block text-sm text-slate-400 mb-1">Mental Status</label>
                         <select
                           value={soapData.mentalStatus}
                           onChange={(e) => setSOAPData({ ...soapData, mentalStatus: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="BAR">BAR</option>
                           <option value="QAR">QAR</option>
@@ -3386,7 +3344,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Gait & Posture</label>
+                        <label className="block text-sm text-slate-400 mb-1">Gait & Posture</label>
                         <select
                           value={soapData.gait === 'Ambulatory without ataxia or paresis' ||
                                  soapData.gait === 'Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia' ||
@@ -3404,7 +3362,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                               setSOAPData({ ...soapData, gait: '' });
                             }
                           }}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="">Select gait...</option>
                           <option value="Ambulatory without ataxia or paresis">Ambulatory without ataxia or paresis</option>
@@ -3433,12 +3391,12 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             placeholder="Enter custom gait..."
                             value={soapData.gait}
                             onChange={(e) => setSOAPData({ ...soapData, gait: e.target.value })}
-                            className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                            className="w-full mt-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                           />
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Cranial Nerves</label>
+                        <label className="block text-sm text-slate-400 mb-1">Cranial Nerves</label>
                         <select
                           value={soapData.cranialNerves === 'intact' ||
                                  soapData.cranialNerves === 'head tilt, absent palpebral reflex' ||
@@ -3451,7 +3409,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                               setSOAPData({ ...soapData, cranialNerves: '' });
                             }
                           }}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="intact">CN intact</option>
                           <option value="head tilt, absent palpebral reflex">Head tilt, absent palpebral reflex</option>
@@ -3469,12 +3427,12 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             placeholder="Enter custom cranial nerve findings..."
                             value={soapData.cranialNerves}
                             onChange={(e) => setSOAPData({ ...soapData, cranialNerves: e.target.value })}
-                            className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                            className="w-full mt-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                           />
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Postural Reactions</label>
+                        <label className="block text-sm text-slate-400 mb-1">Postural Reactions</label>
                         <select
                           value={soapData.posturalReactions === 'normal' ||
                                  soapData.posturalReactions === 'delayed in pelvic limbs, normal thoracic limbs' ||
@@ -3488,7 +3446,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                               setSOAPData({ ...soapData, posturalReactions: '' });
                             }
                           }}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="normal">Normal</option>
                           <option value="delayed in pelvic limbs, normal thoracic limbs">Delayed pelvic limbs, normal thoracic</option>
@@ -3508,16 +3466,16 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             placeholder="Enter custom postural reactions..."
                             value={soapData.posturalReactions}
                             onChange={(e) => setSOAPData({ ...soapData, posturalReactions: e.target.value })}
-                            className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                            className="w-full mt-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                           />
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Spinal Reflexes</label>
+                        <label className="block text-sm text-slate-400 mb-1">Spinal Reflexes</label>
                         <select
                           value={soapData.spinalReflexes}
                           onChange={(e) => setSOAPData({ ...soapData, spinalReflexes: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="normal">Normal</option>
                           <option value="normal to increased pelvic limbs">Normal to increased pelvic limbs</option>
@@ -3525,11 +3483,11 @@ Please schedule a recheck appointment with the Neurology department to have stap
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Tone</label>
+                        <label className="block text-sm text-slate-400 mb-1">Tone</label>
                         <select
                           value={soapData.tone}
                           onChange={(e) => setSOAPData({ ...soapData, tone: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="normal">Normal</option>
                           <option value="decreased to normal">Decreased to normal</option>
@@ -3537,11 +3495,11 @@ Please schedule a recheck appointment with the Neurology department to have stap
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Muscle Mass</label>
+                        <label className="block text-sm text-slate-400 mb-1">Muscle Mass</label>
                         <select
                           value={soapData.muscleMass}
                           onChange={(e) => setSOAPData({ ...soapData, muscleMass: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
                         >
                           <option value="normal">Normal</option>
                           <option value="mild hind end muscle atrophy">Mild hind end muscle atrophy</option>
@@ -3550,171 +3508,268 @@ Please schedule a recheck appointment with the Neurology department to have stap
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Nociception</label>
+                        <label className="block text-sm text-slate-400 mb-1">Nociception</label>
                         <input
                           type="text"
                           placeholder="e.g., intact, no pain on thoracolumbar palpation"
                           value={soapData.nociception}
                           onChange={(e) => setSOAPData({ ...soapData, nociception: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Exam By</label>
+                        <label className="block text-sm text-slate-400 mb-1">Exam By</label>
                         <input
                           type="text"
                           placeholder="e.g., RG"
                           value={soapData.examBy}
                           onChange={(e) => setSOAPData({ ...soapData, examBy: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
                         />
                       </div>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
 
-                  {/* Physical Exam Section (Initial Consultation Only) - Collapsible */}
+                  {/* Physical Exam Section (Initial Consultation Only) */}
                   {soapData.visitType === 'initial' && (
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => {
-                          if (expandedSections.includes('physical')) {
-                            setExpandedSections(expandedSections.filter(s => s !== 'physical'));
-                          } else {
-                            setExpandedSections([...expandedSections, 'physical']);
-                          }
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
-                      >
-                        <h3 className="text-sm font-bold text-purple-400">Physical Exam</h3>
-                        <span className="text-xs">{expandedSections.includes('physical') ? '▼' : '▶'}</span>
-                      </button>
-                      {expandedSections.includes('physical') && (
-                        <div className="p-2">
-                          {/* Quick Fill Button */}
-                          <div className="flex gap-2 mb-2">
-                            <button
-                              onClick={() => setSOAPData({
-                                ...soapData,
-                                peENT: 'clear OU/AU, no nasal discharge',
-                                peOral: 'pink/moist mm, CRT<2, no oral masses or foreign bodies noted',
-                                pePLN: 'wnl',
-                                peCV: 'no heart murmur noted, regular rhythm, strong/synchronous pulses',
-                                peResp: 'eupneic, clear bronchovesicular sounds',
-                                peAbd: 'soft/non-painful, no masses noted',
-                                peRectal: 'unremarkable',
-                                peMS: 'ambulatory x4, no joint/long bone pain noted',
-                                peInteg: 'coat wnl'
-                              })}
-                              className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold"
-                            >
-                              Normal Physical Exam
-                            </button>
-                          </div>
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Physical Exam</h3>
 
-                          <div className="space-y-2">
-                        <input type="text" placeholder="EENT: e.g., clear OU/AU, no nasal discharge" value={soapData.peENT} onChange={(e) => setSOAPData({ ...soapData, peENT: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="Oral: e.g., pink/moist mm, CRT<2" value={soapData.peOral} onChange={(e) => setSOAPData({ ...soapData, peOral: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="PLN: e.g., wnl" value={soapData.pePLN} onChange={(e) => setSOAPData({ ...soapData, pePLN: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="CV: e.g., no heart murmur noted, regular rhythm" value={soapData.peCV} onChange={(e) => setSOAPData({ ...soapData, peCV: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="Resp: e.g., eupneic, clear bronchovesicular sounds" value={soapData.peResp} onChange={(e) => setSOAPData({ ...soapData, peResp: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="Abd: e.g., soft/non-painful, no masses noted" value={soapData.peAbd} onChange={(e) => setSOAPData({ ...soapData, peAbd: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="Rectal: e.g., unremarkable" value={soapData.peRectal} onChange={(e) => setSOAPData({ ...soapData, peRectal: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="MS: e.g., ambulatory x4, no joint/long bone pain noted" value={soapData.peMS} onChange={(e) => setSOAPData({ ...soapData, peMS: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                        <input type="text" placeholder="Integ: e.g., coat wnl" value={soapData.peInteg} onChange={(e) => setSOAPData({ ...soapData, peInteg: e.target.value })} className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500" />
-                          </div>
-                        </div>
-                      )}
+                      {/* Quick Fill Button */}
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          onClick={() => setSOAPData({
+                            ...soapData,
+                            peENT: 'clear OU/AU, no nasal discharge',
+                            peOral: 'pink/moist mm, CRT<2, no oral masses or foreign bodies noted',
+                            pePLN: 'wnl',
+                            peCV: 'no heart murmur noted, regular rhythm, strong/synchronous pulses',
+                            peResp: 'eupneic, clear bronchovesicular sounds',
+                            peAbd: 'soft/non-painful, no masses noted',
+                            peRectal: 'unremarkable',
+                            peMS: 'ambulatory x4, no joint/long bone pain noted',
+                            peInteg: 'coat wnl'
+                          })}
+                          className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-sm"
+                        >
+                          Normal Physical Exam
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <input type="text" placeholder="EENT: e.g., clear OU/AU, no nasal discharge" value={soapData.peENT} onChange={(e) => setSOAPData({ ...soapData, peENT: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Oral: e.g., pink/moist mm, CRT<2" value={soapData.peOral} onChange={(e) => setSOAPData({ ...soapData, peOral: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="PLN: e.g., wnl" value={soapData.pePLN} onChange={(e) => setSOAPData({ ...soapData, pePLN: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="CV: e.g., no heart murmur noted, regular rhythm" value={soapData.peCV} onChange={(e) => setSOAPData({ ...soapData, peCV: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Resp: e.g., eupneic, clear bronchovesicular sounds" value={soapData.peResp} onChange={(e) => setSOAPData({ ...soapData, peResp: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Abd: e.g., soft/non-painful, no masses noted" value={soapData.peAbd} onChange={(e) => setSOAPData({ ...soapData, peAbd: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Rectal: e.g., unremarkable" value={soapData.peRectal} onChange={(e) => setSOAPData({ ...soapData, peRectal: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="MS: e.g., ambulatory x4, no joint/long bone pain noted" value={soapData.peMS} onChange={(e) => setSOAPData({ ...soapData, peMS: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Integ: e.g., coat wnl" value={soapData.peInteg} onChange={(e) => setSOAPData({ ...soapData, peInteg: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                      </div>
                     </div>
                   )}
 
-                  {/* Assessment & Plan Section - Collapsible */}
-                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden mb-2">
-                    <button
-                      onClick={() => {
-                        if (expandedSections.includes('assessment')) {
-                          setExpandedSections(expandedSections.filter(s => s !== 'assessment'));
-                        } else {
-                          setExpandedSections([...expandedSections, 'assessment']);
-                        }
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-slate-800/50 transition"
-                    >
-                      <h3 className="text-sm font-bold text-purple-400">Assessment & Plan</h3>
-                      <span className="text-xs">{expandedSections.includes('assessment') ? '▼' : '▶'}</span>
-                    </button>
-                    {expandedSections.includes('assessment') && (
-                      <div className="p-2 space-y-2">
-                        {/* Removed duplicate neurolocalization - it's in the header now */}
-                        {soapData.visitType === 'recheck' && (
-                          <div>
-                            <label className="block text-xs text-slate-400 mb-1">Progression</label>
-                            <select
-                              value={soapData.progression}
-                              onChange={(e) => setSOAPData({ ...soapData, progression: e.target.value })}
-                              className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                            >
-                              <option value="">Select progression...</option>
-                              <option value="improving">Improving</option>
-                              <option value="static">Static</option>
-                              <option value="worsening">Worsening</option>
-                              <option value="resolved">Resolved</option>
-                            </select>
-                          </div>
-                        )}
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">Differential Diagnoses</label>
-                          <textarea
-                            placeholder="DDx list..."
-                            value={soapData.ddx}
-                            onChange={(e) => setSOAPData({ ...soapData, ddx: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">Diagnostics Today</label>
-                          <textarea
-                            placeholder="Diagnostics performed or planned..."
-                            value={soapData.diagnosticsToday}
-                            onChange={(e) => setSOAPData({ ...soapData, diagnosticsToday: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">Treatments</label>
-                          <textarea
-                            placeholder="Treatment plan and recommendations..."
-                            value={soapData.treatments}
-                            onChange={(e) => setSOAPData({ ...soapData, treatments: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-slate-400 mb-1">{soapData.visitType === 'recheck' ? 'Discussion/Changes' : 'Outcome'}</label>
-                          <textarea
-                            placeholder={soapData.visitType === 'recheck' ? 'Discussion with owner and plan changes...' : 'Discussion with owner and recommendations...'}
-                            value={soapData.discussionChanges}
-                            onChange={(e) => setSOAPData({ ...soapData, discussionChanges: e.target.value })}
-                            rows={2}
-                            className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
-                          />
-                        </div>
+                  {/* Assessment & Plan Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Assessment & Plan</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Neurolocalization (AI Autofill)</label>
+                        <select
+                          value={soapData.neurolocalization}
+                          onChange={(e) => {
+                            const value = e.target.value;
+
+                            // AI autofill based on selection
+                            if (value === 'T3-L3 myelopathy') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia',
+                                posturalReactions: 'delayed in pelvic limbs, normal thoracic limbs',
+                                spinalReflexes: 'normal to increased pelvic limbs',
+                                muscleMass: 'mild hind end muscle atrophy',
+                                nociception: 'intact, no hyperpathia on spinal palpation',
+                                ddx: 'IVDD vs FCE vs inflammatory vs neoplasia'
+                              });
+                            } else if (value === 'Cervical hyperpathia') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory with no ataxia or paresis',
+                                posturalReactions: 'normal',
+                                spinalReflexes: 'normal',
+                                nociception: 'intact, moderate cervical hyperpathia on palpation',
+                                ddx: 'IVDD vs infectious vs inflammatory vs other'
+                              });
+                            } else if (value === 'Peripheral vestibular disease') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory with vestibular quality ataxia',
+                                cranialNerves: 'head tilt, absent palpebral reflex, positional nystagmus',
+                                posturalReactions: 'normal',
+                                spinalReflexes: 'normal',
+                                nociception: 'intact, no hyperpathia',
+                                ddx: 'OM/OI vs polycranial neuritis vs idiopathic vestibular disease'
+                              });
+                            } else if (value === 'Prosencephalon') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory without ataxia or paresis',
+                                cranialNerves: 'intact',
+                                posturalReactions: 'normal',
+                                spinalReflexes: 'normal',
+                                nociception: 'intact, no pain on palpation',
+                                ddx: 'Idiopathic epilepsy vs structural disease (tumor, cyst, stroke) vs infectious vs metabolic'
+                              });
+                            } else if (value === 'C1-C5 myelopathy') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory with mild tetraparesis and UMN GP ataxia',
+                                posturalReactions: 'delayed in all four limbs',
+                                spinalReflexes: 'normal',
+                                nociception: 'intact, mild to moderate cervical hyperpathia',
+                                ddx: 'COMS vs IVDD vs inflammatory/infectious'
+                              });
+                            } else if (value === 'C6-T2 myelopathy') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory with tetraparesis and UMN GP ataxia',
+                                posturalReactions: 'delayed in all four limbs',
+                                spinalReflexes: 'normal',
+                                nociception: 'intact',
+                                ddx: 'IVDD vs FCE vs inflammatory vs neoplasia'
+                              });
+                            } else if (value === 'L-S myelopathy') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Ambulatory with LMN hind limb paresis',
+                                posturalReactions: 'delayed in pelvic limbs',
+                                spinalReflexes: 'decreased to absent pelvic limb reflexes',
+                                tone: 'decreased to normal',
+                                nociception: 'intact, hyperesthesia on lumbosacral palpation',
+                                ddx: 'IVDD vs disc protrusion vs degenerative lumbosacral stenosis'
+                              });
+                            } else if (value === 'Discospondylitis') {
+                              setSOAPData({
+                                ...soapData,
+                                neurolocalization: value,
+                                gait: 'Short stride gait',
+                                posturalReactions: 'normal',
+                                spinalReflexes: 'normal',
+                                nociception: 'intact, moderate to severe spinal hyperpathia',
+                                ddx: 'Discospondylitis vs other infectious/inflammatory'
+                              });
+                            } else {
+                              setSOAPData({ ...soapData, neurolocalization: value });
+                            }
+                          }}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                        >
+                          <option value="">Select to autofill exam...</option>
+                          <option value="T3-L3 myelopathy">T3-L3 myelopathy</option>
+                          <option value="Cervical hyperpathia">Cervical hyperpathia</option>
+                          <option value="C1-C5 myelopathy">C1-C5 myelopathy</option>
+                          <option value="C6-T2 myelopathy">C6-T2 myelopathy</option>
+                          <option value="L-S myelopathy">L-S myelopathy</option>
+                          <option value="Peripheral vestibular disease">Peripheral vestibular disease</option>
+                          <option value="Prosencephalon">Prosencephalon (Seizures)</option>
+                          <option value="Discospondylitis">Discospondylitis</option>
+                        </select>
                       </div>
-                    )}
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Differential Diagnoses</label>
+                        <textarea
+                          placeholder="DDx list..."
+                          value={soapData.ddx}
+                          onChange={(e) => setSOAPData({ ...soapData, ddx: e.target.value })}
+                          rows={3}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-slate-400 mb-1">Diagnostics Today</label>
+                        <textarea
+                          placeholder="Diagnostics performed or planned..."
+                          value={soapData.diagnosticsToday}
+                          onChange={(e) => setSOAPData({ ...soapData, diagnosticsToday: e.target.value })}
+                          rows={3}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                    </div>
                   </div>
 
-                </div>
+                  {/* Progression Section - Recheck Only */}
+                  {soapData.visitType === 'recheck' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Progression</h3>
+                      <select
+                        value={soapData.progression}
+                        onChange={(e) => setSOAPData({ ...soapData, progression: e.target.value })}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white"
+                      >
+                        <option value="">Select progression...</option>
+                        <option value="improving">Improving</option>
+                        <option value="static">Static</option>
+                        <option value="worsening">Worsening</option>
+                        <option value="resolved">Resolved</option>
+                      </select>
+                    </div>
+                  )}
 
-                {/* Right Column - Preview */}
-                <div className="w-3/5 bg-slate-900/50 border border-emerald-500/50 rounded-lg p-3 overflow-y-auto">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-base font-bold text-emerald-400">Live Preview</h3>
-                    <button
-                      onClick={() => {
+                  {/* Treatments Section */}
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <h3 className="text-xl font-bold text-purple-400 mb-3">Treatments</h3>
+                    <textarea
+                      placeholder="Treatment plan and recommendations..."
+                      value={soapData.treatments}
+                      onChange={(e) => setSOAPData({ ...soapData, treatments: e.target.value })}
+                      rows={3}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                    />
+                  </div>
+
+                  {/* Discussion/Changes Section - Recheck Only */}
+                  {soapData.visitType === 'recheck' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Discussion/Changes</h3>
+                      <textarea
+                        placeholder="Discussion with owner and plan changes..."
+                        value={soapData.discussionChanges}
+                        onChange={(e) => setSOAPData({ ...soapData, discussionChanges: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Outcome Section - Initial Only */}
+                  {soapData.visitType === 'initial' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Outcome</h3>
+                      <textarea
+                        placeholder="Discussion with owner and recommendations..."
+                        value={soapData.discussionChanges}
+                        onChange={(e) => setSOAPData({ ...soapData, discussionChanges: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Generated Output */}
+                  <div className="bg-slate-900/50 border border-emerald-500/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xl font-bold text-emerald-400">Generated SOAP Note</h3>
+                      <button
+                        onClick={() => {
                           let output = '';
                           if (soapData.visitType === 'initial') {
                             // Initial Consultation Format
@@ -3787,13 +3842,13 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression
                           navigator.clipboard.writeText(output);
                           toast({ title: 'SOAP note copied to clipboard!' });
                         }}
-                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold flex items-center gap-1"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold flex items-center gap-2 transition"
                       >
-                        <Copy size={14} />
-                        Copy
+                        <Copy size={16} />
+                        Copy to Clipboard
                       </button>
                     </div>
-                    <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-tight">
+                    <pre className="text-slate-200 text-sm whitespace-pre-wrap font-sans bg-slate-800 p-4 rounded-lg overflow-y-auto max-h-96">
 {soapData.visitType === 'initial' ? `**Presenting Problem:**
 ${soapData.name || '[Name]'}, a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit || '[reason]'}
 ${soapData.lastVisit ? `\n**Past Pertinent History:** ${soapData.lastVisit}\n` : ''}
@@ -3856,6 +3911,7 @@ ${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.med
 **Nociception**: ${soapData.nociception || '[nociception]'}
 ${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression ? `\n**PROGRESSION**\n${soapData.progression}\n` : ''}${soapData.treatments ? `\n**TREATMENTS**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**DISCUSSION/CHANGES**\n${soapData.discussionChanges}` : ''}`}
                     </pre>
+                  </div>
                 </div>
               </div>
             </div>
