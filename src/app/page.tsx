@@ -425,6 +425,42 @@ export default function VetHub() {
     }
   };
 
+  const handleCopySingleRoundingLine = (patientId: number) => {
+    try {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      const rounding = patient.rounding_data || {};
+
+      const line = [
+        patient.name || '',
+        rounding.signalment || '',
+        rounding.location || '',
+        rounding.icuCriteria || '',
+        rounding.code || '',
+        rounding.problems || '',
+        rounding.diagnosticFindings || '',
+        rounding.therapeutics || '',
+        rounding.ivc || '',
+        rounding.fluids || '',
+        rounding.cri || '',
+        rounding.overnightDx || '',
+        rounding.concerns || '',
+        rounding.comments || ''
+      ].join('\t');
+
+      navigator.clipboard.writeText(line);
+
+      toast({
+        title: '✅ Line Copied!',
+        description: `${patient.name}'s rounding sheet line copied to clipboard`
+      });
+    } catch (error) {
+      console.error('Copy line error:', error);
+      toast({ variant: 'destructive', title: 'Copy failed', description: 'Could not copy line' });
+    }
+  };
+
   const handleExportRoundingSheets = () => {
     try {
       // Filter active patients (exclude Discharged)
@@ -1304,7 +1340,7 @@ export default function VetHub() {
                             {patient.type}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 mb-1">
                           <span className="text-xs text-slate-500">Status:</span>
                           <select
                             value={patient.status || 'New Admit'}
@@ -1316,6 +1352,20 @@ export default function VetHub() {
                             <option value="Discharging">Discharging</option>
                             <option value="Discharged">Discharged</option>
                           </select>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                          {info.patientId && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-slate-500">ID:</span>
+                              <span className="text-slate-300 font-medium">{info.patientId}</span>
+                            </span>
+                          )}
+                          {info.weight && (
+                            <span className="flex items-center gap-1">
+                              <span className="text-slate-500">Weight:</span>
+                              <span className="text-slate-300 font-medium">{info.weight}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
                       <button
@@ -1556,7 +1606,7 @@ export default function VetHub() {
         {/* Rounding Sheet Modal */}
         {roundingSheetPatient !== null && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-4xl my-8">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-7xl my-8">
               <div className="p-6 border-b border-slate-700/50">
                 <div className="flex items-center justify-between">
                   <h3 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -1564,6 +1614,13 @@ export default function VetHub() {
                     <span className="text-cyan-400">
                       {patients.find(p => p.id === roundingSheetPatient)?.name}
                     </span>
+                    <button
+                      onClick={() => handleCopySingleRoundingLine(roundingSheetPatient)}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-1"
+                      title="Copy this patient's rounding line"
+                    >
+                      📋 Copy Line
+                    </button>
                   </h3>
                   <button
                     onClick={() => setRoundingSheetPatient(null)}
@@ -1635,23 +1692,25 @@ export default function VetHub() {
                         </div>
                         <div>
                           <label className="text-xs text-slate-400 uppercase block mb-1">Location</label>
-                          <input
-                            type="text"
-                            value={roundingFormData.location || ''}
+                          <select
+                            value={roundingFormData.location || 'IP'}
                             onChange={(e) => setRoundingFormData({...roundingFormData, location: e.target.value})}
                             className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                            placeholder="IP"
-                          />
+                          >
+                            <option value="IP">IP</option>
+                            <option value="ICU">ICU</option>
+                          </select>
                         </div>
                         <div>
-                          <label className="text-xs text-slate-400 uppercase block mb-1">ICU Criteria</label>
-                          <input
-                            type="text"
-                            value={roundingFormData.icuCriteria || ''}
+                          <label className="text-xs text-slate-400 uppercase block mb-1">ICU</label>
+                          <select
+                            value={roundingFormData.icuCriteria || 'No'}
                             onChange={(e) => setRoundingFormData({...roundingFormData, icuCriteria: e.target.value})}
                             className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                            placeholder="n/a"
-                          />
+                          >
+                            <option value="No">No</option>
+                            <option value="Yes">Yes</option>
+                          </select>
                         </div>
                       </div>
 
@@ -1678,7 +1737,7 @@ export default function VetHub() {
                             onChange={(e) => setRoundingFormData({...roundingFormData, problems: e.target.value})}
                             className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                             placeholder="Type or select from dropdown"
-                            rows={4}
+                            rows={6}
                           />
                           <datalist id="common-problems">
                             {commonProblems.map(p => <option key={p} value={p} />)}
@@ -1712,7 +1771,7 @@ export default function VetHub() {
                         <textarea
                           value={roundingFormData.diagnosticFindings || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, diagnosticFindings: e.target.value})}
-                          rows={5}
+                          rows={8}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or use 🩸/📷 icons to paste & parse"
                         />
@@ -1734,7 +1793,7 @@ export default function VetHub() {
                         <textarea
                           value={roundingFormData.therapeutics || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, therapeutics: e.target.value})}
-                          rows={5}
+                          rows={8}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or use 💊 icon to paste & format"
                         />
@@ -1783,7 +1842,7 @@ export default function VetHub() {
                           onChange={(e) => setRoundingFormData({...roundingFormData, overnightDx: e.target.value})}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="none"
-                          rows={3}
+                          rows={5}
                         />
                       </div>
 
@@ -1796,7 +1855,7 @@ export default function VetHub() {
                           onChange={(e) => setRoundingFormData({...roundingFormData, concerns: e.target.value})}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or select from dropdown"
-                          rows={3}
+                          rows={5}
                         />
                         <datalist id="common-concerns">
                           {commonConcerns.map(c => <option key={c} value={c} />)}
@@ -1812,7 +1871,7 @@ export default function VetHub() {
                           onChange={(e) => setRoundingFormData({...roundingFormData, comments: e.target.value})}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                           placeholder="Type or select common comment"
-                          rows={3}
+                          rows={5}
                         />
                         <datalist id="common-comments">
                           {commonComments.map(c => <option key={c} value={c} />)}
