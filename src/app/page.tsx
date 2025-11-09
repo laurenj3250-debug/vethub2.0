@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, BrainCircuit, BookOpen, GraduationCap, Download } from 'lucide-react';
-import Link from 'next/link';
+import { Plus, Trash2, Clock, X, ChevronDown, ChevronUp, ChevronRight, Search, HelpCircle, GripVertical, Table, FileText, Sparkles, Calendar, Sun, Moon, Copy, Download } from 'lucide-react';
 import { useUser, useAuth, useFirestore, useMemoFirebase, useCollection } from '@/firebase';
 import {
   DndContext,
@@ -1630,27 +1629,6 @@ export default function VetPatientTracker() {
                 </a>
               </div>
 
-              <Link
-                href="/mri-report-builder"
-                className="px-3 py-1.5 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg hover:from-indigo-600 hover:to-blue-600 flex items-center gap-1.5 transition shadow-sm text-xs"
-              >
-                <BrainCircuit size={14} />
-                MRI Builder
-              </Link>
-               <Link
-                href="/reference"
-                className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-lg hover:from-orange-600 hover:to-yellow-600 flex items-center gap-1.5 transition shadow-sm text-xs"
-              >
-                <BookOpen size={14} />
-                Reference
-              </Link>
-              <Link
-                href="/residency-logging"
-                className="px-3 py-1.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 flex items-center gap-1.5 transition shadow-sm text-xs"
-              >
-                <GraduationCap size={14} />
-                Residency
-              </Link>
               <button
                 onClick={() => setShowKeyboardHelp(true)}
                 className="p-1.5 rounded-md text-gray-500 hover:bg-gray-100 transition"
