@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, Mic, MicOff } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -71,8 +71,8 @@ export default function VetHub() {
   // SOAP Builder state
   const [showSOAPBuilder, setShowSOAPBuilder] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['patient', 'history', 'neuro']);
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [showPasteModal, setShowPasteModal] = useState(false);
+  const [pastedText, setPastedText] = useState('');
   const [soapData, setSOAPData] = useState<any>({
     // Patient info
     name: '',
@@ -142,64 +142,37 @@ export default function VetHub() {
     }
   };
 
-  // Voice recording functions for SOAP Builder
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const audioChunks: Blob[] = [];
-
-      recorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
-
-        // Send to AI for transcription and field extraction
-        try {
-          toast({ title: '🎤 Processing recording...' });
-
-          const formData = new FormData();
-          formData.append('audio', audioBlob);
-          formData.append('currentData', JSON.stringify(soapData));
-
-          const response = await fetch('/api/transcribe-soap', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!response.ok) throw new Error('Transcription failed');
-
-          const result = await response.json();
-
-          // Merge AI-extracted data with existing soapData
-          setSOAPData({ ...soapData, ...result.extractedData });
-          toast({ title: '✅ Recording processed!', description: result.transcription.slice(0, 50) + '...' });
-        } catch (error) {
-          console.error('Transcription error:', error);
-          toast({ variant: 'destructive', title: 'Error processing recording' });
-        }
-      };
-
-      recorder.start();
-      setMediaRecorder(recorder);
-      setIsRecording(true);
-      toast({ title: '🎙️ Recording started...' });
-    } catch (error) {
-      console.error('Recording error:', error);
-      toast({ variant: 'destructive', title: 'Microphone access denied' });
+  // AI Parse function for SOAP Builder
+  const handlePasteAndParse = async () => {
+    if (!pastedText.trim()) {
+      toast({ variant: 'destructive', title: 'Please paste some text first' });
+      return;
     }
-  };
 
-  const stopRecording = () => {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
-      setIsRecording(false);
-      setMediaRecorder(null);
+    try {
+      toast({ title: '🤖 AI parsing your notes...' });
+
+      const response = await fetch('/api/parse-soap-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: pastedText,
+          currentData: soapData,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Parsing failed');
+
+      const result = await response.json();
+
+      // Merge AI-extracted data with existing soapData
+      setSOAPData({ ...soapData, ...result.extractedData });
+      toast({ title: '✅ Fields populated!', description: `Updated ${Object.keys(result.extractedData).length} fields` });
+      setShowPasteModal(false);
+      setPastedText('');
+    } catch (error) {
+      console.error('Parse error:', error);
+      toast({ variant: 'destructive', title: 'Error parsing text', description: 'AI parsing failed. Please try again.' });
     }
   };
 
@@ -3179,30 +3152,11 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       Manage Templates
                     </button>
                     <button
-                      onClick={() => {
-                        if (isRecording) {
-                          stopRecording();
-                        } else {
-                          startRecording();
-                        }
-                      }}
-                      className={`px-3 py-1 text-xs font-bold rounded flex items-center gap-1 ${
-                        isRecording
-                          ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
-                          : 'bg-blue-600 hover:bg-blue-500 text-white'
-                      }`}
+                      onClick={() => setShowPasteModal(true)}
+                      className="px-3 py-1 text-xs font-bold rounded flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white"
                     >
-                      {isRecording ? (
-                        <>
-                          <MicOff size={14} />
-                          Stop
-                        </>
-                      ) : (
-                        <>
-                          <Mic size={14} />
-                          Record
-                        </>
-                      )}
+                      <Sparkles size={14} />
+                      Paste & Parse
                     </button>
                     <button
                       onClick={() => {
@@ -4308,6 +4262,66 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}${soapData.visitType ===
                     </pre>
                   </div>
 
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Paste & Parse Modal */}
+        {showPasteModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-2xl">
+              <div className="p-4 border-b border-slate-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
+                    <Sparkles size={24} />
+                    Paste & Parse with AI
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowPasteModal(false);
+                      setPastedText('');
+                    }}
+                    className="text-slate-400 hover:text-white transition text-xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-sm text-slate-400 mt-2">
+                  Paste your transcribed notes below. AI will automatically fill in the SOAP fields.
+                </p>
+              </div>
+
+              <div className="p-4">
+                <textarea
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                  placeholder="Paste your transcribed notes here...
+
+Example:
+'Mental status BAR, gait shows ambulatory tetraparesis with general proprioceptive ataxia, cranial nerves all normal, postural reactions delayed in all four limbs, neurolocalization is T3-L3 myelopathy, differentials include IVDD versus FCE'"
+                  className="w-full h-64 px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+
+                <div className="flex items-center justify-between mt-4">
+                  <button
+                    onClick={() => {
+                      setPastedText('');
+                    }}
+                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded font-bold transition"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={handlePasteAndParse}
+                    disabled={!pastedText.trim()}
+                    className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded font-bold transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Sparkles size={16} />
+                    Parse with AI
+                  </button>
                 </div>
               </div>
             </div>
