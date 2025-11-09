@@ -75,6 +75,7 @@ export default function VetHub() {
     breed: '',
     species: 'Canine',
     reasonForVisit: '',
+    visitType: 'recheck', // 'recheck' or 'initial'
     // History sections
     lastVisit: '',
     currentHistory: '',
@@ -84,6 +85,29 @@ export default function VetHub() {
     lastMRI: '',
     medications: '',
     prevDiagnostics: '',
+    // For Initial Consultation only
+    whyHereToday: '',
+    painfulVocalizing: 'None',
+    diet: '',
+    allergies: 'none',
+    otherPets: '',
+    indoorOutdoor: 'indoor',
+    trauma: 'No',
+    travel: 'No',
+    heartwormPrev: 'Yes',
+    fleaTick: 'Yes',
+    vaccinesUTD: 'Yes',
+    otherMedicalHistory: '',
+    // Physical Exam fields
+    peENT: '',
+    peOral: '',
+    pePLN: '',
+    peCV: '',
+    peResp: '',
+    peAbd: '',
+    peRectal: '',
+    peMS: '',
+    peInteg: '',
     // Neuro Exam
     mentalStatus: 'BAR',
     gait: '',
@@ -2927,6 +2951,33 @@ Please schedule a recheck appointment with the Neurology department to have stap
                     <option value="discospondylitis">Discospondylitis</option>
                   </select>
                 </div>
+
+                {/* Visit Type Selector */}
+                <div className="mt-4">
+                  <label className="block text-sm font-bold text-slate-300 mb-2">Visit Type:</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        value="recheck"
+                        checked={soapData.visitType === 'recheck'}
+                        onChange={(e) => setSOAPData({ ...soapData, visitType: e.target.value })}
+                        className="text-purple-500"
+                      />
+                      <span className="text-white">Recheck</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        value="initial"
+                        checked={soapData.visitType === 'initial'}
+                        onChange={(e) => setSOAPData({ ...soapData, visitType: e.target.value })}
+                        className="text-purple-500"
+                      />
+                      <span className="text-white">Initial Consultation</span>
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="p-6 max-h-[70vh] overflow-y-auto">
@@ -3041,6 +3092,60 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       </div>
                     </div>
                   </div>
+
+                  {/* Extended History Section (Initial Consultation Only) */}
+                  {soapData.visitType === 'initial' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Extended History (Initial Consultation)</h3>
+                      <div className="space-y-3">
+                        <textarea
+                          placeholder="Why are you here today?"
+                          value={soapData.whyHereToday}
+                          onChange={(e) => setSOAPData({ ...soapData, whyHereToday: e.target.value })}
+                          rows={2}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <input type="text" placeholder="Painful/vocalizing?" value={soapData.painfulVocalizing} onChange={(e) => setSOAPData({ ...soapData, painfulVocalizing: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                          <input type="text" placeholder="Diet (dry/wet/raw)" value={soapData.diet} onChange={(e) => setSOAPData({ ...soapData, diet: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                          <input type="text" placeholder="Allergies/food sensitivities" value={soapData.allergies} onChange={(e) => setSOAPData({ ...soapData, allergies: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                          <input type="text" placeholder="Other pets" value={soapData.otherPets} onChange={(e) => setSOAPData({ ...soapData, otherPets: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                          <select value={soapData.indoorOutdoor} onChange={(e) => setSOAPData({ ...soapData, indoorOutdoor: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                            <option value="indoor">Indoor</option>
+                            <option value="outdoor">Outdoor</option>
+                            <option value="both">Indoor/Outdoor</option>
+                          </select>
+                          <select value={soapData.trauma} onChange={(e) => setSOAPData({ ...soapData, trauma: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                            <option value="No">Trauma: No</option>
+                            <option value="Yes">Trauma: Yes</option>
+                          </select>
+                          <select value={soapData.travel} onChange={(e) => setSOAPData({ ...soapData, travel: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                            <option value="No">Travel: No</option>
+                            <option value="Yes">Travel: Yes</option>
+                          </select>
+                          <select value={soapData.heartwormPrev} onChange={(e) => setSOAPData({ ...soapData, heartwormPrev: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                            <option value="Yes">Heartworm Prev: Yes</option>
+                            <option value="No">Heartworm Prev: No</option>
+                          </select>
+                          <select value={soapData.fleaTick} onChange={(e) => setSOAPData({ ...soapData, fleaTick: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                            <option value="Yes">Flea/Tick: Yes</option>
+                            <option value="No">Flea/Tick: No</option>
+                          </select>
+                          <select value={soapData.vaccinesUTD} onChange={(e) => setSOAPData({ ...soapData, vaccinesUTD: e.target.value })} className="px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white">
+                            <option value="Yes">Vaccines UTD: Yes</option>
+                            <option value="No">Vaccines UTD: No</option>
+                          </select>
+                        </div>
+                        <textarea
+                          placeholder="Other medical history"
+                          value={soapData.otherMedicalHistory}
+                          onChange={(e) => setSOAPData({ ...soapData, otherMedicalHistory: e.target.value })}
+                          rows={2}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Last MRI Section */}
                   <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
@@ -3178,6 +3283,24 @@ Please schedule a recheck appointment with the Neurology department to have stap
                     </div>
                   </div>
 
+                  {/* Physical Exam Section (Initial Consultation Only) */}
+                  {soapData.visitType === 'initial' && (
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <h3 className="text-xl font-bold text-purple-400 mb-3">Physical Exam</h3>
+                      <div className="space-y-3">
+                        <input type="text" placeholder="EENT: e.g., clear OU/AU, no nasal discharge" value={soapData.peENT} onChange={(e) => setSOAPData({ ...soapData, peENT: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Oral: e.g., pink/moist mm, CRT<2" value={soapData.peOral} onChange={(e) => setSOAPData({ ...soapData, peOral: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="PLN: e.g., wnl" value={soapData.pePLN} onChange={(e) => setSOAPData({ ...soapData, pePLN: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="CV: e.g., no heart murmur noted, regular rhythm" value={soapData.peCV} onChange={(e) => setSOAPData({ ...soapData, peCV: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Resp: e.g., eupneic, clear bronchovesicular sounds" value={soapData.peResp} onChange={(e) => setSOAPData({ ...soapData, peResp: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Abd: e.g., soft/non-painful, no masses noted" value={soapData.peAbd} onChange={(e) => setSOAPData({ ...soapData, peAbd: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Rectal: e.g., unremarkable" value={soapData.peRectal} onChange={(e) => setSOAPData({ ...soapData, peRectal: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="MS: e.g., ambulatory x4, no joint/long bone pain noted" value={soapData.peMS} onChange={(e) => setSOAPData({ ...soapData, peMS: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                        <input type="text" placeholder="Integ: e.g., coat wnl" value={soapData.peInteg} onChange={(e) => setSOAPData({ ...soapData, peInteg: e.target.value })} className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500" />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Progression Section */}
                   <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
                     <h3 className="text-xl font-bold text-purple-400 mb-3">Progression</h3>
@@ -3220,7 +3343,54 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       <h3 className="text-xl font-bold text-emerald-400">Generated SOAP Note</h3>
                       <button
                         onClick={() => {
-                          const output = `**Presenting Problem:**
+                          let output = '';
+                          if (soapData.visitType === 'initial') {
+                            // Initial Consultation Format
+                            output = `**Presenting Problem:**
+${soapData.name}, a ${soapData.age} ${soapData.sex} ${soapData.breed}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit}
+
+**Why are you here today:** ${soapData.whyHereToday}
+**CSVD:** ${soapData.csvd}
+**PU/PD:** ${soapData.pupd}
+**Painful/vocalizing:** ${soapData.painfulVocalizing}
+**Diet (dry/wet/raw):** ${soapData.diet}
+**Allergies/food sensitivities:** ${soapData.allergies}
+**Appetite:** ${soapData.appetite}
+**Other pets:** ${soapData.otherPets}
+**Indoor/outdoor:** ${soapData.indoorOutdoor}
+**Trauma:** ${soapData.trauma}
+**Travel (down south/Canada/California):** ${soapData.travel}
+${soapData.medications ? `**Medications:** ${soapData.medications}` : ''}
+**Heartworm preventative:** ${soapData.heartwormPrev}
+**Flea/Tick:** ${soapData.fleaTick}
+**Vaccines up to date:** ${soapData.vaccinesUTD}
+**Other medical history:** ${soapData.otherMedicalHistory}
+${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}\n` : ''}
+**NEUROLOGIC EXAM**
+**Mental Status**: ${soapData.mentalStatus}
+**Gait & posture**: ${soapData.gait}
+**Cranial nerves**: ${soapData.cranialNerves}
+**Postural reactions**: ${soapData.posturalReactions}
+
+**Spinal reflexes** ${soapData.spinalReflexes}
+**Tone**: ${soapData.tone}
+**Muscle mass**: ${soapData.muscleMass}
+**Nociception**: ${soapData.nociception}
+${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}
+**Physical Exam:**
+**EENT:** ${soapData.peENT}
+**Oral:** ${soapData.peOral}
+**PLN:** ${soapData.pePLN}
+**CV:** ${soapData.peCV}
+**Resp:** ${soapData.peResp}
+**Abd:** ${soapData.peAbd}
+**Rectal:** ${soapData.peRectal}
+**MS:** ${soapData.peMS}
+**Integ:** ${soapData.peInteg}
+${soapData.neurolocalization ? `\n**Neurolocalization:**\n${soapData.neurolocalization}\n` : ''}${soapData.ddx ? `\n**DDx:**\n${soapData.ddx}\n` : ''}${soapData.diagnosticsToday ? `\n**Diagnostics:**\n${soapData.diagnosticsToday}\n` : ''}${soapData.treatments ? `\n**TREATMENTS:**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**OUTCOME:**\n${soapData.discussionChanges}` : ''}`;
+                          } else {
+                            // Recheck Format
+                            output = `**Presenting Problem:**
 ${soapData.name} is a ${soapData.age} ${soapData.sex} ${soapData.breed} who is presented for ${soapData.reasonForVisit}
 ${soapData.lastVisit ? `\n**Last visit**: ${soapData.lastVisit}\n` : ''}
 **Current History:**
@@ -3241,6 +3411,7 @@ ${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.med
 **Muscle mass**: ${soapData.muscleMass}
 **Nociception**: ${soapData.nociception}
 ${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression ? `\n**PROGRESSION**\n${soapData.progression}\n` : ''}${soapData.treatments ? `\n**TREATMENTS**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**DISCUSSION/CHANGES**\n${soapData.discussionChanges}` : ''}`;
+                          }
 
                           navigator.clipboard.writeText(output);
                           toast({ title: 'SOAP note copied to clipboard!' });
@@ -3252,7 +3423,48 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression
                       </button>
                     </div>
                     <pre className="text-slate-200 text-sm whitespace-pre-wrap font-sans bg-slate-800 p-4 rounded-lg overflow-y-auto max-h-96">
-{`**Presenting Problem:**
+{soapData.visitType === 'initial' ? `**Presenting Problem:**
+${soapData.name || '[Name]'}, a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit || '[reason]'}
+
+**Why are you here today:** ${soapData.whyHereToday || '[reason]'}
+**CSVD:** ${soapData.csvd}
+**PU/PD:** ${soapData.pupd}
+**Painful/vocalizing:** ${soapData.painfulVocalizing}
+**Diet (dry/wet/raw):** ${soapData.diet || '[diet]'}
+**Allergies/food sensitivities:** ${soapData.allergies}
+**Appetite:** ${soapData.appetite}
+**Other pets:** ${soapData.otherPets || '[other pets]'}
+**Indoor/outdoor:** ${soapData.indoorOutdoor}
+**Trauma:** ${soapData.trauma}
+**Travel (down south/Canada/California):** ${soapData.travel}
+${soapData.medications ? `**Medications:** ${soapData.medications}` : ''}
+**Heartworm preventative:** ${soapData.heartwormPrev}
+**Flea/Tick:** ${soapData.fleaTick}
+**Vaccines up to date:** ${soapData.vaccinesUTD}
+**Other medical history:** ${soapData.otherMedicalHistory || '[other history]'}
+${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}\n` : ''}
+**NEUROLOGIC EXAM**
+**Mental Status**: ${soapData.mentalStatus}
+**Gait & posture**: ${soapData.gait || '[gait description]'}
+**Cranial nerves**: ${soapData.cranialNerves || '[CN findings]'}
+**Postural reactions**: ${soapData.posturalReactions || '[postural reactions]'}
+
+**Spinal reflexes** ${soapData.spinalReflexes || '[spinal reflexes]'}
+**Tone**: ${soapData.tone || '[tone]'}
+**Muscle mass**: ${soapData.muscleMass || '[muscle mass]'}
+**Nociception**: ${soapData.nociception || '[nociception]'}
+${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}
+**Physical Exam:**
+**EENT:** ${soapData.peENT || '[EENT findings]'}
+**Oral:** ${soapData.peOral || '[oral findings]'}
+**PLN:** ${soapData.pePLN || '[PLN findings]'}
+**CV:** ${soapData.peCV || '[CV findings]'}
+**Resp:** ${soapData.peResp || '[resp findings]'}
+**Abd:** ${soapData.peAbd || '[abd findings]'}
+**Rectal:** ${soapData.peRectal || '[rectal findings]'}
+**MS:** ${soapData.peMS || '[MS findings]'}
+**Integ:** ${soapData.peInteg || '[integ findings]'}
+${soapData.neurolocalization ? `\n**Neurolocalization:**\n${soapData.neurolocalization}\n` : ''}${soapData.ddx ? `\n**DDx:**\n${soapData.ddx}\n` : ''}${soapData.diagnosticsToday ? `\n**Diagnostics:**\n${soapData.diagnosticsToday}\n` : ''}${soapData.treatments ? `\n**TREATMENTS:**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**OUTCOME:**\n${soapData.discussionChanges}` : ''}` : `**Presenting Problem:**
 ${soapData.name || '[Name]'} is a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'} who is presented for ${soapData.reasonForVisit || '[reason]'}
 ${soapData.lastVisit ? `\n**Last visit**: ${soapData.lastVisit}\n` : ''}
 **Current History:**
