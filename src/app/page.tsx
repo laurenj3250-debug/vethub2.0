@@ -2780,10 +2780,12 @@ export default function VetPatientTracker() {
                                   </div>
                                   
 
-                                  {/* Therapeutics chip system */}
-                                  <div className="md:col-span-2 p-2 bg-cyan-50/70 border border-cyan-200 rounded-lg">
-                                    <h5 className="text-xs font-bold text-cyan-900 mb-1">Therapeutics</h5>
-                                    <div className="flex flex-wrap gap-1 mb-1">
+                                  {/* Therapeutics chip system - IMPROVED VISIBILITY */}
+                                  <div className="md:col-span-2 p-3 bg-cyan-50/70 border border-cyan-200 rounded-lg space-y-2">
+                                    <h5 className="text-sm font-bold text-cyan-900 mb-2">💊 Therapeutics</h5>
+
+                                    {/* Quick-add medication chips - larger and more readable */}
+                                    <div className="flex flex-wrap gap-2">
                                       {(commonMedications || []).slice(0, 10).map((med: any) => (
                                         <div key={med.id} className="group relative">
                                           <button
@@ -2791,20 +2793,22 @@ export default function VetPatientTracker() {
                                               const current = safeStr(patient.roundingData?.therapeutics);
                                               updateRoundingData(patient.id, 'therapeutics', current ? `${current}\n${med.name}` : med.name);
                                             }}
-                                            className="px-1.5 py-0.5 text-[10px] bg-cyan-100 text-cyan-800 rounded-full hover:scale-105 transition"
+                                            className="px-2.5 py-1 text-xs font-medium bg-cyan-100 text-cyan-800 rounded-full hover:bg-cyan-200 hover:scale-105 transition-all shadow-sm"
                                           >
                                             + {med.name}
                                           </button>
                                           <button
                                             onClick={() => deleteCommonItem('commonMedications', med.id)}
-                                            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-purple-500 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-purple-500 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-purple-600 transition-all shadow"
                                           >
                                             ×
                                           </button>
                                         </div>
                                       ))}
                                     </div>
-                                    <div className="flex gap-1 mb-1">
+
+                                    {/* Medication dropdown selector */}
+                                    <div className="flex gap-2">
                                        <select
                                           onChange={(e) => {
                                             if (e.target.value) {
@@ -2813,7 +2817,7 @@ export default function VetPatientTracker() {
                                               e.currentTarget.value = '';
                                             }
                                           }}
-                                          className="flex-1 px-1.5 py-0.5 text-[11px] border border-cyan-300 rounded-lg"
+                                          className="flex-1 px-2.5 py-1.5 text-xs border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                                         >
                                           <option value="">Select medication...</option>
                                           {(commonMedications || []).map((med: any) => (
@@ -2821,11 +2825,13 @@ export default function VetPatientTracker() {
                                           ))}
                                         </select>
                                     </div>
-                                    <div className="flex gap-1">
+
+                                    {/* Add new medication to quick list */}
+                                    <div className="flex gap-2">
                                       <input
                                         type="text"
-                                        placeholder="Add to list..."
-                                        className="flex-1 px-1.5 py-0.5 text-[11px] border border-cyan-300 rounded-lg"
+                                        placeholder="Add medication to quick list..."
+                                        className="flex-1 px-2.5 py-1.5 text-xs border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
                                         onKeyDown={(e) => {
                                           const val = e.currentTarget.value.trim();
                                           if (e.key === 'Enter' && val) { addCommonMedication(val); e.currentTarget.value = ''; }
@@ -2836,18 +2842,23 @@ export default function VetPatientTracker() {
                                           const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
                                           if (input.value.trim()) { addCommonMedication(input.value.trim()); input.value = ''; }
                                         }}
-                                        className="px-1.5 py-0.5 bg-cyan-600 text-white text-[10px] rounded hover:bg-cyan-700"
+                                        className="px-3 py-1.5 bg-cyan-600 text-white text-xs font-medium rounded-lg hover:bg-cyan-700 transition-colors shadow-sm"
                                       >
                                         Save
                                       </button>
                                     </div>
-                                    <DebouncedTextarea
-                                      initialValue={safeStr(patient.roundingData?.therapeutics)}
-                                      onCommit={(value) => updateRoundingData(patient.id, 'therapeutics', value)}
-                                      placeholder="Current Therapeutics"
-                                      rows={2}
-                                      className={getRequiredFieldClass(patient, 'therapeutics', 'w-full text-xs p-1.5 border rounded-lg mt-1')}
-                                    />
+
+                                    {/* Current therapeutics text area - larger and more readable */}
+                                    <div>
+                                      <label className="block text-xs font-semibold text-cyan-900 mb-1">Current Medications:</label>
+                                      <DebouncedTextarea
+                                        initialValue={safeStr(patient.roundingData?.therapeutics)}
+                                        onCommit={(value) => updateRoundingData(patient.id, 'therapeutics', value)}
+                                        placeholder="Enter current medications with doses (one per line)"
+                                        rows={4}
+                                        className={getRequiredFieldClass(patient, 'therapeutics', 'w-full text-sm p-2.5 border rounded-lg font-mono leading-relaxed')}
+                                      />
+                                    </div>
                                   </div>
 
                                   {/* Replace IVC / Fluids / CRI */}
