@@ -1203,6 +1203,63 @@ export default function VetHub() {
           />
         </div>
 
+        {/* Hospital-Wide General Tasks */}
+        {(() => {
+          const today = new Date().toISOString().split('T')[0];
+          const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+          if (todayGeneralTasks.length > 0) {
+            return (
+              <div className="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-emerald-700/50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-bold text-emerald-300 flex items-center gap-2">
+                    <ListTodo className="text-emerald-400" size={20} />
+                    Hospital-Wide Tasks (Today)
+                  </h3>
+                  <button
+                    onClick={() => setShowAddGeneralTask(true)}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1"
+                  >
+                    <Plus size={14} />
+                    Add
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {todayGeneralTasks.map((task: any) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-emerald-700/30 hover:border-emerald-500/50 transition group"
+                    >
+                      <button
+                        onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                        className="flex-shrink-0"
+                      >
+                        {task.completed ? (
+                          <CheckCircle2 className="text-green-400" size={18} />
+                        ) : (
+                          <Circle className="text-slate-600 group-hover:text-emerald-400" size={18} />
+                        )}
+                      </button>
+                      <span
+                        className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                        onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                      >
+                        {task.name}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteGeneralTask(task.id)}
+                        className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
         {/* Patients */}
         {patientsLoading ? (
           <div className="flex items-center justify-center py-12">
