@@ -11,6 +11,7 @@ import {
 } from '@/firebase/non-blocking-updates';
 import { collection, doc, query, getDocs, writeBatch } from 'firebase/firestore';
 import { getDischargeMedsByWeight, type DischargeMedGroup } from '@/lib/discharge-meds';
+import DeduplicateData from '@/components/DeduplicateData';
 
 
 const DischargeCocktailCalculator = () => {
@@ -175,11 +176,18 @@ export default function VetReferenceGuide() {
       return;
     }
 
-    dataInitialized.current = true; 
+    // Check if ANY data exists - if so, don't seed
+    const hasAnyData = workups.length > 0 || medicationCategories.length > 0 || normalValues.length > 0 || quickTips.length > 0;
+    if (hasAnyData) {
+      dataInitialized.current = true;
+      return;
+    }
+
+    dataInitialized.current = true;
 
     const cleanupAndSeed = async () => {
         const batch = writeBatch(firestore);
-        
+
         // --- Workups ---
         if (workups.length === 0) {
             const defaultWorkups = [
@@ -375,6 +383,9 @@ export default function VetReferenceGuide() {
             )}
           </div>
         </div>
+
+        {/* Data Cleanup Tool */}
+        <DeduplicateData />
 
         {/* Discharge Cocktail Calculator */}
         <DischargeCocktailCalculator />
