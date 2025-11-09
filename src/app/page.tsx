@@ -62,6 +62,7 @@ export default function VetHub() {
   });
   const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', index: number} | null>(null);
   const [newReferenceItem, setNewReferenceItem] = useState<any>({});
+  const [cocktailWeight, setCocktailWeight] = useState('');
 
   // Calculate task stats (today only)
   const taskStats = useMemo(() => {
@@ -2443,6 +2444,296 @@ export default function VetHub() {
                           )}
                         </div>
                       ))}
+                  </div>
+                </div>
+
+                {/* Cocktail Calculator Section */}
+                <div>
+                  <h4 className="text-xl font-bold text-pink-400 flex items-center gap-2 mb-3">
+                    🧪 Discharge Cocktail Calculator
+                  </h4>
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <div className="mb-4">
+                      <label className="block text-sm font-bold text-slate-300 mb-2">Patient Weight (kg)</label>
+                      <input
+                        type="number"
+                        value={cocktailWeight}
+                        onChange={(e) => setCocktailWeight(e.target.value)}
+                        placeholder="Enter weight in kg..."
+                        className="w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-pink-500"
+                        step="0.1"
+                      />
+                    </div>
+
+                    {cocktailWeight && (() => {
+                      const weight = parseFloat(cocktailWeight);
+                      let protocol = '';
+
+                      if (weight < 7) {
+                        protocol = `<7kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 1/2 tablet by mouth every 12 hours for 7 days, then give 1/2 tablet by mouth every 24 hours for 7 days, then give 1/2 tablet by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 10mg tablets - Give 1/2 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1/4 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 3.8mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsule by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 3.8mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+5) Hemp complete oil - Give 0.1mL by mouth every 12 hours until otherwise advised.
+   **Next dose due at 8pm tonight**
+
+6) Clavamox 62.5mg tablets - Give 1 tablet by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+6) Clavamox 62.5mg tablets - Give 1.5 tablets by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 7 && weight <= 9) {
+                        protocol = `7-9kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 1 tablet by mouth every 12 hours for 7 days, then give 1 tablet by mouth every 24 hours for 7 days, then give 1 tablet by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 10mg tablets - Give 1/2 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1/4 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 3.8mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 3.8mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+5) Hemp complete oil - Give 0.1mL by mouth every 12 hours until otherwise advised.
+   **Next dose due at 8pm tonight**
+
+6) Clavamox 250mg Tablets - Give 1/2 tablet every 12 hours until gone
+   **Next dose due at 8pm tonight**
+
+6) Clavamox 125mg Tablets - Give 1 tablet every 12 hours until gone
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 10 && weight <= 12) {
+                        protocol = `10-12kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 1 tablet by mouth every 12 hours for 7 days, then give 1 tablet by mouth every 24 hours for 7 days, then give 1 tablet by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1/2 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 11.3mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsule by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+5) Hemp complete oil - Give 0.1mL by mouth every 12 hours until otherwise advised.
+   **Next dose due at 8pm tonight**
+
+6) Cephalexin 250mg capsules - Give 1 capsule by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.
+
+Please schedule a recheck appointment with the Neurology department to have staples removed in 10-14 days from now`;
+                      } else if (weight >= 13 && weight <= 15) {
+                        protocol = `13-15kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 1.5 tablets by mouth every 12 hours for 7 days, then give 1.5 tablets by mouth every 24 hours for 7 days, then give 1.5 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1/2 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 11.3mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsule by mouth every 12 hours until otherwise advised. (mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+5) Hemp complete oil - Give 0.4mL by mouth every 12 hours for 7 days, then give 0.2mL by mouth every 12 hours until otherwise advised.
+   **Next dose due at 8pm tonight**
+
+6) Cephalexin 250mg tablets - Give 1 tablet by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 16 && weight <= 20) {
+                        protocol = `16-20kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 1.5 tablets by mouth every 12 hours for 7 days, then give 1.5 tablets by mouth every 24 hours for 7 days, then give 1.5 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tonight**
+
+3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1/2 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 11.3mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+5) Hemp complete oil - Give 0.4mL by mouth every 12 hours for 7 days, then give 0.2mL by mouth every 12 hours until otherwise advised.
+   **Next dose due at 8pm tonight**
+
+6) Cephalexin 250mg capsule - Give 1 capsule by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 21 && weight <= 26) {
+                        protocol = `21-26kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 2 tablets by mouth every 12 hours for 7 days, then give 2 tablets by mouth every 24 hours for 7 days, then give 2 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 100mg capsules - Give 1-2 capsules by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 11.3mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+6) Cephalexin 500mg capsule - Give 1 capsule by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+6) Clavamox 375mg tablet - Give 1 tablet by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 27 && weight <= 30) {
+                        protocol = `27-30kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 2 tablets by mouth every 12 hours for 7 days, then give 2 tablets by mouth every 24 hours for 7 days, then give 2 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 20mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 100mg capsules - Give 1-2 capsules by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 28mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 28mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+6) Clavamox 375mg tablet - Give 1 tablet by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 31 && weight <= 39) {
+                        protocol = `>30kg DISCHARGE MEDICATIONS:
+
+1) Prednisone 5mg tablets - Give 2.5 tablets by mouth every 12 hours for 7 days, then give 2.5 tablets by mouth every 24 hours for 7 days, then give 2.5 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
+   **Next dose due at 8pm tonight**
+
+2) Famotidine 20mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
+   **Next dose due at 8am tomorrow morning**
+
+3) Gabapentin 100mg capsules - Give 1-2 capsules by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+4) Tramadol 50mg tablets - Give 1.5-2 tablets by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
+   **Next dose due at 4pm tonight**
+
+5) Hemp 28mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 28mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**
+
+6) Cephalexin 500mg capsule - Give 2 capsules by mouth every 12 hours until finished. Give with food.
+   **Next dose due at 8pm tonight**
+
+7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
+                      } else if (weight >= 40 && weight <= 54) {
+                        protocol = `40-54kg DISCHARGE MEDICATIONS:
+
+5) Hemp 37.5mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 37.5mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**`;
+                      } else if (weight >= 55) {
+                        protocol = `>55kg DISCHARGE MEDICATIONS:
+
+5) Hemp 37.5mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
+   **Next dose due at 8pm tonight**
+
+5) Hemp 37.5mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
+   **Next dose due at 8pm tonight**`;
+                      }
+
+                      return (
+                        <div className="bg-slate-800 border border-pink-500/30 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-bold text-pink-300">Discharge Protocol for {weight}kg</h5>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(protocol);
+                                toast({ title: '✅ Protocol copied to clipboard!' });
+                              }}
+                              className="px-3 py-1 bg-pink-600 hover:bg-pink-500 text-white rounded text-sm font-bold transition"
+                            >
+                              📋 Copy
+                            </button>
+                          </div>
+                          <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans overflow-y-auto max-h-96">{protocol}</pre>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
