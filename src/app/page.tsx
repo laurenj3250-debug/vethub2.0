@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -41,6 +41,24 @@ export default function VetHub() {
   const [showAddPatientTaskFromOverview, setShowAddPatientTaskFromOverview] = useState(false);
   const [newPatientTaskName, setNewPatientTaskName] = useState('');
   const [selectedPatientForTask, setSelectedPatientForTask] = useState<number | null>(null);
+  const [showQuickReference, setShowQuickReference] = useState(false);
+  const [referenceSearch, setReferenceSearch] = useState('');
+  const [referenceData, setReferenceData] = useState<any>({
+    medications: [
+      { name: 'Gabapentin', dose: '10-20 mg/kg PO q8-12h', notes: 'Neuropathic pain, seizures' },
+      { name: 'Metronidazole', dose: '15 mg/kg PO BID', notes: 'GI, anaerobic infections' },
+      { name: 'Maropitant (Cerenia)', dose: '1 mg/kg SQ/PO SID', notes: 'Anti-emetic' },
+      { name: 'Fentanyl CRI', dose: '3-5 mcg/kg/hr', notes: 'Severe pain management' },
+      { name: 'Levetiracetam (Keppra)', dose: '20 mg/kg PO/IV TID', notes: 'Seizure control' },
+    ],
+    protocols: [
+      { name: 'Status Epilepticus', content: '1. Diazepam 0.5-1mg/kg IV\n2. If continues: Levetiracetam 60mg/kg IV over 15min\n3. CRI: Levetiracetam 2-4mg/kg/hr + Propofol 0.1-0.6mg/kg/min' },
+      { name: 'MRI Pre-op', content: '1. NPO 12 hours\n2. Pre-med: Acepromazine + Butorphanol\n3. Propofol induction\n4. Sevoflurane maintenance' },
+      { name: 'IVDD Medical Management', content: '1. Strict cage rest 4-6 weeks\n2. NSAIDs (Carprofen 2.2mg/kg BID)\n3. Gabapentin 10mg/kg TID\n4. Consider steroids if acute' },
+    ]
+  });
+  const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', index: number} | null>(null);
+  const [newReferenceItem, setNewReferenceItem] = useState<any>({});
 
   // Calculate task stats (today only)
   const taskStats = useMemo(() => {
@@ -666,6 +684,13 @@ export default function VetHub() {
             >
               <Brain size={18} />
               MRI Schedule
+            </button>
+            <button
+              onClick={() => setShowQuickReference(!showQuickReference)}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <BookOpen size={18} />
+              Quick Reference
             </button>
             <button
               onClick={logout}
@@ -2092,6 +2117,224 @@ export default function VetHub() {
                   <Plus size={20} />
                   Add Task to Patient
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Reference Modal */}
+        {showQuickReference && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-6xl my-8">
+              <div className="p-6 border-b border-slate-700/50">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <BookOpen className="text-pink-400" size={28} />
+                    Quick Reference - Meds & Protocols
+                  </h3>
+                  <button
+                    onClick={() => setShowQuickReference(false)}
+                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    value={referenceSearch}
+                    onChange={(e) => setReferenceSearch(e.target.value)}
+                    placeholder="🔍 Search medications or protocols..."
+                    className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                  />
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                {/* Medications Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
+                      💊 Common Medications
+                    </h4>
+                    <button
+                      onClick={() => {
+                        const newMeds = [...referenceData.medications, { name: '', dose: '', notes: '' }];
+                        setReferenceData({ ...referenceData, medications: newMeds });
+                        setEditingReference({ type: 'medications', index: newMeds.length - 1 });
+                      }}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition"
+                    >
+                      + Add Medication
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {referenceData.medications
+                      .filter((med: any) =>
+                        !referenceSearch ||
+                        med.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
+                        med.dose.toLowerCase().includes(referenceSearch.toLowerCase()) ||
+                        med.notes.toLowerCase().includes(referenceSearch.toLowerCase())
+                      )
+                      .map((med: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/50 transition"
+                        >
+                          {editingReference?.type === 'medications' && editingReference.index === idx ? (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={med.name}
+                                onChange={(e) => {
+                                  const updated = [...referenceData.medications];
+                                  updated[idx].name = e.target.value;
+                                  setReferenceData({ ...referenceData, medications: updated });
+                                }}
+                                placeholder="Medication name"
+                                className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                              />
+                              <input
+                                type="text"
+                                value={med.dose}
+                                onChange={(e) => {
+                                  const updated = [...referenceData.medications];
+                                  updated[idx].dose = e.target.value;
+                                  setReferenceData({ ...referenceData, medications: updated });
+                                }}
+                                placeholder="Dose (e.g., 10-20 mg/kg PO BID)"
+                                className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                              />
+                              <input
+                                type="text"
+                                value={med.notes}
+                                onChange={(e) => {
+                                  const updated = [...referenceData.medications];
+                                  updated[idx].notes = e.target.value;
+                                  setReferenceData({ ...referenceData, medications: updated });
+                                }}
+                                placeholder="Notes/indications"
+                                className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setEditingReference(null)}
+                                  className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold transition"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const updated = referenceData.medications.filter((_: any, i: number) => i !== idx);
+                                    setReferenceData({ ...referenceData, medications: updated });
+                                    setEditingReference(null);
+                                  }}
+                                  className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => setEditingReference({ type: 'medications', index: idx })}
+                              className="cursor-pointer"
+                            >
+                              <h5 className="font-bold text-white text-sm mb-1">{med.name}</h5>
+                              <p className="text-emerald-300 text-xs mb-1">📏 {med.dose}</p>
+                              <p className="text-slate-400 text-xs">{med.notes}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Protocols Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                      📋 Protocols & Procedures
+                    </h4>
+                    <button
+                      onClick={() => {
+                        const newProtocols = [...referenceData.protocols, { name: '', content: '' }];
+                        setReferenceData({ ...referenceData, protocols: newProtocols });
+                        setEditingReference({ type: 'protocols', index: newProtocols.length - 1 });
+                      }}
+                      className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold transition"
+                    >
+                      + Add Protocol
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {referenceData.protocols
+                      .filter((protocol: any) =>
+                        !referenceSearch ||
+                        protocol.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
+                        protocol.content.toLowerCase().includes(referenceSearch.toLowerCase())
+                      )
+                      .map((protocol: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-cyan-500/50 transition"
+                        >
+                          {editingReference?.type === 'protocols' && editingReference.index === idx ? (
+                            <div className="space-y-2">
+                              <input
+                                type="text"
+                                value={protocol.name}
+                                onChange={(e) => {
+                                  const updated = [...referenceData.protocols];
+                                  updated[idx].name = e.target.value;
+                                  setReferenceData({ ...referenceData, protocols: updated });
+                                }}
+                                placeholder="Protocol name"
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                              />
+                              <textarea
+                                value={protocol.content}
+                                onChange={(e) => {
+                                  const updated = [...referenceData.protocols];
+                                  updated[idx].content = e.target.value;
+                                  setReferenceData({ ...referenceData, protocols: updated });
+                                }}
+                                placeholder="Protocol steps/details..."
+                                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
+                                rows={6}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setEditingReference(null)}
+                                  className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-sm font-bold transition"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const updated = referenceData.protocols.filter((_: any, i: number) => i !== idx);
+                                    setReferenceData({ ...referenceData, protocols: updated });
+                                    setEditingReference(null);
+                                  }}
+                                  className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => setEditingReference({ type: 'protocols', index: idx })}
+                              className="cursor-pointer"
+                            >
+                              <h5 className="font-bold text-white text-base mb-2">{protocol.name}</h5>
+                              <pre className="text-slate-300 text-sm whitespace-pre-wrap font-sans">{protocol.content}</pre>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
