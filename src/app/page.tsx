@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth as useApiAuth, usePatients, useCommonItems } from '@/hooks/use-api';
+import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet } from 'lucide-react';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
   const { patients, isLoading: patientsLoading, refetch } = usePatients();
+  const { tasks: generalTasks, refetch: refetchGeneralTasks } = useGeneralTasks();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
@@ -35,20 +36,33 @@ export default function VetHub() {
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
   const [roundingFormData, setRoundingFormData] = useState<any>({});
   const [showMedicationSelector, setShowMedicationSelector] = useState<number | null>(null);
+  const [newGeneralTaskName, setNewGeneralTaskName] = useState('');
+  const [showAddGeneralTask, setShowAddGeneralTask] = useState(false);
+  const [showAddPatientTaskFromOverview, setShowAddPatientTaskFromOverview] = useState(false);
+  const [newPatientTaskName, setNewPatientTaskName] = useState('');
+  const [selectedPatientForTask, setSelectedPatientForTask] = useState<number | null>(null);
 
   // Calculate task stats (today only)
   const taskStats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     let total = 0;
     let completed = 0;
+
+    // Count patient tasks
     patients.forEach(patient => {
       const tasks = patient.tasks || [];
       const todayTasks = tasks.filter((t: any) => t.date === today);
       total += todayTasks.length;
       completed += todayTasks.filter((t: any) => t.completed).length;
     });
+
+    // Count general tasks
+    const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+    total += todayGeneralTasks.length;
+    completed += todayGeneralTasks.filter((t: any) => t.completed).length;
+
     return { total, completed, remaining: total - completed };
-  }, [patients]);
+  }, [patients, generalTasks]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +206,26 @@ export default function VetHub() {
     try {
       await apiClient.updatePatient(String(patientId), { status: newStatus });
       toast({ title: `✅ Status updated to ${newStatus}` });
+
+      // Auto-create discharge instruction task when status changes to "Discharging"
+      if (newStatus === 'Discharging') {
+        const patient = patients.find(p => p.id === patientId);
+        const today = new Date().toISOString().split('T')[0];
+        const existingTasks = patient?.tasks || [];
+        const hasDischargeTask = existingTasks.some((t: any) =>
+          t.name === 'Discharge Instructions' && t.date === today
+        );
+
+        if (!hasDischargeTask) {
+          await apiClient.createTask(patientId, {
+            name: 'Discharge Instructions',
+            completed: false,
+            date: today,
+          });
+          toast({ title: '📋 Added: Discharge Instructions task' });
+        }
+      }
+
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
@@ -232,6 +266,63 @@ export default function VetHub() {
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to save rounding data' });
+    }
+  };
+
+  const handleAddGeneralTask = async () => {
+    if (!newGeneralTaskName.trim()) return;
+
+    try {
+      await apiClient.createGeneralTask({
+        name: newGeneralTaskName,
+        completed: false,
+        date: new Date().toISOString().split('T')[0],
+      });
+      toast({ title: `✅ Added general task: ${newGeneralTaskName}` });
+      setNewGeneralTaskName('');
+      setShowAddGeneralTask(false);
+      refetchGeneralTasks();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add general task' });
+    }
+  };
+
+  const handleToggleGeneralTask = async (taskId: number, currentStatus: boolean) => {
+    try {
+      await apiClient.updateGeneralTask(String(taskId), { completed: !currentStatus });
+      refetchGeneralTasks();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
+    }
+  };
+
+  const handleDeleteGeneralTask = async (taskId: number) => {
+    try {
+      await apiClient.deleteGeneralTask(String(taskId));
+      toast({ title: '🗑️ General task deleted' });
+      refetchGeneralTasks();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
+    }
+  };
+
+  const handleAddPatientTaskFromOverview = async () => {
+    if (!newPatientTaskName.trim() || !selectedPatientForTask) return;
+
+    try {
+      await apiClient.createTask(selectedPatientForTask, {
+        name: newPatientTaskName,
+        completed: false,
+        date: new Date().toISOString().split('T')[0],
+      });
+      const patient = patients.find(p => p.id === selectedPatientForTask);
+      toast({ title: `✅ Added task to ${patient?.name}: ${newPatientTaskName}` });
+      setNewPatientTaskName('');
+      setSelectedPatientForTask(null);
+      setShowAddPatientTaskFromOverview(false);
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add patient task' });
     }
   };
 
@@ -562,6 +653,20 @@ export default function VetHub() {
               </h2>
               <div className="flex gap-2">
                 <button
+                  onClick={() => setShowAddGeneralTask(true)}
+                  className="px-3 py-1.5 rounded-lg font-bold text-sm bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  General Task
+                </button>
+                <button
+                  onClick={() => setShowAddPatientTaskFromOverview(true)}
+                  className="px-3 py-1.5 rounded-lg font-bold text-sm bg-cyan-600 hover:bg-cyan-500 text-white transition flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  Patient Task
+                </button>
+                <button
                   onClick={() => setTaskViewMode('by-patient')}
                   className={`px-3 py-1.5 rounded-lg font-bold text-sm transition ${
                     taskViewMode === 'by-patient'
@@ -586,6 +691,52 @@ export default function VetHub() {
 
             {taskViewMode === 'by-patient' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {/* General/Hospital-wide Tasks */}
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+                  if (todayGeneralTasks.length > 0) {
+                    return (
+                      <div className="bg-emerald-900/30 rounded-lg p-2 border border-emerald-700/50">
+                        <h3 className="text-emerald-300 font-bold mb-1.5 text-sm">Hospital-Wide / General</h3>
+                        <div className="space-y-1">
+                          {todayGeneralTasks.map((task: any) => (
+                            <div
+                              key={task.id}
+                              className="flex items-center gap-1.5 text-xs group"
+                            >
+                              <button
+                                onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                                className="flex-shrink-0"
+                              >
+                                {task.completed ? (
+                                  <CheckCircle2 className="text-green-400" size={14} />
+                                ) : (
+                                  <Circle className="text-slate-600 group-hover:text-emerald-400" size={14} />
+                                )}
+                              </button>
+                              <span
+                                className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
+                                onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                              >
+                                {task.name}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteGeneralTask(task.id)}
+                                className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 rounded transition opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Patient Tasks */}
                 {patients.map(patient => {
                   const today = new Date().toISOString().split('T')[0];
                   const tasks = (patient.tasks || []).filter((t: any) => t.date === today);
@@ -1705,6 +1856,125 @@ export default function VetHub() {
                       Add Patient with Claude AI
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add General Task Modal */}
+        {showAddGeneralTask && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-md w-full">
+              <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-t-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ListTodo className="text-white" size={24} />
+                    <span className="text-white font-bold text-lg">Add General Task</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowAddGeneralTask(false);
+                      setNewGeneralTaskName('');
+                    }}
+                    className="p-2 text-white hover:bg-emerald-700 rounded-lg transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <input
+                  type="text"
+                  value={newGeneralTaskName}
+                  onChange={(e) => setNewGeneralTaskName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newGeneralTaskName.trim()) {
+                      handleAddGeneralTask();
+                    }
+                  }}
+                  placeholder="Enter task name..."
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  autoFocus
+                />
+
+                <button
+                  onClick={handleAddGeneralTask}
+                  disabled={!newGeneralTaskName.trim()}
+                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                >
+                  <Plus size={20} />
+                  Add General Task
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Patient Task from Overview Modal */}
+        {showAddPatientTaskFromOverview && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-md w-full">
+              <div className="bg-gradient-to-r from-cyan-600 to-cyan-500 rounded-t-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ListTodo className="text-white" size={24} />
+                    <span className="text-white font-bold text-lg">Add Patient Task</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowAddPatientTaskFromOverview(false);
+                      setNewPatientTaskName('');
+                      setSelectedPatientForTask(null);
+                    }}
+                    className="p-2 text-white hover:bg-cyan-700 rounded-lg transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">Select Patient</label>
+                  <select
+                    value={selectedPatientForTask || ''}
+                    onChange={(e) => setSelectedPatientForTask(Number(e.target.value))}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  >
+                    <option value="">Choose a patient...</option>
+                    {patients.map(patient => (
+                      <option key={patient.id} value={patient.id}>
+                        {patient.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-300 mb-2">Task Name</label>
+                  <input
+                    type="text"
+                    value={newPatientTaskName}
+                    onChange={(e) => setNewPatientTaskName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newPatientTaskName.trim() && selectedPatientForTask) {
+                        handleAddPatientTaskFromOverview();
+                      }
+                    }}
+                    placeholder="Enter task name..."
+                    className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                  />
+                </div>
+
+                <button
+                  onClick={handleAddPatientTaskFromOverview}
+                  disabled={!newPatientTaskName.trim() || !selectedPatientForTask}
+                  className="w-full py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                >
+                  <Plus size={20} />
+                  Add Task to Patient
                 </button>
               </div>
             </div>
