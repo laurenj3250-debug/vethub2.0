@@ -83,8 +83,8 @@ export function usePatients() {
   useEffect(() => {
     fetchPatients(true); // Show loading on initial fetch
 
-    // Poll for updates every 5 seconds (no loading indicator)
-    const interval = setInterval(() => fetchPatients(false), 5000);
+    // Poll for updates every 30 seconds (no loading indicator)
+    const interval = setInterval(() => fetchPatients(false), 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -113,8 +113,8 @@ export function useGeneralTasks() {
   useEffect(() => {
     fetchTasks();
 
-    // Poll for updates every 3 seconds
-    const interval = setInterval(fetchTasks, 3000);
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchTasks, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -148,8 +148,8 @@ export function useCommonItems() {
   useEffect(() => {
     fetchAll();
 
-    // Poll for updates every 5 seconds
-    const interval = setInterval(fetchAll, 5000);
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
   }, []);
 

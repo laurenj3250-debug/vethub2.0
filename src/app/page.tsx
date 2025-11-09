@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, Mic, MicOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -45,6 +45,10 @@ export default function VetHub() {
   const [newPatientTaskName, setNewPatientTaskName] = useState('');
   const [selectedPatientForTask, setSelectedPatientForTask] = useState<number | null>(null);
   const [showQuickReference, setShowQuickReference] = useState(false);
+
+  // Batch operations state
+  const [selectedPatientIds, setSelectedPatientIds] = useState<Set<number>>(new Set());
+  const [showBatchActions, setShowBatchActions] = useState(false);
   const [referenceSearch, setReferenceSearch] = useState('');
   const [referenceData, setReferenceData] = useState<any>({
     medications: [
@@ -67,6 +71,8 @@ export default function VetHub() {
   // SOAP Builder state
   const [showSOAPBuilder, setShowSOAPBuilder] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['patient', 'history', 'neuro']);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [soapData, setSOAPData] = useState<any>({
     // Patient info
     name: '',
@@ -133,6 +139,67 @@ export default function VetHub() {
       return JSON.parse(localStorage.getItem('soapMemory') || '{}');
     } catch {
       return {};
+    }
+  };
+
+  // Voice recording functions for SOAP Builder
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const audioChunks: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+
+        // Send to AI for transcription and field extraction
+        try {
+          toast({ title: '🎤 Processing recording...' });
+
+          const formData = new FormData();
+          formData.append('audio', audioBlob);
+          formData.append('currentData', JSON.stringify(soapData));
+
+          const response = await fetch('/api/transcribe-soap', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error('Transcription failed');
+
+          const result = await response.json();
+
+          // Merge AI-extracted data with existing soapData
+          setSOAPData({ ...soapData, ...result.extractedData });
+          toast({ title: '✅ Recording processed!', description: result.transcription.slice(0, 50) + '...' });
+        } catch (error) {
+          console.error('Transcription error:', error);
+          toast({ variant: 'destructive', title: 'Error processing recording' });
+        }
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      toast({ title: '🎙️ Recording started...' });
+    } catch (error) {
+      console.error('Recording error:', error);
+      toast({ variant: 'destructive', title: 'Microphone access denied' });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
     }
   };
 
@@ -414,6 +481,126 @@ export default function VetHub() {
       refetchGeneralTasks();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to add general task' });
+    }
+  };
+
+  // Batch Operations Functions
+  const togglePatientSelection = (patientId: number) => {
+    const newSelected = new Set(selectedPatientIds);
+    if (newSelected.has(patientId)) {
+      newSelected.delete(patientId);
+    } else {
+      newSelected.add(patientId);
+    }
+    setSelectedPatientIds(newSelected);
+    setShowBatchActions(newSelected.size > 0);
+  };
+
+  const selectAllPatients = () => {
+    const allIds = new Set(filteredPatients.map(p => p.id));
+    setSelectedPatientIds(allIds);
+    setShowBatchActions(true);
+  };
+
+  const clearSelection = () => {
+    setSelectedPatientIds(new Set());
+    setShowBatchActions(false);
+  };
+
+  const batchMarkAllTasksDone = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      for (const patientId of Array.from(selectedPatientIds)) {
+        const patient = patients.find(p => p.id === patientId);
+        if (!patient) continue;
+
+        const tasks = patient.tasks || [];
+        const todayTasks = tasks.filter((t: any) => t.date === today && !t.completed);
+
+        for (const task of todayTasks) {
+          await apiClient.updateTask(String(patientId), String(task.id), { completed: true });
+        }
+      }
+
+      toast({ title: `✅ Marked all tasks done for ${selectedPatientIds.size} patient(s)` });
+      clearSelection();
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to mark tasks done' });
+    }
+  };
+
+  const batchDischarge = async () => {
+    if (!confirm(`Discharge ${selectedPatientIds.size} patient(s)?`)) return;
+
+    try {
+      for (const patientId of Array.from(selectedPatientIds)) {
+        await apiClient.deletePatient(String(patientId));
+      }
+
+      toast({ title: `✅ Discharged ${selectedPatientIds.size} patient(s)` });
+      clearSelection();
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to discharge patients' });
+    }
+  };
+
+  const batchChangeType = async (newType: 'Medical' | 'MRI' | 'Surgery') => {
+    try {
+      for (const patientId of Array.from(selectedPatientIds)) {
+        await apiClient.updatePatient(String(patientId), { type: newType });
+
+        // Auto-create MRI tasks if changing to MRI
+        if (newType === 'MRI') {
+          const patient = patients.find(p => p.id === patientId);
+          const today = new Date().toISOString().split('T')[0];
+          const existingTasks = patient?.tasks || [];
+          const mriTasks = ['MRI Anesthesia Sheet', 'Blood Work', 'Chest X-rays', 'MRI Meds Sheet'];
+
+          for (const taskName of mriTasks) {
+            const hasTask = existingTasks.some((t: any) =>
+              t.name === taskName && t.date === today
+            );
+
+            if (!hasTask) {
+              await apiClient.createTask(patientId, {
+                name: taskName,
+                completed: false,
+                date: today,
+              });
+            }
+          }
+        }
+      }
+
+      toast({ title: `✅ Changed ${selectedPatientIds.size} patient(s) to ${newType}` });
+      clearSelection();
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to change patient type' });
+    }
+  };
+
+  const batchAddTask = async (taskName: string) => {
+    if (!taskName.trim()) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      for (const patientId of Array.from(selectedPatientIds)) {
+        await apiClient.createTask(patientId, {
+          name: taskName,
+          completed: false,
+          date: today,
+        });
+      }
+
+      toast({ title: `✅ Added "${taskName}" to ${selectedPatientIds.size} patient(s)` });
+      clearSelection();
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add task' });
     }
   };
 
@@ -1595,6 +1782,13 @@ export default function VetHub() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          {/* Selection Checkbox */}
+                          <input
+                            type="checkbox"
+                            checked={selectedPatientIds.has(patient.id)}
+                            onChange={() => togglePatientSelection(patient.id)}
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500 focus:ring-2 cursor-pointer"
+                          />
                           <span className="text-2xl">{emoji}</span>
                           <button
                             onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
@@ -2877,11 +3071,82 @@ Please schedule a recheck appointment with the Neurology department to have stap
           </div>
         )}
 
+        {/* Batch Actions Bar */}
+        {showBatchActions && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-2xl shadow-2xl border border-cyan-400/50 p-4 min-w-[600px]">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-white font-bold">{selectedPatientIds.size} Selected</span>
+                <button
+                  onClick={selectAllPatients}
+                  className="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-sm font-bold transition"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded text-sm font-bold transition"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Mark All Tasks Done */}
+                <button
+                  onClick={batchMarkAllTasksDone}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded font-bold text-sm transition flex items-center gap-1"
+                >
+                  <CheckCircle2 size={14} />
+                  Mark All Done
+                </button>
+
+                {/* Change Type Dropdown */}
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      batchChangeType(e.target.value as 'Medical' | 'MRI' | 'Surgery');
+                      e.target.value = '';
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded font-bold text-sm transition cursor-pointer"
+                >
+                  <option value="">Change Type...</option>
+                  <option value="Medical">→ Medical</option>
+                  <option value="MRI">→ MRI</option>
+                  <option value="Surgery">→ Surgery</option>
+                </select>
+
+                {/* Add Task */}
+                <button
+                  onClick={() => {
+                    const taskName = prompt('Enter task name to add to all selected patients:');
+                    if (taskName) batchAddTask(taskName);
+                  }}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded font-bold text-sm transition flex items-center gap-1"
+                >
+                  <Plus size={14} />
+                  Add Task
+                </button>
+
+                {/* Discharge */}
+                <button
+                  onClick={batchDischarge}
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded font-bold text-sm transition flex items-center gap-1"
+                >
+                  <Trash2 size={14} />
+                  Discharge
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* SOAP Builder Modal */}
         {showSOAPBuilder && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-6xl h-[90vh]">
-              <div className="p-3 border-b border-slate-700">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-6xl max-h-[90vh] flex flex-col">
+              <div className="p-3 border-b border-slate-700 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent flex items-center gap-2">
                     <FileText size={24} />
@@ -2912,6 +3177,50 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       className="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded"
                     >
                       Manage Templates
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (isRecording) {
+                          stopRecording();
+                        } else {
+                          startRecording();
+                        }
+                      }}
+                      className={`px-3 py-1 text-xs font-bold rounded flex items-center gap-1 ${
+                        isRecording
+                          ? 'bg-red-600 hover:bg-red-500 text-white animate-pulse'
+                          : 'bg-blue-600 hover:bg-blue-500 text-white'
+                      }`}
+                    >
+                      {isRecording ? (
+                        <>
+                          <MicOff size={14} />
+                          Stop
+                        </>
+                      ) : (
+                        <>
+                          <Mic size={14} />
+                          Record
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm('Clear all fields in SOAP Builder?')) {
+                          setSOAPData({
+                            name: '', age: '', sex: '', breed: '', species: 'Canine', reasonForVisit: '', visitType: 'recheck',
+                            lastVisit: '', currentHistory: '', csvd: 'none', pupd: 'none', appetite: 'normal', lastMRI: '', medications: '', prevDiagnostics: '',
+                            whyHereToday: '', painfulVocalizing: 'None', diet: '', allergies: 'none', otherPets: '', indoorOutdoor: 'indoor', trauma: 'No', travel: 'No', heartwormPrev: 'Yes', fleaTick: 'Yes', vaccinesUTD: 'Yes', otherMedicalHistory: '',
+                            peENT: '', peOral: '', pePLN: '', peCV: '', peResp: '', peAbd: '', peRectal: '', peMS: '', peInteg: '',
+                            mentalStatus: 'BAR', gait: '', cranialNerves: '', posturalReactions: '', spinalReflexes: '', tone: '', muscleMass: '', nociception: '', examBy: '',
+                            progression: '', neurolocalization: '', ddx: '', diagnosticsToday: '', treatments: '', discussionChanges: '',
+                          });
+                          toast({ title: '🗑️ SOAP Builder cleared!' });
+                        }
+                      }}
+                      className="px-2 py-1 text-xs bg-red-600 hover:bg-red-500 text-white rounded font-bold"
+                    >
+                      Clear
                     </button>
                     <button
                       onClick={() => setShowSOAPBuilder(false)}
@@ -2991,16 +3300,6 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             nociception: 'intact, no hyperpathia on spinal palpation',
                             ddx: 'IVDD vs FCE vs inflammatory vs neoplasia'
                           });
-                        } else if (value === 'Cervical hyperpathia') {
-                          setSOAPData({
-                            ...soapData,
-                            neurolocalization: value,
-                            gait: 'Ambulatory with no ataxia or paresis',
-                            posturalReactions: 'normal',
-                            spinalReflexes: 'normal',
-                            nociception: 'intact, moderate cervical hyperpathia on palpation',
-                            ddx: 'IVDD vs infectious vs inflammatory vs other'
-                          });
                         } else if (value === 'Peripheral vestibular disease') {
                           setSOAPData({
                             ...soapData,
@@ -3043,7 +3342,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             nociception: 'intact',
                             ddx: 'IVDD vs FCE vs inflammatory vs neoplasia'
                           });
-                        } else if (value === 'L-S myelopathy') {
+                        } else if (value === 'L4-S1 myelopathy') {
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
@@ -3073,10 +3372,9 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       <option value="">Select to autofill exam...</option>
                       {[
                         'T3-L3 myelopathy',
-                        'Cervical hyperpathia',
                         'C1-C5 myelopathy',
                         'C6-T2 myelopathy',
-                        'L-S myelopathy',
+                        'L4-S1 myelopathy',
                         'Peripheral vestibular disease',
                         'Prosencephalon',
                         'Discospondylitis'
@@ -3108,7 +3406,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                 </div>
               </div>
 
-              <div className="p-4 flex gap-4 h-[85vh]">
+              <div className="p-4 flex gap-4 flex-1 overflow-hidden">
                 {/* Left Column - Form */}
                 <div className="w-2/5 overflow-y-auto pr-2 space-y-2">
                   {/* Patient Info Section */}
@@ -3817,15 +4115,17 @@ Please schedule a recheck appointment with the Neurology department to have stap
 
                 </div>
 
-                {/* Right Column - Preview */}
-                <div className="w-3/5 bg-slate-900/50 border border-emerald-500/50 rounded-lg p-3 overflow-y-auto">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-base font-bold text-emerald-400">Live Preview</h3>
-                    <button
-                      onClick={() => {
+                {/* Right Column - Preview with separate copyable boxes */}
+                <div className="w-3/5 overflow-y-auto pr-2 space-y-3">
+
+                  {/* History/Subjective Box */}
+                  <div className="bg-slate-900/50 border border-blue-500/50 rounded-lg">
+                    <div className="flex items-center justify-between p-2 border-b border-slate-700">
+                      <h3 className="text-sm font-bold text-blue-400">📝 History (Subjective)</h3>
+                      <button
+onClick={() => {
                           let output = '';
                           if (soapData.visitType === 'initial') {
-                            // Initial Consultation Format
                             output = `**Presenting Problem:**
 ${soapData.name}, a ${soapData.age} ${soapData.sex} ${soapData.breed}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit}
 ${soapData.lastVisit ? `\n**Past Pertinent History:** ${soapData.lastVisit}\n` : ''}
@@ -3844,31 +4144,8 @@ ${soapData.lastVisit ? `\n**Past Pertinent History:** ${soapData.lastVisit}\n` :
 **Flea/Tick:** ${soapData.fleaTick}
 **Vaccines up to date:** ${soapData.vaccinesUTD}
 **Other medical history:** ${soapData.otherMedicalHistory}
-${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}\n` : ''}
-**NEUROLOGIC EXAM**
-**Mental Status**: ${soapData.mentalStatus}
-**Gait & posture**: ${soapData.gait}
-**Cranial nerves**: ${soapData.cranialNerves}
-**Postural reactions**: ${soapData.posturalReactions}
-
-**Spinal reflexes** ${soapData.spinalReflexes}
-**Tone**: ${soapData.tone}
-**Muscle mass**: ${soapData.muscleMass}
-**Nociception**: ${soapData.nociception}
-${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}
-**Physical Exam:**
-**EENT:** ${soapData.peENT}
-**Oral:** ${soapData.peOral}
-**PLN:** ${soapData.pePLN}
-**CV:** ${soapData.peCV}
-**Resp:** ${soapData.peResp}
-**Abd:** ${soapData.peAbd}
-**Rectal:** ${soapData.peRectal}
-**MS:** ${soapData.peMS}
-**Integ:** ${soapData.peInteg}
-${soapData.neurolocalization ? `\n**Neurolocalization:**\n${soapData.neurolocalization}\n` : ''}${soapData.ddx ? `\n**DDx:**\n${soapData.ddx}\n` : ''}${soapData.diagnosticsToday ? `\n**Diagnostics:**\n${soapData.diagnosticsToday}\n` : ''}${soapData.treatments ? `\n**TREATMENTS:**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**OUTCOME:**\n${soapData.discussionChanges}` : ''}`;
+${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}` : ''}`;
                           } else {
-                            // Recheck Format
                             output = `**Presenting Problem:**
 ${soapData.name} is a ${soapData.age} ${soapData.sex} ${soapData.breed} who is presented for ${soapData.reasonForVisit}
 ${soapData.lastVisit ? `\n**Last visit**: ${soapData.lastVisit}\n` : ''}
@@ -3878,48 +4155,18 @@ ${soapData.currentHistory}
 **CSVD:** ${soapData.csvd}
 **PU/PD:** ${soapData.pupd}
 **Appetite:** ${soapData.appetite}
-${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.medications ? `\n**Medications:**\n${soapData.medications}\n` : ''}${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}\n` : ''}
-**NEUROLOGIC EXAM**
-**Mental Status**: ${soapData.mentalStatus}
-**Gait & posture**: ${soapData.gait}
-**Cranial nerves**: ${soapData.cranialNerves}
-**Postural reactions**: ${soapData.posturalReactions}
-
-**Spinal reflexes** ${soapData.spinalReflexes}
-**Tone**: ${soapData.tone}
-**Muscle mass**: ${soapData.muscleMass}
-**Nociception**: ${soapData.nociception}
-${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression ? `\n**PROGRESSION**\n${soapData.progression}\n` : ''}${soapData.treatments ? `\n**TREATMENTS**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**DISCUSSION/CHANGES**\n${soapData.discussionChanges}` : ''}`;
+${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.medications ? `\n**Medications:**\n${soapData.medications}\n` : ''}${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}` : ''}`;
                           }
-
                           navigator.clipboard.writeText(output);
-                          toast({ title: 'SOAP note copied to clipboard!' });
-
-                          // Save to memory
-                          if (soapData.neurolocalization) {
-                            try {
-                              const savedExams = getSavedExams();
-
-                              // Save current exam data with timestamp
-                              savedExams[soapData.neurolocalization] = {
-                                ...soapData,
-                                savedAt: new Date().toISOString(),
-                              };
-
-                              localStorage.setItem('soapMemory', JSON.stringify(savedExams));
-                              toast({ title: 'Exam saved to memory for future use!' });
-                            } catch (err) {
-                              console.error('Failed to save exam:', err);
-                            }
-                          }
+                          toast({ title: '✅ History copied!' });
                         }}
-                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold flex items-center gap-1"
+                        className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold flex items-center gap-1"
                       >
-                        <Copy size={14} />
+                        <Copy size={12} />
                         Copy
                       </button>
                     </div>
-                    <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-tight">
+                    <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-tight p-2 max-h-48 overflow-y-auto">
 {soapData.visitType === 'initial' ? `**Presenting Problem:**
 ${soapData.name || '[Name]'}, a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit || '[reason]'}
 ${soapData.lastVisit ? `\n**Past Pertinent History:** ${soapData.lastVisit}\n` : ''}
@@ -3938,29 +4185,7 @@ ${soapData.lastVisit ? `\n**Past Pertinent History:** ${soapData.lastVisit}\n` :
 **Flea/Tick:** ${soapData.fleaTick}
 **Vaccines up to date:** ${soapData.vaccinesUTD}
 **Other medical history:** ${soapData.otherMedicalHistory || '[other history]'}
-${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}\n` : ''}
-**NEUROLOGIC EXAM**
-**Mental Status**: ${soapData.mentalStatus}
-**Gait & posture**: ${soapData.gait || '[gait description]'}
-**Cranial nerves**: ${soapData.cranialNerves || '[CN findings]'}
-**Postural reactions**: ${soapData.posturalReactions || '[postural reactions]'}
-
-**Spinal reflexes** ${soapData.spinalReflexes || '[spinal reflexes]'}
-**Tone**: ${soapData.tone || '[tone]'}
-**Muscle mass**: ${soapData.muscleMass || '[muscle mass]'}
-**Nociception**: ${soapData.nociception || '[nociception]'}
-${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}
-**Physical Exam:**
-**EENT:** ${soapData.peENT || '[EENT findings]'}
-**Oral:** ${soapData.peOral || '[oral findings]'}
-**PLN:** ${soapData.pePLN || '[PLN findings]'}
-**CV:** ${soapData.peCV || '[CV findings]'}
-**Resp:** ${soapData.peResp || '[resp findings]'}
-**Abd:** ${soapData.peAbd || '[abd findings]'}
-**Rectal:** ${soapData.peRectal || '[rectal findings]'}
-**MS:** ${soapData.peMS || '[MS findings]'}
-**Integ:** ${soapData.peInteg || '[integ findings]'}
-${soapData.neurolocalization ? `\n**Neurolocalization:**\n${soapData.neurolocalization}\n` : ''}${soapData.ddx ? `\n**DDx:**\n${soapData.ddx}\n` : ''}${soapData.diagnosticsToday ? `\n**Diagnostics:**\n${soapData.diagnosticsToday}\n` : ''}${soapData.treatments ? `\n**TREATMENTS:**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**OUTCOME:**\n${soapData.discussionChanges}` : ''}` : `**Presenting Problem:**
+${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}` : ''}` : `**Presenting Problem:**
 ${soapData.name || '[Name]'} is a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'} who is presented for ${soapData.reasonForVisit || '[reason]'}
 ${soapData.lastVisit ? `\n**Last visit**: ${soapData.lastVisit}\n` : ''}
 **Current History:**
@@ -3969,8 +4194,52 @@ ${soapData.currentHistory || '[Current history...]'}
 **CSVD:** ${soapData.csvd}
 **PU/PD:** ${soapData.pupd}
 **Appetite:** ${soapData.appetite}
-${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.medications ? `\n**Medications:**\n${soapData.medications}\n` : ''}${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}\n` : ''}
-**NEUROLOGIC EXAM**
+${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.medications ? `\n**Medications:**\n${soapData.medications}\n` : ''}${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}` : ''}`}
+                    </pre>
+                </div>
+
+                  {/* Physical Exam Box */}
+                  <div className="bg-slate-900/50 border border-green-500/50 rounded-lg">
+                    <div className="flex items-center justify-between p-2 border-b border-slate-700">
+                      <h3 className="text-sm font-bold text-green-400">🔬 Physical Exam (Objective)</h3>
+                      <button
+                        onClick={() => {
+                          let output = `**NEUROLOGIC EXAM**
+**Mental Status**: ${soapData.mentalStatus}
+**Gait & posture**: ${soapData.gait}
+**Cranial nerves**: ${soapData.cranialNerves}
+**Postural reactions**: ${soapData.posturalReactions}
+
+**Spinal reflexes** ${soapData.spinalReflexes}
+**Tone**: ${soapData.tone}
+**Muscle mass**: ${soapData.muscleMass}
+**Nociception**: ${soapData.nociception}
+${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}`;
+
+                          if (soapData.visitType === 'initial') {
+                            output += `\n\n**Physical Exam:**
+**EENT:** ${soapData.peENT}
+**Oral:** ${soapData.peOral}
+**PLN:** ${soapData.pePLN}
+**CV:** ${soapData.peCV}
+**Resp:** ${soapData.peResp}
+**Abd:** ${soapData.peAbd}
+**Rectal:** ${soapData.peRectal}
+**MS:** ${soapData.peMS}
+**Integ:** ${soapData.peInteg}`;
+                          }
+
+                          navigator.clipboard.writeText(output);
+                          toast({ title: '✅ Physical Exam copied!' });
+                        }}
+                        className="px-2 py-1 bg-green-600 hover:bg-green-500 text-white rounded text-xs font-bold flex items-center gap-1"
+                      >
+                        <Copy size={12} />
+                        Copy
+                      </button>
+                    </div>
+                    <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-tight p-2 max-h-48 overflow-y-auto">
+{`**NEUROLOGIC EXAM**
 **Mental Status**: ${soapData.mentalStatus}
 **Gait & posture**: ${soapData.gait || '[gait description]'}
 **Cranial nerves**: ${soapData.cranialNerves || '[CN findings]'}
@@ -3980,8 +4249,65 @@ ${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.med
 **Tone**: ${soapData.tone || '[tone]'}
 **Muscle mass**: ${soapData.muscleMass || '[muscle mass]'}
 **Nociception**: ${soapData.nociception || '[nociception]'}
-${soapData.examBy ? `\nexam by ${soapData.examBy}\n` : ''}${soapData.progression ? `\n**PROGRESSION**\n${soapData.progression}\n` : ''}${soapData.treatments ? `\n**TREATMENTS**\n${soapData.treatments}\n` : ''}${soapData.discussionChanges ? `\n**DISCUSSION/CHANGES**\n${soapData.discussionChanges}` : ''}`}
+${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}${soapData.visitType === 'initial' ? `\n\n**Physical Exam:**
+**EENT:** ${soapData.peENT || '[EENT findings]'}
+**Oral:** ${soapData.peOral || '[oral findings]'}
+**PLN:** ${soapData.pePLN || '[PLN findings]'}
+**CV:** ${soapData.peCV || '[CV findings]'}
+**Resp:** ${soapData.peResp || '[resp findings]'}
+**Abd:** ${soapData.peAbd || '[abd findings]'}
+**Rectal:** ${soapData.peRectal || '[rectal findings]'}
+**MS:** ${soapData.peMS || '[MS findings]'}
+**Integ:** ${soapData.peInteg || '[integ findings]'}` : ''}`}
                     </pre>
+                  </div>
+
+                  {/* Assessment & Plan Box */}
+                  <div className="bg-slate-900/50 border border-purple-500/50 rounded-lg">
+                    <div className="flex items-center justify-between p-2 border-b border-slate-700">
+                      <h3 className="text-sm font-bold text-purple-400">📊 Assessment & Plan</h3>
+                      <button
+                        onClick={() => {
+                          let output = '';
+                          if (soapData.neurolocalization) output += `**Neurolocalization:**\n${soapData.neurolocalization}\n\n`;
+                          if (soapData.visitType === 'recheck' && soapData.progression) output += `**PROGRESSION**\n${soapData.progression}\n\n`;
+                          if (soapData.ddx) output += `**DDx:**\n${soapData.ddx}\n\n`;
+                          if (soapData.diagnosticsToday) output += `**Diagnostics:**\n${soapData.diagnosticsToday}\n\n`;
+                          if (soapData.treatments) output += `**TREATMENTS:**\n${soapData.treatments}\n\n`;
+                          if (soapData.discussionChanges) {
+                            const label = soapData.visitType === 'recheck' ? 'DISCUSSION/CHANGES' : 'OUTCOME';
+                            output += `**${label}:**\n${soapData.discussionChanges}`;
+                          }
+
+                          navigator.clipboard.writeText(output.trim());
+                          toast({ title: '✅ Assessment & Plan copied!' });
+
+                          // Save to memory
+                          if (soapData.neurolocalization) {
+                            try {
+                              const savedExams = getSavedExams();
+                              savedExams[soapData.neurolocalization] = {
+                                ...soapData,
+                                savedAt: new Date().toISOString(),
+                              };
+                              localStorage.setItem('soapMemory', JSON.stringify(savedExams));
+                              toast({ title: '💾 Exam saved to memory!' });
+                            } catch (err) {
+                              console.error('Failed to save exam:', err);
+                            }
+                          }
+                        }}
+                        className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-bold flex items-center gap-1"
+                      >
+                        <Copy size={12} />
+                        Copy
+                      </button>
+                    </div>
+                    <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans leading-tight p-2 max-h-48 overflow-y-auto">
+{`${soapData.neurolocalization ? `**Neurolocalization:**\n${soapData.neurolocalization}\n\n` : ''}${soapData.visitType === 'recheck' && soapData.progression ? `**PROGRESSION**\n${soapData.progression}\n\n` : ''}${soapData.ddx ? `**DDx:**\n${soapData.ddx || '[differential diagnoses]'}\n\n` : ''}${soapData.diagnosticsToday ? `**Diagnostics:**\n${soapData.diagnosticsToday || '[diagnostics]'}\n\n` : ''}${soapData.treatments ? `**TREATMENTS:**\n${soapData.treatments || '[treatments]'}\n\n` : ''}${soapData.discussionChanges ? `**${soapData.visitType === 'recheck' ? 'DISCUSSION/CHANGES' : 'OUTCOME'}:**\n${soapData.discussionChanges || '[outcome/discussion]'}` : ''}`}
+                    </pre>
+                  </div>
+
                 </div>
               </div>
             </div>
