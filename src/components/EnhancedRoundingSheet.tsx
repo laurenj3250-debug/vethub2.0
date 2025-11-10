@@ -64,6 +64,9 @@ export function EnhancedRoundingSheet({
   const fieldRefs = useRef<Map<string, HTMLInputElement | HTMLTextAreaElement>>(new Map());
   const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
+  // Local state for editing - prevents parent re-renders on every keystroke
+  const [localEdits, setLocalEdits] = useState<Record<string, any>>({});
+
   // Load custom templates from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('custom_rounding_templates');
@@ -401,34 +404,44 @@ export function EnhancedRoundingSheet({
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
 
-    // Update local state immediately (optimistic)
-    const updatedRounding = {
-      ...(patient.rounding_data || {}),
-      [field]: value
-    };
-
-    const updatedPatients = patients.map(p =>
-      p.id === patientId
-        ? { ...p, rounding_data: updatedRounding }
-        : p
-    );
-
-    // Update parent component state immediately for responsive typing
-    if (onPatientUpdate) {
-      onPatientUpdate(updatedPatients);
-    }
+    // Update local state immediately for instant typing (NO parent re-render)
+    const editKey = `${patientId}-${field}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: value }));
 
     // Clear existing timer for this field
-    const timerKey = `${patientId}-${field}`;
+    const timerKey = editKey;
     const existingTimer = debounceTimers.current.get(timerKey);
     if (existingTimer) {
       clearTimeout(existingTimer);
     }
 
-    // Set new timer - only save to API after 500ms of no typing
+    // Set new timer - save to API and update parent after 500ms of no typing
     const newTimer = setTimeout(async () => {
+      const updatedRounding = {
+        ...(patient.rounding_data || {}),
+        [field]: value
+      };
+
       try {
+        // Save to API
         await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+
+        // Only now update parent (after typing stopped and saved)
+        if (onPatientUpdate) {
+          const updatedPatients = patients.map(p =>
+            p.id === patientId
+              ? { ...p, rounding_data: updatedRounding }
+              : p
+          );
+          onPatientUpdate(updatedPatients);
+        }
+
+        // Clear local edit
+        setLocalEdits(prev => {
+          const newEdits = { ...prev };
+          delete newEdits[editKey];
+          return newEdits;
+        });
       } catch (error) {
         console.error('Debounced update failed:', error);
       }
@@ -439,6 +452,16 @@ export function EnhancedRoundingSheet({
   }, [patients, onPatientUpdate]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
+
+  // Helper to get field value (local edit takes priority)
+  const getFieldValue = (patientId: number, field: string, defaultValue: any = '') => {
+    const editKey = `${patientId}-${field}`;
+    if (editKey in localEdits) {
+      return localEdits[editKey];
+    }
+    const patient = patients.find(p => p.id === patientId);
+    return patient?.rounding_data?.[field] ?? defaultValue;
+  };
 
   return (
     <div className="bg-slate-900/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/30 p-4">
@@ -760,7 +783,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2">
                     <input
                       type="text"
-                      value={rounding.signalment || ''}
+                      value={getFieldValue(patient.id, 'signalment')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'signalment', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'signalment')}
                       placeholder="Age, breed, sex..."
@@ -813,7 +836,7 @@ export function EnhancedRoundingSheet({
                   {/* Problems */}
                   <td className="p-2">
                     <textarea
-                      value={rounding.problems || ''}
+                      value={getFieldValue(patient.id, 'problems')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
                       placeholder="List of problems..."
@@ -825,7 +848,7 @@ export function EnhancedRoundingSheet({
                   {/* Diagnostics */}
                   <td className="p-2">
                     <textarea
-                      value={rounding.diagnosticFindings || ''}
+                      value={getFieldValue(patient.id, 'diagnosticFindings')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'diagnosticFindings', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'diagnosticFindings')}
                       placeholder="Diagnostic findings..."
@@ -838,7 +861,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2 relative">
                     <div className="flex gap-2">
                       <textarea
-                        value={rounding.therapeutics || ''}
+                        value={getFieldValue(patient.id, 'therapeutics')}
                         onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
                         placeholder="Medications, treatments..."
@@ -924,7 +947,7 @@ export function EnhancedRoundingSheet({
                   {/* Overnight Dx */}
                   <td className="p-2">
                     <textarea
-                      value={rounding.overnightDx || ''}
+                      value={getFieldValue(patient.id, 'overnightDx')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'overnightDx', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'overnightDx')}
                       placeholder="Overnight plan..."
@@ -936,7 +959,7 @@ export function EnhancedRoundingSheet({
                   {/* Concerns */}
                   <td className="p-2">
                     <textarea
-                      value={rounding.concerns || ''}
+                      value={getFieldValue(patient.id, 'concerns')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'concerns', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'concerns')}
                       placeholder="Concerns..."
@@ -948,7 +971,7 @@ export function EnhancedRoundingSheet({
                   {/* Comments */}
                   <td className="p-2">
                     <textarea
-                      value={rounding.comments || ''}
+                      value={getFieldValue(patient.id, 'comments')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'comments', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'comments')}
                       placeholder="Additional comments..."
