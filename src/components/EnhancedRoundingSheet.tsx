@@ -553,7 +553,7 @@ export function EnhancedRoundingSheet({
                   } ${isSelected ? 'ring-2 ring-purple-500/50' : ''}`}
                 >
                   {/* Actions column */}
-                  <td className="p-2 sticky left-0 bg-slate-900/95 backdrop-blur-sm shadow-[2px_0_4px_rgba(0,0,0,0.3)] z-10">
+                  <td className={`p-2 sticky left-0 bg-slate-900/95 backdrop-blur-sm shadow-[2px_0_4px_rgba(0,0,0,0.3)] ${showQuickFillMenu === patient.id ? 'z-[10000]' : 'z-10'}`}>
                     <div className="flex flex-col gap-1">
                       {/* Select checkbox */}
                       <input
