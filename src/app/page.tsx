@@ -2218,28 +2218,14 @@ export default function VetHub() {
                       </div>
                     </div>
 
-                    {/* Quick Add Morning/Evening Tasks */}
+                    {/* Quick Complete Morning/Evening Tasks */}
                     <div className="mb-2 flex gap-1.5 flex-wrap">
-                      <button
-                        onClick={() => handleAddAllCategoryTasks(patient.id, 'morning')}
-                        className="px-2 py-1 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
-                        title="Add all morning tasks for today"
-                      >
-                        ➕ Morning
-                      </button>
                       <button
                         onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
                         className="px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
                         title="Complete all morning tasks"
                       >
                         ✅ Morning
-                      </button>
-                      <button
-                        onClick={() => handleAddAllCategoryTasks(patient.id, 'evening')}
-                        className="px-2 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
-                        title="Add all evening tasks for today"
-                      >
-                        ➕ Evening
                       </button>
                       <button
                         onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
@@ -2274,14 +2260,14 @@ export default function VetHub() {
 
                     {/* Quick Add Task Menu */}
                     {quickAddMenuPatient === patient.id && (
-                      <div className="mt-4 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
-                        <h5 className="text-white font-bold mb-3">Quick Add Common Tasks:</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
-                          {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled'].map(taskName => (
+                      <div className="mt-2 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                        <h5 className="text-white font-bold text-sm mb-2">Quick Add Common Tasks:</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-2">
+                          {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled', 'Consent Form', 'Estimate Approved', 'Referral Letter', 'Lab Results', 'Imaging Review', 'Progress Photos'].map(taskName => (
                             <button
                               key={taskName}
                               onClick={() => handleQuickAddTask(patient.id, taskName)}
-                              className="px-3 py-2 bg-slate-800/50 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-500 rounded-lg text-slate-300 hover:text-cyan-300 text-sm transition"
+                              className="px-2 py-1.5 bg-slate-800/50 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-500 rounded text-slate-300 hover:text-cyan-300 text-xs transition"
                             >
                               {taskName}
                             </button>
@@ -2293,7 +2279,7 @@ export default function VetHub() {
                             value={customTaskName}
                             onChange={(e) => setCustomTaskName(e.target.value)}
                             placeholder="Custom task name..."
-                            className="flex-1 px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 text-sm focus:ring-2 focus:ring-cyan-500"
+                            className="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-500"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && customTaskName.trim()) {
                                 handleQuickAddTask(patient.id, customTaskName);
@@ -2303,7 +2289,7 @@ export default function VetHub() {
                           <button
                             onClick={() => customTaskName.trim() && handleQuickAddTask(patient.id, customTaskName)}
                             disabled={!customTaskName.trim()}
-                            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed transition"
                           >
                             Add
                           </button>
@@ -2322,25 +2308,11 @@ export default function VetHub() {
                         </h4>
                         <div className="flex gap-2 flex-wrap">
                           <button
-                            onClick={() => handleAddAllCategoryTasks(patient.id, 'morning')}
-                            className="px-3 py-1 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
-                            title="Add all morning tasks for today"
-                          >
-                            ➕ Morning
-                          </button>
-                          <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
                             className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
                             title="Complete all morning tasks"
                           >
                             ✅ Morning
-                          </button>
-                          <button
-                            onClick={() => handleAddAllCategoryTasks(patient.id, 'evening')}
-                            className="px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
-                            title="Add all evening tasks for today"
-                          >
-                            ➕ Evening
                           </button>
                           <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
