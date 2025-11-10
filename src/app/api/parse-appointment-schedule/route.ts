@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 // Using stable Claude 3.5 Sonnet model (20240620)
 const anthropic = new Anthropic({
-  apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || '',
+  apiKey: process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || '',
 });
 
 export async function POST(request: Request) {

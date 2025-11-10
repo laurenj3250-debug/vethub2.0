@@ -1,0 +1,12 @@
+# Railway ignore - exclude from uploads to speed up deploys
+.git
+.github
+.vscode
+.idea
+*.log
+npm-debug.log*
+.DS_Store
+.env.local
+.env.*.local
+README.md
+.gitignore
