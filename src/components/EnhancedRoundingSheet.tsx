@@ -315,7 +315,7 @@ export function EnhancedRoundingSheet({
             <select
               value={autoPopulateMode}
               onChange={(e) => setAutoPopulateMode(e.target.value as any)}
-              className="bg-slate-900/70 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+              className="bg-black/40 backdrop-blur-sm border border-slate-600 rounded px-2 py-1 text-white text-xs"
             >
               <option value="off">Off</option>
               <option value="suggest">Suggest</option>
@@ -384,7 +384,7 @@ export function EnhancedRoundingSheet({
                 <select
                   value={batchField}
                   onChange={(e) => setBatchField(e.target.value)}
-                  className="bg-slate-900/70 border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
+                  className="bg-black/40 backdrop-blur-sm border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
                 >
                   <option value="">Select field...</option>
                   <option value="overnightDx">Overnight Dx</option>
@@ -401,7 +401,7 @@ export function EnhancedRoundingSheet({
                   value={batchValue}
                   onChange={(e) => setBatchValue(e.target.value)}
                   placeholder="Value to apply..."
-                  className="bg-slate-900/70 border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
+                  className="bg-black/40 backdrop-blur-sm border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
                 />
 
                 <button
@@ -590,32 +590,35 @@ export function EnhancedRoundingSheet({
                       onChange={(e) => updateField(patient.id, 'signalment', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'signalment')}
                       placeholder="Age, breed, sex..."
-                      className="w-full min-w-[140px] bg-slate-900/70 border border-slate-600 hover:border-cyan-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded px-2 py-1.5 text-white text-xs transition-all"
+                      className="w-full min-w-[140px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-cyan-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded px-2 py-1.5 text-white text-xs transition-all"
                     />
                   </td>
 
                   {/* Location */}
                   <td className="p-2">
-                    <input
-                      type="text"
-                      value={rounding.location || ''}
+                    <select
+                      value={rounding.location || 'IP'}
                       onChange={(e) => updateField(patient.id, 'location', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'location')}
-                      placeholder="Cage/Ward..."
-                      className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs transition-all"
-                    />
+                      className="w-full min-w-[80px] bg-slate-900/90 border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
+                    >
+                      <option value="IP" className="bg-slate-800">IP</option>
+                      <option value="ICU" className="bg-slate-800">ICU</option>
+                    </select>
                   </td>
 
                   {/* ICU Criteria */}
                   <td className="p-2">
-                    <input
-                      type="text"
+                    <select
                       value={rounding.icuCriteria || ''}
                       onChange={(e) => updateField(patient.id, 'icuCriteria', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'icuCriteria')}
-                      placeholder="ICU criteria..."
-                      className="w-full min-w-[120px] bg-slate-900/70 border border-slate-600 hover:border-pink-500 focus:border-pink-400 focus:ring-1 focus:ring-pink-400 rounded px-2 py-1.5 text-white text-xs transition-all"
-                    />
+                      className="w-full min-w-[70px] bg-slate-900/90 border border-slate-600 hover:border-pink-500 focus:border-pink-400 focus:ring-1 focus:ring-pink-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
+                    >
+                      <option value="" className="bg-slate-800">-</option>
+                      <option value="Y" className="bg-slate-800 text-green-400">Y</option>
+                      <option value="N" className="bg-slate-800 text-red-400">N</option>
+                    </select>
                   </td>
 
                   {/* Code */}
@@ -624,7 +627,7 @@ export function EnhancedRoundingSheet({
                       value={rounding.code || 'Yellow'}
                       onChange={(e) => updateField(patient.id, 'code', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'code')}
-                      className="w-full min-w-[90px] bg-slate-900/70 border border-slate-600 hover:border-yellow-500 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
+                      className="w-full min-w-[90px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-yellow-500 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
                     >
                       <option className="bg-slate-800 text-green-400">Green</option>
                       <option className="bg-slate-800 text-yellow-400">Yellow</option>
@@ -640,7 +643,7 @@ export function EnhancedRoundingSheet({
                       onChange={(e) => updateField(patient.id, 'problems', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
                       placeholder="List of problems..."
-                      className="w-full min-w-[180px] bg-slate-900/70 border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
+                      className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
                       rows={4}
                     />
                   </td>
@@ -652,7 +655,7 @@ export function EnhancedRoundingSheet({
                       onChange={(e) => updateField(patient.id, 'diagnosticFindings', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'diagnosticFindings')}
                       placeholder="Diagnostic findings..."
-                      className="w-full min-w-[200px] bg-slate-900/70 border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
+                      className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
                       rows={5}
                     />
                   </td>
@@ -665,7 +668,7 @@ export function EnhancedRoundingSheet({
                         onChange={(e) => updateField(patient.id, 'therapeutics', e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
                         placeholder="Medications, treatments..."
-                        className="flex-1 min-w-[200px] bg-slate-900/70 border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
+                        className="flex-1 min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
                         rows={5}
                       />
                       <button
@@ -702,7 +705,7 @@ export function EnhancedRoundingSheet({
                       value={rounding.ivc || ''}
                       onChange={(e) => updateField(patient.id, 'ivc', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'ivc')}
-                      className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-orange-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
+                      className="w-full min-w-[100px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-orange-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                     >
                       <option value="" className="bg-slate-800">-</option>
                       <option value="Y" className="bg-slate-800 text-green-400">Y</option>
@@ -718,7 +721,7 @@ export function EnhancedRoundingSheet({
                       value={rounding.fluids || ''}
                       onChange={(e) => updateField(patient.id, 'fluids', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'fluids')}
-                      className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-teal-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
+                      className="w-full min-w-[100px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-teal-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                     >
                       <option value="" className="bg-slate-800">-</option>
                       <option value="Y" className="bg-slate-800 text-green-400">Y</option>
@@ -734,7 +737,7 @@ export function EnhancedRoundingSheet({
                       value={rounding.cri || ''}
                       onChange={(e) => updateField(patient.id, 'cri', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'cri')}
-                      className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-indigo-500 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
+                      className="w-full min-w-[100px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-indigo-500 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                     >
                       <option value="" className="bg-slate-800">-</option>
                       <option value="Y" className="bg-slate-800 text-green-400">Y</option>
@@ -751,7 +754,7 @@ export function EnhancedRoundingSheet({
                       onChange={(e) => updateField(patient.id, 'overnightDx', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'overnightDx')}
                       placeholder="Overnight plan..."
-                      className="w-full min-w-[150px] bg-slate-900/70 border border-slate-600 hover:border-violet-500 focus:border-violet-400 focus:ring-1 focus:ring-violet-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
+                      className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-violet-500 focus:border-violet-400 focus:ring-1 focus:ring-violet-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                       rows={3}
                     />
                   </td>
@@ -763,7 +766,7 @@ export function EnhancedRoundingSheet({
                       onChange={(e) => updateField(patient.id, 'concerns', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'concerns')}
                       placeholder="Concerns..."
-                      className="w-full min-w-[150px] bg-slate-900/70 border border-slate-600 hover:border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
+                      className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                       rows={3}
                     />
                   </td>
@@ -775,7 +778,7 @@ export function EnhancedRoundingSheet({
                       onChange={(e) => updateField(patient.id, 'comments', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'comments')}
                       placeholder="Additional comments..."
-                      className="w-full min-w-[150px] bg-slate-900/70 border border-slate-600 hover:border-amber-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
+                      className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-amber-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                       rows={3}
                     />
                   </td>

@@ -35,6 +35,7 @@ export default function VetHub() {
   const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMRISchedule, setShowMRISchedule] = useState(false);
+  const [showAllTasksView, setShowAllTasksView] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
@@ -1161,11 +1162,18 @@ export default function VetHub() {
 
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setShowTaskOverview(!showTaskOverview)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-emerald-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              onClick={() => {
+                setShowAllTasksView(!showAllTasksView);
+                if (!showAllTasksView) {
+                  setShowTaskOverview(false);
+                  setShowAllRoundingSheets(false);
+                  setShowMRISchedule(false);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
             >
-              <ListTodo size={18} />
-              Tasks: {taskStats.remaining}/{taskStats.total}
+              <CheckCircle2 size={18} />
+              All Tasks
             </button>
             <button
               onClick={() => {
@@ -1173,6 +1181,7 @@ export default function VetHub() {
                 if (!showAllRoundingSheets) {
                   setShowTaskOverview(false);
                   setShowMRISchedule(false);
+                  setShowAllTasksView(false);
                 }
               }}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
@@ -1469,6 +1478,140 @@ export default function VetHub() {
                 })()}
               </div>
             )}
+          </div>
+        )}
+
+        {/* All Tasks View - Unified Hospital & Patient Tasks */}
+        {showAllTasksView && (
+          <div className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-cyan-700/50 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                <CheckCircle2 className="text-cyan-400" size={28} />
+                All Tasks - Complete View
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAddGeneralTask(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg"
+                >
+                  <Plus size={16} />
+                  Add Hospital Task
+                </button>
+              </div>
+            </div>
+
+            {/* Hospital-Wide Tasks */}
+            {(() => {
+              const today = new Date().toISOString().split('T')[0];
+              const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+              return todayGeneralTasks.length > 0 ? (
+                <div className="mb-6">
+                  <h3 className="text-lg font-bold text-emerald-300 mb-3 flex items-center gap-2">
+                    <ListTodo size={20} className="text-emerald-400" />
+                    Hospital-Wide Tasks ({todayGeneralTasks.filter((t: any) => !t.completed).length} remaining)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {todayGeneralTasks.map((task: any) => (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-emerald-700/40 hover:border-emerald-500/60 transition group"
+                      >
+                        <button
+                          onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                          className="flex-shrink-0"
+                        >
+                          {task.completed ? (
+                            <CheckCircle2 className="text-green-400" size={20} />
+                          ) : (
+                            <Circle className="text-slate-600 group-hover:text-emerald-400" size={20} />
+                          )}
+                        </button>
+                        <span
+                          className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                          onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                        >
+                          {task.name}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteGeneralTask(task.id)}
+                          className="flex-shrink-0 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            {/* Patient Tasks by Patient */}
+            <div>
+              <h3 className="text-lg font-bold text-cyan-300 mb-3 flex items-center gap-2">
+                <ListTodo size={20} className="text-cyan-400" />
+                Patient Tasks
+              </h3>
+              <div className="space-y-4">
+                {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).map(patient => {
+                  const tasks = patient.tasks || [];
+                  const info = patient.patient_info || {};
+                  const emoji = getSpeciesEmoji(info.species);
+                  const completedCount = tasks.filter((t: any) => t.completed).length;
+                  const totalCount = tasks.length;
+
+                  return (
+                    <div key={patient.id} className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-white font-bold flex items-center gap-2">
+                          <span className="text-2xl">{emoji}</span>
+                          {patient.name}
+                          <span className="text-xs bg-cyan-600 text-white px-2 py-0.5 rounded-full ml-2">
+                            {completedCount}/{totalCount}
+                          </span>
+                        </h4>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {tasks.map((task: any) => (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-cyan-500/50 transition group"
+                          >
+                            <button
+                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                              className="flex-shrink-0"
+                            >
+                              {task.completed ? (
+                                <CheckCircle2 className="text-green-400" size={18} />
+                              ) : (
+                                <Circle className="text-slate-600 group-hover:text-cyan-400" size={18} />
+                              )}
+                            </button>
+                            <span
+                              className={`flex-1 text-sm cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                            >
+                              {task.name}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteTask(patient.id, task.id)}
+                              className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).length === 0 && (
+                  <div className="text-center py-8 text-slate-400">
+                    <div className="text-4xl mb-2">✨</div>
+                    <p>No patient tasks found.</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
