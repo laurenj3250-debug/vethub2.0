@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 
@@ -75,6 +75,11 @@ export default function VetHub() {
   const [expandedSections, setExpandedSections] = useState<string[]>(['patient', 'history', 'neuro']);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pastedText, setPastedText] = useState('');
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string>('');
+  const [isParsingScreenshot, setIsParsingScreenshot] = useState(false);
+  const [screenshotWarnings, setScreenshotWarnings] = useState<string[]>([]);
   const [soapData, setSOAPData] = useState<any>({
     // Patient info
     name: '',
@@ -175,6 +180,150 @@ export default function VetHub() {
     } catch (error) {
       console.error('Parse error:', error);
       toast({ variant: 'destructive', title: 'Error parsing text', description: 'AI parsing failed. Please try again.' });
+    }
+  };
+
+  // Screenshot Upload & Parse Handler
+  const handleScreenshotUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({ variant: 'destructive', title: 'Invalid file', description: 'Please upload an image file (PNG, JPG, etc.)' });
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ variant: 'destructive', title: 'File too large', description: 'Please upload an image smaller than 10MB' });
+      return;
+    }
+
+    setScreenshotFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setScreenshotPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleParseScreenshot = async (parseType: 'treatment-sheet' | 'soap-note' | 'patient-info') => {
+    if (!screenshotFile) {
+      toast({ variant: 'destructive', title: 'No screenshot selected' });
+      return;
+    }
+
+    setIsParsingScreenshot(true);
+    setScreenshotWarnings([]);
+
+    try {
+      toast({ title: '🤖 AI reading screenshot...', description: 'Extracting medical data with vision AI' });
+
+      const formData = new FormData();
+      formData.append('image', screenshotFile);
+      formData.append('parseType', parseType);
+      formData.append('currentData', JSON.stringify(soapData));
+
+      const response = await fetch('/api/parse-screenshot', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Parsing failed');
+      }
+
+      const result = await response.json();
+
+      // Handle warnings (medication unclear, etc.)
+      if (result.warnings && result.warnings.length > 0) {
+        setScreenshotWarnings(result.warnings);
+        toast({
+          title: '⚠️ Review Required',
+          description: `${result.warnings.length} warning(s) detected. Please verify extracted data.`,
+          variant: 'destructive',
+        });
+      }
+
+      // Merge extracted data with existing SOAP data
+      if (parseType === 'treatment-sheet') {
+        // Format medications from array to string
+        let medicationsText = '';
+        if (result.extractedData.medications && result.extractedData.medications.length > 0) {
+          medicationsText = result.extractedData.medications
+            .map((med: any) => {
+              let line = `${med.name} ${med.dose} ${med.route} ${med.frequency}`;
+              if (med.instructions) line += ` (${med.instructions})`;
+              if (med.safetyFlag) line += ` ⚠️ ${med.safetyFlag}`;
+              return line;
+            })
+            .join('\n');
+        }
+
+        // Merge treatment sheet data
+        setSOAPData({
+          ...soapData,
+          name: result.extractedData.patientInfo?.name || soapData.name,
+          species: result.extractedData.patientInfo?.species || soapData.species,
+          age: result.extractedData.patientInfo?.age || soapData.age,
+          sex: result.extractedData.patientInfo?.sex || soapData.sex,
+          breed: result.extractedData.patientInfo?.breed || soapData.breed,
+          medications: medicationsText || soapData.medications,
+          diagnosticsToday: result.extractedData.diagnostics || soapData.diagnosticsToday,
+          treatments: [
+            result.extractedData.treatments,
+            result.extractedData.ivFluids,
+            result.extractedData.feedingInstructions
+          ].filter(Boolean).join('\n\n') || soapData.treatments,
+        });
+
+        toast({
+          title: '✅ Screenshot parsed!',
+          description: `Extracted ${result.extractedData.medications?.length || 0} medications and treatment data`,
+        });
+
+      } else if (parseType === 'soap-note') {
+        // Merge SOAP note data directly
+        setSOAPData({ ...soapData, ...result.extractedData });
+        toast({
+          title: '✅ SOAP note extracted!',
+          description: `Updated ${Object.keys(result.extractedData).length} fields`,
+        });
+
+      } else if (parseType === 'patient-info') {
+        // Merge patient demographic data
+        setSOAPData({
+          ...soapData,
+          name: result.extractedData.patientName || soapData.name,
+          species: result.extractedData.species || soapData.species,
+          age: result.extractedData.age || soapData.age,
+          sex: result.extractedData.sex || soapData.sex,
+          breed: result.extractedData.breed || soapData.breed,
+          currentHistory: result.extractedData.activeProblems || soapData.currentHistory,
+          medications: result.extractedData.currentMedications || soapData.medications,
+          allergies: result.extractedData.allergies || soapData.allergies,
+        });
+        toast({ title: '✅ Patient info extracted!' });
+      }
+
+      // Close modal and reset
+      setShowScreenshotModal(false);
+      setScreenshotFile(null);
+      setScreenshotPreview('');
+
+    } catch (error: any) {
+      console.error('Screenshot parse error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error parsing screenshot',
+        description: error.message || 'Vision AI failed. Please try again or use Paste & Parse.',
+      });
+    } finally {
+      setIsParsingScreenshot(false);
     }
   };
 
@@ -2948,6 +3097,13 @@ Please schedule a recheck appointment with the Neurology department to have stap
                       Paste & Parse
                     </button>
                     <button
+                      onClick={() => setShowScreenshotModal(true)}
+                      className="px-3 py-1 text-xs font-bold rounded flex items-center gap-1 bg-purple-600 hover:bg-purple-500 text-white"
+                    >
+                      <Camera size={14} />
+                      Upload Screenshot
+                    </button>
+                    <button
                       onClick={() => {
                         // Copy all sections at once
                         let fullSOAP = '';
@@ -4520,6 +4676,162 @@ Example:
                     Parse with AI
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot Upload Modal */}
+        {showScreenshotModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-700/50 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b border-slate-700 sticky top-0 bg-slate-800/95 backdrop-blur-xl z-10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
+                    <Camera size={24} />
+                    Upload Screenshot - Vision AI
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowScreenshotModal(false);
+                      setScreenshotFile(null);
+                      setScreenshotPreview('');
+                      setScreenshotWarnings([]);
+                    }}
+                    className="text-slate-400 hover:text-white transition text-xl"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-sm text-slate-400 mt-2">
+                  Upload a screenshot of VetRadar treatment sheet, EzyVet notes, or patient info. AI will extract medications, diagnostics, and clinical data.
+                </p>
+              </div>
+
+              <div className="p-6">
+                {/* File Upload Area */}
+                {!screenshotFile ? (
+                  <div className="border-2 border-dashed border-slate-600 rounded-lg p-8 text-center hover:border-purple-500 transition cursor-pointer"
+                    onClick={() => document.getElementById('screenshot-upload')?.click()}
+                  >
+                    <Upload size={48} className="mx-auto text-slate-500 mb-4" />
+                    <p className="text-white font-semibold mb-2">Click to upload or drag and drop</p>
+                    <p className="text-sm text-slate-400 mb-4">PNG, JPG, GIF up to 10MB</p>
+                    <input
+                      id="screenshot-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleScreenshotUpload}
+                      className="hidden"
+                    />
+                    <div className="mt-6 text-left bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                      <p className="text-xs font-bold text-purple-400 mb-2 flex items-center gap-1">
+                        <Brain size={14} />
+                        SCREENSHOT TIPS FOR BEST ACCURACY:
+                      </p>
+                      <ul className="text-xs text-slate-300 space-y-1 ml-4 list-disc">
+                        <li><strong>VetRadar Treatment Sheet:</strong> Capture full medication table with doses & frequencies</li>
+                        <li><strong>EzyVet Consult Notes:</strong> Include patient name, signalment, and clinical notes</li>
+                        <li><strong>Patient Info Screen:</strong> Ensure owner name, phone, and patient demographics are visible</li>
+                        <li><strong>Image Quality:</strong> Use high resolution, avoid blur, ensure text is legible</li>
+                        <li><strong>Medication Doses:</strong> AI will flag unclear doses for your review - safety first</li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Preview */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-slate-300">Preview:</p>
+                        <button
+                          onClick={() => {
+                            setScreenshotFile(null);
+                            setScreenshotPreview('');
+                          }}
+                          className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                        >
+                          <Trash2 size={12} />
+                          Remove
+                        </button>
+                      </div>
+                      <img
+                        src={screenshotPreview}
+                        alt="Screenshot preview"
+                        className="w-full rounded-lg border border-slate-600 max-h-96 object-contain bg-slate-900"
+                      />
+                    </div>
+
+                    {/* Warnings Display */}
+                    {screenshotWarnings.length > 0 && (
+                      <div className="mb-6 bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4">
+                        <p className="text-sm font-bold text-yellow-400 mb-2 flex items-center gap-2">
+                          <AlertTriangle size={16} />
+                          SAFETY WARNINGS - VERIFY BEFORE USE:
+                        </p>
+                        <ul className="text-xs text-yellow-200 space-y-1 ml-6 list-disc">
+                          {screenshotWarnings.map((warning, idx) => (
+                            <li key={idx}>{warning}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Parse Type Selection */}
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-slate-300 mb-3">What type of screenshot is this?</p>
+
+                      <button
+                        onClick={() => handleParseScreenshot('treatment-sheet')}
+                        disabled={isParsingScreenshot}
+                        className="w-full p-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg font-bold transition flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="text-left">
+                          <p className="font-bold">VetRadar / Hospital Treatment Sheet</p>
+                          <p className="text-xs opacity-90">Extract medications, doses, treatments, diagnostics</p>
+                        </div>
+                        {isParsingScreenshot && <Loader2 size={20} className="animate-spin" />}
+                      </button>
+
+                      <button
+                        onClick={() => handleParseScreenshot('soap-note')}
+                        disabled={isParsingScreenshot}
+                        className="w-full p-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg font-bold transition flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="text-left">
+                          <p className="font-bold">SOAP Note / Clinical Summary</p>
+                          <p className="text-xs opacity-90">Extract history, exam findings, neurolocalization, plan</p>
+                        </div>
+                        {isParsingScreenshot && <Loader2 size={20} className="animate-spin" />}
+                      </button>
+
+                      <button
+                        onClick={() => handleParseScreenshot('patient-info')}
+                        disabled={isParsingScreenshot}
+                        className="w-full p-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg font-bold transition flex items-center justify-between disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="text-left">
+                          <p className="font-bold">Patient Demographics / EzyVet Patient Page</p>
+                          <p className="text-xs opacity-90">Extract patient name, owner info, signalment</p>
+                        </div>
+                        {isParsingScreenshot && <Loader2 size={20} className="animate-spin" />}
+                      </button>
+                    </div>
+
+                    <div className="mt-6 bg-slate-900/50 rounded-lg p-4 border border-slate-700">
+                      <p className="text-xs font-bold text-purple-400 mb-2 flex items-center gap-1">
+                        <AlertTriangle size={12} />
+                        CLINICAL SAFETY REMINDER:
+                      </p>
+                      <ul className="text-xs text-slate-300 space-y-1 ml-4 list-disc">
+                        <li>Always verify extracted medication doses against original screenshot</li>
+                        <li>Any unclear doses will be flagged with a warning symbol</li>
+                        <li>Do not rely solely on AI for medication calculations or critical dosing</li>
+                        <li>This tool is designed to reduce typing, not replace clinical judgment</li>
+                      </ul>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
