@@ -62,6 +62,7 @@ export function EnhancedRoundingSheet({
   });
 
   const fieldRefs = useRef<Map<string, HTMLInputElement | HTMLTextAreaElement>>(new Map());
+  const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Load custom templates from localStorage
   useEffect(() => {
@@ -364,7 +365,7 @@ export function EnhancedRoundingSheet({
     }
   }, [showProtocolSelector, copyRoundingSheetLine]);
 
-  // Update field with API call (no refresh on every keystroke - too slow)
+  // Update field with API call
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
@@ -393,6 +394,48 @@ export function EnhancedRoundingSheet({
       console.error('Update failed:', error);
       // Could add error handling/rollback here if needed
     }
+  }, [patients, onPatientUpdate]);
+
+  // Debounced update for text inputs (waits 500ms after typing stops)
+  const updateFieldDebounced = useCallback((patientId: number, field: string, value: any) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // Update local state immediately (optimistic)
+    const updatedRounding = {
+      ...(patient.rounding_data || {}),
+      [field]: value
+    };
+
+    const updatedPatients = patients.map(p =>
+      p.id === patientId
+        ? { ...p, rounding_data: updatedRounding }
+        : p
+    );
+
+    // Update parent component state immediately for responsive typing
+    if (onPatientUpdate) {
+      onPatientUpdate(updatedPatients);
+    }
+
+    // Clear existing timer for this field
+    const timerKey = `${patientId}-${field}`;
+    const existingTimer = debounceTimers.current.get(timerKey);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Set new timer - only save to API after 500ms of no typing
+    const newTimer = setTimeout(async () => {
+      try {
+        await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      } catch (error) {
+        console.error('Debounced update failed:', error);
+      }
+      debounceTimers.current.delete(timerKey);
+    }, 500);
+
+    debounceTimers.current.set(timerKey, newTimer);
   }, [patients, onPatientUpdate]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
@@ -718,7 +761,7 @@ export function EnhancedRoundingSheet({
                     <input
                       type="text"
                       value={rounding.signalment || ''}
-                      onChange={(e) => updateField(patient.id, 'signalment', e.target.value)}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'signalment', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'signalment')}
                       placeholder="Age, breed, sex..."
                       className="w-full min-w-[140px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-cyan-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded px-2 py-1.5 text-white text-xs transition-all"
@@ -771,7 +814,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2">
                     <textarea
                       value={rounding.problems || ''}
-                      onChange={(e) => updateField(patient.id, 'problems', e.target.value)}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
                       placeholder="List of problems..."
                       className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
@@ -783,7 +826,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2">
                     <textarea
                       value={rounding.diagnosticFindings || ''}
-                      onChange={(e) => updateField(patient.id, 'diagnosticFindings', e.target.value)}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'diagnosticFindings', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'diagnosticFindings')}
                       placeholder="Diagnostic findings..."
                       className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
@@ -796,7 +839,7 @@ export function EnhancedRoundingSheet({
                     <div className="flex gap-2">
                       <textarea
                         value={rounding.therapeutics || ''}
-                        onChange={(e) => updateField(patient.id, 'therapeutics', e.target.value)}
+                        onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
                         placeholder="Medications, treatments..."
                         className="flex-1 min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
@@ -882,7 +925,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2">
                     <textarea
                       value={rounding.overnightDx || ''}
-                      onChange={(e) => updateField(patient.id, 'overnightDx', e.target.value)}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'overnightDx', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'overnightDx')}
                       placeholder="Overnight plan..."
                       className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-violet-500 focus:border-violet-400 focus:ring-1 focus:ring-violet-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
@@ -894,7 +937,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2">
                     <textarea
                       value={rounding.concerns || ''}
-                      onChange={(e) => updateField(patient.id, 'concerns', e.target.value)}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'concerns', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'concerns')}
                       placeholder="Concerns..."
                       className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
@@ -906,7 +949,7 @@ export function EnhancedRoundingSheet({
                   <td className="p-2">
                     <textarea
                       value={rounding.comments || ''}
-                      onChange={(e) => updateField(patient.id, 'comments', e.target.value)}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'comments', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'comments')}
                       placeholder="Additional comments..."
                       className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-amber-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
