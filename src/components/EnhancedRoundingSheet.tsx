@@ -604,10 +604,10 @@ export function EnhancedRoundingSheet({
                       value={rounding.location || 'IP'}
                       onChange={(e) => updateField(patient.id, 'location', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'location')}
-                      className="w-full min-w-[80px] bg-slate-900/90 border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
+                      className="w-full min-w-[80px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
                     >
-                      <option value="IP" className="bg-slate-800">IP</option>
-                      <option value="ICU" className="bg-slate-800">ICU</option>
+                      <option value="IP" className="bg-slate-900">IP</option>
+                      <option value="ICU" className="bg-slate-900">ICU</option>
                     </select>
                   </td>
 
@@ -617,11 +617,11 @@ export function EnhancedRoundingSheet({
                       value={rounding.icuCriteria || ''}
                       onChange={(e) => updateField(patient.id, 'icuCriteria', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'icuCriteria')}
-                      className="w-full min-w-[70px] bg-slate-900/90 border border-slate-600 hover:border-pink-500 focus:border-pink-400 focus:ring-1 focus:ring-pink-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
+                      className="w-full min-w-[70px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-pink-500 focus:border-pink-400 focus:ring-1 focus:ring-pink-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
                     >
-                      <option value="" className="bg-slate-800">-</option>
-                      <option value="Y" className="bg-slate-800 text-green-400">Y</option>
-                      <option value="N" className="bg-slate-800 text-red-400">N</option>
+                      <option value="" className="bg-slate-900">-</option>
+                      <option value="Y" className="bg-slate-900 text-green-400">Y</option>
+                      <option value="N" className="bg-slate-900 text-red-400">N</option>
                     </select>
                   </td>
 
@@ -711,11 +711,11 @@ export function EnhancedRoundingSheet({
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'ivc')}
                       className="w-full min-w-[100px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-orange-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                     >
-                      <option value="" className="bg-slate-800">-</option>
+                      <option value="" className="bg-slate-900">-</option>
                       <option value="Y" className="bg-slate-800 text-green-400">Y</option>
                       <option value="N" className="bg-slate-800 text-red-400">N</option>
-                      <option value="Yes but..." className="bg-slate-800">Yes but...</option>
-                      <option value="Not but..." className="bg-slate-800">Not but...</option>
+                      <option value="Yes but..." className="bg-slate-900">Yes but...</option>
+                      <option value="Not but..." className="bg-slate-900">Not but...</option>
                     </select>
                   </td>
 
@@ -727,11 +727,11 @@ export function EnhancedRoundingSheet({
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'fluids')}
                       className="w-full min-w-[100px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-teal-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                     >
-                      <option value="" className="bg-slate-800">-</option>
+                      <option value="" className="bg-slate-900">-</option>
                       <option value="Y" className="bg-slate-800 text-green-400">Y</option>
                       <option value="N" className="bg-slate-800 text-red-400">N</option>
-                      <option value="Yes but..." className="bg-slate-800">Yes but...</option>
-                      <option value="Not but..." className="bg-slate-800">Not but...</option>
+                      <option value="Yes but..." className="bg-slate-900">Yes but...</option>
+                      <option value="Not but..." className="bg-slate-900">Not but...</option>
                     </select>
                   </td>
 
@@ -743,11 +743,11 @@ export function EnhancedRoundingSheet({
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'cri')}
                       className="w-full min-w-[100px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-indigo-500 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                     >
-                      <option value="" className="bg-slate-800">-</option>
+                      <option value="" className="bg-slate-900">-</option>
                       <option value="Y" className="bg-slate-800 text-green-400">Y</option>
                       <option value="N" className="bg-slate-800 text-red-400">N</option>
-                      <option value="Yes but..." className="bg-slate-800">Yes but...</option>
-                      <option value="Not but..." className="bg-slate-800">Not but...</option>
+                      <option value="Yes but..." className="bg-slate-900">Yes but...</option>
+                      <option value="Not but..." className="bg-slate-900">Not but...</option>
                     </select>
                   </td>
 
