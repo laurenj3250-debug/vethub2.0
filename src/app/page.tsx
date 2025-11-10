@@ -148,6 +148,66 @@ export default function VetHub() {
     discussionChanges: '',
   });
 
+  // Helper function to create a clean base template (keeps patient info, clears history/exam/assessment)
+  const getCleanTemplateBase = () => ({
+    // Keep patient demographic info only
+    name: soapData.name,
+    age: soapData.age,
+    sex: soapData.sex,
+    breed: soapData.breed,
+    species: soapData.species,
+    reasonForVisit: soapData.reasonForVisit,
+    visitType: soapData.visitType,
+    // Clear all history fields
+    lastVisit: '',
+    currentHistory: '',
+    csvd: 'none',
+    pupd: 'none',
+    appetite: 'normal',
+    lastMRI: '',
+    medications: '',
+    prevDiagnostics: '',
+    whyHereToday: '',
+    painfulVocalizing: 'None',
+    diet: '',
+    allergies: 'none',
+    otherPets: '',
+    indoorOutdoor: 'indoor',
+    trauma: 'No',
+    travel: 'No',
+    heartwormPrev: 'Yes',
+    fleaTick: 'Yes',
+    vaccinesUTD: 'Yes',
+    otherMedicalHistory: '',
+    // Clear all physical exam fields
+    peENT: '',
+    peOral: '',
+    pePLN: '',
+    peCV: '',
+    peResp: '',
+    peAbd: '',
+    peRectal: '',
+    peMS: '',
+    peInteg: '',
+    // Clear neuro exam (will be filled by template)
+    mentalStatus: 'BAR',
+    gait: '',
+    cranialNerves: '',
+    posturalReactions: '',
+    spinalReflexes: '',
+    tone: '',
+    muscleMass: '',
+    nociception: '',
+    examBy: '',
+    // Clear assessment/plan (will be filled by template)
+    progression: '',
+    neurolocalization: '',
+    ddx: '',
+    diagnosticsToday: '',
+    treatments: '',
+    discussionChanges: '',
+  });
+
   // Helper function to get saved SOAP exams from memory
   const getSavedExams = () => {
     try {
@@ -384,12 +444,8 @@ export default function VetHub() {
     try {
       const parsed = await parsePatientBlurb(patientBlurb);
       const patientName = parsed.patientName?.replace(/^Patient\s/i, '') || 'Unnamed';
-      let ownerLastName = '';
-
-      if (parsed.ownerName) {
-        const parts = parsed.ownerName.split(' ').filter(Boolean);
-        ownerLastName = parts[parts.length - 1] || '';
-      }
+      // AI now extracts owner last name directly, no need to split
+      const ownerLastName = parsed.ownerName?.trim() || '';
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
@@ -4394,7 +4450,7 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                           </button>
                           <button
                             onClick={() => setSOAPData({
-                              ...soapData,
+                              ...getCleanTemplateBase(),
                               mentalStatus: 'BAR',
                               gait: 'Short, stilted, choppy gait',
                               cranialNerves: 'intact',
@@ -4414,7 +4470,7 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                           </button>
                           <button
                             onClick={() => setSOAPData({
-                              ...soapData,
+                              ...getCleanTemplateBase(),
                               mentalStatus: 'BAR',
                               gait: 'Ambulatory with acute onset pelvic limb UMN paresis, asymmetric',
                               cranialNerves: 'intact',
@@ -4434,10 +4490,10 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                           </button>
                           <button
                             onClick={() => setSOAPData({
-                              ...soapData,
+                              ...getCleanTemplateBase(),
                               mentalStatus: 'BAR',
                               gait: 'Ambulatory with vestibular quality ataxia, acute onset',
-                              cranialNerves: 'head tilt, horizontal nystagmus (fast phase away from lesion), absent palpebral ipsilateral',
+                              cranialNerves: 'Head tilt, Positional nystagmus, Absent palpebral reflex',
                               posturalReactions: 'normal (key - rules out central)',
                               spinalReflexes: 'normal',
                               tone: 'normal',
@@ -4454,7 +4510,7 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                           </button>
                           <button
                             onClick={() => setSOAPData({
-                              ...soapData,
+                              ...getCleanTemplateBase(),
                               mentalStatus: 'BAR',
                               gait: 'Ambulatory with LMN pelvic limb paresis, tail paralysis',
                               cranialNerves: 'intact',

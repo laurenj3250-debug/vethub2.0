@@ -33,10 +33,12 @@ export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientDat
           role: 'user',
           content: `Extract structured data from this veterinary patient text and return ONLY a JSON object with no other text or explanation.
 
+IMPORTANT: For ownerName, extract the owner's LAST NAME only (surname/family name). If you see "John Smith" extract "Smith". If you only see a first name, use null.
+
 Return this exact structure (use null for missing fields):
 {
   "patientName": "pet name only, remove any 'Patient' prefix",
-  "ownerName": "owner full name",
+  "ownerName": "owner LAST NAME only (surname)",
   "ownerPhone": "phone number",
   "species": "dog/cat/etc",
   "breed": "breed",
