@@ -463,7 +463,7 @@ export default function VetHub() {
 
   const handleQuickAddTask = async (patientId: number, taskName: string) => {
     try {
-      await apiClient.createTask(patientId, {
+      await apiClient.createTask(String(patientId), {
         name: taskName,
         completed: false,
         date: new Date().toISOString().split('T')[0],
@@ -503,7 +503,7 @@ export default function VetHub() {
         );
 
         if (!hasDischargeTask) {
-          await apiClient.createTask(patientId, {
+          await apiClient.createTask(String(patientId), {
             name: 'Discharge Instructions',
             completed: false,
             date: today,
@@ -537,7 +537,7 @@ export default function VetHub() {
           );
 
           if (!hasTask) {
-            await apiClient.createTask(patientId, {
+            await apiClient.createTask(String(patientId), {
               name: taskName,
               completed: false,
               date: today,
@@ -689,7 +689,7 @@ export default function VetHub() {
             );
 
             if (!hasTask) {
-              await apiClient.createTask(patientId, {
+              await apiClient.createTask(String(patientId), {
                 name: taskName,
                 completed: false,
                 date: today,
@@ -714,7 +714,7 @@ export default function VetHub() {
       const today = new Date().toISOString().split('T')[0];
 
       for (const patientId of Array.from(selectedPatientIds)) {
-        await apiClient.createTask(patientId, {
+        await apiClient.createTask(String(patientId), {
           name: taskName,
           completed: false,
           date: today,
@@ -752,7 +752,7 @@ export default function VetHub() {
     if (!newPatientTaskName.trim() || !selectedPatientForTask) return;
 
     try {
-      await apiClient.createTask(selectedPatientForTask, {
+      await apiClient.createTask(String(selectedPatientForTask), {
         name: newPatientTaskName,
         completed: false,
         date: new Date().toISOString().split('T')[0],
@@ -774,7 +774,7 @@ export default function VetHub() {
     try {
       if (quickTaskPatient) {
         // Add to specific patient
-        await apiClient.createTask(quickTaskPatient, {
+        await apiClient.createTask(String(quickTaskPatient), {
           name: quickTaskInput,
           completed: false,
           date: new Date().toISOString().split('T')[0],
@@ -1017,9 +1017,8 @@ export default function VetHub() {
         .sort((a: any, b: any) => new Date(b[1].savedAt).getTime() - new Date(a[1].savedAt).getTime())[0];
 
       if (mostRecent && !soapData.neurolocalization) {
-        // Suggest most recently used template
+        // Suggest most recently used template (silently, no console output)
         const [neuroLoc] = mostRecent;
-        console.log(`Hint: Your most recent template is ${neuroLoc}`);
       }
     }
   }, [showSOAPBuilder]);
@@ -2359,16 +2358,12 @@ export default function VetHub() {
                         <div>
                           <label className="text-xs text-slate-400 uppercase block mb-1">Problems</label>
                           <textarea
-                            list="common-problems"
                             value={roundingFormData.problems || ''}
                             onChange={(e) => setRoundingFormData({...roundingFormData, problems: e.target.value})}
                             className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
-                            placeholder="Type or select from dropdown"
+                            placeholder="Type problems here"
                             rows={6}
                           />
-                          <datalist id="common-problems">
-                            {commonProblems.map(p => <option key={p} value={p} />)}
-                          </datalist>
                         </div>
                       </div>
 
@@ -2477,32 +2472,24 @@ export default function VetHub() {
                       <div>
                         <label className="text-xs text-slate-400 uppercase block mb-1">Concerns</label>
                         <textarea
-                          list="common-concerns"
                           value={roundingFormData.concerns || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, concerns: e.target.value})}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
-                          placeholder="Type or select from dropdown"
+                          placeholder="Type concerns here"
                           rows={5}
                         />
-                        <datalist id="common-concerns">
-                          {commonConcerns.map(c => <option key={c} value={c} />)}
-                        </datalist>
                       </div>
 
                       {/* Row 8: Comments */}
                       <div>
                         <label className="text-xs text-slate-400 uppercase block mb-1">Comments</label>
                         <textarea
-                          list="common-comments"
                           value={roundingFormData.comments || ''}
                           onChange={(e) => setRoundingFormData({...roundingFormData, comments: e.target.value})}
                           className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
-                          placeholder="Type or select common comment"
+                          placeholder="Type comments here"
                           rows={5}
                         />
-                        <datalist id="common-comments">
-                          {commonComments.map(c => <option key={c} value={c} />)}
-                        </datalist>
                       </div>
 
                       {/* Action Buttons */}

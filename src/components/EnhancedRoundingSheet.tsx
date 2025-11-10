@@ -578,7 +578,11 @@ export function EnhancedRoundingSheet({
                       className="text-white font-medium text-xs hover:text-cyan-400 transition cursor-pointer underline decoration-dotted flex items-center gap-1"
                     >
                       {patient.name}
-                      {hasSOAPData && <Sparkles className="w-3 h-3 text-cyan-400" title="Has SOAP data" />}
+                      {hasSOAPData && (
+                        <span title="Has SOAP data">
+                          <Sparkles className="w-3 h-3 text-cyan-400" />
+                        </span>
+                      )}
                     </button>
                   </td>
 
