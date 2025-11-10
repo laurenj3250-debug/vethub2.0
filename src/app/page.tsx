@@ -57,6 +57,9 @@ export default function VetHub() {
   // Debounced input state for MRI Schedule
   const [mriInputValues, setMriInputValues] = useState<Record<string, string>>({});
   const mriTimeoutRefs = useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Hide completed tasks toggle
+  const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
   const [referenceData, setReferenceData] = useState<any>({
     medications: [
       { name: 'Gabapentin', dose: '10-20 mg/kg PO q8-12h', notes: 'Neuropathic pain, seizures' },
@@ -1131,15 +1134,21 @@ export default function VetHub() {
   }, [showSOAPBuilder]);
 
   // Automatic daily task creation - runs when app loads on a new day
+  const hasRunAutoCreation = useRef(false);
+
   useEffect(() => {
     const autoCreateDailyTasks = async () => {
       if (!patients || patients.length === 0) return;
+      if (hasRunAutoCreation.current) return; // Prevent duplicate runs
 
       const today = new Date().toISOString().split('T')[0];
       const lastCheck = localStorage.getItem('lastDailyTaskCheck');
 
       // Only run if it's a new day
-      if (lastCheck === today) return;
+      if (lastCheck === today) {
+        hasRunAutoCreation.current = true;
+        return;
+      }
 
       const activePatients = patients.filter(p => p.status !== 'Discharged');
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
@@ -1173,6 +1182,7 @@ export default function VetHub() {
 
       // Mark today as checked
       localStorage.setItem('lastDailyTaskCheck', today);
+      hasRunAutoCreation.current = true;
 
       if (totalAdded > 0) {
         refetch();
@@ -2045,9 +2055,34 @@ export default function VetHub() {
           />
         </div>
 
+        {/* Today's Date Banner */}
+        <div className="bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📅</span>
+              <div>
+                <h3 className="text-white font-bold text-lg">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </h3>
+                <p className="text-slate-400 text-xs">Showing today's tasks only</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                hideCompletedTasks
+                  ? 'bg-green-600/80 text-white hover:bg-green-600'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              {hideCompletedTasks ? '✅ Show Completed' : '👁️ Hide Completed'}
+            </button>
+          </div>
+        </div>
+
         {/* Batch Add Tasks - Above Patient Cards */}
         {filteredPatients.length > 0 && (
-          <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-4">
+          <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <span className="text-lg">⚡</span>
@@ -2059,13 +2094,13 @@ export default function VetHub() {
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => handleBatchAddAllCategoryTasks('morning')}
-                  className="px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform shadow-lg"
+                  className="px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform shadow-lg"
                 >
                   ➕ Add Morning Tasks to All
                 </button>
                 <button
                   onClick={() => handleBatchAddAllCategoryTasks('evening')}
-                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform shadow-lg"
+                  className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform shadow-lg"
                 >
                   ➕ Add Evening Tasks to All
                 </button>
@@ -2279,10 +2314,10 @@ export default function VetHub() {
 
                   {/* Tasks - Grouped by Category */}
                   {isExpanded && (
-                    <div className="border-t border-slate-700/50 p-6 bg-slate-900/30">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-white font-bold flex items-center gap-2">
-                          <ListTodo size={18} className="text-cyan-400" />
+                    <div className="border-t border-slate-700/50 p-3 bg-slate-900/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-white font-bold text-sm flex items-center gap-2">
+                          <ListTodo size={16} className="text-cyan-400" />
                           Tasks ({completedTasks}/{totalTasks})
                         </h4>
                         <div className="flex gap-2 flex-wrap">
@@ -2318,38 +2353,38 @@ export default function VetHub() {
                       </div>
 
                       {/* Morning Tasks */}
-                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').length > 0 && (
-                        <div className="mb-4">
-                          <h5 className="text-sm font-bold text-yellow-400 mb-2 flex items-center gap-2">
+                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+                        <div className="mb-3">
+                          <h5 className="text-xs font-bold text-yellow-400 mb-1.5 flex items-center gap-2">
                             🌅 Morning Tasks
                           </h5>
-                          <div className="space-y-2">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').map((task: any) => (
+                          <div className="space-y-1">
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).map((task: any) => (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
+                                className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={20} />
+                                    <CheckCircle2 className="text-green-400" size={16} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-yellow-400" size={20} />
+                                    <Circle className="text-slate-600 group-hover:text-yellow-400" size={16} />
                                   )}
                                 </button>
                                 <span
-                                  className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
                                   {task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={12} />
                                 </button>
                               </div>
                             ))}
@@ -2358,38 +2393,38 @@ export default function VetHub() {
                       )}
 
                       {/* Evening Tasks */}
-                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').length > 0 && (
-                        <div className="mb-4">
-                          <h5 className="text-sm font-bold text-indigo-400 mb-2 flex items-center gap-2">
+                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+                        <div className="mb-3">
+                          <h5 className="text-xs font-bold text-indigo-400 mb-1.5 flex items-center gap-2">
                             🌙 Evening Tasks
                           </h5>
-                          <div className="space-y-2">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').map((task: any) => (
+                          <div className="space-y-1">
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).map((task: any) => (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
+                                className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={20} />
+                                    <CheckCircle2 className="text-green-400" size={16} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-indigo-400" size={20} />
+                                    <Circle className="text-slate-600 group-hover:text-indigo-400" size={16} />
                                   )}
                                 </button>
                                 <span
-                                  className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
                                   {task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={12} />
                                 </button>
                               </div>
                             ))}
@@ -2398,38 +2433,38 @@ export default function VetHub() {
                       )}
 
                       {/* General Tasks (MRI/Surgery/Conditional) */}
-                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').length > 0 && (
+                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div>
-                          <h5 className="text-sm font-bold text-cyan-400 mb-2 flex items-center gap-2">
+                          <h5 className="text-xs font-bold text-cyan-400 mb-1.5 flex items-center gap-2">
                             📋 {patient.type} Tasks & Other
                           </h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').map((task: any) => (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).map((task: any) => (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
+                                className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={20} />
+                                    <CheckCircle2 className="text-green-400" size={16} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-cyan-400" size={20} />
+                                    <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
                                   )}
                                 </button>
                                 <span
-                                  className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
                                   {task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
                                 >
-                                  <Trash2 size={14} />
+                                  <Trash2 size={12} />
                                 </button>
                               </div>
                             ))}
