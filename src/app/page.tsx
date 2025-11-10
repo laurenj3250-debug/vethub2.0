@@ -1537,43 +1537,48 @@ export default function VetHub() {
 
             {/* Tab Content */}
             {taskViewMode === 'by-patient' && (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).map(patient => {
-                  const tasks = patient.tasks || [];
+                  const today = new Date().toISOString().split('T')[0];
+                  const allTasks = patient.tasks || [];
+                  // Show: incomplete tasks (any date) + today's completed tasks
+                  const tasks = allTasks.filter((t: any) => !t.completed || t.date === today);
                   const info = patient.patient_info || {};
                   const emoji = getSpeciesEmoji(info.species);
                   const completedCount = tasks.filter((t: any) => t.completed).length;
                   const totalCount = tasks.length;
 
+                  if (tasks.length === 0) return null;
+
                   return (
-                    <div key={patient.id} className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-white font-bold flex items-center gap-2 text-lg">
-                          <span className="text-2xl">{emoji}</span>
+                    <div key={patient.id} className="bg-slate-900/60 border border-slate-700/50 rounded-lg p-2">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <h4 className="text-white font-bold flex items-center gap-1.5 text-sm">
+                          <span className="text-lg">{emoji}</span>
                           {patient.name}
-                          <span className="text-xs bg-cyan-600 text-white px-2 py-1 rounded-full ml-2">
+                          <span className="text-xs bg-cyan-600 text-white px-1.5 py-0.5 rounded-full ml-1">
                             {completedCount}/{totalCount}
                           </span>
                         </h4>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         {tasks.map((task: any) => (
                           <div
                             key={task.id}
-                            className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-cyan-500/50 transition group"
+                            className="flex items-center gap-2 p-1.5 rounded bg-slate-800/50 border border-slate-700/30 hover:border-cyan-500/50 transition group"
                           >
                             <button
                               onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                               className="flex-shrink-0"
                             >
                               {task.completed ? (
-                                <CheckCircle2 className="text-green-400" size={22} />
+                                <CheckCircle2 className="text-green-400" size={18} />
                               ) : (
-                                <Circle className="text-slate-600 group-hover:text-cyan-400" size={22} />
+                                <Circle className="text-slate-600 group-hover:text-cyan-400" size={18} />
                               )}
                             </button>
                             <span
-                              className={`flex-1 text-base cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                              className={`flex-1 text-sm cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                               onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                             >
                               {task.name}
@@ -1582,7 +1587,7 @@ export default function VetHub() {
                               onClick={() => handleDeleteTask(patient.id, task.id)}
                               className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         ))}
@@ -1600,17 +1605,21 @@ export default function VetHub() {
             )}
 
             {taskViewMode === 'by-task' && (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {(() => {
                   // Group tasks by task name
                   const taskGroups: Record<string, Array<{ task: any; patient: any }>> = {};
+                  const today = new Date().toISOString().split('T')[0];
 
                   patients.filter(p => p.status !== 'Discharged').forEach(patient => {
                     (patient.tasks || []).forEach((task: any) => {
-                      if (!taskGroups[task.name]) {
-                        taskGroups[task.name] = [];
+                      // Show: incomplete tasks (any date) + today's completed tasks
+                      if (!task.completed || task.date === today) {
+                        if (!taskGroups[task.name]) {
+                          taskGroups[task.name] = [];
+                        }
+                        taskGroups[task.name].push({ task, patient });
                       }
-                      taskGroups[task.name].push({ task, patient });
                     });
                   });
 
@@ -1631,48 +1640,48 @@ export default function VetHub() {
                     const totalCount = items.length;
 
                     return (
-                      <div key={taskName} className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-white font-bold text-lg flex items-center gap-2">
+                      <div key={taskName} className="bg-slate-900/60 border border-slate-700/50 rounded-lg p-2">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <h4 className="text-white font-bold text-sm flex items-center gap-1.5">
                             {taskName}
-                            <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">
+                            <span className="text-xs bg-blue-600 text-white px-1.5 py-0.5 rounded-full">
                               {completedCount}/{totalCount}
                             </span>
                           </h4>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           {items.map(({ task, patient }) => {
                             const info = patient.patient_info || {};
                             const emoji = getSpeciesEmoji(info.species);
                             return (
                               <div
                                 key={`${patient.id}-${task.id}`}
-                                className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/30 hover:border-blue-500/60 transition group"
+                                className="flex items-center gap-2 p-1.5 rounded bg-slate-800/50 border border-slate-700/30 hover:border-blue-500/60 transition group"
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={22} />
+                                    <CheckCircle2 className="text-green-400" size={18} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-blue-400" size={22} />
+                                    <Circle className="text-slate-600 group-hover:text-blue-400" size={18} />
                                   )}
                                 </button>
                                 <div className="flex-1 min-w-0">
                                   <div
-                                    className={`text-base cursor-pointer flex items-center gap-2 ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                                    className={`text-sm cursor-pointer flex items-center gap-1.5 ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                     onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   >
-                                    <span className="text-xl">{emoji}</span>
+                                    <span className="text-base">{emoji}</span>
                                     {patient.name}
                                   </div>
                                 </div>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={12} />
                                 </button>
                               </div>
                             );
@@ -1703,36 +1712,36 @@ export default function VetHub() {
 
                   return (
                     <div>
-                      <div className="text-sm text-emerald-400 mb-4 font-bold">
+                      <div className="text-xs text-emerald-400 mb-2 font-bold">
                         {todayGeneralTasks.filter((t: any) => !t.completed).length} tasks remaining
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         {todayGeneralTasks.map((task: any) => (
                           <div
                             key={task.id}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-emerald-700/40 hover:border-emerald-500/60 transition group"
+                            className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-emerald-700/40 hover:border-emerald-500/60 transition group"
                           >
                             <button
                               onClick={() => handleToggleGeneralTask(task.id, task.completed)}
                               className="flex-shrink-0"
                             >
                               {task.completed ? (
-                                <CheckCircle2 className="text-green-400" size={24} />
+                                <CheckCircle2 className="text-green-400" size={18} />
                               ) : (
-                                <Circle className="text-slate-600 group-hover:text-emerald-400" size={24} />
+                                <Circle className="text-slate-600 group-hover:text-emerald-400" size={18} />
                               )}
                             </button>
                             <span
-                              className={`flex-1 cursor-pointer text-base ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                              className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
                               onClick={() => handleToggleGeneralTask(task.id, task.completed)}
                             >
                               {task.name}
                             </span>
                             <button
                               onClick={() => handleDeleteGeneralTask(task.id)}
-                              className="flex-shrink-0 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                              className="flex-shrink-0 p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
                             >
-                              <Trash2 size={16} />
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         ))}
