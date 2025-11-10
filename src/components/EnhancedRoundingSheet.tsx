@@ -28,13 +28,15 @@ interface EnhancedRoundingSheetProps {
   commonMedications: any[];
   toast: (options: any) => void;
   onPatientClick: (id: number) => void;
+  onPatientUpdate?: () => void;
 }
 
 export function EnhancedRoundingSheet({
   patients,
   commonMedications,
   toast,
-  onPatientClick
+  onPatientClick,
+  onPatientUpdate
 }: EnhancedRoundingSheetProps) {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMedicationSelector, setShowMedicationSelector] = useState<number | null>(null);
@@ -175,6 +177,7 @@ export function EnhancedRoundingSheet({
 
     try {
       await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      onPatientUpdate?.();
       toast({
         title: '⚡ Protocol Applied!',
         description: `${protocol.name} template loaded for ${patient.name}`
@@ -187,7 +190,7 @@ export function EnhancedRoundingSheet({
         description: 'Please try again'
       });
     }
-  }, [patients, allProtocols, toast]);
+  }, [patients, allProtocols, toast, onPatientUpdate]);
 
   // Smart auto-populate button
   const smartAutoPopulate = useCallback(async (patientId: number) => {
@@ -209,6 +212,7 @@ export function EnhancedRoundingSheet({
 
     try {
       await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      onPatientUpdate?.();
       toast({
         title: '✨ Auto-populated from SOAP!',
         description: `Filled ${Object.keys(autoFilled).length} fields for ${patient.name}`
@@ -219,7 +223,7 @@ export function EnhancedRoundingSheet({
         title: 'Auto-populate failed'
       });
     }
-  }, [patients, autoPopulateFromSOAP, toast]);
+  }, [patients, autoPopulateFromSOAP, toast, onPatientUpdate]);
 
   // Batch operations
   const applyBatchUpdate = useCallback(async () => {
@@ -240,6 +244,7 @@ export function EnhancedRoundingSheet({
 
     try {
       await Promise.all(updates);
+      onPatientUpdate?.();
       toast({
         title: '✅ Batch update complete!',
         description: `Updated ${selectedPatients.size} patients`
@@ -254,7 +259,7 @@ export function EnhancedRoundingSheet({
         title: 'Batch update failed'
       });
     }
-  }, [batchField, batchValue, selectedPatients, patients, toast]);
+  }, [batchField, batchValue, selectedPatients, patients, toast, onPatientUpdate]);
 
   // Copy individual row
   const copyRoundingSheetLine = useCallback(async (patientId: number) => {
@@ -371,10 +376,11 @@ export function EnhancedRoundingSheet({
 
     try {
       await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      onPatientUpdate?.();
     } catch (error) {
       console.error('Update failed:', error);
     }
-  }, [patients]);
+  }, [patients, onPatientUpdate]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
@@ -977,6 +983,33 @@ export function EnhancedRoundingSheet({
                 </select>
               </div>
 
+              {/* Location & Signalment Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Location</label>
+                  <select
+                    value={templateForm.autoFill.location || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, location: e.target.value } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-</option>
+                    <option value="IP">IP</option>
+                    <option value="ICU">ICU</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Signalment</label>
+                  <input
+                    type="text"
+                    value={templateForm.autoFill.signalment || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, signalment: e.target.value } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                    placeholder="e.g., 3 yo FS Lab"
+                  />
+                </div>
+              </div>
+
               {/* Problems */}
               <div>
                 <label className="text-xs text-slate-400 font-bold mb-1 block">Problems</label>
@@ -1104,6 +1137,18 @@ export function EnhancedRoundingSheet({
                   onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, concerns: e.target.value } })}
                   className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
                   placeholder="e.g., Monitor for progression"
+                  rows={2}
+                />
+              </div>
+
+              {/* Comments */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Comments</label>
+                <textarea
+                  value={templateForm.autoFill.comments || ''}
+                  onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, comments: e.target.value } })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
+                  placeholder="e.g., Owner updated via phone"
                   rows={2}
                 />
               </div>

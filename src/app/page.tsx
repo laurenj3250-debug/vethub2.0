@@ -1761,6 +1761,7 @@ export default function VetHub() {
             commonMedications={commonMedications}
             toast={toast}
             onPatientClick={(id) => setRoundingSheetPatient(id)}
+            onPatientUpdate={refetch}
           />
         )}
 
