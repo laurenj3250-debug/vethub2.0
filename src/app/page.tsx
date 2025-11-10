@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function VetHub() {
@@ -32,6 +32,7 @@ export default function VetHub() {
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [quickTaskPatient, setQuickTaskPatient] = useState<number | null>(null);
   const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMRISchedule, setShowMRISchedule] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
@@ -782,7 +783,7 @@ export default function VetHub() {
     }
   };
 
-  const handleExportRoundingSheets = () => {
+  const handleExportRoundingSheets = (format: 'tsv' | 'csv' | 'tsv-no-header' | 'csv-no-header' = 'tsv') => {
     try {
       // Filter active patients (exclude Discharged)
       const activePatients = patients.filter(p => p.status !== 'Discharged');
@@ -792,13 +793,17 @@ export default function VetHub() {
         return;
       }
 
-      // Build TSV with hospital format
-      const header = 'Name\tSignalment\tLocation\tICU Criteria\tCode\tProblems\tDiagnostics\tTherapeutics\tIVC\tFluids\tCRI\tOvernight Dx\tConcerns\tComments';
+      const delimiter = format.includes('csv') ? ',' : '\t';
+      const includeHeader = !format.includes('no-header');
+      const formatName = format.includes('csv') ? 'CSV' : 'TSV';
+
+      // Build export with hospital format
+      const header = ['Name', 'Signalment', 'Location', 'ICU Criteria', 'Code', 'Problems', 'Diagnostics', 'Therapeutics', 'IVC', 'Fluids', 'CRI', 'Overnight Dx', 'Concerns', 'Comments'].join(delimiter);
 
       const rows = activePatients.map(patient => {
         const rounding = patient.rounding_data || {};
 
-        return [
+        const fields = [
           patient.name || '',
           rounding.signalment || '',
           rounding.location || '',
@@ -813,18 +818,30 @@ export default function VetHub() {
           rounding.overnightDx || '',
           rounding.concerns || '',
           rounding.comments || ''
-        ].join('\t');
+        ];
+
+        // Escape fields with commas or quotes for CSV
+        if (format.includes('csv')) {
+          return fields.map(field => {
+            const needsQuotes = field.includes(',') || field.includes('"') || field.includes('\n');
+            return needsQuotes ? `"${field.replace(/"/g, '""')}"` : field;
+          }).join(delimiter);
+        }
+
+        return fields.join(delimiter);
       });
 
-      const tsvContent = [header, ...rows].join('\n');
+      const content = includeHeader ? [header, ...rows].join('\n') : rows.join('\n');
 
       // Copy to clipboard
-      navigator.clipboard.writeText(tsvContent);
+      navigator.clipboard.writeText(content);
 
       toast({
-        title: '✅ Rounding Sheets Copied!',
-        description: `${activePatients.length} patients ready to paste into hospital spreadsheet`
+        title: `✅ Rounding Sheets Copied (${formatName})!`,
+        description: `${activePatients.length} patients ready to paste into ${format.includes('csv') ? 'Google Sheets or Excel' : 'hospital spreadsheet'}`
       });
+
+      setShowExportMenu(false);
     } catch (error) {
       console.error('Rounding sheet export error:', error);
       toast({ variant: 'destructive', title: 'Export failed', description: 'Could not generate rounding sheets' });
@@ -1313,39 +1330,103 @@ export default function VetHub() {
                 <FileSpreadsheet className="text-emerald-400" />
                 All Rounding Sheets
               </h2>
-              <button
-                onClick={handleExportRoundingSheets}
-                className="px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform text-sm"
-              >
-                📋 Copy to Clipboard
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-lg font-bold hover:scale-105 transition-all text-sm flex items-center gap-2 shadow-lg"
+                >
+                  📋 Export
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-2 min-w-[240px] z-50">
+                    <div className="text-xs text-slate-400 font-bold mb-2 px-2">Export Format:</div>
+                    <button
+                      onClick={() => handleExportRoundingSheets('tsv')}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gradient-to-r hover:from-emerald-500/20 hover:to-teal-500/20 rounded transition-all flex items-center gap-2"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <div className="font-bold">TSV with Headers</div>
+                        <div className="text-xs text-slate-400">Tab-separated (hospital EMR)</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleExportRoundingSheets('csv')}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gradient-to-r hover:from-cyan-500/20 hover:to-blue-500/20 rounded transition-all flex items-center gap-2"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-cyan-400" />
+                      <div>
+                        <div className="font-bold">CSV with Headers</div>
+                        <div className="text-xs text-slate-400">For Google Sheets/Excel</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleExportRoundingSheets('tsv-no-header')}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-pink-500/20 rounded transition-all flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4 text-purple-400" />
+                      <div>
+                        <div className="font-bold">TSV without Headers</div>
+                        <div className="text-xs text-slate-400">Data only (tab-separated)</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => handleExportRoundingSheets('csv-no-header')}
+                      className="w-full text-left px-3 py-2 text-sm text-white hover:bg-gradient-to-r hover:from-orange-500/20 hover:to-amber-500/20 rounded transition-all flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4 text-orange-400" />
+                      <div>
+                        <div className="font-bold">CSV without Headers</div>
+                        <div className="text-xs text-slate-400">Data only (comma-separated)</div>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="overflow-x-auto max-h-[85vh] overflow-y-auto">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-slate-800 z-10">
+              <table className="w-full text-xs border-collapse">
+                <thead className="sticky top-0 bg-slate-900 z-10 shadow-lg">
                   <tr className="border-b-2 border-emerald-500">
-                    <th className="text-left p-1 text-emerald-400 font-bold">Name</th>
-                    <th className="text-left p-1 text-cyan-400 font-bold">Signalment</th>
-                    <th className="text-left p-1 text-emerald-400 font-bold">Location</th>
-                    <th className="text-left p-1 text-pink-400 font-bold">ICU</th>
-                    <th className="text-left p-1 text-yellow-400 font-bold">Code</th>
-                    <th className="text-left p-1 text-red-400 font-bold">Problems</th>
-                    <th className="text-left p-1 text-emerald-400 font-bold">Diagnostics</th>
-                    <th className="text-left p-1 text-green-400 font-bold">Therapeutics</th>
-                    <th className="text-left p-1 text-orange-400 font-bold">IVC</th>
-                    <th className="text-left p-1 text-teal-400 font-bold">Fluids</th>
-                    <th className="text-left p-1 text-indigo-400 font-bold">CRI</th>
-                    <th className="text-left p-1 text-violet-400 font-bold">O/N Dx</th>
-                    <th className="text-left p-1 text-rose-400 font-bold">Concerns</th>
-                    <th className="text-left p-1 text-amber-400 font-bold">Comments</th>
+                    <th className="text-left p-2 text-white font-bold bg-slate-900/95 backdrop-blur-sm sticky left-0 z-20 shadow-[2px_0_4px_rgba(0,0,0,0.3)]">
+                      <div className="flex items-center gap-1">
+                        <Copy className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400">Actions</span>
+                      </div>
+                    </th>
+                    <th className="text-left p-2 text-emerald-400 font-bold bg-slate-900/95 backdrop-blur-sm">Name</th>
+                    <th className="text-left p-2 text-cyan-400 font-bold bg-slate-900/95 backdrop-blur-sm">Signalment</th>
+                    <th className="text-left p-2 text-emerald-400 font-bold bg-slate-900/95 backdrop-blur-sm">Location</th>
+                    <th className="text-left p-2 text-pink-400 font-bold bg-slate-900/95 backdrop-blur-sm">ICU</th>
+                    <th className="text-left p-2 text-yellow-400 font-bold bg-slate-900/95 backdrop-blur-sm">Code</th>
+                    <th className="text-left p-2 text-red-400 font-bold bg-slate-900/95 backdrop-blur-sm">Problems</th>
+                    <th className="text-left p-2 text-emerald-400 font-bold bg-slate-900/95 backdrop-blur-sm">Diagnostics</th>
+                    <th className="text-left p-2 text-green-400 font-bold bg-slate-900/95 backdrop-blur-sm">Therapeutics</th>
+                    <th className="text-left p-2 text-orange-400 font-bold bg-slate-900/95 backdrop-blur-sm">IVC</th>
+                    <th className="text-left p-2 text-teal-400 font-bold bg-slate-900/95 backdrop-blur-sm">Fluids</th>
+                    <th className="text-left p-2 text-indigo-400 font-bold bg-slate-900/95 backdrop-blur-sm">CRI</th>
+                    <th className="text-left p-2 text-violet-400 font-bold bg-slate-900/95 backdrop-blur-sm">O/N Dx</th>
+                    <th className="text-left p-2 text-rose-400 font-bold bg-slate-900/95 backdrop-blur-sm">Concerns</th>
+                    <th className="text-left p-2 text-amber-400 font-bold bg-slate-900/95 backdrop-blur-sm">Comments</th>
                   </tr>
                 </thead>
                 <tbody>
                   {patients.filter(p => p.status !== 'Discharged').map((patient, idx) => {
                     const rounding = patient.rounding_data || {};
                     return (
-                      <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
-                        <td className="p-1">
+                      <tr key={patient.id} className={`border-b border-slate-700/50 hover:bg-gradient-to-r hover:from-emerald-500/10 hover:to-cyan-500/10 transition-all ${idx % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-800/40'}`}>
+                        <td className="p-2 sticky left-0 bg-slate-900/95 backdrop-blur-sm shadow-[2px_0_4px_rgba(0,0,0,0.3)] z-10">
+                          <button
+                            onClick={() => copyRoundingSheetLine(patient.id)}
+                            className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded font-bold text-xs transition-all hover:scale-105 flex items-center gap-1 shadow-lg"
+                            title="Copy this row to clipboard"
+                          >
+                            <Copy className="w-3 h-3" />
+                            Copy
+                          </button>
+                        </td>
+                        <td className="p-2">
                           <button
                             onClick={() => {
                               setRoundingSheetPatient(patient.id);
@@ -1355,7 +1436,7 @@ export default function VetHub() {
                             {patient.name}
                           </button>
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <input
                             type="text"
                             value={rounding.signalment || ''}
@@ -1363,10 +1444,11 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, signalment: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            placeholder="Age, breed, sex..."
+                            className="w-full min-w-[140px] bg-slate-900/70 border border-slate-600 hover:border-cyan-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 rounded px-2 py-1.5 text-white text-xs transition-all"
                           />
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <input
                             type="text"
                             value={rounding.location || ''}
@@ -1374,10 +1456,11 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, location: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            placeholder="Cage/Ward..."
+                            className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs transition-all"
                           />
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <input
                             type="text"
                             value={rounding.icuCriteria || ''}
@@ -1385,60 +1468,64 @@ export default function VetHub() {
                               const updatedRounding = { ...rounding, icuCriteria: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            placeholder="ICU criteria..."
+                            className="w-full min-w-[120px] bg-slate-900/70 border border-slate-600 hover:border-pink-500 focus:border-pink-400 focus:ring-1 focus:ring-pink-400 rounded px-2 py-1.5 text-white text-xs transition-all"
                           />
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <select
                             value={rounding.code || 'Yellow'}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, code: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs"
+                            className="w-full min-w-[90px] bg-slate-900/70 border border-slate-600 hover:border-yellow-500 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 rounded px-2 py-1.5 text-white text-xs transition-all font-bold"
                           >
-                            <option>Green</option>
-                            <option>Yellow</option>
-                            <option>Orange</option>
-                            <option>Red</option>
+                            <option className="bg-slate-800 text-green-400">Green</option>
+                            <option className="bg-slate-800 text-yellow-400">Yellow</option>
+                            <option className="bg-slate-800 text-orange-400">Orange</option>
+                            <option className="bg-slate-800 text-red-400">Red</option>
                           </select>
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <textarea
                             value={rounding.problems || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, problems: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[60px]"
+                            placeholder="List of problems..."
+                            className="w-full min-w-[180px] bg-slate-900/70 border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
                             rows={4}
                           />
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <textarea
                             value={rounding.diagnosticFindings || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, diagnosticFindings: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[80px]"
+                            placeholder="Diagnostic findings..."
+                            className="w-full min-w-[200px] bg-slate-900/70 border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
                             rows={5}
                           />
                         </td>
-                        <td className="p-1 relative">
-                          <div className="flex gap-1">
+                        <td className="p-2 relative">
+                          <div className="flex gap-2">
                             <textarea
                               value={rounding.therapeutics || ''}
                               onChange={(e) => {
                                 const updatedRounding = { ...rounding, therapeutics: e.target.value };
                                 apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                               }}
-                              className="flex-1 bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[80px]"
+                              placeholder="Medications, treatments..."
+                              className="flex-1 min-w-[200px] bg-slate-900/70 border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
                               rows={5}
                             />
                             <button
                               onClick={() => setShowMedicationSelector(showMedicationSelector === patient.id ? null : patient.id)}
-                              className="px-1.5 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 rounded text-xs h-fit"
+                              className="px-2 py-1 bg-gradient-to-br from-emerald-500/30 to-green-500/30 hover:from-emerald-500/50 hover:to-green-500/50 border border-emerald-500/50 text-emerald-300 rounded text-sm h-fit font-bold transition-all hover:scale-105"
                               title="Add common medications"
                             >
                               +
@@ -1464,84 +1551,87 @@ export default function VetHub() {
                             </div>
                           )}
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <select
                             value={rounding.ivc || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, ivc: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-white text-xs"
+                            className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-orange-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                           >
-                            <option value="">-</option>
-                            <option value="Y">Y</option>
-                            <option value="N">N</option>
-                            <option value="Yes but...">Yes but...</option>
-                            <option value="Not but...">Not but...</option>
+                            <option value="" className="bg-slate-800">-</option>
+                            <option value="Y" className="bg-slate-800 text-green-400">Y</option>
+                            <option value="N" className="bg-slate-800 text-red-400">N</option>
+                            <option value="Yes but..." className="bg-slate-800">Yes but...</option>
+                            <option value="Not but..." className="bg-slate-800">Not but...</option>
                           </select>
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <select
                             value={rounding.fluids || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, fluids: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-white text-xs"
+                            className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-teal-500 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                           >
-                            <option value="">-</option>
-                            <option value="Y">Y</option>
-                            <option value="N">N</option>
-                            <option value="Yes but...">Yes but...</option>
-                            <option value="Not but...">Not but...</option>
+                            <option value="" className="bg-slate-800">-</option>
+                            <option value="Y" className="bg-slate-800 text-green-400">Y</option>
+                            <option value="N" className="bg-slate-800 text-red-400">N</option>
+                            <option value="Yes but..." className="bg-slate-800">Yes but...</option>
+                            <option value="Not but..." className="bg-slate-800">Not but...</option>
                           </select>
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <select
                             value={rounding.cri || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, cri: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1 py-0.5 text-white text-xs"
+                            className="w-full min-w-[100px] bg-slate-900/70 border border-slate-600 hover:border-indigo-500 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 rounded px-2 py-1.5 text-white text-xs font-bold transition-all"
                           >
-                            <option value="">-</option>
-                            <option value="Y">Y</option>
-                            <option value="N">N</option>
-                            <option value="Yes but...">Yes but...</option>
-                            <option value="Not but...">Not but...</option>
+                            <option value="" className="bg-slate-800">-</option>
+                            <option value="Y" className="bg-slate-800 text-green-400">Y</option>
+                            <option value="N" className="bg-slate-800 text-red-400">N</option>
+                            <option value="Yes but..." className="bg-slate-800">Yes but...</option>
+                            <option value="Not but..." className="bg-slate-800">Not but...</option>
                           </select>
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <textarea
                             value={rounding.overnightDx || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, overnightDx: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[50px]"
+                            placeholder="Overnight plan..."
+                            className="w-full min-w-[150px] bg-slate-900/70 border border-slate-600 hover:border-violet-500 focus:border-violet-400 focus:ring-1 focus:ring-violet-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                             rows={3}
                           />
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <textarea
                             value={rounding.concerns || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, concerns: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[50px]"
+                            placeholder="Concerns..."
+                            className="w-full min-w-[150px] bg-slate-900/70 border border-slate-600 hover:border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                             rows={3}
                           />
                         </td>
-                        <td className="p-1">
+                        <td className="p-2">
                           <textarea
                             value={rounding.comments || ''}
                             onChange={(e) => {
                               const updatedRounding = { ...rounding, comments: e.target.value };
                               apiClient.updatePatient(String(patient.id), { rounding_data: updatedRounding });
                             }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-1.5 py-0.5 text-white text-xs resize-y min-h-[50px]"
+                            placeholder="Additional comments..."
+                            className="w-full min-w-[150px] bg-slate-900/70 border border-slate-600 hover:border-amber-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                             rows={3}
                           />
                         </td>
