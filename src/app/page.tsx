@@ -3250,6 +3250,101 @@ Please schedule a recheck appointment with the Neurology department to have stap
                     </button>
                     <button
                       onClick={() => {
+                        // Copy all sections at once
+                        let fullSOAP = '';
+
+                        // History section
+                        if (soapData.visitType === 'initial') {
+                          fullSOAP = `**Presenting Problem:**
+${soapData.name || '[Name]'}, a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'}, presented to the RBVH TF Neurology Service for ${soapData.reasonForVisit || '[reason]'}
+${soapData.lastVisit ? `\n**Past Pertinent History:** ${soapData.lastVisit}\n` : ''}
+**Why are you here today:** ${soapData.whyHereToday || '[reason]'}
+**CSVD:** ${soapData.csvd}
+**PU/PD:** ${soapData.pupd}
+**Appetite:** ${soapData.appetite}
+${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}` : ''}
+
+`;
+                        } else {
+                          fullSOAP = `**Presenting Problem:**
+${soapData.name || '[Name]'} is a ${soapData.age || '[Age]'} ${soapData.sex || '[Sex]'} ${soapData.breed || '[Breed]'} who is presented for ${soapData.reasonForVisit || '[reason]'}
+${soapData.lastVisit ? `\n**Last visit**: ${soapData.lastVisit}\n` : ''}
+**Current History:**
+${soapData.currentHistory || '[Current history...]'}
+
+**CSVD:** ${soapData.csvd}
+**PU/PD:** ${soapData.pupd}
+**Appetite:** ${soapData.appetite}
+${soapData.lastMRI ? `\n**Last MRI:** ${soapData.lastMRI}\n` : ''}${soapData.medications ? `\n**Medications:**\n${soapData.medications}\n` : ''}${soapData.prevDiagnostics ? `\n**Previous Diagnostics**\n${soapData.prevDiagnostics}` : ''}
+
+`;
+                        }
+
+                        // Physical/Neuro Exam
+                        fullSOAP += `**NEUROLOGIC EXAM**
+**Mental Status**: ${soapData.mentalStatus}
+**Gait & posture**: ${soapData.gait || '[gait description]'}
+**Cranial nerves**: ${soapData.cranialNerves || '[CN findings]'}
+**Postural reactions**: ${soapData.posturalReactions || '[postural reactions]'}
+
+**Spinal reflexes** ${soapData.spinalReflexes || '[spinal reflexes]'}
+**Tone**: ${soapData.tone || '[tone]'}
+**Muscle mass**: ${soapData.muscleMass || '[muscle mass]'}
+**Nociception**: ${soapData.nociception || '[nociception]'}
+${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
+
+`;
+
+                        if (soapData.visitType === 'initial') {
+                          fullSOAP += `**Physical Exam:**
+**EENT:** ${soapData.peENT || '[EENT findings]'}
+**Oral:** ${soapData.peOral || '[oral findings]'}
+**PLN:** ${soapData.pePLN || '[PLN findings]'}
+**CV:** ${soapData.peCV || '[CV findings]'}
+**Resp:** ${soapData.peResp || '[resp findings]'}
+**Abd:** ${soapData.peAbd || '[abd findings]'}
+**Rectal:** ${soapData.peRectal || '[rectal findings]'}
+**MS:** ${soapData.peMS || '[MS findings]'}
+**Integ:** ${soapData.peInteg || '[integ findings]'}
+
+`;
+                        }
+
+                        // Assessment & Plan
+                        if (soapData.neurolocalization) fullSOAP += `Neurolocalization:\n${soapData.neurolocalization}\n\n`;
+                        if (soapData.visitType === 'recheck' && soapData.progression) fullSOAP += `PROGRESSION:\n${soapData.progression}\n\n`;
+                        if (soapData.ddx) fullSOAP += `DDx:\n${soapData.ddx}\n\n`;
+                        if (soapData.diagnosticsToday) fullSOAP += `Diagnostics:\n${soapData.diagnosticsToday}\n\n`;
+                        if (soapData.treatments) fullSOAP += `TREATMENTS:\n${soapData.treatments}\n\n`;
+                        if (soapData.discussionChanges) {
+                          const label = soapData.visitType === 'recheck' ? 'DISCUSSION/CHANGES' : 'OUTCOME';
+                          fullSOAP += `${label}:\n${soapData.discussionChanges}`;
+                        }
+
+                        navigator.clipboard.writeText(fullSOAP.trim());
+                        toast({ title: '✅ Complete SOAP copied to clipboard!' });
+
+                        // Save to memory
+                        if (soapData.neurolocalization) {
+                          try {
+                            const savedExams = getSavedExams();
+                            savedExams[soapData.neurolocalization] = {
+                              ...soapData,
+                              savedAt: new Date().toISOString(),
+                            };
+                            localStorage.setItem('soapMemory', JSON.stringify(savedExams));
+                          } catch (err) {
+                            console.error('Failed to save exam:', err);
+                          }
+                        }
+                      }}
+                      className="px-3 py-1 text-xs font-bold rounded flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white"
+                    >
+                      <Copy size={14} />
+                      Copy All
+                    </button>
+                    <button
+                      onClick={() => {
                         if (confirm('Clear all fields in SOAP Builder?')) {
                           setSOAPData({
                             name: '', age: '', sex: '', breed: '', species: 'Canine', reasonForVisit: '', visitType: 'recheck',
@@ -3344,9 +3439,9 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             tone: 'normal',
                             muscleMass: 'mild hind end muscle atrophy',
                             nociception: 'intact, no hyperpathia on spinal palpation',
-                            ddx: 'IVDD vs FCE vs inflammatory vs neoplasia',
-                            diagnosticsToday: 'MRI thoracolumbar spine\n+/- CSF',
-                            treatments: 'Methocarbamol 500-1500mg PO q8h PRN muscle spasm\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nStrict cage rest x4-6 weeks\nConsider surgery if grade 4-5/deep pain negative'
+                            ddx: 'IVDD (most common T12-L2) vs FCE vs inflammatory (meningomyelitis) vs neoplasia (vertebral tumor, meningioma)',
+                            diagnosticsToday: 'MRI thoracolumbar spine (T10-L4)\n+/- CSF analysis if inflammatory suspected',
+                            treatments: 'Medical management (if ambulatory, grade 1-3):\n- Strict cage rest 4-6 weeks (crate confinement, no stairs/jumping)\n- Methocarbamol 15-20 mg/kg PO q8h PRN muscle spasm (dog only)\n- Gabapentin 10-20 mg/kg PO q8-12h PRN neuropathic pain\n- Carprofen 2-4 mg/kg PO q12-24h (if no steroids)\nOR Prednisone 0.25-0.5 mg/kg PO q12h x3-5d then taper (if no NSAIDs)\n\nSurgical referral URGENT if:\n- Grade 4-5 paresis (non-ambulatory)\n- Absent deep pain >24 hrs (poor prognosis)\n- Deteriorating despite medical management\n\nRecheck neuro exam in 24-48 hrs if non-ambulatory'
                           });
                         } else if (value === 'Peripheral vestibular disease') {
                           setSOAPData({
@@ -3367,17 +3462,17 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
-                            mentalStatus: 'BAR',
+                            mentalStatus: 'BAR (may be post-ictal if recent seizure)',
                             gait: 'Ambulatory without ataxia or paresis',
                             cranialNerves: 'intact',
-                            posturalReactions: 'normal',
+                            posturalReactions: 'normal (may have transient deficits post-ictal)',
                             spinalReflexes: 'normal',
                             tone: 'normal',
                             muscleMass: 'normal',
                             nociception: 'intact, no pain on palpation',
-                            ddx: 'Idiopathic epilepsy vs structural disease (tumor, cyst, stroke) vs infectious vs metabolic',
-                            diagnosticsToday: 'MRI brain\nCSF analysis\nMinimum database (CBC, chemistry, UA) if not done',
-                            treatments: 'Levetiracetam (Keppra) 20mg/kg PO q8h (start dose)\nPhenobarbital 2-3mg/kg PO q12h (if >2 seizures/month or cluster)\nZonisamide 5-10mg/kg PO q12h (alternative)\nRectal diazepam 0.5-2mg/kg at home for cluster seizures\nRecheck phenobarbital level in 2 weeks if started'
+                            ddx: 'Age 1-5 yrs: Idiopathic epilepsy most likely. Age >6 yrs: Structural (brain tumor, stroke, inflammatory) more likely. Also consider: reactive seizures (hypoglycemia, hepatic encephalopathy, toxins)',
+                            diagnosticsToday: 'Minimum database: CBC, chemistry, UA (rule out metabolic)\nBile acids if liver enzymes elevated\nMRI brain + CSF if:\n  - Age >6 years\n  - Interictal neuro deficits\n  - Cluster seizures at onset\n  - Refractory to meds',
+                            treatments: 'START anticonvulsants if:\n- >2 seizures in 6 months\n- Cluster seizures (>2 in 24h)\n- Status epilepticus\n- Owner request\n\nFirst-line options:\n• Levetiracetam 20 mg/kg PO q8h (safe, rapid onset, good for pulse therapy)\n  Dog: can go up to 30 mg/kg q8h. Cat: 10-20 mg/kg q8h\n• Phenobarbital 2-3 mg/kg PO q12h (gold standard, check trough in 2 weeks, goal 15-35 mcg/mL)\n  Loading: 16-20 mg/kg divided q12h x48h if urgent control needed\n• Zonisamide 5-10 mg/kg PO q12h (dog only)\n\nHome rescue for clusters:\n• Rectal diazepam 0.5-2 mg/kg (up to 3 doses in 24h)\n• Intranasal midazolam 0.2 mg/kg\n\nRecheck in 2 weeks if started phenobarbital (trough level), otherwise 4-6 weeks'
                           });
                         } else if (value === 'C1-C5 myelopathy') {
                           setSOAPData({
@@ -3407,9 +3502,9 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             tone: 'normal',
                             muscleMass: 'mild thoracic limb muscle atrophy possible',
                             nociception: 'intact, mild cervical/thoracic hyperpathia',
-                            ddx: 'IVDD vs FCE vs inflammatory/infectious vs neoplasia',
+                            ddx: 'IVDD (C6-T2) vs FCE vs inflammatory/infectious vs neoplasia',
                             diagnosticsToday: 'MRI cervical spine (C6-T2)\n+/- CSF analysis',
-                            treatments: 'Methocarbamol 500-1500mg PO q8h PRN muscle spasm\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nStrict cage rest x4-6 weeks\nConsider surgery if grade 3-5 or progressive'
+                            treatments: 'Medical management:\n- Strict cage rest 4-6 weeks\n- Methocarbamol 15-20 mg/kg PO q8h PRN muscle spasm (dog only)\n- Gabapentin 10-20 mg/kg PO q8-12h PRN pain\n- Carprofen 2-4 mg/kg PO q12-24h\n\nSurgical referral if grade 3-5 or progressive neurologic decline\nRecheck in 24-48 hrs if tetraparetic'
                           });
                         } else if (value === 'L4-S1 myelopathy') {
                           setSOAPData({
@@ -3426,6 +3521,102 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             ddx: 'IVDD (L4-S1) vs disc protrusion vs degenerative lumbosacral stenosis vs cauda equina syndrome',
                             diagnosticsToday: 'MRI lumbosacral spine\n+/- CT lumbosacral spine\n+/- EMG if chronic LMN signs',
                             treatments: 'Carprofen 2-4mg/kg PO q12-24h (NSAID)\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nAmantadine 3-5mg/kg PO q24h (chronic pain)\nWeight management critical\nPhysical rehabilitation\nSurgery (hemilaminectomy/dorsal laminectomy) if grade 4-5 or refractory to medical management'
+                          });
+                        } else if (value === 'Central vestibular disease') {
+                          setSOAPData({
+                            ...soapData,
+                            neurolocalization: value,
+                            mentalStatus: 'BAR to Obtunded',
+                            gait: 'Ambulatory with vestibular ataxia, circling, head turn',
+                            cranialNerves: 'head tilt, vertical or positional nystagmus, paradoxical vestibular signs possible, +/- decreased menace, +/- hemiparesis',
+                            posturalReactions: 'delayed ipsilateral to lesion, may be delayed contralateral if severe',
+                            spinalReflexes: 'normal',
+                            tone: 'normal',
+                            muscleMass: 'normal',
+                            nociception: 'intact, no cervical pain typical',
+                            ddx: 'Inflammatory/infectious (GME, MUE, FIP in cats) vs neoplasia (meningioma, glioma) vs vascular (stroke, hemorrhage) vs thiamine deficiency (cats)',
+                            diagnosticsToday: 'MRI brain with contrast (focus on brainstem/cerebellum)\nCSF analysis (collect post-MRI)\nMinimum database if not done (CBC, chemistry, T4 in cats)',
+                            treatments: 'Supportive care: Maropitant 1-2 mg/kg PO/SQ q24h PRN nausea\nHand feeding/assist feeding if inappetent\nIf inflammatory suspected: Prednisone 0.5-1 mg/kg PO q12h, taper based on CSF/MRI\nIf GME/MUE confirmed: consider Cyclosporine 5 mg/kg PO q12h + prednisone\nMonitor closely - central vestibular can deteriorate rapidly'
+                          });
+                        } else if (value === 'Cerebellum') {
+                          setSOAPData({
+                            ...soapData,
+                            neurolocalization: value,
+                            mentalStatus: 'BAR',
+                            gait: 'Ambulatory with cerebellar ataxia (hypermetria, wide-based stance, intention tremors)',
+                            cranialNerves: 'menace may be absent (cerebellar component), otherwise intact',
+                            posturalReactions: 'normal to mildly delayed',
+                            spinalReflexes: 'normal to increased',
+                            tone: 'normal to increased',
+                            muscleMass: 'normal',
+                            nociception: 'intact, no pain on palpation',
+                            ddx: 'Young dogs: cerebellar hypoplasia (in utero parvovirus/distemper/herpes), lysosomal storage disease, abiotrophies. Adults: inflammatory (GME), neoplasia (medulloblastoma in young, meningioma/glioma in older), vascular event',
+                            diagnosticsToday: 'MRI brain with contrast (focus on cerebellum/4th ventricle)\nCSF analysis\nConsider genetic testing if young + progressive',
+                            treatments: 'If congenital/static: No treatment, supportive care only, PT/rehab to maximize function\nIf inflammatory: Prednisone 0.5-1 mg/kg PO q12h, consider immunosuppression\nIf neoplastic: Discuss with oncology, may need radiation vs. palliative care\nPhysical therapy helpful for all cases'
+                          });
+                        } else if (value === 'Brainstem') {
+                          setSOAPData({
+                            ...soapData,
+                            neurolocalization: value,
+                            mentalStatus: 'BAR to Stuporous (depends on severity)',
+                            gait: 'Ambulatory with hemiparesis or tetraparesis, may have vestibular component',
+                            cranialNerves: 'multiple CN deficits typical (CN V-XII), vertical nystagmus, decreased gag, facial paralysis',
+                            posturalReactions: 'delayed contralateral to lesion',
+                            spinalReflexes: 'normal to increased if UMN',
+                            tone: 'normal to increased',
+                            muscleMass: 'normal',
+                            nociception: 'intact unless severe lesion',
+                            ddx: 'Inflammatory (GME, MUE) vs neoplasia (glioma, lymphoma) vs vascular (brainstem stroke) vs trauma',
+                            diagnosticsToday: 'MRI brain with contrast (brainstem sequences critical)\nCSF analysis\nBlood pressure if stroke suspected',
+                            treatments: 'If inflammatory: Prednisone 0.5-1 mg/kg PO q12h + Cyclosporine 5 mg/kg PO q12h\nIf stroke: Supportive care, control hypertension if present (amlodipine 0.625-1.25 mg/cat or 0.1-0.5 mg/kg/day dog)\nGabapentin 10-20 mg/kg PO q8h PRN neuropathic pain\nClose monitoring - brainstem lesions can deteriorate rapidly\nCRITICAL: Monitor respiratory function'
+                          });
+                        } else if (value === 'Neuromuscular junction') {
+                          setSOAPData({
+                            ...soapData,
+                            neurolocalization: value,
+                            mentalStatus: 'BAR',
+                            gait: 'Ambulatory with generalized weakness, exercise intolerance, may have ventroflexion',
+                            cranialNerves: 'ptosis, weak palpebral, facial weakness, +/- megaesophagus, dysphonia',
+                            posturalReactions: 'weak but present',
+                            spinalReflexes: 'normal to decreased',
+                            tone: 'decreased',
+                            muscleMass: 'normal to mild generalized atrophy if chronic',
+                            nociception: 'intact',
+                            ddx: 'Myasthenia gravis (acquired vs congenital) vs botulism vs tick paralysis (check for ticks!) vs organophosphate toxicity',
+                            diagnosticsToday: 'AChR antibody titer (acquired MG)\nTensilon test (if available)\nChest radiographs (megaesophagus, aspiration pneumonia, thymoma)\nRepetitive nerve stimulation (decremental response)\nThyroid panel (immune-mediated cluster)',
+                            treatments: 'Myasthenia gravis: Pyridostigmine 0.5-3 mg/kg PO q8-12h (start low, titrate up)\nElevated feeding/water bowls, small frequent meals\nProkinetics if megaesophagus: often not effective, focus on gravity feeding\nMonitor for aspiration pneumonia\nIf generalized MG: Prednisone 0.5-1 mg/kg PO q12h taper after remission\nCRITICAL: Monitor respiratory effort - fulminant MG can cause resp crisis'
+                          });
+                        } else if (value === 'Peripheral nerve/Polyneuropathy') {
+                          setSOAPData({
+                            ...soapData,
+                            neurolocalization: value,
+                            mentalStatus: 'BAR',
+                            gait: 'Ambulatory with LMN tetraparesis, plantigrade/palmigrade stance, short-strided',
+                            cranialNerves: 'may have decreased facial tone, decreased gag, decreased palpebral',
+                            posturalReactions: 'delayed to absent',
+                            spinalReflexes: 'decreased to absent in all limbs',
+                            tone: 'decreased',
+                            muscleMass: 'generalized muscle atrophy if chronic',
+                            nociception: 'intact, may have hyperesthesia in some forms',
+                            ddx: 'Acute polyradiculoneuritis (coonhound paralysis) vs chronic inflammatory demyelinating polyneuropathy vs diabetic neuropathy vs hypothyroid neuropathy vs paraneoplastic vs toxin (vincristine)',
+                            diagnosticsToday: 'EMG/nerve conduction studies (confirmatory - fibrillation potentials, slow conduction)\nNerve/muscle biopsy if chronic\nSerum CK (usually normal unlike myopathy)\nT4, TSH, glucose, fructosamine\nChest/abdominal imaging if paraneoplastic suspected',
+                            treatments: 'Acute polyradiculoneuritis: Supportive care only, self-limiting over 4-6 weeks\nPhysical therapy critical - prevent contractures\nPadded bedding, turn q4-6h to prevent decubital ulcers\nBladder expression if needed\nChronic immune-mediated: Prednisone 1-2 mg/kg PO q12h, +/- azathioprine 2 mg/kg PO q24h\nDiabetic neuropathy: Insulin control is key\nHypothyroid: Levothyroxine 0.02 mg/kg PO q12h'
+                          });
+                        } else if (value === 'Multifocal CNS disease') {
+                          setSOAPData({
+                            ...soapData,
+                            neurolocalization: value,
+                            mentalStatus: 'BAR to Obtunded',
+                            gait: 'Variable - may have tetraparesis, hemiparesis, ataxia depending on lesion distribution',
+                            cranialNerves: 'variable - may have multiple CN deficits or none',
+                            posturalReactions: 'asymmetric delays common, may be multifocal',
+                            spinalReflexes: 'variable - may be normal, increased, or mixed',
+                            tone: 'variable',
+                            muscleMass: 'normal to mild generalized atrophy',
+                            nociception: 'intact, may have multifocal spinal pain',
+                            ddx: 'GME (granulomatous meningoencephalomyelitis) vs MUE (necrotizing meningoencephalitis - Pugs, Maltese, Chihuahuas) vs FIP (cats) vs lymphoma vs distemper (young unvaccinated) vs fungal (Cryptococcus, Blastomyces)',
+                            diagnosticsToday: 'MRI brain and spine with contrast (look for multifocal enhancing lesions)\nCSF analysis - expect inflammatory (elevated protein, pleocytosis)\nFeLV/FIV if cat\nDistemper titer/PCR if young/unvaccinated\nSerum/CSF fungal titers if endemic area',
+                            treatments: 'Presumptive GME/MUE: Prednisone 1-2 mg/kg PO q12h (immunosuppressive dose)\nCyclosporine 5 mg/kg PO q12h (monitor trough 400-600 ng/mL)\nLevetiracetam 20 mg/kg PO q8h if seizures\nOmeprazole 1 mg/kg PO q24h (GI protection with high-dose steroids)\nGabapentin 10-20 mg/kg PO q8h PRN pain\nRecheck MRI in 4-6 weeks to assess response\nPrognosis guarded - survival months to 1-2 years with treatment'
                           });
                         } else if (value === 'Discospondylitis') {
                           setSOAPData({
@@ -3456,7 +3647,13 @@ Please schedule a recheck appointment with the Neurology department to have stap
                         'C6-T2 myelopathy',
                         'L4-S1 myelopathy',
                         'Peripheral vestibular disease',
+                        'Central vestibular disease',
                         'Prosencephalon',
+                        'Cerebellum',
+                        'Brainstem',
+                        'Neuromuscular junction',
+                        'Peripheral nerve/Polyneuropathy',
+                        'Multifocal CNS disease',
                         'Discospondylitis'
                       ].map(neuroLoc => {
                         const savedExams = getSavedExams();
@@ -3876,6 +4073,86 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           >
                             🧠 Obtunded/Comatose
                           </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              mentalStatus: 'BAR',
+                              gait: 'Short, stilted, choppy gait',
+                              cranialNerves: 'intact',
+                              posturalReactions: 'normal',
+                              spinalReflexes: 'normal',
+                              tone: 'normal',
+                              muscleMass: 'normal',
+                              nociception: 'intact, severe cervical hyperpathia on palpation',
+                              neurolocalization: 'C1-C5 myelopathy',
+                              ddx: 'IVDD (C2-C3 most common for pain-only) vs ANNPE vs discospondylitis',
+                              diagnosticsToday: 'Consider cervical radiographs vs MRI if severe/progressive',
+                              treatments: 'Strict cage rest 4-6 weeks\nMethocarbamol 15-20 mg/kg PO q8h PRN\nGabapentin 10-20 mg/kg PO q8h PRN\nCarprofen 2-4 mg/kg PO q12-24h'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            💢 Cervical Pain Only
+                          </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              mentalStatus: 'BAR',
+                              gait: 'Ambulatory with acute onset pelvic limb UMN paresis, asymmetric',
+                              cranialNerves: 'intact',
+                              posturalReactions: 'delayed in pelvic limbs, asymmetric',
+                              spinalReflexes: 'normal',
+                              tone: 'normal',
+                              muscleMass: 'normal',
+                              nociception: 'intact, NO spinal pain (key finding for FCE)',
+                              neurolocalization: 'T3-L3 myelopathy',
+                              ddx: 'FCE (fibrocartilaginous embolism) - acute onset, non-painful, non-progressive vs acute IVDD (but would expect pain)',
+                              diagnosticsToday: 'MRI thoracolumbar spine (rule out compressive lesion, look for intramedullary T2 hyperintensity)',
+                              treatments: 'Supportive care - FCE is non-surgical\nPhysical therapy critical (start early)\nNursing care if non-ambulatory\nGabapentin 10-20 mg/kg PO q8h if neuropathic pain develops\nPrognosis: depends on severity, most improve over weeks-months with PT'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            ⚡ FCE (acute, no pain)
+                          </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              mentalStatus: 'BAR',
+                              gait: 'Ambulatory with vestibular quality ataxia, acute onset',
+                              cranialNerves: 'head tilt, horizontal nystagmus (fast phase away from lesion), absent palpebral ipsilateral',
+                              posturalReactions: 'normal (key - rules out central)',
+                              spinalReflexes: 'normal',
+                              tone: 'normal',
+                              muscleMass: 'normal',
+                              nociception: 'intact, no pain on otoscopic exam',
+                              neurolocalization: 'Peripheral vestibular disease',
+                              ddx: 'Geriatric (idiopathic) vestibular disease vs OM/OI vs neoplasia (rare). Signalment key: old dog + acute onset + peripheral signs = idiopathic most likely',
+                              diagnosticsToday: 'If typical geriatric vestibular: supportive care, may skip MRI\nIf young, chronic, or atypical: MRI + otoscopic exam',
+                              treatments: 'Idiopathic vestibular: self-limiting over 3-5 days\nMeclizine 25 mg PO q12-24h PRN (anti-vertigo)\nMaropitant 1-2 mg/kg PO q24h PRN nausea\nSupportive care: hand feed, assist ambulation\nReassure owner - looks scary but prognosis excellent'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-500 hover:to-green-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            🌀 Geriatric Vestibular
+                          </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              mentalStatus: 'BAR',
+                              gait: 'Ambulatory with LMN pelvic limb paresis, tail paralysis',
+                              cranialNerves: 'intact',
+                              posturalReactions: 'delayed to absent pelvic limbs',
+                              spinalReflexes: 'decreased to absent pelvic limbs, perineal reflex absent',
+                              tone: 'decreased',
+                              muscleMass: 'mild to moderate pelvic limb atrophy',
+                              nociception: 'intact, severe lumbosacral pain on palpation',
+                              neurolocalization: 'L4-S1 myelopathy (cauda equina syndrome)',
+                              ddx: 'Degenerative lumbosacral stenosis vs IVDD (L7-S1) vs discospondylitis vs neoplasia',
+                              diagnosticsToday: 'MRI lumbosacral spine\nCT lumbosacral if MRI unavailable\nEMG if chronic (denervation potentials)',
+                              treatments: 'Weight management critical\nCarprofen 2-4 mg/kg PO q12-24h\nGabapentin 10-20 mg/kg PO q8h\nAmantadine 3-5 mg/kg PO q24h (NMDA antagonist for chronic pain)\nPhysical therapy\nSurgery (dorsal laminectomy) if severe or refractory'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            🦴 Cauda Equina
+                          </button>
                         </div>
 
                         <div className="space-y-2">
@@ -3931,7 +4208,13 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           <option value="Circling, head turn">Circling, head turn</option>
                           <option value="Ambulatory with pelvic limb lameness">Pelvic limb lameness (orthopedic vs neuro)</option>
                           <option value="Schiff-Sherrington posture">Schiff-Sherrington posture</option>
-                          <option value="Short, stilted, choppy gait">Short, stilted, choppy gait</option>
+                          <option value="Decerebrate rigidity (opisthotonus, extended limbs)">Decerebrate rigidity (brainstem emergency)</option>
+                          <option value="Decerebellate rigidity (extended thoracic, flexed pelvic)">Decerebellate rigidity</option>
+                          <option value="Intention tremors (head bob, dysmetria)">Intention tremors (cerebellar)</option>
+                          <option value="Generalized tremors">Generalized tremors</option>
+                          <option value="Short, stilted, choppy gait">Short, stilted, choppy gait (cervical pain)</option>
+                          <option value="Plantigrade/palmigrade stance">Plantigrade/palmigrade stance (polyneuropathy)</option>
+                          <option value="Tail paralysis, fecal/urinary incontinence">Tail paralysis with incontinence (cauda equina)</option>
                           <option value="custom">Custom (type below)...</option>
                         </select>
                         {(soapData.gait !== 'Ambulatory without ataxia or paresis' &&
@@ -3982,11 +4265,22 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           <option value="anisocoria, absent PLR OS">Anisocoria, absent PLR OS</option>
                           <option value="facial nerve paralysis (lip droop, unable to blink)">Facial nerve paralysis (lip droop, can't blink)</option>
                           <option value="masticatory muscle atrophy, dropped jaw">Masticatory atrophy, dropped jaw (CN V)</option>
-                          <option value="tongue deviation to right">Tongue deviation to right</option>
-                          <option value="tongue deviation to left">Tongue deviation to left</option>
-                          <option value="decreased gag reflex">Decreased gag reflex</option>
-                          <option value="absent gag reflex">Absent gag reflex</option>
+                          <option value="tongue deviation to right">Tongue deviation to right (CN XII)</option>
+                          <option value="tongue deviation to left">Tongue deviation to left (CN XII)</option>
+                          <option value="decreased gag reflex">Decreased gag reflex (CN IX, X)</option>
+                          <option value="absent gag reflex">Absent gag reflex (CN IX, X)</option>
+                          <option value="dysphagia, difficulty swallowing">Dysphagia, difficulty swallowing</option>
+                          <option value="megaesophagus present">Megaesophagus (suspect myasthenia)</option>
                           <option value="central vestibular signs (vertical nystagmus, positional strabismus)">Central vestibular (vertical nystagmus)</option>
+                          <option value="ventral strabismus OD">Ventral strabismus OD (CN III palsy)</option>
+                          <option value="ventral strabismus OS">Ventral strabismus OS (CN III palsy)</option>
+                          <option value="lateral strabismus OD">Lateral strabismus OD (CN VI palsy)</option>
+                          <option value="lateral strabismus OS">Lateral strabismus OS (CN VI palsy)</option>
+                          <option value="ptosis OU">Ptosis OU (myasthenia gravis)</option>
+                          <option value="miosis OD (Horner syndrome)">Miosis OD (Horner's)</option>
+                          <option value="miosis OS (Horner syndrome)">Miosis OS (Horner's)</option>
+                          <option value="jaw tone decreased/dropped jaw (CN V motor)">Dropped jaw (CN V motor deficit)</option>
+                          <option value="decreased facial sensation (CN V sensory)">Decreased facial sensation (CN V sensory)</option>
                           <option value="custom">Custom...</option>
                         </select>
                         {(soapData.cranialNerves !== 'intact' &&
@@ -4049,9 +4343,18 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           onChange={(e) => setSOAPData({ ...soapData, spinalReflexes: e.target.value })}
                           className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
                         >
-                          <option value="normal">Normal</option>
-                          <option value="normal to increased pelvic limbs">Normal to increased pelvic limbs</option>
-                          <option value="decreased to absent pelvic limb reflexes">Decreased to absent pelvic limb reflexes</option>
+                          <option value="normal">Normal all limbs</option>
+                          <option value="normal to increased pelvic limbs">Normal to increased pelvic limbs (UMN)</option>
+                          <option value="increased pelvic limbs">Increased pelvic limbs (UMN)</option>
+                          <option value="decreased to absent pelvic limb reflexes">Decreased to absent pelvic limb reflexes (LMN)</option>
+                          <option value="absent pelvic limb reflexes">Absent pelvic limb reflexes (LMN)</option>
+                          <option value="decreased to absent all four limbs">Decreased to absent all limbs (polyneuropathy)</option>
+                          <option value="crossed extensor reflex present">Crossed extensor reflex present (severe UMN)</option>
+                          <option value="increased thoracic, normal to absent pelvic (Schiff-Sherrington)">Increased thoracic, absent pelvic (Schiff-Sherrington)</option>
+                          <option value="panniculus reflex absent at T13">Panniculus reflex absent at T13 (lesion localization)</option>
+                          <option value="panniculus reflex absent at L1">Panniculus reflex absent at L1 (lesion localization)</option>
+                          <option value="perineal reflex absent">Perineal reflex absent (cauda equina)</option>
+                          <option value="perineal reflex decreased">Perineal reflex decreased</option>
                         </select>
                       </div>
                       <div>
