@@ -300,7 +300,7 @@ export function EnhancedRoundingSheet({
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
   return (
-    <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-4">
+    <div className="bg-slate-900/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/30 p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-4">

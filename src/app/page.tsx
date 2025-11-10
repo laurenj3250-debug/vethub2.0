@@ -28,7 +28,7 @@ export default function VetHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
-  const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task'>('by-patient');
+  const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task' | 'general'>('by-patient');
   const [taskTimeFilter, setTaskTimeFilter] = useState<'day' | 'night' | 'all'>('all');
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [quickTaskPatient, setQuickTaskPatient] = useState<number | null>(null);
@@ -1481,76 +1481,63 @@ export default function VetHub() {
           </div>
         )}
 
-        {/* All Tasks View - Unified Hospital & Patient Tasks */}
+        {/* All Tasks View - With Tabs */}
         {showAllTasksView && (
           <div className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-cyan-700/50 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                 <CheckCircle2 className="text-cyan-400" size={28} />
-                All Tasks - Complete View
+                All Tasks
               </h2>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddGeneralTask(true)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg"
-                >
-                  <Plus size={16} />
-                  Add Hospital Task
-                </button>
+                {taskViewMode === 'general' && (
+                  <button
+                    onClick={() => setShowAddGeneralTask(true)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg"
+                  >
+                    <Plus size={16} />
+                    Add Hospital Task
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Hospital-Wide Tasks */}
-            {(() => {
-              const today = new Date().toISOString().split('T')[0];
-              const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
-              return todayGeneralTasks.length > 0 ? (
-                <div className="mb-6">
-                  <h3 className="text-lg font-bold text-emerald-300 mb-3 flex items-center gap-2">
-                    <ListTodo size={20} className="text-emerald-400" />
-                    Hospital-Wide Tasks ({todayGeneralTasks.filter((t: any) => !t.completed).length} remaining)
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {todayGeneralTasks.map((task: any) => (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-emerald-700/40 hover:border-emerald-500/60 transition group"
-                      >
-                        <button
-                          onClick={() => handleToggleGeneralTask(task.id, task.completed)}
-                          className="flex-shrink-0"
-                        >
-                          {task.completed ? (
-                            <CheckCircle2 className="text-green-400" size={20} />
-                          ) : (
-                            <Circle className="text-slate-600 group-hover:text-emerald-400" size={20} />
-                          )}
-                        </button>
-                        <span
-                          className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
-                          onClick={() => handleToggleGeneralTask(task.id, task.completed)}
-                        >
-                          {task.name}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteGeneralTask(task.id)}
-                          className="flex-shrink-0 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null;
-            })()}
+            {/* Tab Navigation */}
+            <div className="flex gap-2 mb-6 border-b border-slate-700/50 pb-0">
+              <button
+                onClick={() => setTaskViewMode('by-patient')}
+                className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
+                  taskViewMode === 'by-patient'
+                    ? 'border-cyan-500 text-cyan-400 bg-cyan-500/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+                }`}
+              >
+                By Patient
+              </button>
+              <button
+                onClick={() => setTaskViewMode('by-task')}
+                className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
+                  taskViewMode === 'by-task'
+                    ? 'border-blue-500 text-blue-400 bg-blue-500/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+                }`}
+              >
+                By Task
+              </button>
+              <button
+                onClick={() => setTaskViewMode('general')}
+                className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
+                  taskViewMode === 'general'
+                    ? 'border-emerald-500 text-emerald-400 bg-emerald-500/10'
+                    : 'border-transparent text-slate-400 hover:text-slate-300 hover:bg-slate-800/30'
+                }`}
+              >
+                Hospital Tasks
+              </button>
+            </div>
 
-            {/* Patient Tasks by Patient */}
-            <div>
-              <h3 className="text-lg font-bold text-cyan-300 mb-3 flex items-center gap-2">
-                <ListTodo size={20} className="text-cyan-400" />
-                Patient Tasks
-              </h3>
+            {/* Tab Content */}
+            {taskViewMode === 'by-patient' && (
               <div className="space-y-4">
                 {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).map(patient => {
                   const tasks = patient.tasks || [];
@@ -1605,13 +1592,133 @@ export default function VetHub() {
                   );
                 })}
                 {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).length === 0 && (
-                  <div className="text-center py-8 text-slate-400">
-                    <div className="text-4xl mb-2">✨</div>
-                    <p>No patient tasks found.</p>
+                  <div className="text-center py-12 text-slate-400">
+                    <div className="text-5xl mb-3">✨</div>
+                    <p className="text-lg">No patient tasks found.</p>
                   </div>
                 )}
               </div>
-            </div>
+            )}
+
+            {taskViewMode === 'by-task' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(() => {
+                  const allTasks: Array<{ task: any; patient: any }> = [];
+                  patients.filter(p => p.status !== 'Discharged').forEach(patient => {
+                    (patient.tasks || []).forEach((task: any) => {
+                      allTasks.push({ task, patient });
+                    });
+                  });
+
+                  if (allTasks.length === 0) {
+                    return (
+                      <div className="col-span-full text-center py-12 text-slate-400">
+                        <div className="text-5xl mb-3">✨</div>
+                        <p className="text-lg">No tasks found.</p>
+                      </div>
+                    );
+                  }
+
+                  return allTasks.map(({ task, patient }) => {
+                    const info = patient.patient_info || {};
+                    const emoji = getSpeciesEmoji(info.species);
+                    return (
+                      <div
+                        key={`${patient.id}-${task.id}`}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-slate-700/40 hover:border-blue-500/60 transition group"
+                      >
+                        <button
+                          onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                          className="flex-shrink-0"
+                        >
+                          {task.completed ? (
+                            <CheckCircle2 className="text-green-400" size={20} />
+                          ) : (
+                            <Circle className="text-slate-600 group-hover:text-blue-400" size={20} />
+                          )}
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div
+                            className={`text-sm cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                            onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                          >
+                            {task.name}
+                          </div>
+                          <div className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                            <span>{emoji}</span>
+                            {patient.name}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteTask(patient.id, task.id)}
+                          className="flex-shrink-0 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+
+            {taskViewMode === 'general' && (
+              <div>
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+
+                  if (todayGeneralTasks.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-slate-400">
+                        <div className="text-5xl mb-3">✨</div>
+                        <p className="text-lg">No hospital tasks for today.</p>
+                        <p className="text-sm mt-2">Click "Add Hospital Task" to create one.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div>
+                      <div className="text-sm text-emerald-400 mb-4 font-bold">
+                        {todayGeneralTasks.filter((t: any) => !t.completed).length} tasks remaining
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {todayGeneralTasks.map((task: any) => (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-emerald-700/40 hover:border-emerald-500/60 transition group"
+                          >
+                            <button
+                              onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                              className="flex-shrink-0"
+                            >
+                              {task.completed ? (
+                                <CheckCircle2 className="text-green-400" size={20} />
+                              ) : (
+                                <Circle className="text-slate-600 group-hover:text-emerald-400" size={20} />
+                              )}
+                            </button>
+                            <span
+                              className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
+                              onClick={() => handleToggleGeneralTask(task.id, task.completed)}
+                            >
+                              {task.name}
+                            </span>
+                            <button
+                              onClick={() => handleDeleteGeneralTask(task.id)}
+                              className="flex-shrink-0 p-1.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
 
