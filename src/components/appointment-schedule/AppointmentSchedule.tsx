@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Download, Printer, Save, Clock, User, ArrowUpDown } from 'lucide-react';
-import { RoundingPatient } from '@/lib/types/rounding-table';
+import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { PasteModal } from './PasteModal';
-import { PatientRow } from './PatientRow';
+import { AppointmentRow } from './AppointmentRow';
 import {
   DndContext,
   closestCenter,
@@ -22,8 +22,8 @@ import {
 } from '@dnd-kit/sortable';
 import { useToast } from '@/hooks/use-toast';
 
-export function RoundingTable() {
-  const [patients, setPatients] = useState<RoundingPatient[]>([]);
+export function AppointmentSchedule() {
+  const [patients, setPatients] = useState<AppointmentPatient[]>([]);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sortBy, setSortBy] = useState<'time' | 'name' | 'custom'>('custom');
@@ -38,8 +38,8 @@ export function RoundingTable() {
 
   // Load patients from localStorage on mount, auto-clear if new day
   useEffect(() => {
-    const saved = localStorage.getItem('roundingTablePatients');
-    const savedDate = localStorage.getItem('roundingTableDate');
+    const saved = localStorage.getItem('appointmentSchedulePatients');
+    const savedDate = localStorage.getItem('appointmentScheduleDate');
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
     if (saved && savedDate) {
@@ -50,11 +50,11 @@ export function RoundingTable() {
           setPatients(parsed);
         } else {
           // New day - clear old data
-          localStorage.removeItem('roundingTablePatients');
-          localStorage.removeItem('roundingTableDate');
+          localStorage.removeItem('appointmentSchedulePatients');
+          localStorage.removeItem('appointmentScheduleDate');
           toast({
             title: '🌅 New Day, Fresh Start',
-            description: 'Yesterday\'s rounding table has been cleared',
+            description: 'Yesterday\'s appointment schedule has been cleared',
           });
         }
       } catch (error) {
@@ -67,15 +67,15 @@ export function RoundingTable() {
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
     if (patients.length > 0) {
-      localStorage.setItem('roundingTablePatients', JSON.stringify(patients));
-      localStorage.setItem('roundingTableDate', today);
+      localStorage.setItem('appointmentSchedulePatients', JSON.stringify(patients));
+      localStorage.setItem('appointmentScheduleDate', today);
     }
   }, [patients]);
 
   const handleParse = async (text: string) => {
     setIsProcessing(true);
     try {
-      const response = await fetch('/api/parse-rounding-table', {
+      const response = await fetch('/api/parse-appointment-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
@@ -164,7 +164,7 @@ export function RoundingTable() {
   const handleExportJSON = () => {
     const dataStr = JSON.stringify(patients, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const exportFileDefaultName = `rounding-table-${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `appointment-schedule-${new Date().toISOString().split('T')[0]}.json`;
 
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
@@ -173,11 +173,11 @@ export function RoundingTable() {
   };
 
   const handleClearAll = () => {
-    if (confirm('Clear all patients from the rounding table?')) {
+    if (confirm('Clear all patients from the appointment schedule?')) {
       setPatients([]);
-      localStorage.removeItem('roundingTablePatients');
-      localStorage.removeItem('roundingTableDate');
-      toast({ title: 'Rounding table cleared' });
+      localStorage.removeItem('appointmentSchedulePatients');
+      localStorage.removeItem('appointmentScheduleDate');
+      toast({ title: 'Appointment schedule cleared' });
     }
   };
 
@@ -186,7 +186,7 @@ export function RoundingTable() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Rounding Table</h2>
+          <h2 className="text-2xl font-bold text-white">Appointment Schedule</h2>
           <p className="text-sm text-slate-400">
             {patients.length === 0
               ? 'Paste patient data to get started'
@@ -288,7 +288,7 @@ export function RoundingTable() {
                     strategy={verticalListSortingStrategy}
                   >
                     {patients.map((patient) => (
-                      <PatientRow
+                      <AppointmentRow
                         key={patient.id}
                         patient={patient}
                         onUpdate={handleUpdatePatient}

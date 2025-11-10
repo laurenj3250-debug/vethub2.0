@@ -2,17 +2,17 @@
 
 import React, { useState } from 'react';
 import { GripVertical, Trash2, AlertTriangle } from 'lucide-react';
-import { RoundingPatient } from '@/lib/types/rounding-table';
+import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-interface PatientRowProps {
-  patient: RoundingPatient;
+interface AppointmentRowProps {
+  patient: AppointmentPatient;
   onUpdate: (id: string, field: string, value: any) => void;
   onDelete: (id: string) => void;
 }
 
-export function PatientRow({ patient, onUpdate, onDelete }: PatientRowProps) {
+export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowProps) {
   const {
     attributes,
     listeners,

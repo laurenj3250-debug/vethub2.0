@@ -1,4 +1,4 @@
-export interface RoundingPatient {
+export interface AppointmentPatient {
   id: string; // Unique identifier for table management
   sortOrder: number; // For custom ordering
 
@@ -44,8 +44,8 @@ export interface Medication {
   route: string;
 }
 
-export interface RoundingTableState {
-  patients: RoundingPatient[];
+export interface AppointmentScheduleState {
+  patients: AppointmentPatient[];
   sortBy: 'time' | 'name' | 'custom';
   filterBy: 'all' | 'morning' | 'afternoon' | 'incomplete';
   selectedPatientIds: Set<string>;

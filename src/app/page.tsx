@@ -7,7 +7,7 @@ import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
-import { RoundingTable } from '@/components/rounding-table/RoundingTable';
+import { AppointmentSchedule } from '@/components/appointment-schedule/AppointmentSchedule';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -81,7 +81,7 @@ export default function VetHub() {
 
   // SOAP Builder state
   const [showSOAPBuilder, setShowSOAPBuilder] = useState(false);
-  const [showRoundingTable, setShowRoundingTable] = useState(false);
+  const [showAppointmentSchedule, setShowAppointmentSchedule] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['patient', 'history', 'neuro']);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pastedText, setPastedText] = useState('');
@@ -1441,11 +1441,11 @@ export default function VetHub() {
               SOAP Builder
             </button>
             <button
-              onClick={() => setShowRoundingTable(!showRoundingTable)}
+              onClick={() => setShowAppointmentSchedule(!showAppointmentSchedule)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <TableProperties size={18} />
-              Rounding Table
+              Appointment Schedule
             </button>
             <button
               onClick={logout}
@@ -5548,10 +5548,10 @@ Example:
           </div>
         )}
 
-        {/* Rounding Table */}
-        {showRoundingTable && (
+        {/* Appointment Schedule */}
+        {showAppointmentSchedule && (
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
-            <RoundingTable />
+            <AppointmentSchedule />
           </div>
         )}
       </main>
