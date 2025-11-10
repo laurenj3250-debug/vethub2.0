@@ -1961,7 +1961,9 @@ export default function VetHub() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredPatients.map((patient) => {
-              const tasks = patient.tasks || [];
+              const today = new Date().toISOString().split('T')[0];
+              const allTasks = patient.tasks || [];
+              const tasks = allTasks.filter((t: any) => t.date === today); // Only show today's tasks
               const completedTasks = tasks.filter((t: any) => t.completed).length;
               const totalTasks = tasks.length;
               const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -2053,6 +2055,38 @@ export default function VetHub() {
                           style={{ width: `${progress}%` }}
                         />
                       </div>
+                    </div>
+
+                    {/* Quick Add Morning/Evening Tasks */}
+                    <div className="mb-2 flex gap-1.5 flex-wrap">
+                      <button
+                        onClick={() => handleAddAllCategoryTasks(patient.id, 'morning')}
+                        className="px-2 py-1 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        title="Add all morning tasks for today"
+                      >
+                        ➕ Morning
+                      </button>
+                      <button
+                        onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
+                        className="px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        title="Complete all morning tasks"
+                      >
+                        ✅ Morning
+                      </button>
+                      <button
+                        onClick={() => handleAddAllCategoryTasks(patient.id, 'evening')}
+                        className="px-2 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        title="Add all evening tasks for today"
+                      >
+                        ➕ Evening
+                      </button>
+                      <button
+                        onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
+                        className="px-2 py-1 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        title="Complete all evening tasks"
+                      >
+                        ✅ Evening
+                      </button>
                     </div>
 
                     {/* Action Buttons */}
