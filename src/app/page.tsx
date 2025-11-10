@@ -620,6 +620,47 @@ export default function VetHub() {
     }
   };
 
+  // Batch add tasks to ALL patients
+  const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
+    try {
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
+      const today = new Date().toISOString().split('T')[0];
+
+      let totalAdded = 0;
+
+      for (const patient of activePatients) {
+        const existingTasks = patient.tasks || [];
+
+        for (const taskName of tasksToAdd) {
+          const hasTask = existingTasks.some((t: any) =>
+            t.name === taskName && t.date === today
+          );
+
+          if (!hasTask) {
+            await apiClient.createTask(String(patient.id), {
+              name: taskName,
+              completed: false,
+              date: today,
+            });
+            totalAdded++;
+          }
+        }
+      }
+
+      if (totalAdded > 0) {
+        toast({ title: `➕ Added ${totalAdded} ${category} tasks to ${activePatients.length} patients!` });
+      } else {
+        toast({ title: `All ${category} tasks already exist for today` });
+      }
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to batch add ${category} tasks` });
+    }
+  };
+
   // Debounced update for MRI Schedule inputs (prevents slowness)
   const debouncedMRIUpdate = useCallback((patientId: number, field: string, value: string, updateFn: () => Promise<void>) => {
     const key = `${patientId}-${field}`;
@@ -1088,6 +1129,62 @@ export default function VetHub() {
       }
     }
   }, [showSOAPBuilder]);
+
+  // Automatic daily task creation - runs when app loads on a new day
+  useEffect(() => {
+    const autoCreateDailyTasks = async () => {
+      if (!patients || patients.length === 0) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const lastCheck = localStorage.getItem('lastDailyTaskCheck');
+
+      // Only run if it's a new day
+      if (lastCheck === today) return;
+
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      const allDailyTasks = [...morningTasks, ...eveningTasks];
+
+      let totalAdded = 0;
+
+      for (const patient of activePatients) {
+        const existingTasks = patient.tasks || [];
+
+        for (const taskName of allDailyTasks) {
+          const hasTask = existingTasks.some((t: any) =>
+            t.name === taskName && t.date === today
+          );
+
+          if (!hasTask) {
+            try {
+              await apiClient.createTask(String(patient.id), {
+                name: taskName,
+                completed: false,
+                date: today,
+              });
+              totalAdded++;
+            } catch (error) {
+              console.error('Failed to create task:', error);
+            }
+          }
+        }
+      }
+
+      // Mark today as checked
+      localStorage.setItem('lastDailyTaskCheck', today);
+
+      if (totalAdded > 0) {
+        refetch();
+        toast({
+          title: `🌅 Good Morning!`,
+          description: `Auto-added ${totalAdded} tasks for ${activePatients.length} patients`
+        });
+      }
+    };
+
+    autoCreateDailyTasks();
+  }, [patients.length]); // Run when patients are loaded
 
   const filteredPatients = patients.filter(p =>
     p.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1947,6 +2044,35 @@ export default function VetHub() {
             className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
           />
         </div>
+
+        {/* Batch Add Tasks - Above Patient Cards */}
+        {filteredPatients.length > 0 && (
+          <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <span className="text-lg">⚡</span>
+                <div>
+                  <h3 className="text-white font-bold text-sm">Batch Add Daily Tasks</h3>
+                  <p className="text-slate-400 text-xs">Add tasks to all active patients at once</p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => handleBatchAddAllCategoryTasks('morning')}
+                  className="px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform shadow-lg"
+                >
+                  ➕ Add Morning Tasks to All
+                </button>
+                <button
+                  onClick={() => handleBatchAddAllCategoryTasks('evening')}
+                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:scale-105 transition-transform shadow-lg"
+                >
+                  ➕ Add Evening Tasks to All
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Patients */}
         {patientsLoading ? (
