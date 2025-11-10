@@ -42,7 +42,7 @@ Please extract relevant information and return ONLY a JSON object with the field
 ONLY include fields that were mentioned in the notes. Return a valid JSON object with no additional text.`;
 
     const claudeResponse = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 2048,
       temperature: 0,
       messages: [{
