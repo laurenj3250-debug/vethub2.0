@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
-import { NEURO_PROTOCOLS, THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
+import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
 
 interface Patient {
@@ -81,8 +81,8 @@ export function EnhancedRoundingSheet({
     localStorage.setItem('custom_rounding_templates', JSON.stringify(templates));
   }, []);
 
-  // Merge built-in and custom templates
-  const allProtocols = [...NEURO_PROTOCOLS, ...customTemplates];
+  // Use only custom templates (removed built-in NEURO_PROTOCOLS)
+  const allProtocols = customTemplates;
 
   // Create new template
   const createTemplate = useCallback(() => {
@@ -364,7 +364,7 @@ export function EnhancedRoundingSheet({
     }
   }, [showProtocolSelector, copyRoundingSheetLine]);
 
-  // Update field with API call
+  // Update field with API call (no refresh on every keystroke - too slow)
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
@@ -376,11 +376,11 @@ export function EnhancedRoundingSheet({
 
     try {
       await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
-      onPatientUpdate?.();
+      // Don't call onPatientUpdate here - causes slowness on every keystroke
     } catch (error) {
       console.error('Update failed:', error);
     }
-  }, [patients, onPatientUpdate]);
+  }, [patients]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
@@ -583,7 +583,7 @@ export function EnhancedRoundingSheet({
                         </button>
 
                         {showQuickFillMenu === patient.id && (
-                          <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-2 min-w-[280px] max-h-[400px] overflow-y-auto z-[100]">
+                          <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-2 min-w-[280px] max-h-[400px] overflow-y-auto z-[9999]">
                             <div className="text-xs text-slate-300 font-bold mb-2 border-b border-slate-700 pb-2">
                               Quick Fill Templates:
                             </div>
@@ -660,42 +660,15 @@ export function EnhancedRoundingSheet({
                                     </div>
                                   ))}
                                 </div>
-                                <div className="border-b border-slate-700 mb-2"></div>
                               </>
                             )}
 
-                            {/* Built-in Protocol categories */}
-                            {['post-op', 'medical', 'monitoring', 'discharge-prep'].map(category => {
-                              const protocols = NEURO_PROTOCOLS.filter(p => p.category === category);
-                              if (protocols.length === 0) return null;
-
-                              return (
-                                <div key={category} className="mb-3">
-                                  <div className="text-xs text-slate-400 font-bold mb-1 uppercase tracking-wide">
-                                    {category.replace('-', ' ')}
-                                  </div>
-                                  {protocols.map(protocol => (
-                                    <button
-                                      key={protocol.id}
-                                      onClick={() => {
-                                        applyProtocol(patient.id, protocol.id);
-                                        setShowQuickFillMenu(null);
-                                      }}
-                                      className="w-full text-left px-2 py-1.5 text-xs text-white hover:bg-slate-700 rounded mb-1"
-                                    >
-                                      <div className="font-medium">{protocol.name}</div>
-                                      {protocol.tags.length > 0 && (
-                                        <div className="flex gap-1 mt-0.5 flex-wrap">
-                                          {protocol.tags.map(tag => (
-                                            <span key={tag} className="text-xs text-slate-500">#{tag}</span>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </button>
-                                  ))}
-                                </div>
-                              );
-                            })}
+                            {/* Empty state when no templates */}
+                            {customTemplates.length === 0 && (
+                              <div className="text-xs text-slate-400 text-center py-4">
+                                No templates yet. Create your first template above.
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -976,10 +949,10 @@ export function EnhancedRoundingSheet({
                   onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value as any })}
                   className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
                 >
-                  <option value="post-op">Post-Op</option>
-                  <option value="medical">Medical</option>
-                  <option value="monitoring">Monitoring</option>
-                  <option value="discharge-prep">Discharge Prep</option>
+                  <option value="post-op" className="bg-slate-900">Post-Op</option>
+                  <option value="medical" className="bg-slate-900">Medical</option>
+                  <option value="monitoring" className="bg-slate-900">Monitoring</option>
+                  <option value="discharge-prep" className="bg-slate-900">Discharge Prep</option>
                 </select>
               </div>
 
@@ -992,9 +965,9 @@ export function EnhancedRoundingSheet({
                     onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, location: e.target.value } })}
                     className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">-</option>
-                    <option value="IP">IP</option>
-                    <option value="ICU">ICU</option>
+                    <option value="" className="bg-slate-900">-</option>
+                    <option value="IP" className="bg-slate-900">IP</option>
+                    <option value="ICU" className="bg-slate-900">ICU</option>
                   </select>
                 </div>
 
@@ -1067,11 +1040,11 @@ export function EnhancedRoundingSheet({
                     onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, code: e.target.value as any } })}
                     className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">-</option>
-                    <option value="Green">Green</option>
-                    <option value="Yellow">Yellow</option>
-                    <option value="Orange">Orange</option>
-                    <option value="Red">Red</option>
+                    <option value="" className="bg-slate-900">-</option>
+                    <option value="Green" className="bg-slate-900">Green</option>
+                    <option value="Yellow" className="bg-slate-900">Yellow</option>
+                    <option value="Orange" className="bg-slate-900">Orange</option>
+                    <option value="Red" className="bg-slate-900">Red</option>
                   </select>
                 </div>
 
@@ -1096,9 +1069,9 @@ export function EnhancedRoundingSheet({
                     onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, fluids: e.target.value } })}
                     className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">-</option>
-                    <option value="Y">Y</option>
-                    <option value="N">N</option>
+                    <option value="" className="bg-slate-900">-</option>
+                    <option value="Y" className="bg-slate-900">Y</option>
+                    <option value="N" className="bg-slate-900">N</option>
                   </select>
                 </div>
 
@@ -1109,9 +1082,9 @@ export function EnhancedRoundingSheet({
                     onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, ivc: e.target.value } })}
                     className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">-</option>
-                    <option value="Y">Y</option>
-                    <option value="N">N</option>
+                    <option value="" className="bg-slate-900">-</option>
+                    <option value="Y" className="bg-slate-900">Y</option>
+                    <option value="N" className="bg-slate-900">N</option>
                   </select>
                 </div>
 
@@ -1122,9 +1095,9 @@ export function EnhancedRoundingSheet({
                     onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, cri: e.target.value } })}
                     className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">-</option>
-                    <option value="Y">Y</option>
-                    <option value="N">N</option>
+                    <option value="" className="bg-slate-900">-</option>
+                    <option value="Y" className="bg-slate-900">Y</option>
+                    <option value="N" className="bg-slate-900">N</option>
                   </select>
                 </div>
               </div>
