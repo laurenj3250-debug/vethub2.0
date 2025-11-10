@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
-import { NEURO_PROTOCOLS, THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS } from '@/lib/neuro-protocols';
+import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { NEURO_PROTOCOLS, THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
 
 interface Patient {
@@ -47,7 +47,86 @@ export function EnhancedRoundingSheet({
   const [batchValue, setBatchValue] = useState<string>('');
   const [autoPopulateMode, setAutoPopulateMode] = useState<'off' | 'suggest' | 'auto'>('suggest');
 
+  // Custom templates management
+  const [customTemplates, setCustomTemplates] = useState<NeuroProtocol[]>([]);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<NeuroProtocol | null>(null);
+  const [templateForm, setTemplateForm] = useState<NeuroProtocol>({
+    id: '',
+    name: '',
+    category: 'medical',
+    tags: [],
+    autoFill: {}
+  });
+
   const fieldRefs = useRef<Map<string, HTMLInputElement | HTMLTextAreaElement>>(new Map());
+
+  // Load custom templates from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('custom_rounding_templates');
+    if (stored) {
+      try {
+        setCustomTemplates(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to load custom templates:', e);
+      }
+    }
+  }, []);
+
+  // Save custom templates to localStorage
+  const saveCustomTemplates = useCallback((templates: NeuroProtocol[]) => {
+    setCustomTemplates(templates);
+    localStorage.setItem('custom_rounding_templates', JSON.stringify(templates));
+  }, []);
+
+  // Merge built-in and custom templates
+  const allProtocols = [...NEURO_PROTOCOLS, ...customTemplates];
+
+  // Create new template
+  const createTemplate = useCallback(() => {
+    const newId = `custom-${Date.now()}`;
+    const newTemplate: NeuroProtocol = {
+      ...templateForm,
+      id: newId
+    };
+    saveCustomTemplates([...customTemplates, newTemplate]);
+    setShowTemplateEditor(false);
+    setTemplateForm({ id: '', name: '', category: 'medical', tags: [], autoFill: {} });
+    toast({ title: '✅ Template created!' });
+  }, [templateForm, customTemplates, saveCustomTemplates, toast]);
+
+  // Update existing template
+  const updateTemplate = useCallback(() => {
+    if (!editingTemplate) return;
+    const updated = customTemplates.map(t => t.id === editingTemplate.id ? templateForm : t);
+    saveCustomTemplates(updated);
+    setShowTemplateEditor(false);
+    setEditingTemplate(null);
+    setTemplateForm({ id: '', name: '', category: 'medical', tags: [], autoFill: {} });
+    toast({ title: '✅ Template updated!' });
+  }, [templateForm, editingTemplate, customTemplates, saveCustomTemplates, toast]);
+
+  // Delete template
+  const deleteTemplate = useCallback((id: string) => {
+    if (!confirm('Delete this template?')) return;
+    const filtered = customTemplates.filter(t => t.id !== id);
+    saveCustomTemplates(filtered);
+    toast({ title: '🗑️ Template deleted' });
+  }, [customTemplates, saveCustomTemplates, toast]);
+
+  // Open editor for editing
+  const startEditTemplate = useCallback((template: NeuroProtocol) => {
+    setEditingTemplate(template);
+    setTemplateForm(template);
+    setShowTemplateEditor(true);
+  }, []);
+
+  // Open editor for creating
+  const startCreateTemplate = useCallback(() => {
+    setEditingTemplate(null);
+    setTemplateForm({ id: '', name: '', category: 'medical', tags: [], autoFill: {} });
+    setShowTemplateEditor(true);
+  }, []);
 
   // Auto-populate from SOAP data when patient is added or SOAP is updated
   const autoPopulateFromSOAP = useCallback((patient: Patient) => {
@@ -82,7 +161,7 @@ export function EnhancedRoundingSheet({
 
   // Quick-fill with protocol
   const applyProtocol = useCallback(async (patientId: number, protocolId: string) => {
-    const protocol = NEURO_PROTOCOLS.find(p => p.id === protocolId);
+    const protocol = allProtocols.find(p => p.id === protocolId);
     if (!protocol) return;
 
     const patient = patients.find(p => p.id === patientId);
@@ -108,7 +187,7 @@ export function EnhancedRoundingSheet({
         description: 'Please try again'
       });
     }
-  }, [patients, toast]);
+  }, [patients, allProtocols, toast]);
 
   // Smart auto-populate button
   const smartAutoPopulate = useCallback(async (patientId: number) => {
@@ -498,7 +577,7 @@ export function EnhancedRoundingSheet({
                         </button>
 
                         {showQuickFillMenu === patient.id && (
-                          <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-2 min-w-[280px] max-h-[400px] overflow-y-auto z-50">
+                          <div className="absolute left-0 top-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl p-2 min-w-[280px] max-h-[400px] overflow-y-auto z-[100]">
                             <div className="text-xs text-slate-300 font-bold mb-2 border-b border-slate-700 pb-2">
                               Quick Fill Templates:
                             </div>
@@ -523,7 +602,63 @@ export function EnhancedRoundingSheet({
                               </>
                             )}
 
-                            {/* Protocol categories */}
+                            {/* Manage Templates Button */}
+                            <button
+                              onClick={() => {
+                                startCreateTemplate();
+                                setShowQuickFillMenu(null);
+                              }}
+                              className="w-full text-left px-2 py-2 text-xs text-emerald-400 hover:bg-emerald-500/10 rounded mb-2 flex items-center gap-2 border border-emerald-500/30"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span className="font-bold">Create Custom Template</span>
+                            </button>
+
+                            {/* Custom Templates */}
+                            {customTemplates.length > 0 && (
+                              <>
+                                <div className="border-b border-slate-700 mb-2"></div>
+                                <div className="mb-3">
+                                  <div className="text-xs text-emerald-400 font-bold mb-1 uppercase tracking-wide">
+                                    My Templates
+                                  </div>
+                                  {customTemplates.map(protocol => (
+                                    <div key={protocol.id} className="group flex items-center gap-1 mb-1">
+                                      <button
+                                        onClick={() => {
+                                          applyProtocol(patient.id, protocol.id);
+                                          setShowQuickFillMenu(null);
+                                        }}
+                                        className="flex-1 text-left px-2 py-1.5 text-xs text-white hover:bg-slate-700 rounded"
+                                      >
+                                        <div className="font-medium flex items-center gap-1">
+                                          <Sparkles className="w-3 h-3 text-emerald-400" />
+                                          {protocol.name}
+                                        </div>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          startEditTemplate(protocol);
+                                          setShowQuickFillMenu(null);
+                                        }}
+                                        className="p-1 text-slate-600 hover:text-blue-400 rounded opacity-0 group-hover:opacity-100 transition"
+                                      >
+                                        <Edit2 className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        onClick={() => deleteTemplate(protocol.id)}
+                                        className="p-1 text-slate-600 hover:text-red-400 rounded opacity-0 group-hover:opacity-100 transition"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="border-b border-slate-700 mb-2"></div>
+                              </>
+                            )}
+
+                            {/* Built-in Protocol categories */}
                             {['post-op', 'medical', 'monitoring', 'discharge-prep'].map(category => {
                               const protocols = NEURO_PROTOCOLS.filter(p => p.category === category);
                               if (protocols.length === 0) return null;
@@ -799,6 +934,202 @@ export function EnhancedRoundingSheet({
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+P</kbd> Quick fill menu</div>
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Tab</kbd> Next field</div>
       </div>
+
+      {/* Template Editor Modal */}
+      {showTemplateEditor && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]" onClick={() => setShowTemplateEditor(false)}>
+          <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                {editingTemplate ? <Edit2 className="w-5 h-5 text-blue-400" /> : <Plus className="w-5 h-5 text-emerald-400" />}
+                {editingTemplate ? 'Edit Template' : 'Create Custom Template'}
+              </h3>
+              <button onClick={() => setShowTemplateEditor(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Name */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Template Name</label>
+                <input
+                  type="text"
+                  value={templateForm.name}
+                  onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                  placeholder="e.g., My Custom IVDD Protocol"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Category</label>
+                <select
+                  value={templateForm.category}
+                  onChange={(e) => setTemplateForm({ ...templateForm, category: e.target.value as any })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                >
+                  <option value="post-op">Post-Op</option>
+                  <option value="medical">Medical</option>
+                  <option value="monitoring">Monitoring</option>
+                  <option value="discharge-prep">Discharge Prep</option>
+                </select>
+              </div>
+
+              {/* Problems */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Problems</label>
+                <textarea
+                  value={templateForm.autoFill.problems || ''}
+                  onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, problems: e.target.value } })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
+                  placeholder="e.g., T3-L3 myelopathy, IVDD"
+                  rows={3}
+                />
+              </div>
+
+              {/* Diagnostic Findings */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Diagnostic Findings</label>
+                <textarea
+                  value={templateForm.autoFill.diagnosticFindings || ''}
+                  onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, diagnosticFindings: e.target.value } })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
+                  placeholder="e.g., MRI shows disc extrusion at T12-T13"
+                  rows={3}
+                />
+              </div>
+
+              {/* Therapeutics */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Therapeutics</label>
+                <textarea
+                  value={templateForm.autoFill.therapeutics || ''}
+                  onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, therapeutics: e.target.value } })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
+                  placeholder="e.g., Methocarbamol 15-20mg/kg PO q8h&#10;Gabapentin 10-20mg/kg PO q8h"
+                  rows={4}
+                />
+              </div>
+
+              {/* Overnight Dx */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Overnight Dx/Plan</label>
+                <textarea
+                  value={templateForm.autoFill.overnightDx || ''}
+                  onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, overnightDx: e.target.value } })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
+                  placeholder="e.g., Continue current meds, recheck AM"
+                  rows={3}
+                />
+              </div>
+
+              {/* Quick Fields Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Code Status</label>
+                  <select
+                    value={templateForm.autoFill.code || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, code: e.target.value as any } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-</option>
+                    <option value="Green">Green</option>
+                    <option value="Yellow">Yellow</option>
+                    <option value="Orange">Orange</option>
+                    <option value="Red">Red</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">ICU Criteria</label>
+                  <input
+                    type="text"
+                    value={templateForm.autoFill.icuCriteria || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, icuCriteria: e.target.value } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                    placeholder="e.g., High nursing care"
+                  />
+                </div>
+              </div>
+
+              {/* Fluids/IVC/CRI Row */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">Fluids</label>
+                  <select
+                    value={templateForm.autoFill.fluids || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, fluids: e.target.value } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-</option>
+                    <option value="Y">Y</option>
+                    <option value="N">N</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">IVC</label>
+                  <select
+                    value={templateForm.autoFill.ivc || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, ivc: e.target.value } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-</option>
+                    <option value="Y">Y</option>
+                    <option value="N">N</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 font-bold mb-1 block">CRI</label>
+                  <select
+                    value={templateForm.autoFill.cri || ''}
+                    onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, cri: e.target.value } })}
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="">-</option>
+                    <option value="Y">Y</option>
+                    <option value="N">N</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Concerns */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">Concerns</label>
+                <textarea
+                  value={templateForm.autoFill.concerns || ''}
+                  onChange={(e) => setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, concerns: e.target.value } })}
+                  className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-emerald-500 resize-y"
+                  placeholder="e.g., Monitor for progression"
+                  rows={2}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-slate-700">
+                <button
+                  onClick={() => setShowTemplateEditor(false)}
+                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition flex items-center justify-center gap-2"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </button>
+                <button
+                  onClick={() => editingTemplate ? updateTemplate() : createTemplate()}
+                  disabled={!templateForm.name.trim()}
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white rounded-lg font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4" />
+                  {editingTemplate ? 'Update Template' : 'Create Template'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
