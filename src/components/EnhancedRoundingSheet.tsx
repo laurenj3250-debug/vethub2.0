@@ -374,13 +374,26 @@ export function EnhancedRoundingSheet({
       [field]: value
     };
 
+    // Optimistic update - update local state immediately for responsive UI
+    const updatedPatients = patients.map(p =>
+      p.id === patientId
+        ? { ...p, rounding_data: updatedRounding }
+        : p
+    );
+
+    // Update parent component state immediately
+    if (onPatientUpdate) {
+      onPatientUpdate(updatedPatients);
+    }
+
+    // Then sync to backend asynchronously
     try {
       await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
-      // Don't call onPatientUpdate here - causes slowness on every keystroke
     } catch (error) {
       console.error('Update failed:', error);
+      // Could add error handling/rollback here if needed
     }
-  }, [patients]);
+  }, [patients, onPatientUpdate]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
