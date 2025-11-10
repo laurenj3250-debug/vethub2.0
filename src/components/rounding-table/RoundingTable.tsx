@@ -36,23 +36,39 @@ export function RoundingTable() {
     })
   );
 
-  // Load patients from localStorage on mount
+  // Load patients from localStorage on mount, auto-clear if new day
   useEffect(() => {
     const saved = localStorage.getItem('roundingTablePatients');
-    if (saved) {
+    const savedDate = localStorage.getItem('roundingTableDate');
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+    if (saved && savedDate) {
       try {
-        const parsed = JSON.parse(saved);
-        setPatients(parsed);
+        // Check if data is from today
+        if (savedDate === today) {
+          const parsed = JSON.parse(saved);
+          setPatients(parsed);
+        } else {
+          // New day - clear old data
+          localStorage.removeItem('roundingTablePatients');
+          localStorage.removeItem('roundingTableDate');
+          toast({
+            title: '🌅 New Day, Fresh Start',
+            description: 'Yesterday\'s rounding table has been cleared',
+          });
+        }
       } catch (error) {
         console.error('Failed to load saved patients:', error);
       }
     }
-  }, []);
+  }, [toast]);
 
   // Auto-save to localStorage whenever patients change
   useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
     if (patients.length > 0) {
       localStorage.setItem('roundingTablePatients', JSON.stringify(patients));
+      localStorage.setItem('roundingTableDate', today);
     }
   }, [patients]);
 
@@ -160,6 +176,7 @@ export function RoundingTable() {
     if (confirm('Clear all patients from the rounding table?')) {
       setPatients([]);
       localStorage.removeItem('roundingTablePatients');
+      localStorage.removeItem('roundingTableDate');
       toast({ title: 'Rounding table cleared' });
     }
   };
