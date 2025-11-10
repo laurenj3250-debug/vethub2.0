@@ -3338,11 +3338,15 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             ...soapData,
                             neurolocalization: value,
                             gait: 'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia',
+                            cranialNerves: 'intact',
                             posturalReactions: 'delayed in pelvic limbs, normal thoracic limbs',
                             spinalReflexes: 'normal to increased pelvic limbs',
+                            tone: 'normal',
                             muscleMass: 'mild hind end muscle atrophy',
                             nociception: 'intact, no hyperpathia on spinal palpation',
-                            ddx: 'IVDD vs FCE vs inflammatory vs neoplasia'
+                            ddx: 'IVDD vs FCE vs inflammatory vs neoplasia',
+                            diagnosticsToday: 'MRI thoracolumbar spine\n+/- CSF',
+                            treatments: 'Methocarbamol 500-1500mg PO q8h PRN muscle spasm\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nStrict cage rest x4-6 weeks\nConsider surgery if grade 4-5/deep pain negative'
                           });
                         } else if (value === 'Peripheral vestibular disease') {
                           setSOAPData({
@@ -3352,60 +3356,92 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             cranialNerves: 'head tilt, absent palpebral reflex, positional nystagmus',
                             posturalReactions: 'normal',
                             spinalReflexes: 'normal',
-                            nociception: 'intact, no hyperpathia',
-                            ddx: 'OM/OI vs polycranial neuritis vs idiopathic vestibular disease'
+                            tone: 'normal',
+                            muscleMass: 'normal',
+                            nociception: 'intact, no pain on otoscopic exam',
+                            ddx: 'OM/OI vs polycranial neuritis vs idiopathic vestibular disease',
+                            diagnosticsToday: 'MRI brain/brainstem with IAC sequences\n+/- CSF analysis\nMyringotomy if OM/OI suspected',
+                            treatments: 'Meclizine 25mg PO q12-24h PRN vestibular signs\nMaropitant (Cerenia) 1-2mg/kg PO/SQ q24h PRN nausea\nSupportive care: assist with ambulation, food/water\nIf OM/OI: Clindamycin 10-15mg/kg PO q12h x6-8 weeks'
                           });
                         } else if (value === 'Prosencephalon') {
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
+                            mentalStatus: 'BAR',
                             gait: 'Ambulatory without ataxia or paresis',
                             cranialNerves: 'intact',
                             posturalReactions: 'normal',
                             spinalReflexes: 'normal',
+                            tone: 'normal',
+                            muscleMass: 'normal',
                             nociception: 'intact, no pain on palpation',
-                            ddx: 'Idiopathic epilepsy vs structural disease (tumor, cyst, stroke) vs infectious vs metabolic'
+                            ddx: 'Idiopathic epilepsy vs structural disease (tumor, cyst, stroke) vs infectious vs metabolic',
+                            diagnosticsToday: 'MRI brain\nCSF analysis\nMinimum database (CBC, chemistry, UA) if not done',
+                            treatments: 'Levetiracetam (Keppra) 20mg/kg PO q8h (start dose)\nPhenobarbital 2-3mg/kg PO q12h (if >2 seizures/month or cluster)\nZonisamide 5-10mg/kg PO q12h (alternative)\nRectal diazepam 0.5-2mg/kg at home for cluster seizures\nRecheck phenobarbital level in 2 weeks if started'
                           });
                         } else if (value === 'C1-C5 myelopathy') {
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
+                            mentalStatus: 'BAR',
                             gait: 'Ambulatory with mild tetraparesis and UMN GP ataxia',
+                            cranialNerves: 'intact',
                             posturalReactions: 'delayed in all four limbs',
                             spinalReflexes: 'normal',
+                            tone: 'normal',
+                            muscleMass: 'normal',
                             nociception: 'intact, mild to moderate cervical hyperpathia',
-                            ddx: 'COMS vs IVDD vs inflammatory/infectious'
+                            ddx: 'COMS (wobbler) vs IVDD vs inflammatory/infectious (meningomyelitis)',
+                            diagnosticsToday: 'MRI cervical spine (C1-T2)\n+/- CSF analysis\n+/- Myelography if MRI unavailable',
+                            treatments: 'Strict cage rest\nPrednisone 0.5mg/kg PO q12h x5-7d then taper (if inflammatory suspected)\nMethocarbamol 500-1500mg PO q8h PRN muscle spasm\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nSurgery consultation for COMS if confirmed'
                           });
                         } else if (value === 'C6-T2 myelopathy') {
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
+                            mentalStatus: 'BAR',
                             gait: 'Ambulatory with tetraparesis and UMN GP ataxia',
+                            cranialNerves: 'intact',
                             posturalReactions: 'delayed in all four limbs',
-                            spinalReflexes: 'normal',
-                            nociception: 'intact',
-                            ddx: 'IVDD vs FCE vs inflammatory vs neoplasia'
+                            spinalReflexes: 'normal to decreased thoracic limb reflexes',
+                            tone: 'normal',
+                            muscleMass: 'mild thoracic limb muscle atrophy possible',
+                            nociception: 'intact, mild cervical/thoracic hyperpathia',
+                            ddx: 'IVDD vs FCE vs inflammatory/infectious vs neoplasia',
+                            diagnosticsToday: 'MRI cervical spine (C6-T2)\n+/- CSF analysis',
+                            treatments: 'Methocarbamol 500-1500mg PO q8h PRN muscle spasm\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nStrict cage rest x4-6 weeks\nConsider surgery if grade 3-5 or progressive'
                           });
                         } else if (value === 'L4-S1 myelopathy') {
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
+                            mentalStatus: 'BAR',
                             gait: 'Ambulatory with LMN hind limb paresis',
+                            cranialNerves: 'intact',
                             posturalReactions: 'delayed in pelvic limbs',
                             spinalReflexes: 'decreased to absent pelvic limb reflexes',
                             tone: 'decreased to normal',
-                            nociception: 'intact, hyperesthesia on lumbosacral palpation',
-                            ddx: 'IVDD vs disc protrusion vs degenerative lumbosacral stenosis'
+                            muscleMass: 'mild to moderate pelvic limb muscle atrophy',
+                            nociception: 'intact, moderate to severe lumbosacral hyperesthesia',
+                            ddx: 'IVDD (L4-S1) vs disc protrusion vs degenerative lumbosacral stenosis vs cauda equina syndrome',
+                            diagnosticsToday: 'MRI lumbosacral spine\n+/- CT lumbosacral spine\n+/- EMG if chronic LMN signs',
+                            treatments: 'Carprofen 2-4mg/kg PO q12-24h (NSAID)\nGabapentin 10-20mg/kg PO q8h-12h PRN pain\nAmantadine 3-5mg/kg PO q24h (chronic pain)\nWeight management critical\nPhysical rehabilitation\nSurgery (hemilaminectomy/dorsal laminectomy) if grade 4-5 or refractory to medical management'
                           });
                         } else if (value === 'Discospondylitis') {
                           setSOAPData({
                             ...soapData,
                             neurolocalization: value,
-                            gait: 'Short stride gait',
+                            mentalStatus: 'BAR to QAR',
+                            gait: 'Short stride gait, reluctant to move',
+                            cranialNerves: 'intact',
                             posturalReactions: 'normal',
                             spinalReflexes: 'normal',
-                            nociception: 'intact, moderate to severe spinal hyperpathia',
-                            ddx: 'Discospondylitis vs other infectious/inflammatory'
+                            tone: 'normal',
+                            muscleMass: 'normal to mild generalized atrophy',
+                            nociception: 'intact, moderate to severe spinal hyperpathia on palpation',
+                            ddx: 'Bacterial discospondylitis vs fungal vs sterile inflammatory',
+                            diagnosticsToday: 'MRI spine (full spine if multifocal suspected)\nBlood culture (3 sets, 30min apart, before antibiotics)\nUrine culture\nCBC, chemistry, UA',
+                            treatments: 'Enrofloxacin 10-20mg/kg PO q24h x6-8 weeks minimum (empiric)\nClindamycin 10-15mg/kg PO q12h x6-8 weeks (alternative)\nCulture-guided antibiotics once available\nPain management: Gabapentin 10-20mg/kg PO q8h-12h\nStrict cage rest\nRecheck radiographs q4-6 weeks to monitor healing'
                           });
                         } else {
                           setSOAPData({ ...soapData, neurolocalization: value });
@@ -3791,8 +3827,8 @@ Please schedule a recheck appointment with the Neurology department to have stap
                     </button>
                     {expandedSections.includes('neuro') && (
                       <div className="p-2">
-                        {/* Quick Fill Button */}
-                        <div className="flex gap-2 mb-2">
+                        {/* Quick Fill Buttons */}
+                        <div className="flex flex-wrap gap-2 mb-3">
                           <button
                             onClick={() => setSOAPData({
                               ...soapData,
@@ -3805,9 +3841,40 @@ Please schedule a recheck appointment with the Neurology department to have stap
                               muscleMass: 'normal',
                               nociception: 'intact, no pain on palpation'
                             })}
-                            className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold"
+                            className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
                           >
-                            Normal Neuro Exam
+                            ✅ Normal Exam
+                          </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              nociception: 'ABSENT deep pain sensation pelvic limbs - SURGICAL EMERGENCY'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            ⚠️ Absent Deep Pain
+                          </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              gait: 'Schiff-Sherrington posture',
+                              spinalReflexes: 'increased thoracic limb tone, normal to absent pelvic reflexes',
+                              tone: 'increased thoracic limbs'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            ⚡ Schiff-Sherrington
+                          </button>
+                          <button
+                            onClick={() => setSOAPData({
+                              ...soapData,
+                              mentalStatus: 'Obtunded',
+                              cranialNerves: 'mydriasis OU, absent PLR',
+                              gait: 'Recumbent, cannot stand'
+                            })}
+                            className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-xs font-bold shadow-lg transition-all hover:scale-105"
+                          >
+                            🧠 Obtunded/Comatose
                           </button>
                         </div>
 
@@ -3851,11 +3918,20 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           <option value="Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia">Ambulatory with mild pelvic limb UMN paresis</option>
                           <option value="Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia">Ambulatory with moderate pelvic limb UMN paresis</option>
                           <option value="Ambulatory with severe pelvic limb UMN paresis and proprioceptive ataxia">Ambulatory with severe pelvic limb UMN paresis</option>
-                          <option value="Non-ambulatory, can support weight">Non-ambulatory, can support weight</option>
-                          <option value="Non-ambulatory, cannot support weight">Non-ambulatory, cannot support weight</option>
+                          <option value="Non-ambulatory, can support weight">Non-ambulatory, can support weight (grade 4)</option>
+                          <option value="Non-ambulatory, cannot support weight">Non-ambulatory, cannot support weight (grade 5)</option>
                           <option value="Ambulatory with vestibular quality ataxia">Ambulatory with vestibular quality ataxia</option>
                           <option value="Ambulatory with mild tetraparesis and UMN GP ataxia">Ambulatory with mild tetraparesis</option>
+                          <option value="Ambulatory with moderate tetraparesis and UMN GP ataxia">Ambulatory with moderate tetraparesis</option>
+                          <option value="Ambulatory with severe tetraparesis and UMN GP ataxia">Ambulatory with severe tetraparesis</option>
+                          <option value="Non-ambulatory tetraparetic, can support weight">Non-ambulatory tetraparetic (grade 4)</option>
+                          <option value="Non-ambulatory tetraparetic, cannot support weight">Non-ambulatory tetraparetic (grade 5)</option>
                           <option value="Ambulatory with LMN hind limb paresis">Ambulatory with LMN hind limb paresis</option>
+                          <option value="Ambulatory with cerebellar ataxia (hypermetria, wide-based stance)">Cerebellar ataxia (hypermetria)</option>
+                          <option value="Circling, head turn">Circling, head turn</option>
+                          <option value="Ambulatory with pelvic limb lameness">Pelvic limb lameness (orthopedic vs neuro)</option>
+                          <option value="Schiff-Sherrington posture">Schiff-Sherrington posture</option>
+                          <option value="Short, stilted, choppy gait">Short, stilted, choppy gait</option>
                           <option value="custom">Custom (type below)...</option>
                         </select>
                         {(soapData.gait !== 'Ambulatory without ataxia or paresis' &&
@@ -3896,7 +3972,21 @@ Please schedule a recheck appointment with the Neurology department to have stap
                           <option value="intact">CN intact</option>
                           <option value="head tilt, absent palpebral reflex">Head tilt, absent palpebral reflex</option>
                           <option value="head tilt, absent palpebral reflex, positional nystagmus">Head tilt, absent palpebral, positional nystagmus</option>
+                          <option value="head tilt, absent palpebral reflex, positional nystagmus, Horner syndrome">Head tilt, absent palpebral, nystagmus, Horner's</option>
                           <option value="decreased menace OU">Decreased menace OU</option>
+                          <option value="absent menace OU">Absent menace OU</option>
+                          <option value="decreased menace OS">Decreased menace OS</option>
+                          <option value="decreased menace OD">Decreased menace OD</option>
+                          <option value="mydriasis OU, absent PLR">Mydriasis OU, absent PLR (bilateral blindness)</option>
+                          <option value="anisocoria, absent PLR OD">Anisocoria, absent PLR OD</option>
+                          <option value="anisocoria, absent PLR OS">Anisocoria, absent PLR OS</option>
+                          <option value="facial nerve paralysis (lip droop, unable to blink)">Facial nerve paralysis (lip droop, can't blink)</option>
+                          <option value="masticatory muscle atrophy, dropped jaw">Masticatory atrophy, dropped jaw (CN V)</option>
+                          <option value="tongue deviation to right">Tongue deviation to right</option>
+                          <option value="tongue deviation to left">Tongue deviation to left</option>
+                          <option value="decreased gag reflex">Decreased gag reflex</option>
+                          <option value="absent gag reflex">Absent gag reflex</option>
+                          <option value="central vestibular signs (vertical nystagmus, positional strabismus)">Central vestibular (vertical nystagmus)</option>
                           <option value="custom">Custom...</option>
                         </select>
                         {(soapData.cranialNerves !== 'intact' &&
