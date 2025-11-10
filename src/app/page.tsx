@@ -4556,64 +4556,246 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Cranial Nerves</label>
-                        <select
-                          value={soapData.cranialNerves === 'intact' ||
-                                 soapData.cranialNerves === 'head tilt, absent palpebral reflex' ||
-                                 soapData.cranialNerves === 'head tilt, absent palpebral reflex, positional nystagmus' ||
-                                 soapData.cranialNerves === 'decreased menace OU' ? soapData.cranialNerves : 'custom'}
-                          onChange={(e) => {
-                            if (e.target.value !== 'custom') {
-                              setSOAPData({ ...soapData, cranialNerves: e.target.value });
-                            } else {
-                              setSOAPData({ ...soapData, cranialNerves: '' });
-                            }
-                          }}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="intact">CN intact</option>
-                          <option value="head tilt, absent palpebral reflex">Head tilt, absent palpebral reflex</option>
-                          <option value="head tilt, absent palpebral reflex, positional nystagmus">Head tilt, absent palpebral, positional nystagmus</option>
-                          <option value="head tilt, absent palpebral reflex, positional nystagmus, Horner syndrome">Head tilt, absent palpebral, nystagmus, Horner's</option>
-                          <option value="decreased menace OU">Decreased menace OU</option>
-                          <option value="absent menace OU">Absent menace OU</option>
-                          <option value="decreased menace OS">Decreased menace OS</option>
-                          <option value="decreased menace OD">Decreased menace OD</option>
-                          <option value="mydriasis OU, absent PLR">Mydriasis OU, absent PLR (bilateral blindness)</option>
-                          <option value="anisocoria, absent PLR OD">Anisocoria, absent PLR OD</option>
-                          <option value="anisocoria, absent PLR OS">Anisocoria, absent PLR OS</option>
-                          <option value="facial nerve paralysis (lip droop, unable to blink)">Facial nerve paralysis (lip droop, can't blink)</option>
-                          <option value="masticatory muscle atrophy, dropped jaw">Masticatory atrophy, dropped jaw (CN V)</option>
-                          <option value="tongue deviation to right">Tongue deviation to right (CN XII)</option>
-                          <option value="tongue deviation to left">Tongue deviation to left (CN XII)</option>
-                          <option value="decreased gag reflex">Decreased gag reflex (CN IX, X)</option>
-                          <option value="absent gag reflex">Absent gag reflex (CN IX, X)</option>
-                          <option value="dysphagia, difficulty swallowing">Dysphagia, difficulty swallowing</option>
-                          <option value="megaesophagus present">Megaesophagus (suspect myasthenia)</option>
-                          <option value="central vestibular signs (vertical nystagmus, positional strabismus)">Central vestibular (vertical nystagmus)</option>
-                          <option value="ventral strabismus OD">Ventral strabismus OD (CN III palsy)</option>
-                          <option value="ventral strabismus OS">Ventral strabismus OS (CN III palsy)</option>
-                          <option value="lateral strabismus OD">Lateral strabismus OD (CN VI palsy)</option>
-                          <option value="lateral strabismus OS">Lateral strabismus OS (CN VI palsy)</option>
-                          <option value="ptosis OU">Ptosis OU (myasthenia gravis)</option>
-                          <option value="miosis OD (Horner syndrome)">Miosis OD (Horner's)</option>
-                          <option value="miosis OS (Horner syndrome)">Miosis OS (Horner's)</option>
-                          <option value="jaw tone decreased/dropped jaw (CN V motor)">Dropped jaw (CN V motor deficit)</option>
-                          <option value="decreased facial sensation (CN V sensory)">Decreased facial sensation (CN V sensory)</option>
-                          <option value="custom">Custom...</option>
-                        </select>
-                        {(soapData.cranialNerves !== 'intact' &&
-                          soapData.cranialNerves !== 'head tilt, absent palpebral reflex' &&
-                          soapData.cranialNerves !== 'head tilt, absent palpebral reflex, positional nystagmus' &&
-                          soapData.cranialNerves !== 'decreased menace OU' &&
-                          soapData.cranialNerves !== '') && (
-                          <input
-                            type="text"
-                            placeholder="Enter custom cranial nerve findings..."
-                            value={soapData.cranialNerves}
-                            onChange={(e) => setSOAPData({ ...soapData, cranialNerves: e.target.value })}
-                            className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                          />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs text-slate-400">Cranial Nerves</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const selectedFindings = soapData.cranialNerves ? soapData.cranialNerves.split(', ') : [];
+                              if (selectedFindings.includes('intact')) {
+                                setSOAPData({ ...soapData, cranialNerves: '' });
+                              } else {
+                                setSOAPData({ ...soapData, cranialNerves: 'intact' });
+                              }
+                            }}
+                            className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                              soapData.cranialNerves === 'intact'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            ✓ Intact
+                          </button>
+                        </div>
+
+                        {soapData.cranialNerves !== 'intact' && (
+                          <div className="space-y-2 p-2 bg-slate-900/50 rounded-lg border border-slate-700/50 max-h-96 overflow-y-auto">
+                            {/* CN II - Vision/Menace */}
+                            <div>
+                              <h4 className="text-xs font-bold text-yellow-400 mb-1">CN II (Vision/Menace/PLR)</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Decreased menace OU', 'Decreased menace OS', 'Decreased menace OD', 'Absent menace OU', 'Mydriasis OU, absent PLR', 'Anisocoria, absent PLR OD', 'Anisocoria, absent PLR OS'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* CN III, IV, VI - Eye Position */}
+                            <div>
+                              <h4 className="text-xs font-bold text-cyan-400 mb-1">CN III, IV, VI (Eye Position/Pupils)</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Ventral strabismus OD', 'Ventral strabismus OS', 'Lateral strabismus OD', 'Lateral strabismus OS', 'Ptosis OU', 'Miosis OD (Horner\'s)', 'Miosis OS (Horner\'s)'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* CN V - Jaw/Sensation */}
+                            <div>
+                              <h4 className="text-xs font-bold text-pink-400 mb-1">CN V (Jaw/Facial Sensation)</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Dropped jaw (CN V motor)', 'Decreased facial sensation', 'Masticatory atrophy'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* CN VII - Facial */}
+                            <div>
+                              <h4 className="text-xs font-bold text-purple-400 mb-1">CN VII (Facial Expression)</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Facial nerve paralysis (lip droop)', 'Absent palpebral reflex'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* CN IX, X - Gag/Swallow */}
+                            <div>
+                              <h4 className="text-xs font-bold text-orange-400 mb-1">CN IX, X (Gag/Swallow)</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Decreased gag reflex', 'Absent gag reflex', 'Dysphagia', 'Megaesophagus (suspect myasthenia)'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* CN XII - Tongue */}
+                            <div>
+                              <h4 className="text-xs font-bold text-green-400 mb-1">CN XII (Tongue)</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Tongue deviation to right', 'Tongue deviation to left'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            {/* Vestibular */}
+                            <div>
+                              <h4 className="text-xs font-bold text-blue-400 mb-1">Vestibular</h4>
+                              <div className="grid grid-cols-2 gap-1">
+                                {['Head tilt', 'Positional nystagmus', 'Central vestibular (vertical nystagmus)'].map(finding => {
+                                  const selected = soapData.cranialNerves.split(', ').includes(finding);
+                                  return (
+                                    <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                      <input
+                                        type="checkbox"
+                                        checked={selected}
+                                        onChange={(e) => {
+                                          const findings = soapData.cranialNerves ? soapData.cranialNerves.split(', ').filter(f => f) : [];
+                                          if (e.target.checked) {
+                                            findings.push(finding);
+                                          } else {
+                                            const idx = findings.indexOf(finding);
+                                            if (idx > -1) findings.splice(idx, 1);
+                                          }
+                                          setSOAPData({ ...soapData, cranialNerves: findings.join(', ') });
+                                        }}
+                                        className="w-3 h-3 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                                      />
+                                      <span className="text-slate-300">{finding}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {soapData.cranialNerves && soapData.cranialNerves !== 'intact' && (
+                          <div className="mt-1 text-xs text-slate-400">
+                            Selected: {soapData.cranialNerves}
+                          </div>
                         )}
                       </div>
                       <div>
