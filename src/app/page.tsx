@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
@@ -53,6 +53,10 @@ export default function VetHub() {
   const [selectedPatientIds, setSelectedPatientIds] = useState<Set<number>>(new Set());
   const [showBatchActions, setShowBatchActions] = useState(false);
   const [referenceSearch, setReferenceSearch] = useState('');
+
+  // Debounced input state for MRI Schedule
+  const [mriInputValues, setMriInputValues] = useState<Record<string, string>>({});
+  const mriTimeoutRefs = useRef<Record<string, NodeJS.Timeout>>({});
   const [referenceData, setReferenceData] = useState<any>({
     medications: [
       { name: 'Gabapentin', dose: '10-20 mg/kg PO q8-12h', notes: 'Neuropathic pain, seizures' },
@@ -575,6 +579,68 @@ export default function VetHub() {
       toast({ variant: 'destructive', title: 'Error', description: `Failed to complete ${category} tasks` });
     }
   };
+
+  const handleAddAllCategoryTasks = async (patientId: number, category: 'morning' | 'evening') => {
+    try {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+
+      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
+      const today = new Date().toISOString().split('T')[0];
+      const existingTasks = patient.tasks || [];
+
+      let addedCount = 0;
+      for (const taskName of tasksToAdd) {
+        // Check if task already exists for today
+        const hasTask = existingTasks.some((t: any) =>
+          t.name === taskName && t.date === today
+        );
+
+        if (!hasTask) {
+          await apiClient.createTask(String(patientId), {
+            name: taskName,
+            completed: false,
+            date: today,
+          });
+          addedCount++;
+        }
+      }
+
+      if (addedCount > 0) {
+        toast({ title: `➕ Added ${addedCount} ${category} tasks!` });
+      } else {
+        toast({ title: `All ${category} tasks already exist for today` });
+      }
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: `Failed to add ${category} tasks` });
+    }
+  };
+
+  // Debounced update for MRI Schedule inputs (prevents slowness)
+  const debouncedMRIUpdate = useCallback((patientId: number, field: string, value: string, updateFn: () => Promise<void>) => {
+    const key = `${patientId}-${field}`;
+
+    // Update local state immediately for responsive UI
+    setMriInputValues(prev => ({ ...prev, [key]: value }));
+
+    // Clear existing timeout
+    if (mriTimeoutRefs.current[key]) {
+      clearTimeout(mriTimeoutRefs.current[key]);
+    }
+
+    // Set new timeout to save after 800ms of no typing
+    mriTimeoutRefs.current[key] = setTimeout(async () => {
+      try {
+        await updateFn();
+      } catch (error) {
+        console.error('Failed to update:', error);
+      }
+    }, 800);
+  }, []);
 
   const handleSaveRoundingData = async () => {
     if (!roundingSheetPatient) return;
@@ -1808,10 +1874,12 @@ export default function VetHub() {
                         <td className="p-2">
                           <input
                             type="text"
-                            value={patient.patient_info?.patientId || ''}
+                            value={mriInputValues[`${patient.id}-patientId`] ?? (patient.patient_info?.patientId || '')}
                             onChange={(e) => {
-                              const updatedInfo = { ...patient.patient_info, patientId: e.target.value };
-                              apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                              debouncedMRIUpdate(patient.id, 'patientId', e.target.value, async () => {
+                                const updatedInfo = { ...patient.patient_info, patientId: e.target.value };
+                                await apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                              });
                             }}
                             className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
                           />
@@ -1819,10 +1887,12 @@ export default function VetHub() {
                         <td className="p-2">
                           <input
                             type="text"
-                            value={(patient.patient_info?.weight || '').replace(/[^\d.]/g, '')}
+                            value={mriInputValues[`${patient.id}-weight`] ?? (patient.patient_info?.weight || '').replace(/[^\d.]/g, '')}
                             onChange={(e) => {
-                              const updatedInfo = { ...patient.patient_info, weight: e.target.value };
-                              apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                              debouncedMRIUpdate(patient.id, 'weight', e.target.value, async () => {
+                                const updatedInfo = { ...patient.patient_info, weight: e.target.value };
+                                await apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                              });
                             }}
                             className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
                             placeholder="kg"
@@ -1831,11 +1901,13 @@ export default function VetHub() {
                         <td className="p-2">
                           <input
                             type="text"
-                            value={mriData.scanType || ''}
+                            value={mriInputValues[`${patient.id}-scanType`] ?? (mriData.scanType || '')}
                             onChange={(e) => {
-                              const updatedMRI = { ...mriData, scanType: e.target.value };
-                              apiClient.updatePatient(String(patient.id), { mri_data: updatedMRI });
-                              refetch();
+                              debouncedMRIUpdate(patient.id, 'scanType', e.target.value, async () => {
+                                const updatedMRI = { ...mriData, scanType: e.target.value };
+                                await apiClient.updatePatient(String(patient.id), { mri_data: updatedMRI });
+                                refetch();
+                              });
                             }}
                             className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
                             placeholder="Brain, LS, C-Spine..."
@@ -2053,18 +2125,34 @@ export default function VetHub() {
                           <ListTodo size={18} className="text-cyan-400" />
                           Tasks ({completedTasks}/{totalTasks})
                         </h4>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                          <button
+                            onClick={() => handleAddAllCategoryTasks(patient.id, 'morning')}
+                            className="px-3 py-1 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            title="Add all morning tasks for today"
+                          >
+                            ➕ Morning
+                          </button>
                           <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
                             className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            title="Complete all morning tasks"
                           >
-                            ✅ All Morning
+                            ✅ Morning
+                          </button>
+                          <button
+                            onClick={() => handleAddAllCategoryTasks(patient.id, 'evening')}
+                            className="px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            title="Add all evening tasks for today"
+                          >
+                            ➕ Evening
                           </button>
                           <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
                             className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            title="Complete all evening tasks"
                           >
-                            ✅ All Evening
+                            ✅ Evening
                           </button>
                         </div>
                       </div>
