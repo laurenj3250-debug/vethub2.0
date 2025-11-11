@@ -6,6 +6,7 @@ export interface AppointmentPatient {
   appointmentTime: string | null; // "HH:MM" or null
   patientName: string;
   age: string | null; // "5y 3m" format
+  status: 'new' | 'recheck'; // Patient visit type
 
   // Clinical Data
   whyHereToday: string;

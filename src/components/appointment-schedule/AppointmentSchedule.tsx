@@ -47,7 +47,12 @@ export function AppointmentSchedule() {
         // Check if data is from today
         if (savedDate === today) {
           const parsed = JSON.parse(saved);
-          setPatients(parsed);
+          // Migrate old patients to include status field if missing
+          const migratedPatients = parsed.map((p: AppointmentPatient) => ({
+            ...p,
+            status: p.status || 'recheck', // Default to recheck for existing patients
+          }));
+          setPatients(migratedPatients);
         } else {
           // New day - clear old data
           localStorage.removeItem('appointmentSchedulePatients');
@@ -192,6 +197,19 @@ export function AppointmentSchedule() {
               ? 'Paste patient data to get started'
               : `${patients.length} patient(s) • Sorted by ${sortBy === 'time' ? 'appointment time' : sortBy === 'name' ? 'name' : 'custom order'}`}
           </p>
+          {patients.length > 0 && (
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-xs text-slate-500">Legend:</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-emerald-500/30 border-l-2 border-emerald-500 rounded-sm"></div>
+                <span className="text-xs text-slate-400">New Patient</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-blue-500/30 border-l-2 border-blue-500 rounded-sm"></div>
+                <span className="text-xs text-slate-400">Recheck</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 flex-wrap">

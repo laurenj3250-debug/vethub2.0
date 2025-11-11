@@ -33,6 +33,7 @@ For EACH patient found, extract these fields (use null if not mentioned):
 - appointmentTime: Time in "HH:MM" 24-hour format or null
 - patientName: Full patient name (pet name + owner last name if available)
 - age: Age with units (e.g., "5y 3m", "2 years", "6mo")
+- status: "new" or "recheck" - Detect from keywords like "new patient", "recheck", "follow-up", "re-eval". If lastVisit has a date, it's likely "recheck". If no visit history, likely "new". Default to "recheck" if unclear.
 - whyHereToday: Presenting complaint or reason for visit
 - lastVisit: {date: "MM/DD/YYYY" or null, reason: "reason" or null}
 - mri: {date: "MM/DD/YYYY" or null, findings: "findings summary" or null}
@@ -58,6 +59,7 @@ Return format:
     "appointmentTime": "09:30" or null,
     "patientName": "Buddy Smith",
     "age": "5y 2m",
+    "status": "recheck",
     "whyHereToday": "Acute hind limb paresis",
     "lastVisit": {"date": "11/01/2025", "reason": "Recheck MRI"},
     "mri": {"date": "10/15/2025", "findings": "T13-L1 IVDD with severe spinal cord compression"},
@@ -72,6 +74,7 @@ Return format:
       "appointmentTime": 0.9,
       "patientName": 1.0,
       "age": 0.95,
+      "status": 0.85,
       "whyHereToday": 1.0,
       "lastVisit": 0.8,
       "mri": 0.9,
@@ -127,6 +130,7 @@ Return ONLY the JSON array, no markdown, no explanations:`;
       id: `patient-${Date.now()}-${index}`,
       sortOrder: index,
       ...patient,
+      status: patient.status || 'recheck', // Default to recheck if not specified
       lastUpdated: new Date().toISOString(),
       rawText: text, // Store original text for reference
     }));

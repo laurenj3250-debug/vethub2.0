@@ -73,11 +73,16 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
     );
   };
 
+  // Color coding based on status
+  const statusColors = patient.status === 'new'
+    ? 'bg-emerald-500/5 border-l-4 border-emerald-500/50'
+    : 'bg-blue-500/5 border-l-4 border-blue-500/50';
+
   return (
     <tr
       ref={setNodeRef}
       style={style}
-      className="border-b border-slate-700/30 hover:bg-slate-800/30 transition"
+      className={`border-b border-slate-700/30 hover:bg-slate-800/30 transition ${statusColors}`}
     >
       {/* Drag Handle */}
       <td className="px-2 py-3 border-r border-slate-700/30">
@@ -93,8 +98,44 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
       {/* Appointment Time */}
       {renderEditableCell(patient.appointmentTime, 'appointmentTime', '—')}
 
-      {/* Patient Name */}
-      {renderEditableCell(patient.patientName, 'patientName', 'Unknown')}
+      {/* Patient Name with Status Badge */}
+      <td
+        className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
+          !patient.patientName ? 'bg-slate-800/30' : ''
+        } relative group`}
+        onClick={() => !editingCell && handleCellClick('patientName')}
+      >
+        {editingCell === 'patientName' ? (
+          <input
+            type="text"
+            value={patient.patientName || ''}
+            onChange={(e) => onUpdate(patient.id, 'patientName', e.target.value)}
+            onBlur={handleCellBlur}
+            autoFocus
+            className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className={`flex-1 ${!patient.patientName ? 'text-slate-600' : 'text-slate-200'}`}>
+              {patient.patientName || 'Unknown'}
+            </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdate(patient.id, 'status', patient.status === 'new' ? 'recheck' : 'new');
+              }}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                patient.status === 'new'
+                  ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                  : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+              }`}
+              title="Click to toggle New/Recheck status"
+            >
+              {patient.status === 'new' ? 'NEW' : 'RECHECK'}
+            </button>
+          </div>
+        )}
+      </td>
 
       {/* Age */}
       {renderEditableCell(patient.age, 'age', '—')}
