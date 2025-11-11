@@ -33,7 +33,11 @@ For EACH patient found, extract these fields (use null if not mentioned):
 - appointmentTime: Time in "HH:MM" 24-hour format or null
 - patientName: Full patient name (pet name + owner last name if available)
 - age: Age with units (e.g., "5y 3m", "2 years", "6mo")
-- status: "new" or "recheck" - Detect from keywords like "new patient", "recheck", "follow-up", "re-eval". If lastVisit has a date, it's likely "recheck". If no visit history, likely "new". Default to "recheck" if unclear.
+- status: "new", "recheck", or "mri-dropoff" - Detect from keywords:
+  * "mri-dropoff" for: "MRI drop off", "MRI drop-off", "dropping off for MRI", "MRI scheduled", "MRI today"
+  * "new" for: "new patient", "first visit", "initial consult"
+  * "recheck" for: "recheck", "follow-up", "re-eval", "reexam"
+  If whyHereToday mentions MRI, use "mri-dropoff". If lastVisit has a date, likely "recheck". If no visit history, likely "new". Default to "recheck" if unclear.
 - whyHereToday: Presenting complaint or reason for visit
 - lastVisit: {date: "MM/DD/YYYY" or null, reason: "reason" or null}
 - mri: {date: "MM/DD/YYYY" or null, findings: "findings summary" or null}

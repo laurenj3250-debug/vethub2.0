@@ -208,6 +208,10 @@ export function AppointmentSchedule() {
                 <div className="w-3 h-3 bg-blue-500/30 border-l-2 border-blue-500 rounded-sm"></div>
                 <span className="text-xs text-slate-400">Recheck</span>
               </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 bg-purple-500/30 border-l-2 border-purple-500 rounded-sm"></div>
+                <span className="text-xs text-slate-400">MRI Drop Off</span>
+              </div>
             </div>
           )}
         </div>

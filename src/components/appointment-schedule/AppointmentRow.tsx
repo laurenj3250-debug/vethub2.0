@@ -74,9 +74,12 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
   };
 
   // Color coding based on status
-  const statusColors = patient.status === 'new'
-    ? 'bg-emerald-500/5 border-l-4 border-emerald-500/50'
-    : 'bg-blue-500/5 border-l-4 border-blue-500/50';
+  const statusColors =
+    patient.status === 'new'
+      ? 'bg-emerald-500/5 border-l-4 border-emerald-500/50'
+      : patient.status === 'mri-dropoff'
+      ? 'bg-purple-500/5 border-l-4 border-purple-500/50'
+      : 'bg-blue-500/5 border-l-4 border-blue-500/50';
 
   return (
     <tr
@@ -122,16 +125,25 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onUpdate(patient.id, 'status', patient.status === 'new' ? 'recheck' : 'new');
+                // Cycle through: new -> recheck -> mri-dropoff -> new
+                const nextStatus =
+                  patient.status === 'new'
+                    ? 'recheck'
+                    : patient.status === 'recheck'
+                    ? 'mri-dropoff'
+                    : 'new';
+                onUpdate(patient.id, 'status', nextStatus);
               }}
               className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide transition-colors ${
                 patient.status === 'new'
                   ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                  : patient.status === 'mri-dropoff'
+                  ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
                   : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
               }`}
-              title="Click to toggle New/Recheck status"
+              title="Click to cycle: New → Recheck → MRI Drop Off"
             >
-              {patient.status === 'new' ? 'NEW' : 'RECHECK'}
+              {patient.status === 'new' ? 'NEW' : patient.status === 'mri-dropoff' ? 'MRI' : 'RECHECK'}
             </button>
           </div>
         )}
