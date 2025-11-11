@@ -30,7 +30,6 @@ export async function POST(request: Request) {
 Extract patient information from the following text and return a JSON array of patients.
 
 For EACH patient found, extract these fields (use null if not mentioned):
-- appointmentTime: Time in "HH:MM" 24-hour format or null
 - patientName: Full patient name (pet name + owner last name if available)
 - age: Age with units (e.g., "5y 3m", "2 years", "6mo")
 - status: "new", "recheck", or "mri-dropoff" - Detect from keywords:
@@ -39,20 +38,19 @@ For EACH patient found, extract these fields (use null if not mentioned):
   * "recheck" for: "recheck", "follow-up", "re-eval", "reexam"
   If whyHereToday mentions MRI, use "mri-dropoff". If lastVisit has a date, likely "recheck". If no visit history, likely "new". Default to "recheck" if unclear.
 - whyHereToday: Presenting complaint or reason for visit
-- lastVisit: {date: "MM/DD/YYYY" or null, reason: "reason" or null}
-- mri: {date: "MM/DD/YYYY" or null, findings: "findings summary" or null}
-- bloodwork: {date: "MM/DD/YYYY" or null, abnormalities: ["CBC: WBC 25.3 (H)", "Chem: BUN 85 (H)"] or null}
-- medications: [{name: "Drug name", dose: "10 mg/kg", frequency: "q8h", route: "PO"}]
+- lastVisit: Simple text - include date and reason together (e.g., "11/01/2025 - Recheck MRI")
+- mri: Simple text - include date and findings together (e.g., "10/15/2025 - T13-L1 IVDD with spinal cord compression")
+- bloodwork: Simple text - include date and ALL values/abnormalities (e.g., "11/01/2025 - WBC 18.3 (H), Neutrophils 15.2 (H), BUN 45 (H)")
+- medications: Simple text - list all meds with details (e.g., "Gabapentin 10mg/kg q8h PO, Carprofen 2.2mg/kg q12h PO")
 - changesSinceLastVisit: Any progression or status changes
 - otherNotes: Miscellaneous important information
-- confidence: Provide confidence scores 0-1 for each field you extracted
 
 IMPORTANT:
 - Return ONLY valid JSON, no other text
+- ALL fields are simple text strings (except status which is "new"|"recheck"|"mri-dropoff")
+- Extract ALL bloodwork values mentioned, don't skip any
 - If multiple patients are in the text, return an array with all of them
-- Preserve medication dosing exactly as written
 - Use null for missing data, don't guess
-- For bloodwork abnormalities, only include values outside reference range
 
 Patient Data:
 ${text}
@@ -60,33 +58,16 @@ ${text}
 Return format:
 [
   {
-    "appointmentTime": "09:30" or null,
     "patientName": "Buddy Smith",
     "age": "5y 2m",
     "status": "recheck",
     "whyHereToday": "Acute hind limb paresis",
-    "lastVisit": {"date": "11/01/2025", "reason": "Recheck MRI"},
-    "mri": {"date": "10/15/2025", "findings": "T13-L1 IVDD with severe spinal cord compression"},
-    "bloodwork": {"date": "11/01/2025", "abnormalities": ["WBC 18.3 (H)", "Neutrophils 15.2 (H)"]},
-    "medications": [
-      {"name": "Gabapentin", "dose": "10 mg/kg", "frequency": "q8h", "route": "PO"},
-      {"name": "Carprofen", "dose": "2.2 mg/kg", "frequency": "q12h", "route": "PO"}
-    ],
+    "lastVisit": "11/01/2025 - Recheck MRI",
+    "mri": "10/15/2025 - T13-L1 IVDD with severe spinal cord compression",
+    "bloodwork": "11/01/2025 - WBC 18.3 (H), Neutrophils 15.2 (H), PCV 48%, TP 6.8",
+    "medications": "Gabapentin 10mg/kg q8h PO, Carprofen 2.2mg/kg q12h PO",
     "changesSinceLastVisit": "Ambulatory paraparesis improved to non-ambulatory tetraparesis",
-    "otherNotes": "Owner reports decreased appetite",
-    "confidence": {
-      "appointmentTime": 0.9,
-      "patientName": 1.0,
-      "age": 0.95,
-      "status": 0.85,
-      "whyHereToday": 1.0,
-      "lastVisit": 0.8,
-      "mri": 0.9,
-      "bloodwork": 0.85,
-      "medications": 0.95,
-      "changesSinceLastVisit": 0.7,
-      "otherNotes": 0.6
-    }
+    "otherNotes": "Owner reports decreased appetite"
   }
 ]
 
