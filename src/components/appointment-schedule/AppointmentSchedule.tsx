@@ -286,7 +286,6 @@ export function AppointmentSchedule() {
               <thead className="bg-slate-800/50 border-b border-slate-700">
                 <tr>
                   <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '30px' }}></th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '80px' }}>Time</th>
                   <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '150px' }}>Patient</th>
                   <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '80px' }}>Age</th>
                   <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Why Here Today</th>

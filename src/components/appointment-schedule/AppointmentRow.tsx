@@ -98,9 +98,6 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
         </div>
       </td>
 
-      {/* Appointment Time */}
-      {renderEditableCell(patient.appointmentTime, 'appointmentTime', '—')}
-
       {/* Patient Name with Status Badge */}
       <td
         className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
@@ -159,64 +156,163 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
       <td
         className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
           !patient.lastVisit.date ? 'bg-slate-800/30' : ''
-        }`}
+        } cursor-pointer group`}
+        onClick={() => !editingCell && handleCellClick('lastVisit')}
       >
-        <div className="text-slate-200">
-          {patient.lastVisit.date && <div className="font-medium">{patient.lastVisit.date}</div>}
-          {patient.lastVisit.reason && <div className="text-slate-400">{patient.lastVisit.reason}</div>}
-          {!patient.lastVisit.date && !patient.lastVisit.reason && <span className="text-slate-600">—</span>}
-        </div>
+        {editingCell === 'lastVisit' ? (
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={patient.lastVisit.date || ''}
+              onChange={(e) => onUpdate(patient.id, 'lastVisit', { ...patient.lastVisit, date: e.target.value })}
+              onBlur={handleCellBlur}
+              autoFocus
+              placeholder="Date (MM/DD/YYYY)"
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+            />
+            <input
+              type="text"
+              value={patient.lastVisit.reason || ''}
+              onChange={(e) => onUpdate(patient.id, 'lastVisit', { ...patient.lastVisit, reason: e.target.value })}
+              onBlur={handleCellBlur}
+              placeholder="Reason"
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+            />
+          </div>
+        ) : (
+          <div className="text-slate-200">
+            {patient.lastVisit.date && <div className="font-medium">{patient.lastVisit.date}</div>}
+            {patient.lastVisit.reason && <div className="text-slate-400">{patient.lastVisit.reason}</div>}
+            {!patient.lastVisit.date && !patient.lastVisit.reason && <span className="text-slate-600">—</span>}
+          </div>
+        )}
       </td>
 
       {/* MRI */}
       <td
         className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
           !patient.mri.date ? 'bg-slate-800/30' : ''
-        }`}
+        } cursor-pointer group`}
+        onClick={() => !editingCell && handleCellClick('mri')}
       >
-        <div className="text-slate-200">
-          {patient.mri.date && <div className="font-medium">{patient.mri.date}</div>}
-          {patient.mri.findings && <div className="text-slate-400 text-xs">{patient.mri.findings}</div>}
-          {!patient.mri.date && !patient.mri.findings && <span className="text-slate-600">—</span>}
-        </div>
+        {editingCell === 'mri' ? (
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={patient.mri.date || ''}
+              onChange={(e) => onUpdate(patient.id, 'mri', { ...patient.mri, date: e.target.value })}
+              onBlur={handleCellBlur}
+              autoFocus
+              placeholder="Date (MM/DD/YYYY)"
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+            />
+            <textarea
+              value={patient.mri.findings || ''}
+              onChange={(e) => onUpdate(patient.id, 'mri', { ...patient.mri, findings: e.target.value })}
+              onBlur={handleCellBlur}
+              placeholder="Findings"
+              rows={2}
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none resize-none"
+            />
+          </div>
+        ) : (
+          <div className="text-slate-200">
+            {patient.mri.date && <div className="font-medium">{patient.mri.date}</div>}
+            {patient.mri.findings && <div className="text-slate-400 text-xs">{patient.mri.findings}</div>}
+            {!patient.mri.date && !patient.mri.findings && <span className="text-slate-600">—</span>}
+          </div>
+        )}
       </td>
 
       {/* Bloodwork */}
       <td
         className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
           !patient.bloodwork.date ? 'bg-slate-800/30' : ''
-        }`}
+        } cursor-pointer group`}
+        onClick={() => !editingCell && handleCellClick('bloodwork')}
       >
-        <div className="text-slate-200">
-          {patient.bloodwork.date && <div className="font-medium">{patient.bloodwork.date}</div>}
-          {patient.bloodwork.abnormalities && patient.bloodwork.abnormalities.length > 0 && (
-            <div className="text-slate-400 text-xs">
-              {patient.bloodwork.abnormalities.join(', ')}
-            </div>
-          )}
-          {!patient.bloodwork.date && (!patient.bloodwork.abnormalities || patient.bloodwork.abnormalities.length === 0) && (
-            <span className="text-slate-600">—</span>
-          )}
-        </div>
+        {editingCell === 'bloodwork' ? (
+          <div className="space-y-1">
+            <input
+              type="text"
+              value={patient.bloodwork.date || ''}
+              onChange={(e) => onUpdate(patient.id, 'bloodwork', { ...patient.bloodwork, date: e.target.value })}
+              onBlur={handleCellBlur}
+              autoFocus
+              placeholder="Date (MM/DD/YYYY)"
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+            />
+            <textarea
+              value={patient.bloodwork.abnormalities?.join(', ') || ''}
+              onChange={(e) => {
+                const values = e.target.value ? e.target.value.split(',').map(v => v.trim()) : [];
+                onUpdate(patient.id, 'bloodwork', { ...patient.bloodwork, abnormalities: values });
+              }}
+              onBlur={handleCellBlur}
+              placeholder="Abnormalities (comma-separated)"
+              rows={2}
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none resize-none"
+            />
+          </div>
+        ) : (
+          <div className="text-slate-200">
+            {patient.bloodwork.date && <div className="font-medium">{patient.bloodwork.date}</div>}
+            {patient.bloodwork.abnormalities && patient.bloodwork.abnormalities.length > 0 && (
+              <div className="text-slate-400 text-xs">
+                {patient.bloodwork.abnormalities.join(', ')}
+              </div>
+            )}
+            {!patient.bloodwork.date && (!patient.bloodwork.abnormalities || patient.bloodwork.abnormalities.length === 0) && (
+              <span className="text-slate-600">—</span>
+            )}
+          </div>
+        )}
       </td>
 
       {/* Medications */}
-      <td className="px-2 py-3 text-xs border-r border-slate-700/30">
-        <div className="text-slate-200 space-y-0.5">
-          {patient.medications && patient.medications.length > 0 ? (
-            patient.medications.map((med, idx) => (
-              <div key={idx} className="text-xs">
-                <span className="font-medium">{med.name}</span>
-                {' '}
-                <span className="text-slate-400">
-                  {med.dose} {med.route} {med.frequency}
-                </span>
-              </div>
-            ))
-          ) : (
-            <span className="text-slate-600">—</span>
-          )}
-        </div>
+      <td
+        className="px-2 py-3 text-xs border-r border-slate-700/30 cursor-pointer group"
+        onClick={() => !editingCell && handleCellClick('medications')}
+      >
+        {editingCell === 'medications' ? (
+          <textarea
+            value={patient.medications?.map(m => `${m.name} ${m.dose} ${m.route} ${m.frequency}`).join('\n') || ''}
+            onChange={(e) => {
+              const lines = e.target.value.split('\n').filter(l => l.trim());
+              const meds = lines.map(line => {
+                const parts = line.trim().split(/\s+/);
+                return {
+                  name: parts[0] || '',
+                  dose: parts[1] || '',
+                  route: parts[2] || '',
+                  frequency: parts[3] || ''
+                };
+              });
+              onUpdate(patient.id, 'medications', meds);
+            }}
+            onBlur={handleCellBlur}
+            autoFocus
+            placeholder="One med per line: Name Dose Route Frequency"
+            rows={3}
+            className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none resize-none"
+          />
+        ) : (
+          <div className="text-slate-200 space-y-0.5">
+            {patient.medications && patient.medications.length > 0 ? (
+              patient.medications.map((med, idx) => (
+                <div key={idx} className="text-xs">
+                  <span className="font-medium">{med.name}</span>
+                  {' '}
+                  <span className="text-slate-400">
+                    {med.dose} {med.route} {med.frequency}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <span className="text-slate-600">—</span>
+            )}
+          </div>
+        )}
       </td>
 
       {/* Changes Since Last Visit */}
