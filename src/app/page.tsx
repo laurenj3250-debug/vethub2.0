@@ -1287,6 +1287,26 @@ export default function VetHub() {
     return '📋';
   };
 
+  // Color palette for patient task cards
+  const patientColorPalette = [
+    { bg: 'bg-blue-900/40', border: 'border-blue-600/50', accent: 'bg-blue-600' },
+    { bg: 'bg-purple-900/40', border: 'border-purple-600/50', accent: 'bg-purple-600' },
+    { bg: 'bg-pink-900/40', border: 'border-pink-600/50', accent: 'bg-pink-600' },
+    { bg: 'bg-cyan-900/40', border: 'border-cyan-600/50', accent: 'bg-cyan-600' },
+    { bg: 'bg-indigo-900/40', border: 'border-indigo-600/50', accent: 'bg-indigo-600' },
+    { bg: 'bg-violet-900/40', border: 'border-violet-600/50', accent: 'bg-violet-600' },
+    { bg: 'bg-fuchsia-900/40', border: 'border-fuchsia-600/50', accent: 'bg-fuchsia-600' },
+    { bg: 'bg-rose-900/40', border: 'border-rose-600/50', accent: 'bg-rose-600' },
+    { bg: 'bg-teal-900/40', border: 'border-teal-600/50', accent: 'bg-teal-600' },
+    { bg: 'bg-sky-900/40', border: 'border-sky-600/50', accent: 'bg-sky-600' },
+  ];
+
+  const getPatientColor = (patientId: string) => {
+    // Get patient index to assign consistent colors
+    const index = patients.findIndex(p => p.id === patientId);
+    return patientColorPalette[index % patientColorPalette.length];
+  };
+
   const filterTasksByTime = (tasks: any[]) => {
     if (taskTimeFilter === 'all') return tasks;
     if (taskTimeFilter === 'day') {
@@ -1615,8 +1635,9 @@ export default function VetHub() {
                   const todayTasks = (patient.tasks || []).filter((t: any) => t.date === today);
                   const tasks = filterTasksByTime(todayTasks);
                   if (tasks.length === 0) return null;
+                  const colors = getPatientColor(patient.id);
                   return (
-                    <div key={patient.id} className="bg-slate-900/50 rounded-lg p-2 border border-slate-700/50">
+                    <div key={patient.id} className={`${colors.bg} rounded-lg p-2 border ${colors.border}`}>
                       <h3 className="text-white font-bold mb-1.5 text-sm">{patient.name}</h3>
                       <div className="space-y-1">
                         {tasks.map((task: any) => {
@@ -1690,24 +1711,27 @@ export default function VetHub() {
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {items.map(({ patient, task }) => (
-                            <button
-                              key={`${patient.id}-${task.id}`}
-                              onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
-                                task.completed
-                                  ? 'bg-green-500/20 text-green-300 line-through'
-                                  : 'bg-slate-800/50 text-slate-300 hover:bg-slate-700/50'
-                              }`}
-                            >
-                              {task.completed ? (
-                                <CheckCircle2 size={12} />
-                              ) : (
-                                <Circle size={12} />
-                              )}
-                              {patient.name}
-                            </button>
-                          ))}
+                          {items.map(({ patient, task }) => {
+                            const colors = getPatientColor(patient.id);
+                            return (
+                              <button
+                                key={`${patient.id}-${task.id}`}
+                                onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                                  task.completed
+                                    ? 'bg-green-500/20 text-green-300 line-through'
+                                    : `${colors.bg} text-slate-200 hover:opacity-80 border ${colors.border}`
+                                }`}
+                              >
+                                {task.completed ? (
+                                  <CheckCircle2 size={12} />
+                                ) : (
+                                  <Circle size={12} />
+                                )}
+                                {patient.name}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     );
@@ -1790,13 +1814,15 @@ export default function VetHub() {
 
                   if (tasks.length === 0) return null;
 
+                  const colors = getPatientColor(patient.id);
+
                   return (
-                    <div key={patient.id} className="bg-slate-900/60 border border-slate-700/50 rounded-lg p-1.5">
+                    <div key={patient.id} className={`${colors.bg} border ${colors.border} rounded-lg p-1.5`}>
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-white font-bold flex items-center gap-1.5 text-xs">
                           <span className="text-sm">{emoji}</span>
                           {patient.name}
-                          <span className="text-xs bg-cyan-600 text-white px-1.5 py-0.5 rounded-full ml-1">
+                          <span className={`text-xs ${colors.accent} text-white px-1.5 py-0.5 rounded-full ml-1`}>
                             {completedCount}/{totalCount}
                           </span>
                         </h4>
@@ -1896,10 +1922,11 @@ export default function VetHub() {
                           {items.map(({ task, patient }) => {
                             const info = patient.patient_info || {};
                             const emoji = getSpeciesEmoji(info.species);
+                            const colors = getPatientColor(patient.id);
                             return (
                               <div
                                 key={`${patient.id}-${task.id}`}
-                                className="flex items-center gap-1.5 px-1.5 py-1 rounded bg-slate-800/50 border border-slate-700/30 hover:border-blue-500/60 transition group"
+                                className={`flex items-center gap-1.5 px-1.5 py-1 rounded ${colors.bg} border ${colors.border} hover:opacity-90 transition group`}
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
