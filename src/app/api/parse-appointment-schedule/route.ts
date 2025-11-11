@@ -8,6 +8,16 @@ const anthropic = new Anthropic({
 
 export async function POST(request: Request) {
   try {
+    // Check if API key is configured
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.error('ANTHROPIC_API_KEY is not configured');
+      return NextResponse.json(
+        { error: 'API key not configured', details: 'ANTHROPIC_API_KEY environment variable is missing' },
+        { status: 500 }
+      );
+    }
+
     const { text, mode = 'multi' } = await request.json();
 
     if (!text) {
@@ -128,8 +138,20 @@ Return ONLY the JSON array, no markdown, no explanations:`;
 
   } catch (error: any) {
     console.error('Parse error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      type: error.type,
+      headers: error.headers,
+    });
+
     return NextResponse.json(
-      { error: 'Parsing failed', details: error.message },
+      {
+        error: 'Parsing failed',
+        details: error.message,
+        statusCode: error.status,
+        errorType: error.type
+      },
       { status: 500 }
     );
   }
