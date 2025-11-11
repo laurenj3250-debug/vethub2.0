@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
-// Using stable Claude 3.5 Sonnet model (20240620)
+// Using Claude 3.5 Sonnet model (20241022)
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY || '',
 });
@@ -76,7 +76,7 @@ Return format:
 Return ONLY the JSON array, no markdown, no explanations:`;
 
     const claudeResponse = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4096,
       temperature: 0,
       messages: [{
