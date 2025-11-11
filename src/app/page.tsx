@@ -4542,82 +4542,224 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                         <div className="space-y-2">
                       <div>
                         <label className="block text-xs text-slate-400 mb-1">Mental Status</label>
-                        <select
-                          value={soapData.mentalStatus}
-                          onChange={(e) => setSOAPData({ ...soapData, mentalStatus: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="BAR">BAR</option>
-                          <option value="QAR">QAR</option>
-                          <option value="Obtunded">Obtunded</option>
-                          <option value="Stuporous">Stuporous</option>
-                        </select>
+                        <div className="grid grid-cols-2 gap-1 p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                          {['BAR', 'QAR', 'Obtunded', 'Stuporous'].map(status => (
+                            <label key={status} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                              <input
+                                type="radio"
+                                name="mentalStatus"
+                                checked={soapData.mentalStatus === status}
+                                onChange={() => setSOAPData({ ...soapData, mentalStatus: status })}
+                                className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                              />
+                              <span className="text-slate-300 font-medium">{status}</span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Gait & Posture</label>
-                        <select
-                          value={soapData.gait === 'Ambulatory without ataxia or paresis' ||
-                                 soapData.gait === 'Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia' ||
-                                 soapData.gait === 'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia' ||
-                                 soapData.gait === 'Ambulatory with severe pelvic limb UMN paresis and proprioceptive ataxia' ||
-                                 soapData.gait === 'Non-ambulatory, can support weight' ||
-                                 soapData.gait === 'Non-ambulatory, cannot support weight' ||
-                                 soapData.gait === 'Ambulatory with vestibular quality ataxia' ||
-                                 soapData.gait === 'Ambulatory with mild tetraparesis and UMN GP ataxia' ||
-                                 soapData.gait === 'Ambulatory with LMN hind limb paresis' ? soapData.gait : 'custom'}
-                          onChange={(e) => {
-                            if (e.target.value !== 'custom') {
-                              setSOAPData({ ...soapData, gait: e.target.value });
-                            } else {
-                              setSOAPData({ ...soapData, gait: '' });
-                            }
-                          }}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="">Select gait...</option>
-                          <option value="Ambulatory without ataxia or paresis">Ambulatory without ataxia or paresis</option>
-                          <option value="Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia">Ambulatory with mild pelvic limb UMN paresis</option>
-                          <option value="Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia">Ambulatory with moderate pelvic limb UMN paresis</option>
-                          <option value="Ambulatory with severe pelvic limb UMN paresis and proprioceptive ataxia">Ambulatory with severe pelvic limb UMN paresis</option>
-                          <option value="Non-ambulatory, can support weight">Non-ambulatory, can support weight (grade 4)</option>
-                          <option value="Non-ambulatory, cannot support weight">Non-ambulatory, cannot support weight (grade 5)</option>
-                          <option value="Ambulatory with vestibular quality ataxia">Ambulatory with vestibular quality ataxia</option>
-                          <option value="Ambulatory with mild tetraparesis and UMN GP ataxia">Ambulatory with mild tetraparesis</option>
-                          <option value="Ambulatory with moderate tetraparesis and UMN GP ataxia">Ambulatory with moderate tetraparesis</option>
-                          <option value="Ambulatory with severe tetraparesis and UMN GP ataxia">Ambulatory with severe tetraparesis</option>
-                          <option value="Non-ambulatory tetraparetic, can support weight">Non-ambulatory tetraparetic (grade 4)</option>
-                          <option value="Non-ambulatory tetraparetic, cannot support weight">Non-ambulatory tetraparetic (grade 5)</option>
-                          <option value="Ambulatory with LMN hind limb paresis">Ambulatory with LMN hind limb paresis</option>
-                          <option value="Ambulatory with cerebellar ataxia (hypermetria, wide-based stance)">Cerebellar ataxia (hypermetria)</option>
-                          <option value="Circling, head turn">Circling, head turn</option>
-                          <option value="Ambulatory with pelvic limb lameness">Pelvic limb lameness (orthopedic vs neuro)</option>
-                          <option value="Schiff-Sherrington posture">Schiff-Sherrington posture</option>
-                          <option value="Decerebrate rigidity (opisthotonus, extended limbs)">Decerebrate rigidity (brainstem emergency)</option>
-                          <option value="Decerebellate rigidity (extended thoracic, flexed pelvic)">Decerebellate rigidity</option>
-                          <option value="Intention tremors (head bob, dysmetria)">Intention tremors (cerebellar)</option>
-                          <option value="Generalized tremors">Generalized tremors</option>
-                          <option value="Short, stilted, choppy gait">Short, stilted, choppy gait (cervical pain)</option>
-                          <option value="Plantigrade/palmigrade stance">Plantigrade/palmigrade stance (polyneuropathy)</option>
-                          <option value="Tail paralysis, fecal/urinary incontinence">Tail paralysis with incontinence (cauda equina)</option>
-                          <option value="custom">Custom (type below)...</option>
-                        </select>
-                        {(soapData.gait !== 'Ambulatory without ataxia or paresis' &&
-                          soapData.gait !== 'Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia' &&
-                          soapData.gait !== 'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia' &&
-                          soapData.gait !== 'Ambulatory with severe pelvic limb UMN paresis and proprioceptive ataxia' &&
-                          soapData.gait !== 'Non-ambulatory, can support weight' &&
-                          soapData.gait !== 'Non-ambulatory, cannot support weight' &&
-                          soapData.gait !== 'Ambulatory with vestibular quality ataxia' &&
-                          soapData.gait !== 'Ambulatory with mild tetraparesis and UMN GP ataxia' &&
-                          soapData.gait !== 'Ambulatory with LMN hind limb paresis' &&
-                          soapData.gait !== '') && (
-                          <input
-                            type="text"
-                            placeholder="Enter custom gait..."
-                            value={soapData.gait}
-                            onChange={(e) => setSOAPData({ ...soapData, gait: e.target.value })}
-                            className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                          />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs text-slate-400">Gait & Posture</label>
+                          <button
+                            type="button"
+                            onClick={() => setSOAPData({ ...soapData, gait: 'Ambulatory without ataxia or paresis' })}
+                            className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                              soapData.gait === 'Ambulatory without ataxia or paresis'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            ✓ Normal
+                          </button>
+                        </div>
+
+                        {soapData.gait !== 'Ambulatory without ataxia or paresis' && (
+                          <div className="space-y-2 p-2 bg-slate-900/50 rounded-lg border border-slate-700/50 max-h-96 overflow-y-auto">
+                            {/* Pelvic Limb Paresis/Plegia */}
+                            <div>
+                              <h4 className="text-xs font-bold text-red-400 mb-1">Pelvic Limb Paresis/Plegia</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia',
+                                  'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia',
+                                  'Ambulatory with severe pelvic limb UMN paresis and proprioceptive ataxia',
+                                  'Non-ambulatory, can support weight',
+                                  'Non-ambulatory, cannot support weight',
+                                  'Ambulatory with LMN hind limb paresis'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="gait"
+                                      checked={soapData.gait === finding}
+                                      onChange={() => setSOAPData({ ...soapData, gait: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Tetraparesis */}
+                            <div>
+                              <h4 className="text-xs font-bold text-orange-400 mb-1">Tetraparesis</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'Ambulatory with mild tetraparesis and UMN GP ataxia',
+                                  'Ambulatory with moderate tetraparesis and UMN GP ataxia',
+                                  'Ambulatory with severe tetraparesis and UMN GP ataxia',
+                                  'Non-ambulatory tetraparetic, can support weight',
+                                  'Non-ambulatory tetraparetic, cannot support weight'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="gait"
+                                      checked={soapData.gait === finding}
+                                      onChange={() => setSOAPData({ ...soapData, gait: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Ataxia Types */}
+                            <div>
+                              <h4 className="text-xs font-bold text-cyan-400 mb-1">Ataxia Types</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'Ambulatory with vestibular quality ataxia',
+                                  'Ambulatory with cerebellar ataxia (hypermetria, wide-based stance)',
+                                  'Circling, head turn'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="gait"
+                                      checked={soapData.gait === finding}
+                                      onChange={() => setSOAPData({ ...soapData, gait: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Tremors & Movement Disorders */}
+                            <div>
+                              <h4 className="text-xs font-bold text-purple-400 mb-1">Tremors & Movement Disorders</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'Intention tremors (head bob, dysmetria)',
+                                  'Generalized tremors',
+                                  'Short, stilted, choppy gait'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="gait"
+                                      checked={soapData.gait === finding}
+                                      onChange={() => setSOAPData({ ...soapData, gait: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Postures & Emergency Findings */}
+                            <div>
+                              <h4 className="text-xs font-bold text-pink-400 mb-1">Postures & Emergency Findings</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'Schiff-Sherrington posture',
+                                  'Decerebrate rigidity (opisthotonus, extended limbs)',
+                                  'Decerebellate rigidity (extended thoracic, flexed pelvic)',
+                                  'Plantigrade/palmigrade stance (polyneuropathy)'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="gait"
+                                      checked={soapData.gait === finding}
+                                      onChange={() => setSOAPData({ ...soapData, gait: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Other Findings */}
+                            <div>
+                              <h4 className="text-xs font-bold text-yellow-400 mb-1">Other Findings</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'Ambulatory with pelvic limb lameness',
+                                  'Tail paralysis, fecal/urinary incontinence'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="gait"
+                                      checked={soapData.gait === finding}
+                                      onChange={() => setSOAPData({ ...soapData, gait: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Custom Input */}
+                            <div>
+                              <label className="block text-xs text-slate-400 mb-1">Custom Gait Description</label>
+                              <input
+                                type="text"
+                                placeholder="Type custom gait description..."
+                                value={![
+                                  'Ambulatory with mild pelvic limb UMN paresis and proprioceptive ataxia',
+                                  'Ambulatory with moderate pelvic limb UMN paresis and proprioceptive ataxia',
+                                  'Ambulatory with severe pelvic limb UMN paresis and proprioceptive ataxia',
+                                  'Non-ambulatory, can support weight',
+                                  'Non-ambulatory, cannot support weight',
+                                  'Ambulatory with LMN hind limb paresis',
+                                  'Ambulatory with mild tetraparesis and UMN GP ataxia',
+                                  'Ambulatory with moderate tetraparesis and UMN GP ataxia',
+                                  'Ambulatory with severe tetraparesis and UMN GP ataxia',
+                                  'Non-ambulatory tetraparetic, can support weight',
+                                  'Non-ambulatory tetraparetic, cannot support weight',
+                                  'Ambulatory with vestibular quality ataxia',
+                                  'Ambulatory with cerebellar ataxia (hypermetria, wide-based stance)',
+                                  'Circling, head turn',
+                                  'Intention tremors (head bob, dysmetria)',
+                                  'Generalized tremors',
+                                  'Short, stilted, choppy gait',
+                                  'Schiff-Sherrington posture',
+                                  'Decerebrate rigidity (opisthotonus, extended limbs)',
+                                  'Decerebellate rigidity (extended thoracic, flexed pelvic)',
+                                  'Plantigrade/palmigrade stance (polyneuropathy)',
+                                  'Ambulatory with pelvic limb lameness',
+                                  'Tail paralysis, fecal/urinary incontinence'
+                                ].includes(soapData.gait) ? soapData.gait : ''}
+                                onChange={(e) => setSOAPData({ ...soapData, gait: e.target.value })}
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {soapData.gait && soapData.gait !== 'Ambulatory without ataxia or paresis' && (
+                          <div className="mt-1 text-xs text-slate-400">
+                            Selected: {soapData.gait}
+                          </div>
                         )}
                       </div>
                       <div>
@@ -4863,90 +5005,283 @@ ${soapData.examBy ? `\nexam by ${soapData.examBy}` : ''}
                           </div>
                         )}
                       </div>
+                      {/* Postural Reactions */}
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Postural Reactions</label>
-                        <select
-                          value={soapData.posturalReactions === 'normal' ||
-                                 soapData.posturalReactions === 'delayed in pelvic limbs, normal thoracic limbs' ||
-                                 soapData.posturalReactions === 'delayed in all four limbs' ||
-                                 soapData.posturalReactions === 'delayed in pelvic limbs' ||
-                                 soapData.posturalReactions === 'absent in pelvic limbs' ? soapData.posturalReactions : 'custom'}
-                          onChange={(e) => {
-                            if (e.target.value !== 'custom') {
-                              setSOAPData({ ...soapData, posturalReactions: e.target.value });
-                            } else {
-                              setSOAPData({ ...soapData, posturalReactions: '' });
-                            }
-                          }}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="normal">Normal</option>
-                          <option value="delayed in pelvic limbs, normal thoracic limbs">Delayed pelvic limbs, normal thoracic</option>
-                          <option value="delayed in all four limbs">Delayed in all four limbs</option>
-                          <option value="delayed in pelvic limbs">Delayed in pelvic limbs</option>
-                          <option value="absent in pelvic limbs">Absent in pelvic limbs</option>
-                          <option value="custom">Custom...</option>
-                        </select>
-                        {(soapData.posturalReactions !== 'normal' &&
-                          soapData.posturalReactions !== 'delayed in pelvic limbs, normal thoracic limbs' &&
-                          soapData.posturalReactions !== 'delayed in all four limbs' &&
-                          soapData.posturalReactions !== 'delayed in pelvic limbs' &&
-                          soapData.posturalReactions !== 'absent in pelvic limbs' &&
-                          soapData.posturalReactions !== '') && (
-                          <input
-                            type="text"
-                            placeholder="Enter custom postural reactions..."
-                            value={soapData.posturalReactions}
-                            onChange={(e) => setSOAPData({ ...soapData, posturalReactions: e.target.value })}
-                            className="w-full mt-2 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                          />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs text-slate-400">Postural Reactions</label>
+                          <button
+                            type="button"
+                            onClick={() => setSOAPData({ ...soapData, posturalReactions: 'normal' })}
+                            className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                              soapData.posturalReactions === 'normal'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            ✓ Normal
+                          </button>
+                        </div>
+
+                        {soapData.posturalReactions !== 'normal' && (
+                          <div className="space-y-2 p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            {/* Pelvic Limb Findings */}
+                            <div>
+                              <h4 className="text-xs font-bold text-cyan-400 mb-1">Pelvic Limb Findings</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'delayed in pelvic limbs, normal thoracic limbs',
+                                  'delayed in pelvic limbs',
+                                  'absent in pelvic limbs'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="posturalReactions"
+                                      checked={soapData.posturalReactions === finding}
+                                      onChange={() => setSOAPData({ ...soapData, posturalReactions: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* All Four Limbs */}
+                            <div>
+                              <h4 className="text-xs font-bold text-orange-400 mb-1">All Four Limbs</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                <label className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                  <input
+                                    type="radio"
+                                    name="posturalReactions"
+                                    checked={soapData.posturalReactions === 'delayed in all four limbs'}
+                                    onChange={() => setSOAPData({ ...soapData, posturalReactions: 'delayed in all four limbs' })}
+                                    className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                  />
+                                  <span className="text-slate-300">delayed in all four limbs</span>
+                                </label>
+                              </div>
+                            </div>
+
+                            {/* Custom Input */}
+                            <div>
+                              <h4 className="text-xs font-bold text-purple-400 mb-1">Custom</h4>
+                              <input
+                                type="text"
+                                placeholder="Enter custom postural reactions..."
+                                value={
+                                  soapData.posturalReactions !== 'delayed in pelvic limbs, normal thoracic limbs' &&
+                                  soapData.posturalReactions !== 'delayed in pelvic limbs' &&
+                                  soapData.posturalReactions !== 'absent in pelvic limbs' &&
+                                  soapData.posturalReactions !== 'delayed in all four limbs'
+                                    ? soapData.posturalReactions
+                                    : ''
+                                }
+                                onChange={(e) => setSOAPData({ ...soapData, posturalReactions: e.target.value })}
+                                className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-xs text-white placeholder-slate-500"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {soapData.posturalReactions && soapData.posturalReactions !== 'normal' && (
+                          <div className="mt-1 text-xs text-slate-400">
+                            Selected: {soapData.posturalReactions}
+                          </div>
                         )}
                       </div>
+
+                      {/* Spinal Reflexes */}
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Spinal Reflexes</label>
-                        <select
-                          value={soapData.spinalReflexes}
-                          onChange={(e) => setSOAPData({ ...soapData, spinalReflexes: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="normal">Normal all limbs</option>
-                          <option value="normal to increased pelvic limbs">Normal to increased pelvic limbs (UMN)</option>
-                          <option value="increased pelvic limbs">Increased pelvic limbs (UMN)</option>
-                          <option value="decreased to absent pelvic limb reflexes">Decreased to absent pelvic limb reflexes (LMN)</option>
-                          <option value="absent pelvic limb reflexes">Absent pelvic limb reflexes (LMN)</option>
-                          <option value="decreased to absent all four limbs">Decreased to absent all limbs (polyneuropathy)</option>
-                          <option value="crossed extensor reflex present">Crossed extensor reflex present (severe UMN)</option>
-                          <option value="increased thoracic, normal to absent pelvic (Schiff-Sherrington)">Increased thoracic, absent pelvic (Schiff-Sherrington)</option>
-                          <option value="panniculus reflex absent at T13">Panniculus reflex absent at T13 (lesion localization)</option>
-                          <option value="panniculus reflex absent at L1">Panniculus reflex absent at L1 (lesion localization)</option>
-                          <option value="perineal reflex absent">Perineal reflex absent (cauda equina)</option>
-                          <option value="perineal reflex decreased">Perineal reflex decreased</option>
-                        </select>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs text-slate-400">Spinal Reflexes</label>
+                          <button
+                            type="button"
+                            onClick={() => setSOAPData({ ...soapData, spinalReflexes: 'normal' })}
+                            className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                              soapData.spinalReflexes === 'normal'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            ✓ Normal
+                          </button>
+                        </div>
+
+                        {soapData.spinalReflexes !== 'normal' && (
+                          <div className="space-y-2 p-2 bg-slate-900/50 rounded-lg border border-slate-700/50 max-h-96 overflow-y-auto">
+                            {/* UMN Signs */}
+                            <div>
+                              <h4 className="text-xs font-bold text-red-400 mb-1">UMN Signs (Increased Reflexes)</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'normal to increased pelvic limbs',
+                                  'increased pelvic limbs',
+                                  'crossed extensor reflex present'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="spinalReflexes"
+                                      checked={soapData.spinalReflexes === finding}
+                                      onChange={() => setSOAPData({ ...soapData, spinalReflexes: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* LMN Signs */}
+                            <div>
+                              <h4 className="text-xs font-bold text-blue-400 mb-1">LMN Signs (Decreased/Absent Reflexes)</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'decreased to absent pelvic limb reflexes',
+                                  'absent pelvic limb reflexes',
+                                  'decreased to absent all four limbs'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="spinalReflexes"
+                                      checked={soapData.spinalReflexes === finding}
+                                      onChange={() => setSOAPData({ ...soapData, spinalReflexes: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Special Reflexes & Findings */}
+                            <div>
+                              <h4 className="text-xs font-bold text-yellow-400 mb-1">Special Reflexes & Findings</h4>
+                              <div className="grid grid-cols-1 gap-1">
+                                {[
+                                  'increased thoracic, normal to absent pelvic (Schiff-Sherrington)',
+                                  'panniculus reflex absent at T13',
+                                  'panniculus reflex absent at L1',
+                                  'perineal reflex absent',
+                                  'perineal reflex decreased'
+                                ].map(finding => (
+                                  <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                    <input
+                                      type="radio"
+                                      name="spinalReflexes"
+                                      checked={soapData.spinalReflexes === finding}
+                                      onChange={() => setSOAPData({ ...soapData, spinalReflexes: finding })}
+                                      className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                    />
+                                    <span className="text-slate-300">{finding}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {soapData.spinalReflexes && soapData.spinalReflexes !== 'normal' && (
+                          <div className="mt-1 text-xs text-slate-400">
+                            Selected: {soapData.spinalReflexes}
+                          </div>
+                        )}
                       </div>
+
+                      {/* Tone */}
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Tone</label>
-                        <select
-                          value={soapData.tone}
-                          onChange={(e) => setSOAPData({ ...soapData, tone: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="normal">Normal</option>
-                          <option value="decreased to normal">Decreased to normal</option>
-                          <option value="increased">Increased</option>
-                        </select>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs text-slate-400">Tone</label>
+                          <button
+                            type="button"
+                            onClick={() => setSOAPData({ ...soapData, tone: 'normal' })}
+                            className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                              soapData.tone === 'normal'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            ✓ Normal
+                          </button>
+                        </div>
+
+                        {soapData.tone !== 'normal' && (
+                          <div className="p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div className="grid grid-cols-2 gap-1">
+                              {[
+                                'decreased to normal',
+                                'increased'
+                              ].map(finding => (
+                                <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                  <input
+                                    type="radio"
+                                    name="tone"
+                                    checked={soapData.tone === finding}
+                                    onChange={() => setSOAPData({ ...soapData, tone: finding })}
+                                    className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                  />
+                                  <span className="text-slate-300">{finding}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {soapData.tone && soapData.tone !== 'normal' && (
+                          <div className="mt-1 text-xs text-slate-400">
+                            Selected: {soapData.tone}
+                          </div>
+                        )}
                       </div>
+
+                      {/* Muscle Mass */}
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Muscle Mass</label>
-                        <select
-                          value={soapData.muscleMass}
-                          onChange={(e) => setSOAPData({ ...soapData, muscleMass: e.target.value })}
-                          className="w-full px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white"
-                        >
-                          <option value="normal">Normal</option>
-                          <option value="mild hind end muscle atrophy">Mild hind end muscle atrophy</option>
-                          <option value="moderate hind end muscle atrophy">Moderate hind end muscle atrophy</option>
-                          <option value="severe hind end muscle atrophy">Severe hind end muscle atrophy</option>
-                        </select>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs text-slate-400">Muscle Mass</label>
+                          <button
+                            type="button"
+                            onClick={() => setSOAPData({ ...soapData, muscleMass: 'normal' })}
+                            className={`px-2 py-0.5 rounded text-xs font-bold transition ${
+                              soapData.muscleMass === 'normal'
+                                ? 'bg-green-600 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                          >
+                            ✓ Normal
+                          </button>
+                        </div>
+
+                        {soapData.muscleMass !== 'normal' && (
+                          <div className="p-2 bg-slate-900/50 rounded-lg border border-slate-700/50">
+                            <div className="grid grid-cols-1 gap-1">
+                              {[
+                                'mild hind end muscle atrophy',
+                                'moderate hind end muscle atrophy',
+                                'severe hind end muscle atrophy'
+                              ].map(finding => (
+                                <label key={finding} className="flex items-center gap-1.5 p-1 rounded hover:bg-slate-800/50 cursor-pointer text-xs">
+                                  <input
+                                    type="radio"
+                                    name="muscleMass"
+                                    checked={soapData.muscleMass === finding}
+                                    onChange={() => setSOAPData({ ...soapData, muscleMass: finding })}
+                                    className="w-3 h-3 border-slate-600 bg-slate-700 text-cyan-500"
+                                  />
+                                  <span className="text-slate-300">{finding}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {soapData.muscleMass && soapData.muscleMass !== 'normal' && (
+                          <div className="mt-1 text-xs text-slate-400">
+                            Selected: {soapData.muscleMass}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="block text-xs text-slate-400 mb-1">Nociception</label>
