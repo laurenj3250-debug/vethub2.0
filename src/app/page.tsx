@@ -1562,7 +1562,7 @@ export default function VetHub() {
             </div>
 
             {taskViewMode === 'by-patient' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {/* General/Hospital-wide Tasks */}
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
@@ -1659,7 +1659,7 @@ export default function VetHub() {
                 })}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
                   const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
@@ -1775,7 +1775,7 @@ export default function VetHub() {
 
             {/* Tab Content */}
             {taskViewMode === 'by-patient' && (
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).map(patient => {
                   const today = new Date().toISOString().split('T')[0];
                   const allTasks = patient.tasks || [];
@@ -1845,7 +1845,7 @@ export default function VetHub() {
             )}
 
             {taskViewMode === 'by-task' && (
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {(() => {
                   // Group tasks by task name
                   const taskGroups: Record<string, Array<{ task: any; patient: any }>> = {};
