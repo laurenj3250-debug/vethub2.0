@@ -47,11 +47,34 @@ export function AppointmentSchedule() {
         // Check if data is from today
         if (savedDate === today) {
           const parsed = JSON.parse(saved);
-          // Migrate old patients to include status field if missing
-          const migratedPatients = parsed.map((p: AppointmentPatient) => ({
-            ...p,
-            status: p.status || 'recheck', // Default to recheck for existing patients
-          }));
+          // Migrate old patients to new flat structure
+          const migratedPatients = parsed.map((p: any) => {
+            // Convert nested objects to simple text
+            const lastVisit = typeof p.lastVisit === 'object' && p.lastVisit !== null
+              ? `${p.lastVisit.date || ''} - ${p.lastVisit.reason || ''}`.trim().replace(/^-\s*$/, '').replace(/\s*-\s*$/, '') || null
+              : p.lastVisit;
+
+            const mri = typeof p.mri === 'object' && p.mri !== null
+              ? `${p.mri.date || ''} - ${p.mri.findings || ''}`.trim().replace(/^-\s*$/, '').replace(/\s*-\s*$/, '') || null
+              : p.mri;
+
+            const bloodwork = typeof p.bloodwork === 'object' && p.bloodwork !== null
+              ? `${p.bloodwork.date || ''} - ${Array.isArray(p.bloodwork.abnormalities) ? p.bloodwork.abnormalities.join(', ') : ''}`.trim().replace(/^-\s*$/, '').replace(/\s*-\s*$/, '') || null
+              : p.bloodwork;
+
+            const medications = Array.isArray(p.medications)
+              ? p.medications.map((m: any) => `${m.name} ${m.dose} ${m.route} ${m.frequency}`.trim()).join(', ') || null
+              : p.medications;
+
+            return {
+              ...p,
+              status: p.status || 'recheck',
+              lastVisit,
+              mri,
+              bloodwork,
+              medications,
+            };
+          });
           setPatients(migratedPatients);
         } else {
           // New day - clear old data
