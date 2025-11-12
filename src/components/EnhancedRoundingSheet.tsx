@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain } from 'lucide-react';
 import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
+import { determineNeurolocalization } from '@/lib/ai-parser';
 
 interface Patient {
   id: number;
@@ -48,6 +49,8 @@ export function EnhancedRoundingSheet({
   const [batchField, setBatchField] = useState<string>('');
   const [batchValue, setBatchValue] = useState<string>('');
   const [autoPopulateMode, setAutoPopulateMode] = useState<'off' | 'suggest' | 'auto'>('suggest');
+  const [neurolocalizationLoading, setNeurolocalizationLoading] = useState<number | null>(null);
+  const [neurolocalizationResults, setNeurolocalizationResults] = useState<Record<number, string>>({});
 
   // Custom templates management
   const [customTemplates, setCustomTemplates] = useState<NeuroProtocol[]>([]);
@@ -451,8 +454,6 @@ export function EnhancedRoundingSheet({
     debounceTimers.current.set(timerKey, newTimer);
   }, [patients, onPatientUpdate]);
 
-  const activePatients = patients.filter(p => p.status !== 'Discharged');
-
   // Helper to get field value (local edit takes priority)
   const getFieldValue = (patientId: number, field: string, defaultValue: any = '') => {
     const editKey = `${patientId}-${field}`;
@@ -462,6 +463,56 @@ export function EnhancedRoundingSheet({
     const patient = patients.find(p => p.id === patientId);
     return patient?.rounding_data?.[field] ?? defaultValue;
   };
+
+  // Analyze neurolocalization from problems/clinical signs
+  const analyzeNeurolocalization = useCallback(async (patientId: number) => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    const problems = getFieldValue(patientId, 'problems', '');
+    if (!problems || problems.trim() === '') {
+      toast({
+        title: 'No problems found',
+        description: 'Please enter clinical signs or problems first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setNeurolocalizationLoading(patientId);
+
+    try {
+      const localization = await determineNeurolocalization(problems);
+
+      if (localization) {
+        // Store result in state
+        setNeurolocalizationResults(prev => ({
+          ...prev,
+          [patientId]: localization
+        }));
+
+        // Prepend neurolocalization to problems field
+        const updatedProblems = `[${localization}]\n${problems}`;
+        await updateField(patientId, 'problems', updatedProblems);
+
+        toast({
+          title: 'Neurolocalization determined',
+          description: `${localization}`,
+        });
+      }
+    } catch (error) {
+      console.error('Neurolocalization error:', error);
+      toast({
+        title: 'Analysis failed',
+        description: 'Could not determine neurolocalization',
+        variant: 'destructive',
+      });
+    } finally {
+      setNeurolocalizationLoading(null);
+    }
+  }, [patients, toast, updateField, localEdits]);
+
+  const activePatients = patients.filter(p => p.status !== 'Discharged');
 
   return (
     <div className="bg-slate-900/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/30 p-4">
@@ -835,14 +886,30 @@ export function EnhancedRoundingSheet({
 
                   {/* Problems */}
                   <td className="p-2">
-                    <textarea
-                      value={getFieldValue(patient.id, 'problems')}
-                      onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
-                      placeholder="List of problems..."
-                      className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
-                      rows={4}
-                    />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-start gap-1">
+                        <textarea
+                          value={getFieldValue(patient.id, 'problems')}
+                          onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
+                          placeholder="List of problems..."
+                          className="flex-1 min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
+                          rows={4}
+                        />
+                        <button
+                          onClick={() => analyzeNeurolocalization(patient.id)}
+                          disabled={neurolocalizationLoading === patient.id}
+                          title="Determine neurolocalization"
+                          className="p-1.5 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 hover:border-purple-400 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {neurolocalizationLoading === patient.id ? (
+                            <Sparkles size={14} className="text-purple-400 animate-pulse" />
+                          ) : (
+                            <Brain size={14} className="text-purple-400" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </td>
 
                   {/* Diagnostics */}

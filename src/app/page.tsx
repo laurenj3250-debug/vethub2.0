@@ -7,7 +7,6 @@ import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -33,7 +32,6 @@ export default function VetHub() {
   const [taskTimeFilter, setTaskTimeFilter] = useState<'day' | 'night' | 'all'>('all');
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [quickTaskPatient, setQuickTaskPatient] = useState<number | null>(null);
-  const [showAllRoundingSheets, setShowAllRoundingSheets] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showMRISchedule, setShowMRISchedule] = useState(false);
   const [showAllTasksView, setShowAllTasksView] = useState(false);
@@ -1424,20 +1422,13 @@ export default function VetHub() {
               <CheckCircle2 size={18} />
               All Tasks
             </button>
-            <button
-              onClick={() => {
-                setShowAllRoundingSheets(!showAllRoundingSheets);
-                if (!showAllRoundingSheets) {
-                  setShowTaskOverview(false);
-                  setShowMRISchedule(false);
-                  setShowAllTasksView(false);
-                }
-              }}
+            <Link
+              href="/rounding"
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <FileSpreadsheet size={18} />
               All Rounds
-            </button>
+            </Link>
             <button
               onClick={() => setShowMRISchedule(!showMRISchedule)}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
@@ -2021,17 +2012,6 @@ export default function VetHub() {
               </div>
             )}
           </div>
-        )}
-
-        {/* All Rounding Sheets View - Enhanced */}
-        {showAllRoundingSheets && (
-          <EnhancedRoundingSheet
-            patients={patients}
-            commonMedications={commonMedications}
-            toast={toast}
-            onPatientClick={(id) => setRoundingSheetPatient(id)}
-            onPatientUpdate={refetch}
-          />
         )}
 
         {/* MRI Schedule View */}

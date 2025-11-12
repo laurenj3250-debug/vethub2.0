@@ -87,38 +87,37 @@ export async function analyzeBloodwork(bloodworkText: string, species: string = 
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0,
       messages: [
         {
           role: 'user',
-          content: `You are analyzing ${species} bloodwork. Your job is to identify and flag ALL abnormal values.
+          content: `You are analyzing veterinary bloodwork. Your job is to identify and flag ALL abnormal values based on the EXACT reference ranges provided in the lab results.
 
-CRITICAL: You must flag values that are outside normal reference ranges for ${species}.
+CRITICAL INSTRUCTIONS:
+1. The bloodwork data includes columns: Test, Results, Unit, Lowest Value, Highest Value
+2. You must parse the "Lowest Value" and "Highest Value" for EACH test - these are the reference ranges
+3. Compare the "Results" value to its specific reference range (Lowest Value to Highest Value)
+4. Flag ONLY values that fall outside their specific provided reference range
+5. Do NOT use generic reference ranges - use ONLY the ranges provided in the data
 
-Standard ${species} reference ranges (approximate):
-- WBC: 6-17 K/uL (canine), 5.5-19.5 K/uL (feline)
-- RBC: 5.5-8.5 M/uL (canine), 5-10 M/uL (feline)
-- HGB: 12-18 g/dL (canine), 8-15 g/dL (feline)
-- HCT/PCV: 37-55% (canine), 24-45% (feline)
-- PLT: 200-500 K/uL (canine), 300-800 K/uL (feline)
-- BUN: 7-27 mg/dL (canine), 16-36 mg/dL (feline)
-- CREA: 0.5-1.8 mg/dL (canine), 0.8-2.4 mg/dL (feline)
-- ALT: 10-100 U/L (canine), 10-100 U/L (feline)
-- ALP: 23-212 U/L (canine), 10-80 U/L (feline)
-- TBIL: 0-0.9 mg/dL (canine), 0-0.4 mg/dL (feline)
-- ALB: 2.3-4.0 g/dL (canine), 2.1-3.9 g/dL (feline)
-- GLU: 70-143 mg/dL (canine), 71-159 mg/dL (feline)
+COMPARISON RULES:
+- If Results < Lowest Value: Flag as (L) for LOW
+- If Results > Highest Value: Flag as (H) for HIGH
+- If Results is between Lowest Value and Highest Value: DO NOT FLAG (it's normal)
+- Handle special formats like "< 0.1" (treat as very low value)
+- Ignore tests with no reference range provided
 
-Compare EVERY value in the bloodwork below to these ranges. Flag anything outside normal.
-
-Format: "Parameter Value (H)" or "Parameter Value (L)"
-Example: "WBC 25.3 (H), BUN 85 (H), ALT 245 (H), HCT 28% (L)"
+FORMAT YOUR OUTPUT:
+- For each abnormal value: "Test Name: Result Unit (H)" or "Test Name: Result Unit (L)"
+- Example: "Platelets: 54 K/μL (L), MPV: 15.1 fL (H)"
+- If nothing is abnormal: return "No abnormalities detected"
+- Separate multiple abnormalities with commas
 
 Bloodwork data:
 ${bloodworkText}
 
-Return ONLY the formatted abnormal values with (H) or (L) flags, separated by commas. If nothing is abnormal, return "No abnormalities detected".`
+Analyze and return ONLY the abnormal values with (H) or (L) flags:`
         }
       ]
     });
@@ -275,5 +274,53 @@ Return ONLY the scan location (Brain, C-Spine, T-Spine, LS, or Unknown):`
   } catch (error) {
     console.error('Scan type determination error:', error);
     return 'Unknown';
+  }
+}
+
+export async function determineNeurolocalization(clinicalSigns: string): Promise<string> {
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 256,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `You are a veterinary neurologist. Based on the clinical signs provided, determine the neuroanatomic localization.
+
+NEUROANATOMIC LOCALIZATIONS:
+Brain:
+- Forebrain: Seizures, behavioral changes, circling, visual deficits, contralateral deficits
+- Brainstem: Altered consciousness, cranial nerve deficits (V-XII), hemiparesis, postural deficits
+- Cerebellum: Ataxia with hypermetria, intention tremors, wide-based stance, normal strength
+- Vestibular: Head tilt, nystagmus, circling, ataxia
+
+Spinal Cord:
+- C1-C5: Tetraparesis/tetraplegia, UMN all limbs, cervical pain, possible Horner's
+- C6-T2: Tetraparesis, LMN thoracic limbs + UMN pelvic limbs, cervical pain, possible Horner's
+- T3-L3: Paraparesis/paraplegia, normal thoracic limbs, UMN pelvic limbs, thoracolumbar pain
+- L4-S3: Paraparesis/paraplegia, normal thoracic limbs, LMN pelvic limbs, lumbosacral pain
+- Sacral/Caudal: Urinary/fecal incontinence, tail paralysis, perineal analgesia
+
+Neuromuscular:
+- Neuromuscular Junction: Generalized weakness, exercise intolerance, megaesophagus
+- Peripheral Neuropathy: LMN signs, hyporeflexia, muscle atrophy
+- Myopathy: Generalized weakness, muscle pain/atrophy, normal reflexes
+
+Clinical signs:
+${clinicalSigns}
+
+Return ONLY the most likely neuroanatomic localization. Be specific (e.g., "C1-C5", "Forebrain", "T3-L3", "Cerebellum"). If signs suggest multiple localizations, list them separated by " / " (e.g., "Forebrain / Brainstem"). If unclear, return "Multifocal" or "Unknown".`
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') return '';
+
+    return content.text.trim();
+  } catch (error) {
+    console.error('Neurolocalization determination error:', error);
+    return '';
   }
 }
