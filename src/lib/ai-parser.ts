@@ -86,21 +86,39 @@ Return ONLY the JSON object, no other text:`
 export async function analyzeBloodwork(bloodworkText: string, species: string = 'canine'): Promise<string> {
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 512,
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,
       temperature: 0,
       messages: [
         {
           role: 'user',
-          content: `Analyze this ${species} bloodwork and return ONLY the abnormal findings as a formatted string.
+          content: `You are analyzing ${species} bloodwork. Your job is to identify and flag ALL abnormal values.
 
-Format as: "WBC 25.3 (H), BUN 85 (H), ALT 245 (H)"
-Use (H) for high, (L) for low.
+CRITICAL: You must flag values that are outside normal reference ranges for ${species}.
 
-Bloodwork:
+Standard ${species} reference ranges (approximate):
+- WBC: 6-17 K/uL (canine), 5.5-19.5 K/uL (feline)
+- RBC: 5.5-8.5 M/uL (canine), 5-10 M/uL (feline)
+- HGB: 12-18 g/dL (canine), 8-15 g/dL (feline)
+- HCT/PCV: 37-55% (canine), 24-45% (feline)
+- PLT: 200-500 K/uL (canine), 300-800 K/uL (feline)
+- BUN: 7-27 mg/dL (canine), 16-36 mg/dL (feline)
+- CREA: 0.5-1.8 mg/dL (canine), 0.8-2.4 mg/dL (feline)
+- ALT: 10-100 U/L (canine), 10-100 U/L (feline)
+- ALP: 23-212 U/L (canine), 10-80 U/L (feline)
+- TBIL: 0-0.9 mg/dL (canine), 0-0.4 mg/dL (feline)
+- ALB: 2.3-4.0 g/dL (canine), 2.1-3.9 g/dL (feline)
+- GLU: 70-143 mg/dL (canine), 71-159 mg/dL (feline)
+
+Compare EVERY value in the bloodwork below to these ranges. Flag anything outside normal.
+
+Format: "Parameter Value (H)" or "Parameter Value (L)"
+Example: "WBC 25.3 (H), BUN 85 (H), ALT 245 (H), HCT 28% (L)"
+
+Bloodwork data:
 ${bloodworkText}
 
-Return ONLY the formatted abnormals, no other text:`
+Return ONLY the formatted abnormal values with (H) or (L) flags, separated by commas. If nothing is abnormal, return "No abnormalities detected".`
         }
       ]
     });
