@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Download, Printer, Save, Clock, User, ArrowUpDown } from 'lucide-react';
-import { AppointmentPatient } from '@/lib/types/appointment-schedule';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Plus, Download, Printer, Clock, User } from 'lucide-react';
+import {
+  AppointmentPatient,
+  PersistableAppointmentPatient,
+} from '@/lib/types/appointment-schedule';
 import { PasteModal } from './PasteModal';
 import { AppointmentRow } from './AppointmentRow';
 import {
@@ -21,12 +24,107 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/lib/api-client';
+
+const sanitizeText = (value: any): string | null => {
+  if (value == null) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  const coerced = String(value).trim();
+  return coerced.length > 0 ? coerced : null;
+};
+
+const normalizeLegacyField = (value: any, formatter: (data: any) => string): string | null => {
+  if (value == null) return null;
+  if (typeof value === 'object') {
+    return sanitizeText(formatter(value));
+  }
+  return sanitizeText(value);
+};
+
+const normalizeAppointmentPatient = (patient: any, index: number): AppointmentPatient => {
+  const lastVisit = normalizeLegacyField(patient.lastVisit, (data) => {
+    const date = data?.date ? String(data.date) : '';
+    const reason = data?.reason ? String(data.reason) : '';
+    return `${date} - ${reason}`;
+  });
+
+  const mri = normalizeLegacyField(patient.mri, (data) => {
+    const date = data?.date ? String(data.date) : '';
+    const findings = data?.findings ? String(data.findings) : '';
+    return `${date} - ${findings}`;
+  });
+
+  const bloodwork = normalizeLegacyField(patient.bloodwork, (data) => {
+    const date = data?.date ? String(data.date) : '';
+    const abnormalities = Array.isArray(data?.abnormalities)
+      ? data.abnormalities.join(', ')
+      : data?.abnormalities
+        ? String(data.abnormalities)
+        : '';
+    return `${date} - ${abnormalities}`;
+  });
+
+  const medications = Array.isArray(patient.medications)
+    ? sanitizeText(
+        patient.medications
+          .map((med: any) =>
+            [med?.name, med?.dose, med?.route, med?.frequency]
+              .map((part) => (part ? String(part).trim() : ''))
+              .filter(Boolean)
+              .join(' ')
+          )
+          .join(', ')
+      )
+    : sanitizeText(patient.medications);
+
+  const lastUpdatedSource = patient.lastUpdated || patient.lastUpdatedAt;
+
+  return {
+    ...patient,
+    sortOrder: typeof patient.sortOrder === 'number' ? patient.sortOrder : index,
+    status: patient.status || 'recheck',
+    lastVisit,
+    mri,
+    bloodwork,
+    medications,
+    lastUpdated: lastUpdatedSource ? new Date(lastUpdatedSource) : new Date(),
+  } as AppointmentPatient;
+};
+
+const sortPatientsByOrder = (items: AppointmentPatient[]): AppointmentPatient[] =>
+  [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+const toPersistablePatients = (items: AppointmentPatient[]): PersistableAppointmentPatient[] =>
+  items.map((patient, index) => ({
+    ...patient,
+    sortOrder: typeof patient.sortOrder === 'number' ? patient.sortOrder : index,
+    lastUpdated:
+      patient.lastUpdated instanceof Date
+        ? patient.lastUpdated.toISOString()
+        : new Date(patient.lastUpdated).toISOString(),
+  }));
+
+const formatTimestampForDisplay = (value: Date) => value.toLocaleString();
+
+type AppointmentScheduleResponse = {
+  patients: PersistableAppointmentPatient[];
+  updatedAt?: string;
+};
 
 export function AppointmentSchedule() {
   const [patients, setPatients] = useState<AppointmentPatient[]>([]);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sortBy, setSortBy] = useState<'time' | 'name' | 'custom'>('custom');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const skipNextSaveRef = useRef(false);
+  const restoredPatientsRef = useRef<AppointmentPatient[] | null>(null);
+  const debouncedSaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasInitializedRef = useRef(false);
+  const lastPersistedSnapshotRef = useRef<string>('');
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -36,69 +134,226 @@ export function AppointmentSchedule() {
     })
   );
 
-  // Load patients from localStorage on mount, auto-clear if new day
-  useEffect(() => {
+  const persistablePatients = useMemo(
+    () => toPersistablePatients(sortPatientsByOrder(patients)),
+    [patients]
+  );
+
+  const formattedLastSavedAt = useMemo(
+    () => (lastSavedAt ? formatTimestampForDisplay(lastSavedAt) : null),
+    [lastSavedAt]
+  );
+
+  const loadFromLocalStorage = useCallback(() => {
+    if (typeof window === 'undefined') {
+      restoredPatientsRef.current = null;
+      return false;
+    }
+
     const saved = localStorage.getItem('appointmentSchedulePatients');
     const savedDate = localStorage.getItem('appointmentScheduleDate');
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const savedLastSavedAt = localStorage.getItem('appointmentScheduleLastSavedAt');
+    const today = new Date().toISOString().split('T')[0];
 
-    if (saved && savedDate) {
-      try {
-        // Check if data is from today
-        if (savedDate === today) {
-          const parsed = JSON.parse(saved);
-          // Migrate old patients to new flat structure
-          const migratedPatients = parsed.map((p: any) => {
-            // Convert nested objects to simple text
-            const lastVisit = typeof p.lastVisit === 'object' && p.lastVisit !== null
-              ? `${p.lastVisit.date || ''} - ${p.lastVisit.reason || ''}`.trim().replace(/^-\s*$/, '').replace(/\s*-\s*$/, '') || null
-              : p.lastVisit;
+    restoredPatientsRef.current = null;
 
-            const mri = typeof p.mri === 'object' && p.mri !== null
-              ? `${p.mri.date || ''} - ${p.mri.findings || ''}`.trim().replace(/^-\s*$/, '').replace(/\s*-\s*$/, '') || null
-              : p.mri;
-
-            const bloodwork = typeof p.bloodwork === 'object' && p.bloodwork !== null
-              ? `${p.bloodwork.date || ''} - ${Array.isArray(p.bloodwork.abnormalities) ? p.bloodwork.abnormalities.join(', ') : ''}`.trim().replace(/^-\s*$/, '').replace(/\s*-\s*$/, '') || null
-              : p.bloodwork;
-
-            const medications = Array.isArray(p.medications)
-              ? p.medications.map((m: any) => `${m.name} ${m.dose} ${m.route} ${m.frequency}`.trim()).join(', ') || null
-              : p.medications;
-
-            return {
-              ...p,
-              status: p.status || 'recheck',
-              lastVisit,
-              mri,
-              bloodwork,
-              medications,
-            };
-          });
-          setPatients(migratedPatients);
-        } else {
-          // New day - clear old data
-          localStorage.removeItem('appointmentSchedulePatients');
-          localStorage.removeItem('appointmentScheduleDate');
-          toast({
-            title: '🌅 New Day, Fresh Start',
-            description: 'Yesterday\'s appointment schedule has been cleared',
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load saved patients:', error);
-      }
+    if (!saved || !savedDate) {
+      return false;
     }
+
+    try {
+      if (savedDate === today) {
+        const parsed = JSON.parse(saved);
+        const migrated = sortPatientsByOrder(
+          parsed.map((patient: any, index: number) => normalizeAppointmentPatient(patient, index))
+        );
+
+        restoredPatientsRef.current = migrated;
+        skipNextSaveRef.current = true;
+        setPatients(migrated);
+
+        if (savedLastSavedAt) {
+          const parsedSavedAt = new Date(savedLastSavedAt);
+          if (!Number.isNaN(parsedSavedAt.getTime())) {
+            setLastSavedAt(parsedSavedAt);
+          }
+        }
+
+        return true;
+      }
+
+      localStorage.removeItem('appointmentSchedulePatients');
+      localStorage.removeItem('appointmentScheduleDate');
+      localStorage.removeItem('appointmentScheduleLastSavedAt');
+      toast({
+        title: '🌅 New Day, Fresh Start',
+        description: "Yesterday's appointment schedule has been cleared",
+      });
+    } catch (error) {
+      console.error('Failed to load saved patients:', error);
+    }
+
+    return false;
   }, [toast]);
 
-  // Auto-save to localStorage whenever patients change
+  const loadSchedule = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const response = (await apiClient.getAppointmentSchedule()) as AppointmentScheduleResponse;
+      const serverPatients = Array.isArray(response?.patients) ? response.patients : [];
+
+      if (serverPatients.length > 0) {
+        const normalized = sortPatientsByOrder(
+          serverPatients.map((patient, index) => normalizeAppointmentPatient(patient, index))
+        );
+
+        restoredPatientsRef.current = null;
+        skipNextSaveRef.current = true;
+        setPatients(normalized);
+
+        if (response.updatedAt) {
+          const parsedUpdatedAt = new Date(response.updatedAt);
+          setLastSavedAt(Number.isNaN(parsedUpdatedAt.getTime()) ? new Date() : parsedUpdatedAt);
+        } else {
+          setLastSavedAt(new Date());
+        }
+
+        lastPersistedSnapshotRef.current = JSON.stringify(toPersistablePatients(normalized));
+        return;
+      }
+
+      const restored = loadFromLocalStorage();
+      if (!restored) {
+        setLastSavedAt(null);
+        lastPersistedSnapshotRef.current = JSON.stringify([]);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load appointment schedule';
+      const normalizedMessage = message.toLowerCase();
+      const notFound = normalizedMessage.includes('404') || normalizedMessage.includes('not found');
+
+      if (notFound) {
+        const restored = loadFromLocalStorage();
+        if (restored && restoredPatientsRef.current) {
+          try {
+            skipNextSaveRef.current = true;
+            const payload = toPersistablePatients(restoredPatientsRef.current);
+            const result = await apiClient.saveAppointmentSchedule({ patients: payload });
+
+            if (result?.updatedAt) {
+              const parsedUpdatedAt = new Date(result.updatedAt);
+              setLastSavedAt(Number.isNaN(parsedUpdatedAt.getTime()) ? new Date() : parsedUpdatedAt);
+            } else {
+              setLastSavedAt(new Date());
+            }
+
+            lastPersistedSnapshotRef.current = JSON.stringify(payload);
+          } catch (syncError) {
+            console.error('Failed to sync restored appointment schedule:', syncError);
+            toast({
+              variant: 'destructive',
+              title: 'Failed to sync schedule',
+              description: 'Could not upload locally saved appointments to the server.',
+            });
+          }
+        }
+      } else {
+        console.error('Failed to load appointment schedule:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Failed to load appointment schedule',
+          description: message,
+        });
+      }
+    } finally {
+      hasInitializedRef.current = true;
+    }
+  }, [loadFromLocalStorage, toast]);
+
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    loadSchedule();
+  }, [loadSchedule]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const today = new Date().toISOString().split('T')[0];
     if (patients.length > 0) {
       localStorage.setItem('appointmentSchedulePatients', JSON.stringify(patients));
       localStorage.setItem('appointmentScheduleDate', today);
+    } else {
+      localStorage.removeItem('appointmentSchedulePatients');
+      localStorage.removeItem('appointmentScheduleDate');
     }
   }, [patients]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (lastSavedAt) {
+      localStorage.setItem('appointmentScheduleLastSavedAt', lastSavedAt.toISOString());
+    } else {
+      localStorage.removeItem('appointmentScheduleLastSavedAt');
+    }
+  }, [lastSavedAt]);
+
+  useEffect(() => {
+    if (!hasInitializedRef.current) return;
+
+    const snapshot = JSON.stringify(persistablePatients);
+
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      lastPersistedSnapshotRef.current = snapshot;
+      return;
+    }
+
+    if (snapshot === lastPersistedSnapshotRef.current) {
+      return;
+    }
+
+    if (debouncedSaveRef.current) {
+      clearTimeout(debouncedSaveRef.current);
+    }
+
+    debouncedSaveRef.current = setTimeout(async () => {
+      try {
+        const result = await apiClient.saveAppointmentSchedule({ patients: persistablePatients });
+        lastPersistedSnapshotRef.current = snapshot;
+
+        if (result?.updatedAt) {
+          const parsedUpdatedAt = new Date(result.updatedAt);
+          setLastSavedAt(Number.isNaN(parsedUpdatedAt.getTime()) ? new Date() : parsedUpdatedAt);
+        } else {
+          setLastSavedAt(new Date());
+        }
+      } catch (error) {
+        console.error('Failed to save appointment schedule:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Failed to save appointment schedule',
+          description: 'Could not sync appointments to the server.',
+        });
+      }
+    }, 1500);
+
+    return () => {
+      if (debouncedSaveRef.current) {
+        clearTimeout(debouncedSaveRef.current);
+      }
+    };
+  }, [persistablePatients, toast]);
+
+  useEffect(
+    () => () => {
+      if (debouncedSaveRef.current) {
+        clearTimeout(debouncedSaveRef.current);
+      }
+    },
+    []
+  );
 
   const handleParse = async (text: string) => {
     setIsProcessing(true);
@@ -114,7 +369,16 @@ export function AppointmentSchedule() {
       const result = await response.json();
 
       if (result.patients && result.patients.length > 0) {
-        setPatients([...patients, ...result.patients]);
+        setPatients((current) => {
+          const baseOrder = current.length;
+          const parsedPatients = result.patients.map((patient: any, index: number) => ({
+            ...normalizeAppointmentPatient(patient, baseOrder + index),
+            sortOrder: baseOrder + index,
+            lastUpdated: new Date(),
+          }));
+
+          return [...current, ...parsedPatients];
+        });
         toast({
           title: '✅ Patients Parsed',
           description: `Successfully extracted ${result.count} patient(s)`,
@@ -146,7 +410,11 @@ export function AppointmentSchedule() {
       setPatients((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const reordered = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+          ...item,
+          sortOrder: index,
+        }));
+        return reordered;
       });
       setSortBy('custom');
     }
@@ -166,10 +434,13 @@ export function AppointmentSchedule() {
     );
   }, []);
 
-  const handleDeletePatient = useCallback((id: string) => {
-    setPatients((prev) => prev.filter((p) => p.id !== id));
-    toast({ title: 'Patient removed' });
-  }, [toast]);
+  const handleDeletePatient = useCallback(
+    (id: string) => {
+      setPatients((prev) => prev.filter((p) => p.id !== id));
+      toast({ title: 'Patient removed' });
+    },
+    [toast]
+  );
 
   const handleSort = (type: 'time' | 'name') => {
     const sorted = [...patients].sort((a, b) => {
@@ -177,11 +448,10 @@ export function AppointmentSchedule() {
         if (!a.appointmentTime) return 1;
         if (!b.appointmentTime) return -1;
         return a.appointmentTime.localeCompare(b.appointmentTime);
-      } else {
-        return a.patientName.localeCompare(b.patientName);
       }
+      return a.patientName.localeCompare(b.patientName);
     });
-    setPatients(sorted);
+    setPatients(sorted.map((patient, index) => ({ ...patient, sortOrder: index })));
     setSortBy(type);
   };
 
@@ -203,8 +473,10 @@ export function AppointmentSchedule() {
   const handleClearAll = () => {
     if (confirm('Clear all patients from the appointment schedule?')) {
       setPatients([]);
+      setLastSavedAt(null);
       localStorage.removeItem('appointmentSchedulePatients');
       localStorage.removeItem('appointmentScheduleDate');
+      localStorage.removeItem('appointmentScheduleLastSavedAt');
       toast({ title: 'Appointment schedule cleared' });
     }
   };
@@ -218,8 +490,13 @@ export function AppointmentSchedule() {
           <p className="text-sm text-slate-400">
             {patients.length === 0
               ? 'Paste patient data to get started'
-              : `${patients.length} patient(s) • Sorted by ${sortBy === 'time' ? 'appointment time' : sortBy === 'name' ? 'name' : 'custom order'}`}
+              : `${patients.length} patient(s) • Sorted by ${
+                  sortBy === 'time' ? 'appointment time' : sortBy === 'name' ? 'name' : 'custom order'
+                }`}
           </p>
+          {formattedLastSavedAt && (
+            <p className="text-xs text-slate-500 mt-1">Last synced {formattedLastSavedAt}</p>
+          )}
           {patients.length > 0 && (
             <div className="flex items-center gap-3 mt-2">
               <span className="text-xs text-slate-500">Legend:</span>
@@ -308,29 +585,73 @@ export function AppointmentSchedule() {
             <table className="w-full text-left">
               <thead className="bg-slate-800/50 border-b border-slate-700">
                 <tr>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '30px' }}></th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '150px' }}>Patient</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '80px' }}>Age</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Why Here Today</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '150px' }}>Last Visit</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>MRI</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Bloodwork</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '250px' }}>Medications</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Changes</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Other/Misc</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '50px' }}></th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '30px' }}
+                  ></th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '150px' }}
+                  >
+                    Patient
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '80px' }}
+                  >
+                    Age
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '200px' }}
+                  >
+                    Why Here Today
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '150px' }}
+                  >
+                    Last Visit
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '200px' }}
+                  >
+                    MRI
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '200px' }}
+                  >
+                    Bloodwork
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '250px' }}
+                  >
+                    Medications
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '200px' }}
+                  >
+                    Changes
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '200px' }}
+                  >
+                    Other/Misc
+                  </th>
+                  <th
+                    className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30"
+                    style={{ width: '50px' }}
+                  ></th>
                 </tr>
               </thead>
               <tbody>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext
-                    items={patients.map((p) => p.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={patients.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                     {patients.map((patient) => (
                       <AppointmentRow
                         key={patient.id}
