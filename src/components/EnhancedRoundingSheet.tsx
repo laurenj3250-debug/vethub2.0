@@ -1074,6 +1074,30 @@ export function EnhancedRoundingSheet({
                 />
               </div>
 
+              {/* MRI Location */}
+              <div>
+                <label className="text-xs text-slate-400 font-bold mb-1 block">MRI Location (select all that apply)</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Brain', 'Cervical', 'TL (Thoracolumbar)', 'LS (Lumbosacral)'].map((location) => (
+                    <label key={location} className="flex items-center gap-2 bg-slate-900/50 border border-slate-600 rounded px-3 py-2 cursor-pointer hover:border-emerald-500 transition">
+                      <input
+                        type="checkbox"
+                        checked={(templateForm.autoFill.mriLocation || []).includes(location)}
+                        onChange={(e) => {
+                          const currentLocations = templateForm.autoFill.mriLocation || [];
+                          const newLocations = e.target.checked
+                            ? [...currentLocations, location]
+                            : currentLocations.filter((l: string) => l !== location);
+                          setTemplateForm({ ...templateForm, autoFill: { ...templateForm.autoFill, mriLocation: newLocations } });
+                        }}
+                        className="rounded border-slate-500 text-emerald-500 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-white">{location}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               {/* Diagnostic Findings */}
               <div>
                 <label className="text-xs text-slate-400 font-bold mb-1 block">Diagnostic Findings</label>
