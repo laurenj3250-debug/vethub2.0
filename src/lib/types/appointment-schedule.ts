@@ -21,6 +21,11 @@ export interface AppointmentPatient {
   lastUpdated: Date;
 }
 
+export interface PersistableAppointmentPatient
+  extends Omit<AppointmentPatient, 'lastUpdated'> {
+  lastUpdated: string;
+}
+
 export interface AppointmentScheduleState {
   patients: AppointmentPatient[];
   sortBy: 'time' | 'name' | 'custom';

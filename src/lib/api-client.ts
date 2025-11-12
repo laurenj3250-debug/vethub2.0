@@ -1,3 +1,5 @@
+import { PersistableAppointmentPatient } from './types/appointment-schedule';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vethub20-production.up.railway.app';
 
 class ApiClient {
@@ -182,6 +184,20 @@ class ApiClient {
   async deleteCommonMedication(id: string) {
     return this.request<void>(`/api/common/medications/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Appointment Schedule
+  async getAppointmentSchedule() {
+    return this.request<{ patients: PersistableAppointmentPatient[]; updatedAt?: string }>(
+      '/api/appointment-schedule'
+    );
+  }
+
+  async saveAppointmentSchedule(data: { patients: PersistableAppointmentPatient[] }) {
+    return this.request<{ updatedAt?: string }>('/api/appointment-schedule', {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   }
 }
