@@ -487,7 +487,7 @@ export function EnhancedRoundingSheet({
       clearTimeout(existingTimer);
     }
 
-    // Set new timer - save to API and update parent after 500ms of no typing
+    // Set new timer - save to API and update parent after 150ms of no typing
     const newTimer = setTimeout(async () => {
       const updatedRounding = {
         ...(patient.rounding_data || {}),
@@ -518,7 +518,7 @@ export function EnhancedRoundingSheet({
         console.error('Debounced update failed:', error);
       }
       debounceTimers.current.delete(timerKey);
-    }, 500);
+    }, 150); // Reduced from 500ms for faster typing feel
 
     debounceTimers.current.set(timerKey, newTimer);
   }, [patients, onPatientUpdate]);
