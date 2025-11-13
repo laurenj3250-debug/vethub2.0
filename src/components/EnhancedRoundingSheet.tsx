@@ -4,7 +4,6 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain } from 'lucide-react';
 import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
-import { determineNeurolocalization } from '@/lib/ai-parser';
 
 // Helper to render markdown-style bold text (**text** -> <strong>text</strong>)
 const renderMarkdown = (text: string | null) => {
@@ -62,8 +61,6 @@ export function EnhancedRoundingSheet({
   const [batchField, setBatchField] = useState<string>('');
   const [batchValue, setBatchValue] = useState<string>('');
   const [autoPopulateMode, setAutoPopulateMode] = useState<'off' | 'suggest' | 'auto'>('suggest');
-  const [neurolocalizationLoading, setNeurolocalizationLoading] = useState<number | null>(null);
-  const [neurolocalizationResults, setNeurolocalizationResults] = useState<Record<number, string>>({});
 
   // Snippet manager state
   const [showSnippetManager, setShowSnippetManager] = useState(false);
@@ -441,26 +438,39 @@ export function EnhancedRoundingSheet({
       [field]: value
     };
 
-    // Optimistic update - update local state immediately for responsive UI
-    const updatedPatients = patients.map(p =>
-      p.id === patientId
-        ? { ...p, rounding_data: updatedRounding }
-        : p
-    );
+    // Update local edit state first for immediate UI response (no parent re-render)
+    const editKey = `${patientId}-${field}`;
+    setLocalEdits(prev => ({ ...prev, [editKey]: value }));
 
-    // Update parent component state immediately
-    if (onPatientUpdate) {
-      onPatientUpdate(updatedPatients);
-    }
-
-    // Then sync to backend asynchronously
+    // Then sync to backend and update parent asynchronously
     try {
       await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+
+      // Only update parent after successful save
+      if (onPatientUpdate) {
+        const updatedPatients = patients.map(p =>
+          p.id === patientId
+            ? { ...p, rounding_data: updatedRounding }
+            : p
+        );
+        onPatientUpdate(updatedPatients);
+      }
+
+      // Clear local edit after parent update
+      setLocalEdits(prev => {
+        const newEdits = { ...prev };
+        delete newEdits[editKey];
+        return newEdits;
+      });
     } catch (error) {
       console.error('Update failed:', error);
-      // Could add error handling/rollback here if needed
+      toast({
+        title: 'Update failed',
+        description: 'Could not save changes',
+        variant: 'destructive'
+      });
     }
-  }, [patients, onPatientUpdate]);
+  }, [patients, onPatientUpdate, toast]);
 
   // Debounced update for text inputs (waits 500ms after typing stops)
   const updateFieldDebounced = useCallback((patientId: number, field: string, value: any) => {
@@ -523,54 +533,6 @@ export function EnhancedRoundingSheet({
     const patient = patients.find(p => p.id === patientId);
     return patient?.rounding_data?.[field] ?? defaultValue;
   };
-
-  // Analyze neurolocalization from problems/clinical signs
-  const analyzeNeurolocalization = useCallback(async (patientId: number) => {
-    const patient = patients.find(p => p.id === patientId);
-    if (!patient) return;
-
-    const problems = getFieldValue(patientId, 'problems', '');
-    if (!problems || problems.trim() === '') {
-      toast({
-        title: 'No problems found',
-        description: 'Please enter clinical signs or problems first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setNeurolocalizationLoading(patientId);
-
-    try {
-      const localization = await determineNeurolocalization(problems);
-
-      if (localization) {
-        // Store result in state
-        setNeurolocalizationResults(prev => ({
-          ...prev,
-          [patientId]: localization
-        }));
-
-        // Prepend neurolocalization to problems field
-        const updatedProblems = `[${localization}]\n${problems}`;
-        await updateField(patientId, 'problems', updatedProblems);
-
-        toast({
-          title: 'Neurolocalization determined',
-          description: `${localization}`,
-        });
-      }
-    } catch (error) {
-      console.error('Neurolocalization error:', error);
-      toast({
-        title: 'Analysis failed',
-        description: 'Could not determine neurolocalization',
-        variant: 'destructive',
-      });
-    } finally {
-      setNeurolocalizationLoading(null);
-    }
-  }, [patients, toast, updateField, localEdits]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
@@ -955,29 +917,48 @@ export function EnhancedRoundingSheet({
 
                   {/* Problems */}
                   <td className="p-2">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-start gap-1">
-                        <textarea
-                          value={getFieldValue(patient.id, 'problems')}
-                          onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
-                          placeholder="List of problems..."
-                          className="flex-1 min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[70px] transition-all"
-                          rows={4}
-                        />
-                        <button
-                          onClick={() => analyzeNeurolocalization(patient.id)}
-                          disabled={neurolocalizationLoading === patient.id}
-                          title="Determine neurolocalization"
-                          className="p-1.5 bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 hover:border-purple-400 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {neurolocalizationLoading === patient.id ? (
-                            <Sparkles size={14} className="text-purple-400 animate-pulse" />
-                          ) : (
-                            <Brain size={14} className="text-purple-400" />
-                          )}
-                        </button>
-                      </div>
+                    <div className="flex flex-col gap-2">
+                      {/* Neurolocalization Dropdown */}
+                      <select
+                        value={getFieldValue(patient.id, 'neurolocalization', '')}
+                        onChange={(e) => updateField(patient.id, 'neurolocalization', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, patient.id, 'neurolocalization')}
+                        className="w-full bg-purple-600/20 backdrop-blur-sm border border-purple-500/50 hover:border-purple-400 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 rounded px-2 py-1 text-white text-xs font-bold transition-all"
+                      >
+                        <option value="" className="bg-slate-900">Select Localization...</option>
+                        <optgroup label="Brain" className="bg-slate-900">
+                          <option value="Forebrain" className="bg-slate-900">Forebrain</option>
+                          <option value="Brainstem" className="bg-slate-900">Brainstem</option>
+                          <option value="Cerebellum" className="bg-slate-900">Cerebellum</option>
+                          <option value="Vestibular" className="bg-slate-900">Vestibular</option>
+                        </optgroup>
+                        <optgroup label="Spinal Cord" className="bg-slate-900">
+                          <option value="C1-C5" className="bg-slate-900">C1-C5</option>
+                          <option value="C6-T2" className="bg-slate-900">C6-T2</option>
+                          <option value="T3-L3" className="bg-slate-900">T3-L3</option>
+                          <option value="L4-S3" className="bg-slate-900">L4-S3</option>
+                          <option value="Sacral/Caudal" className="bg-slate-900">Sacral/Caudal</option>
+                        </optgroup>
+                        <optgroup label="Neuromuscular" className="bg-slate-900">
+                          <option value="NMJ" className="bg-slate-900">NMJ</option>
+                          <option value="Peripheral Neuropathy" className="bg-slate-900">Peripheral Neuropathy</option>
+                          <option value="Myopathy" className="bg-slate-900">Myopathy</option>
+                        </optgroup>
+                        <optgroup label="Other" className="bg-slate-900">
+                          <option value="Multifocal" className="bg-slate-900">Multifocal</option>
+                          <option value="Unknown" className="bg-slate-900">Unknown</option>
+                        </optgroup>
+                      </select>
+
+                      {/* Problems textarea */}
+                      <textarea
+                        value={getFieldValue(patient.id, 'problems')}
+                        onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
+                        placeholder="List of problems..."
+                        className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
+                        rows={3}
+                      />
                     </div>
                   </td>
 
