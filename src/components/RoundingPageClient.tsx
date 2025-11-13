@@ -6,6 +6,7 @@ import { usePatientContext } from '@/contexts/PatientContext';
 import { useCommonItems } from '@/hooks/use-api';
 import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 import { useToast } from '@/hooks/use-toast';
+import { GlobalKeyboardHandler } from '@/components/GlobalKeyboardHandler';
 
 export function RoundingPageClient() {
   const { patients, loadPatients } = usePatientContext();
@@ -13,6 +14,8 @@ export function RoundingPageClient() {
   const { toast } = useToast();
 
   return (
+    <>
+      <GlobalKeyboardHandler />
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
       <header className="bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -46,5 +49,6 @@ export function RoundingPageClient() {
         />
       </main>
     </div>
+    </>
   );
 }

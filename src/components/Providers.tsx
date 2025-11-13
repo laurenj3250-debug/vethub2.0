@@ -1,7 +1,6 @@
 'use client';
 
 import { PatientProvider } from '@/contexts/PatientContext';
-import { GlobalKeyboardHandler } from './GlobalKeyboardHandler';
 import { Toaster } from './ui/toaster';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -9,7 +8,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <PatientProvider>
       {children}
       <Toaster />
-      <GlobalKeyboardHandler />
     </PatientProvider>
   );
 }
