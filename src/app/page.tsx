@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { PatientListItem } from '@/components/PatientListItem';
+import { DashboardStats } from '@/components/DashboardStats';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -60,6 +62,17 @@ export default function VetHub() {
 
   // Hide completed tasks toggle
   const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
+
+  // View mode (list vs grid) - persisted to localStorage
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // Active filters for quick filter chips
+  const [activeFilters, setActiveFilters] = useState<{
+    status?: string;
+    type?: string;
+    priority?: string;
+  }>({});
+
   const [referenceData, setReferenceData] = useState<any>({
     medications: [
       { name: 'Gabapentin', dose: '10-20 mg/kg PO q8-12h', notes: 'Neuropathic pain, seizures' },
@@ -522,6 +535,31 @@ export default function VetHub() {
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
     }
+  };
+
+  // Handle filter chip clicks
+  const handleFilterClick = (filterType: string, value: string) => {
+    setActiveFilters(prev => {
+      // Toggle filter: if it's already active, remove it
+      if (filterType === 'status' && prev.status === value) {
+        const { status, ...rest } = prev;
+        return rest;
+      }
+      if (filterType === 'type' && prev.type === value) {
+        const { type, ...rest } = prev;
+        return rest;
+      }
+      if (filterType === 'priority' && prev.priority === value) {
+        const { priority, ...rest } = prev;
+        return rest;
+      }
+
+      // Otherwise, set the new filter
+      return {
+        ...prev,
+        [filterType]: value,
+      };
+    });
   };
 
   const handleQuickAddTask = async (patientId: number, taskName: string) => {
@@ -1189,6 +1227,18 @@ export default function VetHub() {
     }
   }, [showSOAPBuilder]);
 
+  // Load and persist view mode from localStorage
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('dashboardViewMode');
+    if (savedViewMode === 'list' || savedViewMode === 'grid') {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('dashboardViewMode', viewMode);
+  }, [viewMode]);
+
   // Automatic daily task creation - runs when app loads on a new day
   const hasRunAutoCreation = useRef(false);
 
@@ -1253,7 +1303,27 @@ export default function VetHub() {
   }, [patients.length]); // Run when patients are loaded
 
   const filteredPatients = patients
-    .filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(p => {
+      // Search filter
+      if (!p.name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+
+      // Status filter
+      if (activeFilters.status && p.status !== activeFilters.status) return false;
+
+      // Type filter
+      if (activeFilters.type && p.type !== activeFilters.type) return false;
+
+      // Priority filter (needs attention = <50% completion)
+      if (activeFilters.priority === 'needs-attention') {
+        const today = new Date().toISOString().split('T')[0];
+        const tasks = (p.tasks || []).filter((t: any) => t.date === today);
+        const completed = tasks.filter((t: any) => t.completed).length;
+        const completionRate = tasks.length > 0 ? (completed / tasks.length) * 100 : 100;
+        if (completionRate >= 50) return false;
+      }
+
+      return true;
+    })
     .sort((a, b) => {
       if (patientSortBy === 'name') {
         return (a.name || '').localeCompare(b.name || '');
@@ -2129,6 +2199,9 @@ export default function VetHub() {
           <span>Add Patient</span>
         </button>
 
+        {/* Dashboard Stats Overview */}
+        <DashboardStats patients={filteredPatients} onFilterClick={handleFilterClick} />
+
         {/* Search & Sort */}
         <div className="flex gap-3">
           <div className="relative flex-1">
@@ -2152,6 +2225,31 @@ export default function VetHub() {
               <option value="status">Status</option>
               <option value="type">Type</option>
             </select>
+          </div>
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-2 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-3 rounded-lg transition ${
+                viewMode === 'list'
+                  ? 'bg-cyan-500 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="List View"
+            >
+              <ListIcon size={20} />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-3 rounded-lg transition ${
+                viewMode === 'grid'
+                  ? 'bg-cyan-500 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Grid View"
+            >
+              <LayoutGrid size={20} />
+            </button>
           </div>
         </div>
 
@@ -2219,7 +2317,37 @@ export default function VetHub() {
             <div className="text-6xl mb-4">🐾</div>
             <p className="text-slate-400 text-lg">No patients yet. Add your first furry friend above!</p>
           </div>
+        ) : viewMode === 'list' ? (
+          /* LIST VIEW */
+          <div className="space-y-2">
+            {filteredPatients.map((patient) => (
+              <PatientListItem
+                key={patient.id}
+                patient={patient}
+                isExpanded={expandedPatient === patient.id}
+                isSelected={selectedPatientIds.has(patient.id)}
+                onToggleExpand={() => setExpandedPatient(expandedPatient === patient.id ? null : patient.id)}
+                onToggleSelect={() => togglePatientSelection(patient.id)}
+                onDelete={() => handleDeletePatient(patient.id)}
+                onUpdatePatient={(field, value) => {
+                  // Handle patient updates
+                  apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
+                }}
+                onToggleTask={(taskId, completed) => handleToggleTask(patient.id, Number(taskId), completed)}
+                onDeleteTask={(taskId) => handleDeleteTask(patient.id, Number(taskId))}
+                onQuickAction={(action) => {
+                  if (action === 'morning') handleBulkCompleteCategory(patient.id, 'morning');
+                  else if (action === 'evening') handleBulkCompleteCategory(patient.id, 'evening');
+                  else if (action === 'tasks') setQuickAddMenuPatient(patient.id);
+                  else if (action === 'rounds') setRoundingSheetPatient(patient.id);
+                }}
+                getTaskCategory={getTaskCategory}
+                hideCompletedTasks={hideCompletedTasks}
+              />
+            ))}
+          </div>
         ) : (
+          /* GRID VIEW */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredPatients.map((patient) => {
               const today = new Date().toISOString().split('T')[0];
@@ -2431,7 +2559,7 @@ export default function VetHub() {
                             🌅 Morning Tasks
                           </h5>
                           <div className="space-y-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).map((task: any) => (
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
                               <div
                                 key={task.id}
                                 className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
@@ -2471,7 +2599,7 @@ export default function VetHub() {
                             🌙 Evening Tasks
                           </h5>
                           <div className="space-y-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).map((task: any) => (
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
                               <div
                                 key={task.id}
                                 className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
@@ -2511,7 +2639,7 @@ export default function VetHub() {
                             📋 {patient.type} Tasks & Other
                           </h5>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).map((task: any) => (
+                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
                               <div
                                 key={task.id}
                                 className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
