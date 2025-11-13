@@ -63,6 +63,9 @@ export default function VetHub() {
   // Hide completed tasks toggle
   const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
 
+  // Mounted state to prevent hydration mismatch
+  const [mounted, setMounted] = useState(false);
+
   // View mode (list vs grid) - persisted to localStorage
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
@@ -1229,6 +1232,7 @@ export default function VetHub() {
 
   // Load and persist view mode from localStorage
   useEffect(() => {
+    setMounted(true);
     const savedViewMode = localStorage.getItem('dashboardViewMode');
     if (savedViewMode === 'list' || savedViewMode === 'grid') {
       setViewMode(savedViewMode);
@@ -2230,8 +2234,9 @@ export default function VetHub() {
           <div className="flex items-center gap-2 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-1">
             <button
               onClick={() => setViewMode('list')}
+              disabled={!mounted}
               className={`px-3 py-3 rounded-lg transition ${
-                viewMode === 'list'
+                mounted && viewMode === 'list'
                   ? 'bg-cyan-500 text-white'
                   : 'text-slate-400 hover:text-white'
               }`}
@@ -2241,8 +2246,9 @@ export default function VetHub() {
             </button>
             <button
               onClick={() => setViewMode('grid')}
+              disabled={!mounted}
               className={`px-3 py-3 rounded-lg transition ${
-                viewMode === 'grid'
+                mounted && viewMode === 'grid'
                   ? 'bg-cyan-500 text-white'
                   : 'text-slate-400 hover:text-white'
               }`}
@@ -2308,7 +2314,7 @@ export default function VetHub() {
         )}
 
         {/* Patients */}
-        {patientsLoading ? (
+        {!mounted || patientsLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
           </div>
