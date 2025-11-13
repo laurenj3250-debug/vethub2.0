@@ -69,6 +69,10 @@ export function EnhancedRoundingSheet({
     concerns: [],
   });
 
+  // Text expansion state
+  const [showTextExpansionManager, setShowTextExpansionManager] = useState(false);
+  const [textExpansions, setTextExpansions] = useState<Record<string, string>>({});
+
   // Load custom snippets from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('custom_snippets');
@@ -81,10 +85,28 @@ export function EnhancedRoundingSheet({
     }
   }, []);
 
+  // Load text expansions from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('text_expansions');
+    if (stored) {
+      try {
+        setTextExpansions(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to load text expansions', e);
+      }
+    }
+  }, []);
+
   // Save custom snippets to localStorage
   const saveCustomSnippets = useCallback((snippets: any) => {
     setCustomSnippets(snippets);
     localStorage.setItem('custom_snippets', JSON.stringify(snippets));
+  }, []);
+
+  // Save text expansions to localStorage
+  const saveTextExpansions = useCallback((expansions: Record<string, string>) => {
+    setTextExpansions(expansions);
+    localStorage.setItem('text_expansions', JSON.stringify(expansions));
   }, []);
 
   // Custom templates management
@@ -409,6 +431,30 @@ export function EnhancedRoundingSheet({
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent, patientId: number, field: string) => {
+    // Text expansion on Space, Tab, or Enter
+    if (e.key === ' ' || e.key === 'Tab' || e.key === 'Enter') {
+      const target = e.currentTarget as HTMLTextAreaElement | HTMLInputElement;
+      const currentValue = target.value;
+      const expandedValue = handleTextExpansion(patientId, field, currentValue, e);
+
+      if (expandedValue !== currentValue) {
+        e.preventDefault();
+        target.value = expandedValue;
+        updateFieldDebounced(patientId, field, expandedValue);
+
+        // For Space and Enter, add the trigger character back
+        if (e.key === ' ' || e.key === 'Enter') {
+          setTimeout(() => {
+            target.value = expandedValue + (e.key === ' ' ? ' ' : '\n');
+            updateFieldDebounced(patientId, field, target.value);
+            // Move cursor to end
+            target.selectionStart = target.selectionEnd = target.value.length;
+          }, 0);
+        }
+        return;
+      }
+    }
+
     if (e.key === 'Tab' && !e.shiftKey) {
       // Smart tab navigation will be handled by natural DOM flow
       return;
@@ -425,7 +471,7 @@ export function EnhancedRoundingSheet({
       e.preventDefault();
       setShowProtocolSelector(showProtocolSelector === patientId ? null : patientId);
     }
-  }, [showProtocolSelector, copyRoundingSheetLine]);
+  }, [showProtocolSelector, copyRoundingSheetLine, textExpansions, handleTextExpansion, updateFieldDebounced]);
 
   // Update field with API call
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
@@ -471,7 +517,39 @@ export function EnhancedRoundingSheet({
     }
   }, [patients, onPatientUpdate, toast]);
 
-  // Debounced update for text inputs (waits 500ms after typing stops)
+  // Handle text expansion
+  const handleTextExpansion = useCallback((patientId: number, field: string, value: string, event?: React.KeyboardEvent) => {
+    // Only trigger on space, tab, or enter
+    if (event && !['Space', 'Tab', 'Enter'].includes(event.code)) {
+      return value;
+    }
+
+    // Get the last word (before the space/tab/enter)
+    const words = value.trim().split(/\s+/);
+    const lastWord = words[words.length - 1];
+
+    // Check if it matches a text expansion
+    if (textExpansions[lastWord]) {
+      // Replace the shortcut with the expansion
+      const beforeShortcut = words.slice(0, -1).join(' ');
+      const expandedValue = beforeShortcut
+        ? `${beforeShortcut} ${textExpansions[lastWord]}`
+        : textExpansions[lastWord];
+
+      // Show a subtle toast
+      toast({
+        title: `✨ Expanded: ${lastWord}`,
+        description: textExpansions[lastWord].substring(0, 50) + '...',
+        duration: 2000
+      });
+
+      return expandedValue;
+    }
+
+    return value;
+  }, [textExpansions, toast]);
+
+  // Debounced update for text inputs (waits 150ms after typing stops)
   const updateFieldDebounced = useCallback((patientId: number, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
@@ -572,6 +650,15 @@ export function EnhancedRoundingSheet({
           >
             <CheckCircle2 className="w-4 h-4" />
             Batch ({selectedPatients.size})
+          </button>
+
+          {/* Manage Text Expansions button */}
+          <button
+            onClick={() => setShowTextExpansionManager(true)}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-lg font-bold hover:scale-105 transition-all text-sm flex items-center gap-2 shadow-lg"
+          >
+            <Zap className="w-4 h-4" />
+            Text Shortcuts
           </button>
 
           {/* Manage Snippets button */}
@@ -1337,6 +1424,156 @@ export function EnhancedRoundingSheet({
                   {editingTemplate ? 'Update Template' : 'Create Template'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Text Expansion Manager Modal */}
+      {showTextExpansionManager && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]" onClick={() => setShowTextExpansionManager(false)}>
+          <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-6 max-w-3xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Zap className="w-5 h-5 text-cyan-400" />
+                Text Shortcuts
+              </h3>
+              <button onClick={() => setShowTextExpansionManager(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="text-sm text-slate-400 mb-6">
+              Create shortcuts that automatically expand when you type them and press Space, Tab, or Enter.
+              <br />
+              <span className="text-cyan-400 font-bold">Example:</span> Type "q4t" + Space → "Q4h turns, padded bedding"
+            </div>
+
+            {/* Add new text expansion */}
+            <div className="mb-6 p-4 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+              <h4 className="text-sm font-bold text-cyan-300 mb-3">Add New Shortcut</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Shortcut (what you type)</label>
+                  <input
+                    id="new-expansion-shortcut"
+                    type="text"
+                    placeholder="e.g., q4t, lev, stab..."
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Expands to (the full text)</label>
+                  <input
+                    id="new-expansion-text"
+                    type="text"
+                    placeholder="e.g., Q4h turns, padded bedding"
+                    className="w-full bg-slate-900/50 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const shortcutInput = document.getElementById('new-expansion-shortcut') as HTMLInputElement;
+                        const textInput = e.currentTarget;
+                        const shortcut = shortcutInput.value.trim();
+                        const text = textInput.value.trim();
+
+                        if (shortcut && text) {
+                          saveTextExpansions({
+                            ...textExpansions,
+                            [shortcut]: text
+                          });
+                          shortcutInput.value = '';
+                          textInput.value = '';
+                          toast({
+                            title: '✅ Shortcut added!',
+                            description: `${shortcut} → ${text.substring(0, 30)}...`
+                          });
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const shortcutInput = document.getElementById('new-expansion-shortcut') as HTMLInputElement;
+                  const textInput = document.getElementById('new-expansion-text') as HTMLInputElement;
+                  const shortcut = shortcutInput.value.trim();
+                  const text = textInput.value.trim();
+
+                  if (shortcut && text) {
+                    saveTextExpansions({
+                      ...textExpansions,
+                      [shortcut]: text
+                    });
+                    shortcutInput.value = '';
+                    textInput.value = '';
+                    toast({
+                      title: '✅ Shortcut added!',
+                      description: `${shortcut} → ${text.substring(0, 30)}...`
+                    });
+                  } else {
+                    toast({
+                      title: 'Missing info',
+                      description: 'Please fill in both shortcut and text',
+                      variant: 'destructive'
+                    });
+                  }
+                }}
+                className="mt-3 w-full px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-lg font-bold transition flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add Shortcut
+              </button>
+            </div>
+
+            {/* List of existing text expansions */}
+            <div>
+              <h4 className="text-sm font-bold text-white mb-3">Your Shortcuts ({Object.keys(textExpansions).length})</h4>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {Object.entries(textExpansions).length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 italic">
+                    No shortcuts yet. Add your first one above!
+                  </div>
+                ) : (
+                  Object.entries(textExpansions).map(([shortcut, text]) => (
+                    <div key={shortcut} className="flex items-center gap-3 p-3 bg-slate-900/50 rounded group">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded text-xs font-bold">
+                            {shortcut}
+                          </code>
+                          <span className="text-slate-500">→</span>
+                        </div>
+                        <div className="text-sm text-white">{text}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newExpansions = { ...textExpansions };
+                          delete newExpansions[shortcut];
+                          saveTextExpansions(newExpansions);
+                          toast({
+                            title: '🗑️ Shortcut deleted',
+                            description: shortcut
+                          });
+                        }}
+                        className="p-2 text-slate-600 hover:text-red-400 rounded opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-700">
+              <button
+                onClick={() => setShowTextExpansionManager(false)}
+                className="w-full px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Done
+              </button>
             </div>
           </div>
         </div>
