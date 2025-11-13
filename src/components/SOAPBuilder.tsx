@@ -51,7 +51,7 @@ const SOAP_TEMPLATES = {
     gait: 'Ataxia, circling, leaning/falling toward lesion side',
     posturalReactions: 'Normal (peripheral) or abnormal (central)',
     ddx: 'Idiopathic vestibular disease, otitis media/interna, brain tumor, inflammation (meningoencephalitis)',
-    diagnostics Today: 'MRI brain/bullae, +/- CSF analysis, otoscopic exam, BAER',
+    diagnosticsToday: 'MRI brain/bullae, +/- CSF analysis, otoscopic exam, BAER',
     treatments: 'Supportive care (anti-nausea medication: maropitant, meclizine)\nTreat underlying cause if identified',
   },
   gmeDogs: {
