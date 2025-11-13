@@ -566,28 +566,38 @@ export function EnhancedRoundingSheet({
       return value;
     }
 
-    // Get the last word (before the space/tab/enter)
-    const words = value.trim().split(/\s+/);
-    const lastWord = words[words.length - 1];
+    const trimmedValue = value.trim();
+    const words = trimmedValue.split(/\s+/);
 
-    // Check if it matches a text expansion
-    if (textExpansions[lastWord]) {
-      // Replace the shortcut with the expansion
-      const beforeShortcut = words.slice(0, -1).join(' ');
-      const expandedValue = beforeShortcut
-        ? `${beforeShortcut} ${textExpansions[lastWord]}`
-        : textExpansions[lastWord];
+    // ENHANCEMENT: Check for multi-word phrases (up to 5 words)
+    // Try longest phrases first, then shorter ones
+    for (let phraseLength = Math.min(5, words.length); phraseLength >= 1; phraseLength--) {
+      const phrase = words.slice(-phraseLength).join(' ').toLowerCase();
 
-      // Show a subtle toast
-      toast({
-        title: `✨ Expanded: ${lastWord}`,
-        description: textExpansions[lastWord].substring(0, 50) + '...',
-        duration: 2000
-      });
+      // Check if this phrase matches any text expansion (case-insensitive)
+      const matchingKey = Object.keys(textExpansions).find(
+        key => key.toLowerCase() === phrase
+      );
 
-      return expandedValue;
+      if (matchingKey) {
+        // Found a match! Replace the phrase with the expansion
+        const beforePhrase = words.slice(0, -phraseLength).join(' ');
+        const expandedValue = beforePhrase
+          ? `${beforePhrase} ${textExpansions[matchingKey]}`
+          : textExpansions[matchingKey];
+
+        // Show toast with phrase that was expanded
+        toast({
+          title: `✨ Expanded: "${matchingKey}"`,
+          description: textExpansions[matchingKey].substring(0, 50) + (textExpansions[matchingKey].length > 50 ? '...' : ''),
+          duration: 2000
+        });
+
+        return expandedValue;
+      }
     }
 
+    // No match found
     return value;
   }, [textExpansions, toast]);
 
