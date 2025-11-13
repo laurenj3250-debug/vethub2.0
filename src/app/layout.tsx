@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
+import { GlobalKeyboardHandler } from '@/components/GlobalKeyboardHandler';
 
 export const metadata: Metadata = {
   title: 'VetHub 2.0',
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         {children}
         <Toaster />
+        <GlobalKeyboardHandler />
       </body>
     </html>
   );
