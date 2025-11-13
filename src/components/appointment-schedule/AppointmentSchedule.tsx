@@ -42,11 +42,20 @@ export function AppointmentSchedule() {
     const savedDate = localStorage.getItem('appointmentScheduleDate');
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
+    console.log('AppointmentSchedule: Loading from localStorage', {
+      hasSavedData: !!saved,
+      savedDate,
+      today,
+      isToday: savedDate === today
+    });
+
     if (saved && savedDate) {
       try {
         // Check if data is from today
         if (savedDate === today) {
           const parsed = JSON.parse(saved);
+          console.log('AppointmentSchedule: Loaded patients from today', { count: parsed.length });
+
           // Migrate old patients to new flat structure
           const migratedPatients = parsed.map((p: any) => {
             // Convert nested objects to simple text
@@ -78,6 +87,7 @@ export function AppointmentSchedule() {
           setPatients(migratedPatients);
         } else {
           // New day - clear old data
+          console.log('AppointmentSchedule: Clearing old data from', savedDate);
           localStorage.removeItem('appointmentSchedulePatients');
           localStorage.removeItem('appointmentScheduleDate');
           toast({
@@ -88,16 +98,24 @@ export function AppointmentSchedule() {
       } catch (error) {
         console.error('Failed to load saved patients:', error);
       }
+    } else {
+      console.log('AppointmentSchedule: No saved data found');
     }
   }, [toast]);
 
   // Auto-save to localStorage whenever patients change
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0];
-    if (patients.length > 0) {
-      localStorage.setItem('appointmentSchedulePatients', JSON.stringify(patients));
-      localStorage.setItem('appointmentScheduleDate', today);
-    }
+    // Always save, even if empty array (to clear properly)
+    localStorage.setItem('appointmentSchedulePatients', JSON.stringify(patients));
+    localStorage.setItem('appointmentScheduleDate', today);
+
+    // Debug log
+    console.log('AppointmentSchedule: Saved to localStorage', {
+      patientsCount: patients.length,
+      date: today,
+      timestamp: new Date().toISOString()
+    });
   }, [patients]);
 
   const handleParse = async (text: string) => {
