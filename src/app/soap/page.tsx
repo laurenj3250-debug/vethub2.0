@@ -2,8 +2,20 @@
 
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { usePatients } from '@/hooks/use-api';
+import { SOAPBuilder } from '@/components/SOAPBuilder';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SOAPBuilderPage() {
+  const { patients, refetch } = usePatients();
+  const { toast } = useToast();
+
+  const handleSave = async (data: any) => {
+    // The SOAPBuilder component already handles saving
+    // This callback is for additional actions if needed
+    await refetch(); // Refresh patient list
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <header className="bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50">
@@ -25,17 +37,11 @@ export default function SOAPBuilderPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-12 text-center">
-          <div className="text-6xl mb-6">🏗️</div>
-          <h2 className="text-3xl font-bold text-white mb-4">SOAP Builder - Under Construction</h2>
-          <p className="text-slate-400 text-lg mb-6">
-            The SOAP Builder is being moved to its own page for better performance.
-          </p>
-          <p className="text-slate-500 text-sm">
-            This feature will be available soon. For now, please use the main VetHub page.
-          </p>
-        </div>
+      <main className="max-w-[98%] mx-auto px-4 py-8">
+        <SOAPBuilder
+          patients={patients}
+          onSave={handleSave}
+        />
       </main>
     </div>
   );
