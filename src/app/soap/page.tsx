@@ -6,6 +6,9 @@ import { usePatientContext } from '@/contexts/PatientContext';
 import { SOAPBuilder } from '@/components/SOAPBuilder';
 import { useToast } from '@/hooks/use-toast';
 
+// Disable static generation to avoid build-time circular dependency
+export const dynamic = 'force-dynamic';
+
 export default function SOAPBuilderPage() {
   const { patients, loadPatients } = usePatientContext();
   const { toast } = useToast();

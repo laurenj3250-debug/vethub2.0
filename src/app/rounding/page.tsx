@@ -7,6 +7,9 @@ import { useCommonItems } from '@/hooks/use-api';
 import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 import { useToast } from '@/hooks/use-toast';
 
+// Disable static generation to avoid build-time circular dependency
+export const dynamic = 'force-dynamic';
+
 export default function RoundingPage() {
   const { patients, loadPatients } = usePatientContext();
   const { medications: commonMedications } = useCommonItems();
