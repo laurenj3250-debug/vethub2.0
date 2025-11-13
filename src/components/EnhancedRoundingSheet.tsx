@@ -484,7 +484,36 @@ export function EnhancedRoundingSheet({
       e.preventDefault();
       setShowProtocolSelector(showProtocolSelector === patientId ? null : patientId);
     }
-  }, [showProtocolSelector, copyRoundingSheetLine, textExpansions, handleTextExpansion, updateFieldDebounced]);
+
+    // Ctrl+D to duplicate value down to selected patients
+    if (e.ctrlKey && e.key === 'd') {
+      e.preventDefault();
+      if (selectedPatients.size === 0) {
+        toast({ title: 'No patients selected', description: 'Select patients using checkboxes to duplicate field value' });
+        return;
+      }
+
+      const target = e.currentTarget as HTMLTextAreaElement | HTMLInputElement;
+      const value = target.value;
+
+      if (!value) {
+        toast({ variant: 'destructive', title: 'Field is empty', description: 'Cannot duplicate empty value' });
+        return;
+      }
+
+      // Apply value to all selected patients
+      selectedPatients.forEach((selectedId) => {
+        if (selectedId !== patientId) { // Don't update the source patient
+          updateFieldDebounced(selectedId, field, value);
+        }
+      });
+
+      toast({
+        title: '⚡ Duplicated!',
+        description: `Applied "${value.substring(0, 30)}${value.length > 30 ? '...' : ''}" to ${selectedPatients.size} patients`,
+      });
+    }
+  }, [showProtocolSelector, copyRoundingSheetLine, textExpansions, handleTextExpansion, updateFieldDebounced, selectedPatients, toast]);
 
   // Update field with API call
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
@@ -736,22 +765,39 @@ export function EnhancedRoundingSheet({
                   className="bg-black/40 backdrop-blur-sm border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
                 >
                   <option value="">Select field...</option>
-                  <option value="overnightDx">Overnight Dx</option>
-                  <option value="concerns">Concerns</option>
-                  <option value="code">Code Status</option>
-                  <option value="fluids">Fluids</option>
-                  <option value="ivc">IVC</option>
-                  <option value="cri">CRI</option>
-                  <option value="comments">Comments</option>
+                  <optgroup label="Clinical Fields">
+                    <option value="problems">Problems</option>
+                    <option value="diagnosticFindings">Diagnostic Findings</option>
+                    <option value="therapeutics">Therapeutics</option>
+                  </optgroup>
+                  <optgroup label="Other Fields">
+                    <option value="overnightDx">Overnight Dx</option>
+                    <option value="concerns">Concerns</option>
+                    <option value="code">Code Status</option>
+                    <option value="fluids">Fluids</option>
+                    <option value="ivc">IVC</option>
+                    <option value="cri">CRI</option>
+                    <option value="comments">Comments</option>
+                  </optgroup>
                 </select>
 
-                <input
-                  type="text"
-                  value={batchValue}
-                  onChange={(e) => setBatchValue(e.target.value)}
-                  placeholder="Value to apply..."
-                  className="bg-black/40 backdrop-blur-sm border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
-                />
+                {['problems', 'diagnosticFindings', 'therapeutics'].includes(batchField) ? (
+                  <textarea
+                    value={batchValue}
+                    onChange={(e) => setBatchValue(e.target.value)}
+                    placeholder="Value to apply (multiple lines supported)..."
+                    rows={3}
+                    className="bg-black/40 backdrop-blur-sm border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1 resize-none"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={batchValue}
+                    onChange={(e) => setBatchValue(e.target.value)}
+                    placeholder="Value to apply..."
+                    className="bg-black/40 backdrop-blur-sm border border-purple-500 rounded px-2 py-1.5 text-white text-xs flex-1"
+                  />
+                )}
 
                 <button
                   onClick={applyBatchUpdate}
@@ -1173,8 +1219,9 @@ export function EnhancedRoundingSheet({
       </div>
 
       {/* Keyboard shortcuts help */}
-      <div className="mt-3 text-xs text-slate-400 flex gap-4 border-t border-slate-700/50 pt-2">
+      <div className="mt-3 text-xs text-slate-400 flex gap-4 border-t border-slate-700/50 pt-2 flex-wrap">
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+Enter</kbd> Copy row</div>
+        <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+D</kbd> Duplicate field to selected</div>
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+P</kbd> Quick fill menu</div>
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Tab</kbd> Next field</div>
       </div>
