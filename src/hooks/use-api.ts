@@ -83,9 +83,25 @@ export function usePatients() {
   useEffect(() => {
     fetchPatients(true); // Show loading on initial fetch
 
-    // Poll for updates every 2 minutes (no loading indicator)
-    const interval = setInterval(() => fetchPatients(false), 120000);
-    return () => clearInterval(interval);
+    // Poll for updates every 2 minutes, but only when page is visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchPatients(false);
+      }
+    }, 120000);
+
+    // Fetch when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPatients(false);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return { patients, isLoading, error, refetch: () => fetchPatients(true) };
@@ -113,9 +129,25 @@ export function useGeneralTasks() {
   useEffect(() => {
     fetchTasks();
 
-    // Poll for updates every 2 minutes
-    const interval = setInterval(fetchTasks, 120000);
-    return () => clearInterval(interval);
+    // Poll for updates every 2 minutes, but only when page is visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchTasks();
+      }
+    }, 120000);
+
+    // Fetch when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTasks();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return { tasks, isLoading, error, refetch: fetchTasks };
@@ -148,9 +180,25 @@ export function useCommonItems() {
   useEffect(() => {
     fetchAll();
 
-    // Poll for updates every 2 minutes
-    const interval = setInterval(fetchAll, 120000);
-    return () => clearInterval(interval);
+    // Poll for updates every 2 minutes, but only when page is visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchAll();
+      }
+    }, 120000);
+
+    // Fetch when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAll();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return { problems, comments, medications, isLoading, refetch: fetchAll };

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain } from 'lucide-react';
 import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
@@ -369,6 +369,19 @@ export function EnhancedRoundingSheet({
     }
   }, [patients, toast]);
 
+  // Toggle patient selection for batch operations
+  const togglePatientSelection = useCallback((patientId: number, checked: boolean) => {
+    setSelectedPatients(prev => {
+      const newSelected = new Set(prev);
+      if (checked) {
+        newSelected.add(patientId);
+      } else {
+        newSelected.delete(patientId);
+      }
+      return newSelected;
+    });
+  }, []);
+
   // Export handlers
   const handleExportRoundingSheets = useCallback((format: string) => {
     const activePatients = patients.filter(p => p.status !== 'Discharged');
@@ -611,7 +624,11 @@ export function EnhancedRoundingSheet({
     return patient?.rounding_data?.[field] ?? defaultValue;
   };
 
-  const activePatients = patients.filter(p => p.status !== 'Discharged');
+  // Memoize activePatients to prevent filtering on every render
+  const activePatients = useMemo(
+    () => patients.filter(p => p.status !== 'Discharged'),
+    [patients]
+  );
 
   return (
     <div className="bg-slate-900/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/30 p-4">
@@ -806,15 +823,7 @@ export function EnhancedRoundingSheet({
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={(e) => {
-                          const newSelected = new Set(selectedPatients);
-                          if (e.target.checked) {
-                            newSelected.add(patient.id);
-                          } else {
-                            newSelected.delete(patient.id);
-                          }
-                          setSelectedPatients(newSelected);
-                        }}
+                        onChange={(e) => togglePatientSelection(patient.id, e.target.checked)}
                         className="w-4 h-4 rounded border-slate-600 text-purple-500 focus:ring-purple-500"
                       />
 

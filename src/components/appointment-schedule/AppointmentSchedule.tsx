@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Download, Printer, Save, Clock, User, ArrowUpDown } from 'lucide-react';
 import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { PasteModal } from './PasteModal';
@@ -28,6 +28,7 @@ export function AppointmentSchedule() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [sortBy, setSortBy] = useState<'time' | 'name' | 'custom'>('custom');
   const { toast } = useToast();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -103,19 +104,34 @@ export function AppointmentSchedule() {
     }
   }, [toast]);
 
-  // Auto-save to localStorage whenever patients change
+  // Auto-save to localStorage whenever patients change (debounced to prevent blocking UI)
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    // Always save, even if empty array (to clear properly)
-    localStorage.setItem('appointmentSchedulePatients', JSON.stringify(patients));
-    localStorage.setItem('appointmentScheduleDate', today);
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
 
-    // Debug log
-    console.log('AppointmentSchedule: Saved to localStorage', {
-      patientsCount: patients.length,
-      date: today,
-      timestamp: new Date().toISOString()
-    });
+    // Debounce save by 500ms
+    saveTimeoutRef.current = setTimeout(() => {
+      const today = new Date().toISOString().split('T')[0];
+      // Always save, even if empty array (to clear properly)
+      localStorage.setItem('appointmentSchedulePatients', JSON.stringify(patients));
+      localStorage.setItem('appointmentScheduleDate', today);
+
+      // Debug log
+      console.log('AppointmentSchedule: Saved to localStorage', {
+        patientsCount: patients.length,
+        date: today,
+        timestamp: new Date().toISOString()
+      });
+    }, 500);
+
+    // Cleanup on unmount
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [patients]);
 
   const handleParse = async (text: string) => {

@@ -12,7 +12,7 @@ interface AppointmentRowProps {
   onDelete: (id: string) => void;
 }
 
-export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowProps) {
+const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRowProps) => {
   const {
     attributes,
     listeners,
@@ -188,4 +188,7 @@ export function AppointmentRow({ patient, onUpdate, onDelete }: AppointmentRowPr
       </td>
     </tr>
   );
-}
+};
+
+// Memoize to prevent re-renders when other rows change
+export const AppointmentRow = React.memo(AppointmentRowComponent);
