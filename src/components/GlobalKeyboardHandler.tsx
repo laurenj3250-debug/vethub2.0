@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { QuickSwitcher } from './QuickSwitcher';
-import { usePatients } from '@/hooks/use-api';
+import { usePatientContext } from '@/contexts/PatientContext';
 
 export function GlobalKeyboardHandler() {
   const [showQuickSwitcher, setShowQuickSwitcher] = useState(false);
-  const { patients } = usePatients();
+  const { patients } = usePatientContext();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
