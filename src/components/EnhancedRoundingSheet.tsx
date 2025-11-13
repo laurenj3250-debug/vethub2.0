@@ -52,7 +52,6 @@ export function EnhancedRoundingSheet({
   onPatientUpdate
 }: EnhancedRoundingSheetProps) {
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [showMedicationSelector, setShowMedicationSelector] = useState<number | null>(null);
   const [showProtocolSelector, setShowProtocolSelector] = useState<number | null>(null);
   const [selectedProtocol, setSelectedProtocol] = useState<string>('');
   const [showQuickFillMenu, setShowQuickFillMenu] = useState<number | null>(null);
@@ -975,42 +974,16 @@ export function EnhancedRoundingSheet({
                   </td>
 
                   {/* Therapeutics */}
-                  <td className="p-2 relative">
-                    <div className="flex gap-2">
-                      <textarea
-                        value={getFieldValue(patient.id, 'therapeutics')}
-                        onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
-                        placeholder="Medications, treatments..."
-                        className="flex-1 min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
-                        rows={5}
-                      />
-                      <button
-                        onClick={() => setShowMedicationSelector(showMedicationSelector === patient.id ? null : patient.id)}
-                        className="px-2 py-1 bg-gradient-to-br from-emerald-500/30 to-green-500/30 hover:from-emerald-500/50 hover:to-green-500/50 border border-emerald-500/50 text-emerald-300 rounded text-sm h-fit font-bold transition-all hover:scale-105"
-                        title="Add common medications"
-                      >
-                        +
-                      </button>
-                    </div>
-                    {showMedicationSelector === patient.id && (
-                      <div className="absolute z-20 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-2 max-h-48 overflow-y-auto" style={{ minWidth: '200px' }}>
-                        <div className="text-xs text-slate-300 font-bold mb-1">Common Medications:</div>
-                        {commonMedications.map((med: any) => (
-                          <button
-                            key={med.id}
-                            onClick={() => {
-                              const currentMeds = rounding.therapeutics || '';
-                              const newMeds = currentMeds ? `${currentMeds}\n${med.name}` : med.name;
-                              updateField(patient.id, 'therapeutics', newMeds);
-                            }}
-                            className="block w-full text-left px-2 py-1 text-xs text-white hover:bg-slate-700 rounded"
-                          >
-                            {med.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  <td className="p-2">
+                    <textarea
+                      value={getFieldValue(patient.id, 'therapeutics')}
+                      onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
+                      onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
+                      placeholder="Type shortcuts: lev, pheno, gaba, pred..."
+                      className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
+                      rows={5}
+                      title="Shortcuts: lev=Levetiracetam, pheno=Phenobarbital, gaba=Gabapentin, pred=Prednisone, maro=Maropitant, meth=Methocarbamol"
+                    />
                   </td>
 
                   {/* IVC */}
