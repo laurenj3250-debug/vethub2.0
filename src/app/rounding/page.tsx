@@ -2,12 +2,13 @@
 
 import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
-import { usePatients, useCommonItems } from '@/hooks/use-api';
+import { usePatientContext } from '@/contexts/PatientContext';
+import { useCommonItems } from '@/hooks/use-api';
 import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 import { useToast } from '@/hooks/use-toast';
 
 export default function RoundingPage() {
-  const { patients, refetch } = usePatients();
+  const { patients, loadPatients } = usePatientContext();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
@@ -41,7 +42,7 @@ export default function RoundingPage() {
             // Could implement patient detail modal here if needed
             console.log('Patient clicked:', id);
           }}
-          onPatientUpdate={refetch}
+          onPatientUpdate={loadPatients}
         />
       </main>
     </div>
