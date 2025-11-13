@@ -101,15 +101,36 @@ export function PatientListItem({
           <span className="font-semibold text-slate-100 truncate">{patient.name}</span>
         </div>
 
-        {/* Type badge */}
-        <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getTypeBadgeColor()}`}>
-          {patient.type}
-        </span>
+        {/* Type dropdown */}
+        <select
+          value={patient.type || 'Medical'}
+          onChange={(e) => {
+            e.stopPropagation();
+            onUpdatePatient('type', e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`px-2 py-0.5 rounded text-xs font-medium border cursor-pointer hover:opacity-80 transition focus:ring-2 focus:ring-cyan-500 focus:outline-none ${getTypeBadgeColor()}`}
+        >
+          <option value="Surgery" className="bg-slate-800">Surgery</option>
+          <option value="MRI" className="bg-slate-800">MRI</option>
+          <option value="Medical" className="bg-slate-800">Medical</option>
+        </select>
 
-        {/* Status badge */}
-        <span className={`px-2 py-0.5 rounded text-xs font-medium border ${getStatusBadgeColor()}`}>
-          {patient.status}
-        </span>
+        {/* Status dropdown */}
+        <select
+          value={patient.status || 'New Admit'}
+          onChange={(e) => {
+            e.stopPropagation();
+            onUpdatePatient('status', e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`px-2 py-0.5 rounded text-xs font-medium border cursor-pointer hover:opacity-80 transition focus:ring-2 focus:ring-cyan-500 focus:outline-none ${getStatusBadgeColor()}`}
+        >
+          <option value="New Admit" className="bg-slate-800">New Admit</option>
+          <option value="Hospitalized" className="bg-slate-800">Hospitalized</option>
+          <option value="Discharging" className="bg-slate-800">Discharging</option>
+          <option value="Discharged" className="bg-slate-800">Discharged</option>
+        </select>
 
         {/* Weight */}
         {patient.patient_info?.weight && (
