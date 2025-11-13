@@ -2,18 +2,18 @@
 
 import { ArrowLeft, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { usePatients } from '@/hooks/use-api';
+import { usePatientContext } from '@/contexts/PatientContext';
 import { SOAPBuilder } from '@/components/SOAPBuilder';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SOAPBuilderPage() {
-  const { patients, refetch } = usePatients();
+  const { patients, loadPatients } = usePatientContext();
   const { toast } = useToast();
 
   const handleSave = async (data: any) => {
-    // The SOAPBuilder component already handles saving
+    // The SOAPBuilder component already handles saving via context
     // This callback is for additional actions if needed
-    await refetch(); // Refresh patient list
+    await loadPatients(); // Refresh from context
   };
 
   return (
