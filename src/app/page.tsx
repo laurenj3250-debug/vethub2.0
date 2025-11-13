@@ -26,6 +26,7 @@ export default function VetHub() {
   const [patientType, setPatientType] = useState<'MRI' | 'Surgery' | 'Medical'>('MRI');
   const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [patientSortBy, setPatientSortBy] = useState<'name' | 'status' | 'type'>('name');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
   const [showTaskOverview, setShowTaskOverview] = useState(false);
   const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task' | 'general'>('by-patient');
@@ -1251,9 +1252,18 @@ export default function VetHub() {
     autoCreateDailyTasks();
   }, [patients.length]); // Run when patients are loaded
 
-  const filteredPatients = patients.filter(p =>
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredPatients = patients
+    .filter(p => p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (patientSortBy === 'name') {
+        return (a.name || '').localeCompare(b.name || '');
+      } else if (patientSortBy === 'status') {
+        return (a.status || '').localeCompare(b.status || '');
+      } else if (patientSortBy === 'type') {
+        return (a.type || '').localeCompare(b.type || '');
+      }
+      return 0;
+    });
 
   const getSpeciesEmoji = (species?: string) => {
     if (!species) return '🐾';
@@ -2119,16 +2129,30 @@ export default function VetHub() {
           <span>Add Patient</span>
         </button>
 
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 Search patients..."
-            className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
-          />
+        {/* Search & Sort */}
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔍 Search patients..."
+              className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400 text-sm whitespace-nowrap">Sort by:</span>
+            <select
+              value={patientSortBy}
+              onChange={(e) => setPatientSortBy(e.target.value as 'name' | 'status' | 'type')}
+              className="px-4 py-4 rounded-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition cursor-pointer"
+            >
+              <option value="name">Name</option>
+              <option value="status">Status</option>
+              <option value="type">Type</option>
+            </select>
+          </div>
         </div>
 
         {/* Today's Date Banner */}
