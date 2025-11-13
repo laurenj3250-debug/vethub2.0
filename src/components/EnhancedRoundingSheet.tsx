@@ -6,6 +6,19 @@ import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type Neuro
 import { apiClient } from '@/lib/api-client';
 import { determineNeurolocalization } from '@/lib/ai-parser';
 
+// Helper to render markdown-style bold text (**text** -> <strong>text</strong>)
+const renderMarkdown = (text: string | null) => {
+  if (!text) return null;
+
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={idx} className="font-bold text-emerald-300">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+};
+
 interface Patient {
   id: number;
   name: string;
@@ -51,6 +64,32 @@ export function EnhancedRoundingSheet({
   const [autoPopulateMode, setAutoPopulateMode] = useState<'off' | 'suggest' | 'auto'>('suggest');
   const [neurolocalizationLoading, setNeurolocalizationLoading] = useState<number | null>(null);
   const [neurolocalizationResults, setNeurolocalizationResults] = useState<Record<number, string>>({});
+
+  // Snippet manager state
+  const [showSnippetManager, setShowSnippetManager] = useState(false);
+  const [customSnippets, setCustomSnippets] = useState<any>({
+    therapeutics: [],
+    diagnostics: [],
+    concerns: [],
+  });
+
+  // Load custom snippets from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('custom_snippets');
+    if (stored) {
+      try {
+        setCustomSnippets(JSON.parse(stored));
+      } catch (e) {
+        console.error('Failed to load custom snippets', e);
+      }
+    }
+  }, []);
+
+  // Save custom snippets to localStorage
+  const saveCustomSnippets = useCallback((snippets: any) => {
+    setCustomSnippets(snippets);
+    localStorage.setItem('custom_snippets', JSON.stringify(snippets));
+  }, []);
 
   // Custom templates management
   const [customTemplates, setCustomTemplates] = useState<NeuroProtocol[]>([]);
@@ -275,21 +314,29 @@ export function EnhancedRoundingSheet({
 
     try {
       const rounding = patient.rounding_data || {};
+
+      // Clean function to remove tabs and newlines from field values
+      const cleanField = (value: string | null | undefined) => {
+        if (!value) return '';
+        // Replace tabs with spaces, replace newlines with spaces to prevent cell splitting
+        return String(value).replace(/\t/g, ' ').replace(/\n/g, ' ');
+      };
+
       const line = [
-        patient.name,
-        rounding.signalment || '',
-        rounding.location || '',
-        rounding.icuCriteria || '',
-        rounding.code || '',
-        rounding.problems || '',
-        rounding.diagnosticFindings || '',
-        rounding.therapeutics || '',
-        rounding.ivc || '',
-        rounding.fluids || '',
-        rounding.cri || '',
-        rounding.overnightDx || '',
-        rounding.concerns || '',
-        rounding.comments || ''
+        cleanField(patient.name),
+        cleanField(rounding.signalment),
+        cleanField(rounding.location),
+        cleanField(rounding.icuCriteria),
+        cleanField(rounding.code),
+        cleanField(rounding.problems),
+        cleanField(rounding.diagnosticFindings),
+        cleanField(rounding.therapeutics),
+        cleanField(rounding.ivc),
+        cleanField(rounding.fluids),
+        cleanField(rounding.cri),
+        cleanField(rounding.overnightDx),
+        cleanField(rounding.concerns),
+        cleanField(rounding.comments)
       ].join('\t');
 
       navigator.clipboard.writeText(line);
@@ -308,33 +355,46 @@ export function EnhancedRoundingSheet({
   const handleExportRoundingSheets = useCallback((format: string) => {
     const activePatients = patients.filter(p => p.status !== 'Discharged');
 
+    // Clean function to remove tabs, newlines, and commas from field values
+    const cleanField = (value: string | null | undefined, separator: string) => {
+      if (!value) return '';
+      let cleaned = String(value);
+      // Replace separator character with space to prevent cell splitting
+      if (separator === ',') {
+        cleaned = cleaned.replace(/,/g, ' ');
+      }
+      // Always replace tabs and newlines with spaces
+      return cleaned.replace(/\t/g, ' ').replace(/\n/g, ' ');
+    };
+
     const headers = [
       'Name', 'Signalment', 'Location', 'ICU', 'Code', 'Problems',
       'Diagnostics', 'Therapeutics', 'IVC', 'Fluids', 'CRI',
       'O/N Dx', 'Concerns', 'Comments'
     ];
 
+    const separator = format.includes('csv') ? ',' : '\t';
+
     const rows = activePatients.map(patient => {
       const r = patient.rounding_data || {};
       return [
-        patient.name,
-        r.signalment || '',
-        r.location || '',
-        r.icuCriteria || '',
-        r.code || '',
-        r.problems || '',
-        r.diagnosticFindings || '',
-        r.therapeutics || '',
-        r.ivc || '',
-        r.fluids || '',
-        r.cri || '',
-        r.overnightDx || '',
-        r.concerns || '',
-        r.comments || ''
+        cleanField(patient.name, separator),
+        cleanField(r.signalment, separator),
+        cleanField(r.location, separator),
+        cleanField(r.icuCriteria, separator),
+        cleanField(r.code, separator),
+        cleanField(r.problems, separator),
+        cleanField(r.diagnosticFindings, separator),
+        cleanField(r.therapeutics, separator),
+        cleanField(r.ivc, separator),
+        cleanField(r.fluids, separator),
+        cleanField(r.cri, separator),
+        cleanField(r.overnightDx, separator),
+        cleanField(r.concerns, separator),
+        cleanField(r.comments, separator)
       ];
     });
 
-    const separator = format.includes('csv') ? ',' : '\t';
     const includeHeaders = !format.includes('no-header');
 
     let output = '';
@@ -551,6 +611,15 @@ export function EnhancedRoundingSheet({
           >
             <CheckCircle2 className="w-4 h-4" />
             Batch ({selectedPatients.size})
+          </button>
+
+          {/* Manage Snippets button */}
+          <button
+            onClick={() => setShowSnippetManager(true)}
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white rounded-lg font-bold hover:scale-105 transition-all text-sm flex items-center gap-2 shadow-lg"
+          >
+            <Edit2 className="w-4 h-4" />
+            Manage Snippets
           </button>
 
           {/* Export menu */}
@@ -1314,6 +1383,162 @@ export function EnhancedRoundingSheet({
                   {editingTemplate ? 'Update Template' : 'Create Template'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Snippet Manager Modal */}
+      {showSnippetManager && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]" onClick={() => setShowSnippetManager(false)}>
+          <div className="bg-slate-800 border border-slate-600 rounded-xl shadow-2xl p-6 max-w-4xl w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-purple-400" />
+                Manage Snippets
+              </h3>
+              <button onClick={() => setShowSnippetManager(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="text-sm text-slate-400 mb-6">
+              Add your own custom snippets for quick insertion into rounding sheets. Snippets are saved locally in your browser.
+            </div>
+
+            <div className="space-y-6">
+              {/* Therapeutics Snippets */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-md font-bold text-green-400">Therapeutic Snippets</h4>
+                  <button
+                    onClick={() => {
+                      const text = prompt('Enter new therapeutic snippet:');
+                      if (text) {
+                        saveCustomSnippets({
+                          ...customSnippets,
+                          therapeutics: [...customSnippets.therapeutics, text]
+                        });
+                      }
+                    }}
+                    className="px-3 py-1 bg-green-600/20 hover:bg-green-600/40 border border-green-500/50 rounded text-xs flex items-center gap-1 text-green-300"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {customSnippets.therapeutics.map((snippet: string, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded group">
+                      <span className="flex-1 text-sm text-white">{snippet}</span>
+                      <button
+                        onClick={() => {
+                          const updated = customSnippets.therapeutics.filter((_: any, i: number) => i !== idx);
+                          saveCustomSnippets({ ...customSnippets, therapeutics: updated });
+                        }}
+                        className="p-1 text-slate-600 hover:text-red-400 rounded opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {customSnippets.therapeutics.length === 0 && (
+                    <div className="text-xs text-slate-500 italic p-2">No custom therapeutic snippets yet. Click "Add" to create one.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Diagnostic Snippets */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-md font-bold text-emerald-400">Diagnostic Snippets</h4>
+                  <button
+                    onClick={() => {
+                      const text = prompt('Enter new diagnostic snippet:');
+                      if (text) {
+                        saveCustomSnippets({
+                          ...customSnippets,
+                          diagnostics: [...customSnippets.diagnostics, text]
+                        });
+                      }
+                    }}
+                    className="px-3 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 border border-emerald-500/50 rounded text-xs flex items-center gap-1 text-emerald-300"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {customSnippets.diagnostics.map((snippet: string, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded group">
+                      <span className="flex-1 text-sm text-white">{snippet}</span>
+                      <button
+                        onClick={() => {
+                          const updated = customSnippets.diagnostics.filter((_: any, i: number) => i !== idx);
+                          saveCustomSnippets({ ...customSnippets, diagnostics: updated });
+                        }}
+                        className="p-1 text-slate-600 hover:text-red-400 rounded opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {customSnippets.diagnostics.length === 0 && (
+                    <div className="text-xs text-slate-500 italic p-2">No custom diagnostic snippets yet. Click "Add" to create one.</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Concern Snippets */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-md font-bold text-rose-400">Concern Snippets</h4>
+                  <button
+                    onClick={() => {
+                      const text = prompt('Enter new concern snippet:');
+                      if (text) {
+                        saveCustomSnippets({
+                          ...customSnippets,
+                          concerns: [...customSnippets.concerns, text]
+                        });
+                      }
+                    }}
+                    className="px-3 py-1 bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/50 rounded text-xs flex items-center gap-1 text-rose-300"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  {customSnippets.concerns.map((snippet: string, idx: number) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-slate-900/50 rounded group">
+                      <span className="flex-1 text-sm text-white">{snippet}</span>
+                      <button
+                        onClick={() => {
+                          const updated = customSnippets.concerns.filter((_: any, i: number) => i !== idx);
+                          saveCustomSnippets({ ...customSnippets, concerns: updated });
+                        }}
+                        className="p-1 text-slate-600 hover:text-red-400 rounded opacity-0 group-hover:opacity-100 transition"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {customSnippets.concerns.length === 0 && (
+                    <div className="text-xs text-slate-500 italic p-2">No custom concern snippets yet. Click "Add" to create one.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-700">
+              <button
+                onClick={() => setShowSnippetManager(false)}
+                className="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white rounded-lg font-bold transition flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Done
+              </button>
             </div>
           </div>
         </div>
