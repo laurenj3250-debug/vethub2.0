@@ -45,6 +45,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   console.log('[RoundingSheet] Active patients:', activePatients.length, activePatients);
 
+  // Log the full structure of the first patient to see what fields are available
+  if (activePatients.length > 0) {
+    console.log('[RoundingSheet] First patient full structure:', JSON.stringify(activePatients[0], null, 2));
+  }
+
   // Initialize editing data from patient rounding data
   const getPatientData = (patientId: number): RoundingData => {
     if (editingData[patientId]) return editingData[patientId];
