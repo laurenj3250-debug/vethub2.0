@@ -269,22 +269,27 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.location || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'location')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    >
+                      <option value=""></option>
+                      <option value="IP">IP</option>
+                      <option value="ICU">ICU</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.icuCriteria || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'icuCriteria')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    >
+                      <option value=""></option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                      <option value="n/a">n/a</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <select
