@@ -166,8 +166,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
+      const patientName = patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
       return [
-        patient.name,
+        patientName,
         data.signalment || '',
         data.location || '',
         data.icuCriteria || '',
@@ -249,6 +250,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
               console.log('[RoundingSheet] Rendering patient:', patient.id, patient.name, patient);
 
+              // Get patient name from either patient.name or patient_info.name
+              const patientName = patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+
               return (
                 <tr key={patient.id} className={`border-b border-slate-700 ${hasChanges ? 'bg-emerald-900/20' : ''}`}>
                   <td className="p-2 border border-slate-600 sticky left-0 bg-slate-800 z-10">
@@ -257,7 +261,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       className="group flex items-center gap-2 hover:text-emerald-400 transition"
                     >
                       <div>
-                        <div className="font-medium text-white group-hover:text-emerald-400">{patient.name}</div>
+                        <div className="font-medium text-white group-hover:text-emerald-400">{patientName}</div>
                         <div className="text-xs text-slate-400">
                           {patient.patient_info?.age} {patient.patient_info?.breed}
                         </div>
