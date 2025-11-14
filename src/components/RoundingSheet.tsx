@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Save, Copy, Download } from 'lucide-react';
+import { Save, Copy, ExternalLink } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import Link from 'next/link';
 
 interface Patient {
   id: number;
@@ -245,10 +246,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               return (
                 <tr key={patient.id} className={`border-b border-slate-700 ${hasChanges ? 'bg-emerald-900/20' : ''}`}>
                   <td className="p-2 border border-slate-600 sticky left-0 bg-slate-800 z-10">
-                    <div className="font-medium text-white">{patient.name}</div>
-                    <div className="text-xs text-slate-400">
-                      {patient.patient_info?.age} {patient.patient_info?.breed}
-                    </div>
+                    <Link
+                      href={`/?patient=${patient.id}`}
+                      className="group flex items-center gap-2 hover:text-emerald-400 transition"
+                    >
+                      <div>
+                        <div className="font-medium text-white group-hover:text-emerald-400">{patient.name}</div>
+                        <div className="text-xs text-slate-400">
+                          {patient.patient_info?.age} {patient.patient_info?.breed}
+                        </div>
+                      </div>
+                      <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-emerald-400" />
+                    </Link>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <input
@@ -278,13 +287,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.codeStatus || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'codeStatus', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'codeStatus')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    >
+                      <option value="">Select...</option>
+                      <option value="Green">Green</option>
+                      <option value="Yellow">Yellow</option>
+                      <option value="Orange">Orange</option>
+                      <option value="Red">Red</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <textarea
@@ -314,31 +327,37 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.rotatingIVC || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'rotatingIVC', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'rotatingIVC')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    >
+                      <option value=""></option>
+                      <option value="Yes">Yes</option>
+                      <option value="n/a">n/a</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.recordLabels || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'recordLabels', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'recordLabels')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    >
+                      <option value=""></option>
+                      <option value="Yes">Yes</option>
+                      <option value="n/a">n/a</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.rotatingCRI || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'rotatingCRI', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'rotatingCRI')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    >
+                      <option value=""></option>
+                      <option value="Yes">Yes</option>
+                      <option value="n/a">n/a</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <textarea
