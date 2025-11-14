@@ -500,9 +500,9 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value: PatientContextValue = {
-    patients: mounted ? patients : [],
+    patients,
     selectedPatientId,
-    isLoading: !mounted || isLoading,
+    isLoading,
     error,
     loadPatients,
     selectPatient,

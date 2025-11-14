@@ -83,6 +83,9 @@ export function usePatients() {
   useEffect(() => {
     fetchPatients(true); // Show loading on initial fetch
 
+    // Only set up polling on client side
+    if (typeof window === 'undefined') return;
+
     // Poll for updates every 2 minutes, but only when page is visible
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
@@ -128,6 +131,9 @@ export function useGeneralTasks() {
 
   useEffect(() => {
     fetchTasks();
+
+    // Only set up polling on client side
+    if (typeof window === 'undefined') return;
 
     // Poll for updates every 2 minutes, but only when page is visible
     const interval = setInterval(() => {
@@ -179,6 +185,9 @@ export function useCommonItems() {
 
   useEffect(() => {
     fetchAll();
+
+    // Only set up polling on client side
+    if (typeof window === 'undefined') return;
 
     // Poll for updates every 2 minutes, but only when page is visible
     const interval = setInterval(() => {
