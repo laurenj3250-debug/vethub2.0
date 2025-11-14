@@ -204,13 +204,11 @@ const PatientContext = createContext<PatientContextValue | undefined>(undefined)
 // ============================================================================
 
 export function PatientProvider({ children }: { children: React.ReactNode }) {
-  console.log('[PatientProvider] Initializing...');
   const [mounted, setMounted] = useState(false);
   const [patients, setPatients] = useState<UnifiedPatient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  console.log('[PatientProvider] State initialized, mounted:', mounted, 'isLoading:', isLoading);
 
   // Load patients from API and transform to unified model
   const loadPatients = useCallback(async () => {
@@ -315,13 +313,8 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
 
   // Initial load
   useEffect(() => {
-    console.log('[PatientProvider] useEffect mounting...');
     setMounted(true);
-    loadPatients().then(() => {
-      console.log('[PatientProvider] Initial loadPatients complete');
-    }).catch((err) => {
-      console.error('[PatientProvider] Initial loadPatients error:', err);
-    });
+    loadPatients();
   }, [loadPatients]);
 
   // Select patient

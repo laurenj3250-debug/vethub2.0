@@ -160,7 +160,6 @@ export function useGeneralTasks() {
 }
 
 export function useCommonItems() {
-  console.log('[useCommonItems] Hook initializing...');
   const [problems, setProblems] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [medications, setMedications] = useState<any[]>([]);
@@ -168,34 +167,27 @@ export function useCommonItems() {
 
   const fetchAll = async () => {
     try {
-      console.log('[useCommonItems] fetchAll starting...');
       setIsLoading(true);
       const [p, c, m] = await Promise.all([
         apiClient.getCommonProblems(),
         apiClient.getCommonComments(),
         apiClient.getCommonMedications(),
       ]);
-      console.log('[useCommonItems] fetchAll received:', { problems: p.length, comments: c.length, medications: m.length });
       setProblems(p);
       setComments(c);
       setMedications(m);
     } catch (err) {
-      console.error('[useCommonItems] Fetch common items error:', err);
+      console.error('Fetch common items error:', err);
     } finally {
       setIsLoading(false);
-      console.log('[useCommonItems] fetchAll complete');
     }
   };
 
   useEffect(() => {
-    console.log('[useCommonItems] useEffect mounting, window available:', typeof window !== 'undefined');
     fetchAll();
 
     // Only set up polling on client side
-    if (typeof window === 'undefined') {
-      console.log('[useCommonItems] SSR detected, skipping polling setup');
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
     // Poll for updates every 2 minutes, but only when page is visible
     const interval = setInterval(() => {
