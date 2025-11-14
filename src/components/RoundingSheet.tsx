@@ -54,7 +54,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const getPatientData = (patientId: number): RoundingData => {
     if (editingData[patientId]) return editingData[patientId];
     const patient = patients.find(p => p.id === patientId);
-    return patient?.rounding_data || {};
+    // API returns roundingData (camelCase), not rounding_data (snake_case)
+    return (patient as any)?.roundingData || patient?.rounding_data || {};
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
@@ -171,7 +172,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
-      const patientName = patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+      const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
       return [
         patientName,
         data.signalment || '',
@@ -255,8 +256,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
               console.log('[RoundingSheet] Rendering patient:', patient.id, patient.name, patient);
 
-              // Get patient name from either patient.name or patient_info.name
-              const patientName = patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+              // API returns demographics.name, not patient.name or patient_info.name
+              const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
 
               return (
                 <tr key={patient.id} className={`border-b border-slate-700 ${hasChanges ? 'bg-emerald-900/20' : ''}`}>
@@ -268,7 +269,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       <div>
                         <div className="font-medium text-white group-hover:text-emerald-400">{patientName}</div>
                         <div className="text-xs text-slate-400">
-                          {patient.patient_info?.age} {patient.patient_info?.breed}
+                          {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
                         </div>
                       </div>
                       <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-emerald-400" />
