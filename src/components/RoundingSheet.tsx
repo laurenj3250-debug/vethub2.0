@@ -247,6 +247,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               const data = getPatientData(patient.id);
               const hasChanges = editingData[patient.id] !== undefined;
 
+              console.log('[RoundingSheet] Rendering patient:', patient.id, patient.name, patient);
+
               return (
                 <tr key={patient.id} className={`border-b border-slate-700 ${hasChanges ? 'bg-emerald-900/20' : ''}`}>
                   <td className="p-2 border border-slate-600 sticky left-0 bg-slate-800 z-10">
