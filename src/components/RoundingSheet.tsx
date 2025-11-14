@@ -1,0 +1,393 @@
+'use client';
+
+import React, { useState, useCallback } from 'react';
+import { Save, Copy, Download } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
+
+interface Patient {
+  id: number;
+  name: string;
+  status: string;
+  rounding_data?: RoundingData;
+  patient_info?: any;
+}
+
+interface RoundingData {
+  signalment?: string;
+  location?: string;
+  icuCriteria?: string;
+  codeStatus?: string;
+  problems?: string;
+  diagnosticFindings?: string;
+  therapeutics?: string;
+  rotatingIVC?: string;
+  recordLabels?: string;
+  rotatingCRI?: string;
+  overnightDx?: string;
+  concernsComments?: string;
+  comments?: string;
+}
+
+interface RoundingSheetProps {
+  patients: Patient[];
+  toast: (options: any) => void;
+  onPatientUpdate?: () => void;
+}
+
+export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
+  const [editingData, setEditingData] = useState<Record<number, RoundingData>>({});
+  const [isSaving, setIsSaving] = useState(false);
+
+  const activePatients = patients.filter(p => p.status !== 'Discharged');
+
+  // Initialize editing data from patient rounding data
+  const getPatientData = (patientId: number): RoundingData => {
+    if (editingData[patientId]) return editingData[patientId];
+    const patient = patients.find(p => p.id === patientId);
+    return patient?.rounding_data || {};
+  };
+
+  const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
+    setEditingData(prev => ({
+      ...prev,
+      [patientId]: {
+        ...getPatientData(patientId),
+        [field]: value
+      }
+    }));
+  };
+
+  const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text');
+    const rows = pasteData.split('\n');
+
+    // Field order matching Google Sheets columns
+    const fieldOrder: (keyof RoundingData)[] = [
+      'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems',
+      'diagnosticFindings', 'therapeutics', 'rotatingIVC', 'recordLabels',
+      'rotatingCRI', 'overnightDx', 'concernsComments', 'comments'
+    ];
+
+    const startIndex = fieldOrder.indexOf(startField);
+    if (startIndex === -1) return;
+
+    // Parse first row (tab-separated values)
+    const values = rows[0].split('\t');
+    const updates: Partial<RoundingData> = {};
+
+    values.forEach((value, index) => {
+      const fieldIndex = startIndex + index;
+      if (fieldIndex < fieldOrder.length) {
+        const field = fieldOrder[fieldIndex];
+        updates[field] = value.trim();
+      }
+    });
+
+    setEditingData(prev => ({
+      ...prev,
+      [patientId]: {
+        ...getPatientData(patientId),
+        ...updates
+      }
+    }));
+
+    toast({
+      title: 'Pasted',
+      description: `Pasted ${values.length} cells`
+    });
+  }, [toast]);
+
+  const handleSave = async (patientId: number) => {
+    try {
+      setIsSaving(true);
+      const updates = editingData[patientId];
+      if (!updates) return;
+
+      await apiClient.updatePatient(String(patientId), {
+        rounding_data: updates
+      });
+
+      toast({
+        title: 'Saved',
+        description: 'Rounding data saved successfully'
+      });
+
+      onPatientUpdate?.();
+    } catch (error) {
+      console.error('Failed to save:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save rounding data',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      setIsSaving(true);
+      const promises = Object.entries(editingData).map(([patientId, data]) =>
+        apiClient.updatePatient(patientId, { rounding_data: data })
+      );
+
+      await Promise.all(promises);
+
+      toast({
+        title: 'Saved All',
+        description: `Saved ${promises.length} patients`
+      });
+
+      onPatientUpdate?.();
+      setEditingData({});
+    } catch (error) {
+      console.error('Failed to save all:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save some patients',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const exportToTSV = () => {
+    const headers = ['Patient', 'Signalment', 'Location', 'ICU Criteria', 'Code Status', 'Problems',
+                    'Diagnostic Findings', 'Therapeutics', 'IVC', 'Record Labels', 'CRI',
+                    'Overnight Dx', 'Concerns/Comments', 'Additional Comments'];
+
+    const rows = activePatients.map(patient => {
+      const data = getPatientData(patient.id);
+      return [
+        patient.name,
+        data.signalment || '',
+        data.location || '',
+        data.icuCriteria || '',
+        data.codeStatus || '',
+        data.problems || '',
+        data.diagnosticFindings || '',
+        data.therapeutics || '',
+        data.rotatingIVC || '',
+        data.recordLabels || '',
+        data.rotatingCRI || '',
+        data.overnightDx || '',
+        data.concernsComments || '',
+        data.comments || ''
+      ].join('\t');
+    });
+
+    const tsv = [headers.join('\t'), ...rows].join('\n');
+    navigator.clipboard.writeText(tsv);
+
+    toast({
+      title: 'Copied to Clipboard',
+      description: 'Rounding sheet copied as TSV (paste into Google Sheets)'
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header Actions */}
+      <div className="flex items-center justify-between bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div className="text-white">
+          <h2 className="text-xl font-bold">Rounding Sheet</h2>
+          <p className="text-sm text-slate-400">{activePatients.length} active patients</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={exportToTSV}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center gap-2"
+          >
+            <Copy size={16} />
+            Copy to Clipboard
+          </button>
+          <button
+            onClick={handleSaveAll}
+            disabled={isSaving || Object.keys(editingData).length === 0}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Save size={16} />
+            Save All {Object.keys(editingData).length > 0 && `(${Object.keys(editingData).length})`}
+          </button>
+        </div>
+      </div>
+
+      {/* Rounding Sheet Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse bg-slate-800 rounded-lg overflow-hidden">
+          <thead>
+            <tr className="bg-slate-700 text-white text-xs">
+              <th className="p-2 text-left border border-slate-600 sticky left-0 bg-slate-700 z-10 min-w-[120px]">Patient</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Signalment</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[100px]">Location</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[100px]">ICU Criteria</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[100px]">Code Status</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Problems</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Relevant Diagnostic Findings</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Current therapeutics</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[80px]">Rotating IVC (y/n)</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[80px]">Record labels (y/n)</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[80px]">Rotating CRI (y/n)</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Overnight diagnostics</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Overnight concerns/alerts</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Additional Comments</th>
+              <th className="p-2 text-center border border-slate-600 sticky right-0 bg-slate-700 z-10 min-w-[80px]">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {activePatients.map(patient => {
+              const data = getPatientData(patient.id);
+              const hasChanges = editingData[patient.id] !== undefined;
+
+              return (
+                <tr key={patient.id} className={`border-b border-slate-700 ${hasChanges ? 'bg-emerald-900/20' : ''}`}>
+                  <td className="p-2 border border-slate-600 sticky left-0 bg-slate-800 z-10">
+                    <div className="font-medium text-white">{patient.name}</div>
+                    <div className="text-xs text-slate-400">
+                      {patient.patient_info?.age} {patient.patient_info?.breed}
+                    </div>
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.signalment || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'signalment')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.location || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'location')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.icuCriteria || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'icuCriteria')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.codeStatus || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'codeStatus', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'codeStatus')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <textarea
+                      value={data.problems || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'problems', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'problems')}
+                      rows={2}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <textarea
+                      value={data.diagnosticFindings || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'diagnosticFindings', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
+                      rows={2}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <textarea
+                      value={data.therapeutics || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'therapeutics', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
+                      rows={2}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.rotatingIVC || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'rotatingIVC', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'rotatingIVC')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.recordLabels || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'recordLabels', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'recordLabels')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <input
+                      type="text"
+                      value={data.rotatingCRI || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'rotatingCRI', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'rotatingCRI')}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <textarea
+                      value={data.overnightDx || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'overnightDx', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'overnightDx')}
+                      rows={2}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <textarea
+                      value={data.concernsComments || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'concernsComments', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'concernsComments')}
+                      rows={2}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </td>
+                  <td className="p-1 border border-slate-600">
+                    <textarea
+                      value={data.comments || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'comments', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'comments')}
+                      rows={2}
+                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                    />
+                  </td>
+                  <td className="p-2 border border-slate-600 text-center sticky right-0 bg-slate-800 z-10">
+                    <button
+                      onClick={() => handleSave(patient.id)}
+                      disabled={!hasChanges || isSaving}
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Save
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {activePatients.length === 0 && (
+        <div className="text-center text-slate-400 py-8">
+          No active patients to display
+        </div>
+      )}
+    </div>
+  );
+}

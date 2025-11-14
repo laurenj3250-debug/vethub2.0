@@ -8,8 +8,8 @@ import { usePatientContext } from '@/contexts/PatientContext';
 import { useCommonItems } from '@/hooks/use-api';
 import { useToast } from '@/hooks/use-toast';
 
-// Use SimpleRoundingSheet instead of the 1800-line EnhancedRoundingSheet that causes webpack TDZ errors
-const SimpleRoundingSheet = dynamic(() => import('@/components/SimpleRoundingSheet').then(mod => ({ default: mod.SimpleRoundingSheet })), {
+// Use new RoundingSheet that matches Google Sheets layout
+const RoundingSheet = dynamic(() => import('@/components/RoundingSheet').then(mod => ({ default: mod.RoundingSheet })), {
   ssr: false,
   loading: () => <div className="text-white p-4">Loading rounding sheet...</div>
 });
@@ -60,13 +60,9 @@ export function RoundingPageClient() {
         </header>
 
         <main className="max-w-[98%] mx-auto px-4 py-8">
-          <SimpleRoundingSheet
+          <RoundingSheet
             patients={patients}
-            commonMedications={commonMedications}
             toast={toast}
-            onPatientClick={(id) => {
-              console.log('Patient clicked:', id);
-            }}
             onPatientUpdate={loadPatients}
           />
         </main>
