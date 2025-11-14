@@ -17,15 +17,15 @@ interface RoundingData {
   signalment?: string;
   location?: string;
   icuCriteria?: string;
-  codeStatus?: string;
+  code?: string;  // matches modal field name
   problems?: string;
   diagnosticFindings?: string;
   therapeutics?: string;
-  rotatingIVC?: string;
-  recordLabels?: string;
-  rotatingCRI?: string;
+  ivc?: string;  // matches modal field name
+  fluids?: string;  // matches modal field name
+  cri?: string;  // matches modal field name
   overnightDx?: string;
-  concernsComments?: string;
+  concerns?: string;  // matches modal field name
   comments?: string;
 }
 
@@ -74,9 +74,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     // Field order matching Google Sheets columns
     const fieldOrder: (keyof RoundingData)[] = [
-      'signalment', 'location', 'icuCriteria', 'codeStatus', 'problems',
-      'diagnosticFindings', 'therapeutics', 'rotatingIVC', 'recordLabels',
-      'rotatingCRI', 'overnightDx', 'concernsComments', 'comments'
+      'signalment', 'location', 'icuCriteria', 'code', 'problems',
+      'diagnosticFindings', 'therapeutics', 'ivc', 'fluids',
+      'cri', 'overnightDx', 'concerns', 'comments'
     ];
 
     const startIndex = fieldOrder.indexOf(startField);
@@ -166,8 +166,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   const exportToTSV = () => {
     const headers = ['Patient', 'Signalment', 'Location', 'ICU Criteria', 'Code Status', 'Problems',
-                    'Diagnostic Findings', 'Therapeutics', 'IVC', 'Record Labels', 'CRI',
-                    'Overnight Dx', 'Concerns/Comments', 'Additional Comments'];
+                    'Diagnostic Findings', 'Therapeutics', 'IVC', 'Fluids', 'CRI',
+                    'Overnight Dx', 'Concerns', 'Additional Comments'];
 
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
@@ -177,15 +177,15 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         data.signalment || '',
         data.location || '',
         data.icuCriteria || '',
-        data.codeStatus || '',
+        data.code || '',
         data.problems || '',
         data.diagnosticFindings || '',
         data.therapeutics || '',
-        data.rotatingIVC || '',
-        data.recordLabels || '',
-        data.rotatingCRI || '',
+        data.ivc || '',
+        data.fluids || '',
+        data.cri || '',
         data.overnightDx || '',
-        data.concernsComments || '',
+        data.concerns || '',
         data.comments || ''
       ].join('\t');
     });
@@ -237,13 +237,13 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               <th className="p-2 text-left border border-slate-600 min-w-[100px]">ICU Criteria</th>
               <th className="p-2 text-left border border-slate-600 min-w-[100px]">Code Status</th>
               <th className="p-2 text-left border border-slate-600 min-w-[200px]">Problems</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Relevant Diagnostic Findings</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Current therapeutics</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[80px]">Rotating IVC (y/n)</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[80px]">Record labels (y/n)</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[80px]">Rotating CRI (y/n)</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Overnight diagnostics</th>
-              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Overnight concerns/alerts</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Diagnostic Findings</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[200px]">Therapeutics</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[80px]">IVC</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[100px]">Fluids</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[100px]">CRI</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Overnight Dx</th>
+              <th className="p-2 text-left border border-slate-600 min-w-[150px]">Concerns</th>
               <th className="p-2 text-left border border-slate-600 min-w-[200px]">Additional Comments</th>
               <th className="p-2 text-center border border-slate-600 sticky right-0 bg-slate-700 z-10 min-w-[80px]">Actions</th>
             </tr>
@@ -308,8 +308,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                   </td>
                   <td className="p-1 border border-slate-600">
                     <select
-                      value={data.codeStatus || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'codeStatus', e.target.value)}
+                      value={data.code || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value="">Select...</option>
@@ -348,36 +348,34 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                   </td>
                   <td className="p-1 border border-slate-600">
                     <select
-                      value={data.rotatingIVC || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'rotatingIVC', e.target.value)}
+                      value={data.ivc || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'ivc', e.target.value)}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value=""></option>
                       <option value="Yes">Yes</option>
-                      <option value="n/a">n/a</option>
+                      <option value="No">No</option>
                     </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <select
-                      value={data.recordLabels || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'recordLabels', e.target.value)}
+                    <input
+                      type="text"
+                      value={data.fluids || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'fluids', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'fluids')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value=""></option>
-                      <option value="Yes">Yes</option>
-                      <option value="n/a">n/a</option>
-                    </select>
+                      placeholder="No or rate"
+                    />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <select
-                      value={data.rotatingCRI || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'rotatingCRI', e.target.value)}
+                    <input
+                      type="text"
+                      value={data.cri || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'cri', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'cri')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value=""></option>
-                      <option value="Yes">Yes</option>
-                      <option value="n/a">n/a</option>
-                    </select>
+                      placeholder="No or details"
+                    />
                   </td>
                   <td className="p-1 border border-slate-600">
                     <textarea
@@ -390,9 +388,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                   </td>
                   <td className="p-1 border border-slate-600">
                     <textarea
-                      value={data.concernsComments || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'concernsComments', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'concernsComments')}
+                      value={data.concerns || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'concerns', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'concerns')}
                       rows={2}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
