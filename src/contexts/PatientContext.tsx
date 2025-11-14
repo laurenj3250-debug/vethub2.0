@@ -204,6 +204,7 @@ const PatientContext = createContext<PatientContextValue | undefined>(undefined)
 // ============================================================================
 
 export function PatientProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const [patients, setPatients] = useState<UnifiedPatient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -312,6 +313,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
 
   // Initial load
   useEffect(() => {
+    setMounted(true);
     loadPatients();
   }, [loadPatients]);
 
@@ -498,9 +500,9 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value: PatientContextValue = {
-    patients,
+    patients: mounted ? patients : [],
     selectedPatientId,
-    isLoading,
+    isLoading: !mounted || isLoading,
     error,
     loadPatients,
     selectPatient,
