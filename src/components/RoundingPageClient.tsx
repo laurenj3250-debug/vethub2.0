@@ -24,6 +24,8 @@ export function RoundingPageClient() {
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
+  console.log('[RoundingPageClient] Patients from context:', patients?.length, patients);
+
   useEffect(() => {
     setMounted(true);
   }, []);

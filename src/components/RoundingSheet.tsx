@@ -39,7 +39,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const [editingData, setEditingData] = useState<Record<number, RoundingData>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  console.log('[RoundingSheet] Received patients:', patients?.length, patients);
+
   const activePatients = patients.filter(p => p.status !== 'Discharged');
+
+  console.log('[RoundingSheet] Active patients:', activePatients.length, activePatients);
 
   // Initialize editing data from patient rounding data
   const getPatientData = (patientId: number): RoundingData => {
