@@ -8,8 +8,8 @@ import { usePatientContext } from '@/contexts/PatientContext';
 import { useCommonItems } from '@/hooks/use-api';
 import { useToast } from '@/hooks/use-toast';
 
-// Dynamically import the heavy component to avoid initialization issues
-const EnhancedRoundingSheet = dynamic(() => import('@/components/EnhancedRoundingSheet').then(mod => ({ default: mod.EnhancedRoundingSheet })), {
+// Use SimpleRoundingSheet instead of the 1800-line EnhancedRoundingSheet that causes webpack TDZ errors
+const SimpleRoundingSheet = dynamic(() => import('@/components/SimpleRoundingSheet').then(mod => ({ default: mod.SimpleRoundingSheet })), {
   ssr: false,
   loading: () => <div className="text-white p-4">Loading rounding sheet...</div>
 });
@@ -68,7 +68,7 @@ export function RoundingPageClient() {
         </header>
 
         <main className="max-w-[98%] mx-auto px-4 py-8">
-          <EnhancedRoundingSheet
+          <SimpleRoundingSheet
             patients={patients}
             commonMedications={commonMedications}
             toast={toast}
