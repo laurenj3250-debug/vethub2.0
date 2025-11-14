@@ -1,13 +1,22 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { usePatientContext } from '@/contexts/PatientContext';
 import { useCommonItems } from '@/hooks/use-api';
-import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 import { useToast } from '@/hooks/use-toast';
-import { GlobalKeyboardHandler } from '@/components/GlobalKeyboardHandler';
-import { useEffect, useState } from 'react';
+
+// Dynamically import the heavy component to avoid initialization issues
+const EnhancedRoundingSheet = dynamic(() => import('@/components/EnhancedRoundingSheet').then(mod => ({ default: mod.EnhancedRoundingSheet })), {
+  ssr: false,
+  loading: () => <div className="text-white p-4">Loading rounding sheet...</div>
+});
+
+const GlobalKeyboardHandler = dynamic(() => import('@/components/GlobalKeyboardHandler').then(mod => ({ default: mod.GlobalKeyboardHandler })), {
+  ssr: false
+});
 
 export function RoundingPageClient() {
   console.log('[RoundingPageClient] Component rendering...');
