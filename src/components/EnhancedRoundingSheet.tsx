@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain } from 'lucide-react';
-import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
+// TEMPORARILY COMMENTED OUT TO DEBUG - import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
+import type { NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
 
 // Helper to render markdown-style bold text (**text** -> <strong>text</strong>)
