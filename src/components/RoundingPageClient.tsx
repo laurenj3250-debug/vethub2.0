@@ -7,11 +7,25 @@ import { useCommonItems } from '@/hooks/use-api';
 import { EnhancedRoundingSheet } from '@/components/EnhancedRoundingSheet';
 import { useToast } from '@/hooks/use-toast';
 import { GlobalKeyboardHandler } from '@/components/GlobalKeyboardHandler';
+import { useEffect, useState } from 'react';
 
 export function RoundingPageClient() {
+  const [mounted, setMounted] = useState(false);
   const { patients, loadPatients } = usePatientContext();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
+        <div className="text-emerald-400 text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <>
