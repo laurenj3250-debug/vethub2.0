@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, lazy, useEffect, useState } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Lazy load the client component to avoid circular dependency
 const RoundingPageClient = lazy(() => import('@/components/RoundingPageClient').then(mod => ({ default: mod.RoundingPageClient })));
@@ -21,13 +22,15 @@ export default function RoundingPage() {
   }
 
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
-        <div className="text-emerald-400 text-xl">Loading...</div>
-      </div>
-    }>
-      <RoundingPageClient />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
+          <div className="text-emerald-400 text-xl">Loading...</div>
+        </div>
+      }>
+        <RoundingPageClient />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

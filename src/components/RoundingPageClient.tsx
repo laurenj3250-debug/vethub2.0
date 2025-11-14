@@ -10,14 +10,22 @@ import { GlobalKeyboardHandler } from '@/components/GlobalKeyboardHandler';
 import { useEffect, useState } from 'react';
 
 export function RoundingPageClient() {
+  console.log('[RoundingPageClient] Component rendering...');
   const [mounted, setMounted] = useState(false);
+  console.log('[RoundingPageClient] About to call usePatientContext...');
   const { patients, loadPatients } = usePatientContext();
+  console.log('[RoundingPageClient] usePatientContext returned, patients:', patients.length);
+  console.log('[RoundingPageClient] About to call useCommonItems...');
   const { medications: commonMedications } = useCommonItems();
+  console.log('[RoundingPageClient] useCommonItems returned, medications:', commonMedications.length);
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log('[RoundingPageClient] useEffect mounting...');
     setMounted(true);
   }, []);
+
+  console.log('[RoundingPageClient] Render state - mounted:', mounted, 'patients:', patients.length);
 
   if (!mounted) {
     return (
