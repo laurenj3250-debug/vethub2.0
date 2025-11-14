@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-const { useState, useCallback, useEffect, useRef, useMemo } = React;
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain } from 'lucide-react';
 // TEMPORARILY COMMENTED OUT TO DEBUG - import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import type { NeuroProtocol } from '@/lib/neuro-protocols';
