@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://vethub20-production.up.railway.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://empathetic-clarity-production.up.railway.app';
 
 class ApiClient {
   private getToken(): string | null {

@@ -474,7 +474,10 @@ export default function VetHub() {
         ? ['Surgery Slip', 'Written on Board', 'Print 4 Large Stickers', 'Print 2 Sheets Small Stickers', 'Print Surgery Sheet', 'Clear Daily']
         : ['Admission SOAP', 'Treatment Sheet Created'];
 
-      const allTasks = [...morningTasks, ...eveningTasks, ...typeTasks];
+      // MRI patients don't get morning tasks
+      const allTasks = patientType === 'MRI'
+        ? [...eveningTasks, ...typeTasks]
+        : [...morningTasks, ...eveningTasks, ...typeTasks];
 
       const patientData = {
         name: fullName,
@@ -495,7 +498,7 @@ export default function VetHub() {
           signalment: [parsed.age, parsed.sex, parsed.breed].filter(Boolean).join(' '),
           problems: parsed.problem || '',
           diagnosticFindings: parsed.bloodwork ? `CBC/CHEM: ${parsed.bloodwork}` : '',
-          therapeutics: parsed.medications?.join('\\n') || '',
+          therapeutics: parsed.medications?.join('\n') || '',
           plan: parsed.plan || '',
         },
         mri_data: {},

@@ -200,6 +200,38 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     });
   };
 
+  const copyPatientRow = (patientId: number) => {
+    const patient = activePatients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    const data = getPatientData(patientId);
+    const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+
+    const row = [
+      patientName,
+      data.signalment || '',
+      data.location || '',
+      data.icuCriteria || '',
+      data.code || '',
+      data.problems || '',
+      data.diagnosticFindings || '',
+      data.therapeutics || '',
+      data.ivc || '',
+      data.fluids || '',
+      data.cri || '',
+      data.overnightDx || '',
+      data.concerns || '',
+      data.comments || ''
+    ].join('\t');
+
+    navigator.clipboard.writeText(row);
+
+    toast({
+      title: 'Patient Row Copied',
+      description: `${patientName}'s data copied to clipboard`
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Actions */}
@@ -371,14 +403,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
+                    <select
                       value={data.cri || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'cri', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'cri')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      placeholder="No or details"
-                    />
+                    >
+                      <option value=""></option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                      <option value="No but...">No but...</option>
+                      <option value="Yet but...">Yet but...</option>
+                    </select>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <textarea
@@ -408,13 +443,23 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-2 border border-slate-600 text-center sticky right-0 bg-slate-800 z-10">
-                    <button
-                      onClick={() => handleSave(patient.id)}
-                      disabled={!hasChanges || isSaving}
-                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Save
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => copyPatientRow(patient.id)}
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition flex items-center justify-center gap-1"
+                        title="Copy this patient's row"
+                      >
+                        <Copy size={12} />
+                        Copy
+                      </button>
+                      <button
+                        onClick={() => handleSave(patient.id)}
+                        disabled={!hasChanges || isSaving}
+                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Save
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
