@@ -1037,8 +1037,928 @@ Hydrocephalus, ${formData.type} type. Recommend neurological evaluation and cons
   );
 };
 
-// Continuing with remaining templates - adding all at once for efficiency
-// Note: Due to file size, adding simplified versions that can be expanded later
+// Component for Choroid Plexus Tumor Template
+const ChoroidPlexusTemplate = () => {
+  const [formData, setFormData] = useState({
+    location: 'lateral ventricle',
+    laterality: 'left',
+    hydrocephalus: 'present',
+    enhancement: 'intense homogeneous',
+    appearance: 'lobulated',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+An intraventricular mass is present within the ${formData.laterality} ${formData.location}. The mass has a ${formData.appearance} appearance. Signal characteristics show T1 isointense, T2 isointense to hyperintense signal. Contrast enhancement is ${formData.enhancement}. ${formData.hydrocephalus === 'present' ? 'Obstructive hydrocephalus is present.' : 'No hydrocephalus is identified.'} Periventricular edema is present.
+
+IMPRESSION:
+Choroid plexus tumor (papilloma vs carcinoma). Surgical resection is the treatment of choice if feasible. Prognosis depends on histopathologic grade and surgical resectability.`;
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-2xl shadow-xl p-8 border-2 border-teal-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-teal-100 rounded-xl">
+          <Eye className="text-teal-600" size={24} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800">Choroid Plexus Tumor Report</h3>
+      </div>
+
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-inner border border-teal-100">
+        <div className="text-base leading-relaxed text-gray-700 space-y-4">
+          <p>
+            Location:
+            {renderSelect('laterality', formData.laterality, ['left', 'right', 'bilateral'], handleChange as any)}
+            {renderSelect('location', formData.location, ['lateral ventricle', 'third ventricle', 'fourth ventricle'], handleChange as any)}.
+          </p>
+          <p>
+            Appearance:
+            {renderSelect('appearance', formData.appearance, ['lobulated', 'cauliflower-like', 'smooth'], handleChange as any)}.
+          </p>
+          <p>
+            Enhancement:
+            {renderSelect('enhancement', formData.enhancement, ['intense homogeneous', 'heterogeneous'], handleChange as any)}.
+          </p>
+          <p>
+            Hydrocephalus:
+            {renderSelect('hydrocephalus', formData.hydrocephalus, ['present', 'absent'], handleChange as any)}.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-teal-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={18} className="text-teal-600" />
+          <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Generated Report</h4>
+        </div>
+        <textarea
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
+          rows={6}
+          className="w-full text-sm font-mono bg-gray-50 p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-400 focus:outline-none transition-all duration-200"
+        />
+        <button
+          onClick={copyReport}
+          className={`mt-4 px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-gradient-to-r from-teal-500 to-emerald-500 text-white hover:from-teal-600 hover:to-emerald-600'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Component for Brain Abscess Template
+const BrainAbscessTemplate = () => {
+  const [formData, setFormData] = useState({
+    location: 'cerebral hemispheres',
+    laterality: 'left',
+    diffusion: 'present',
+    rimEnhancement: 'present',
+    edema: 'extensive',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+A well-defined round/oval mass is present in the ${formData.laterality} ${formData.location}. The lesion demonstrates central necrosis with T2 hyperintensity and T1 hypointensity. ${formData.diffusion === 'present' ? 'Restricted diffusion is present on DWI (key diagnostic feature).' : 'No restricted diffusion.'} ${formData.rimEnhancement === 'present' ? 'Smooth rim enhancement is present on post-contrast images.' : 'No rim enhancement.'} ${formData.edema} perilesional edema is present. Mass effect is present.
+
+IMPRESSION:
+Brain abscess. The presence of restricted diffusion on DWI helps differentiate from tumor. Recommend long-term antibiotics and possibly surgical drainage. Investigate underlying source (otitis, trauma, hematogenous spread).`;
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-xl p-8 border-2 border-red-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-red-100 rounded-xl">
+          <AlertCircle className="text-red-600" size={24} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800">Brain Abscess Report</h3>
+      </div>
+
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-inner border border-red-100">
+        <div className="text-base leading-relaxed text-gray-700 space-y-4">
+          <p>
+            Location:
+            {renderSelect('laterality', formData.laterality, ['left', 'right', 'bilateral'], handleChange as any)}
+            {renderSelect('location', formData.location, ['cerebral hemispheres', 'cerebellum', 'brainstem'], handleChange as any)}.
+          </p>
+          <p>
+            Restricted diffusion (DWI):
+            {renderSelect('diffusion', formData.diffusion, ['present', 'absent'], handleChange as any)}
+            (key diagnostic feature).
+          </p>
+          <p>
+            Rim enhancement:
+            {renderSelect('rimEnhancement', formData.rimEnhancement, ['present', 'absent'], handleChange as any)}.
+          </p>
+          <p>
+            Perilesional edema:
+            {renderSelect('edema', formData.edema, ['extensive', 'moderate', 'mild'], handleChange as any)}.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-red-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={18} className="text-red-600" />
+          <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Generated Report</h4>
+        </div>
+        <textarea
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
+          rows={7}
+          className="w-full text-sm font-mono bg-gray-50 p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-red-400 focus:outline-none transition-all duration-200"
+        />
+        <button
+          onClick={copyReport}
+          className={`mt-4 px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-gradient-to-r from-red-500 to-orange-500 text-white hover:from-red-600 hover:to-orange-600'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Component for Necrotizing Encephalitis Template
+const NMETemplate = () => {
+  const [formData, setFormData] = useState({
+    type: 'NME',
+    distribution: 'multifocal asymmetric',
+    enhancement: 'gyral',
+    cavitation: 'absent',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+${formData.distribution.charAt(0).toUpperCase() + formData.distribution.slice(1)} T2/FLAIR hyperintense lesions are present with ${formData.type === 'NME' ? 'cortical and subcortical' : 'white matter'} predominance. T1 hypointense signal is present. Contrast enhancement pattern is ${formData.enhancement}. ${formData.cavitation === 'present' ? 'Cavitation/necrosis is present indicating advanced disease.' : 'No cavitation is identified.'} Ventricular distortion is present. Mass effect is present.
+
+IMPRESSION:
+${formData.type} (${formData.type === 'NME' ? 'Necrotizing Meningoencephalitis, "Pug Dog Encephalitis"' : 'Necrotizing Leukoencephalitis'}). This is a breed-specific inflammatory brain disease. CSF analysis and MRI findings support the diagnosis. Treatment with immunosuppressive therapy is indicated, though prognosis is typically poor. Seizures are common in NME.`;
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-xl p-8 border-2 border-orange-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-orange-100 rounded-xl">
+          <Flame className="text-orange-600" size={24} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800">Necrotizing Encephalitis Report</h3>
+      </div>
+
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-inner border border-orange-100">
+        <div className="text-base leading-relaxed text-gray-700 space-y-4">
+          <p>
+            Type:
+            {renderSelect('type', formData.type, ['NME', 'NLE'], handleChange as any)}
+            (NME = cortical, NLE = white matter).
+          </p>
+          <p>
+            Distribution:
+            {renderSelect('distribution', formData.distribution, ['multifocal asymmetric', 'focal', 'bilateral'], handleChange as any)}.
+          </p>
+          <p>
+            Enhancement pattern:
+            {renderSelect('enhancement', formData.enhancement, ['gyral', 'parenchymal', 'leptomeningeal', 'none'], handleChange as any)}.
+          </p>
+          <p>
+            Cavitation:
+            {renderSelect('cavitation', formData.cavitation, ['present', 'absent'], handleChange as any)}.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-orange-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={18} className="text-orange-600" />
+          <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Generated Report</h4>
+        </div>
+        <textarea
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
+          rows={8}
+          className="w-full text-sm font-mono bg-gray-50 p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-400 focus:outline-none transition-all duration-200"
+        />
+        <button
+          onClick={copyReport}
+          className={`mt-4 px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Component for FCE Template
+const FCETemplate = () => {
+  const [formData, setFormData] = useState({
+    spinalLevel: 'L4-S1',
+    laterality: 'asymmetric',
+    cordSwelling: 'mild',
+    discAbnormality: 'none',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+Intramedullary T2 hyperintense focal spinal cord lesion at ${formData.spinalLevel}. The lesion is ${formData.laterality} (hallmark feature). T1 signal is hypointense to isointense. ${formData.cordSwelling !== 'none' ? `${formData.cordSwelling.charAt(0).toUpperCase() + formData.cordSwelling.slice(1)} cord swelling is present.` : 'No cord swelling.'} Intervertebral discs are ${formData.discAbnormality} (key finding). No extradural compression is present. No contrast enhancement in acute phase.
+
+IMPRESSION:
+Fibrocartilaginous embolism (FCE). The asymmetric/unilateral cord lesion without disc herniation or extradural compression is characteristic. Clinical presentation is typically peracute onset during exercise. This is a diagnosis of exclusion. Prognosis depends on presence of deep pain perception. Good prognosis if deep pain present and non-progressive after initial 24-48 hours.`;
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl shadow-xl p-8 border-2 border-slate-200 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-slate-100 rounded-xl">
+          <Zap className="text-slate-600" size={24} />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-800">FCE (Fibrocartilaginous Embolism) Report</h3>
+      </div>
+
+      <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-inner border border-slate-100">
+        <div className="text-base leading-relaxed text-gray-700 space-y-4">
+          <p>
+            Spinal level:
+            {renderSelect('spinalLevel', formData.spinalLevel, ['C6-T2', 'T3-L3', 'L4-S1', 'Other'], handleChange as any)}.
+          </p>
+          <p>
+            Laterality:
+            {renderSelect('laterality', formData.laterality, ['left', 'right', 'asymmetric'], handleChange as any)}
+            (hallmark feature - should be asymmetric/unilateral).
+          </p>
+          <p>
+            Cord swelling:
+            {renderSelect('cordSwelling', formData.cordSwelling, ['mild', 'moderate', 'severe', 'none'], handleChange as any)}.
+          </p>
+          <p>
+            Disc abnormality:
+            {renderSelect('discAbnormality', formData.discAbnormality, ['none', 'incidental degeneration'], handleChange as any)}
+            (should be none for FCE diagnosis).
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-slate-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText size={18} className="text-slate-600" />
+          <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Generated Report</h4>
+        </div>
+        <textarea
+          value={reportText}
+          onChange={(e) => setReportText(e.target.value)}
+          rows={8}
+          className="w-full text-sm font-mono bg-gray-50 p-4 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:outline-none transition-all duration-200"
+        />
+        <button
+          onClick={copyReport}
+          className={`mt-4 px-6 py-2.5 rounded-lg font-semibold flex items-center gap-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-gradient-to-r from-slate-500 to-gray-500 text-white hover:from-slate-600 hover:to-gray-600'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const DiscospondylitisTemplate = () => {
+  const [formData, setFormData] = useState({
+    location: 'L2-L3',
+    severity: 'moderate',
+    endplateChanges: 'extensive',
+    discMaterial: 'heterogeneous fluid signal',
+    paraspinalChanges: 'present',
+    cordCompression: 'mild',
+    enhancement: 'marked',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+There is ${formData.severity} destruction of the ${formData.location} vertebral endplates with ${formData.endplateChanges} lysis and sclerosis. The intervertebral disc space shows ${formData.discMaterial} on T2-weighted sequences. ${formData.paraspinalChanges === 'present' ? 'Paraspinal soft tissue changes are noted with fluid accumulation and contrast enhancement.' : 'Paraspinal tissues appear normal.'} ${formData.cordCompression !== 'none' ? `There is ${formData.cordCompression} compression of the spinal cord at this level.` : 'No spinal cord compression is evident.'} Post-contrast sequences demonstrate ${formData.enhancement} enhancement of the affected vertebral bodies and disc space.
+
+IMPRESSION:
+${formData.location} discospondylitis with ${formData.severity} vertebral endplate destruction and ${formData.enhancement} contrast enhancement. ${formData.cordCompression !== 'none' ? `Associated ${formData.cordCompression} spinal cord compression.` : ''} Clinical correlation and culture recommended to guide antimicrobial therapy.`;
+
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-amber-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-xl">
+              <Flame className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Discospondylitis Report Builder</h2>
+              <p className="text-gray-600">Fill in the details to generate your report</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-lg leading-relaxed text-gray-800">
+            <p>
+              There is {renderSelect('severity', formData.severity, ['mild', 'moderate', 'severe'], handleChange)}
+              destruction of the {renderInput('location', formData.location, 'L2-L3', handleChange, 10)}
+              vertebral endplates with {renderSelect('endplateChanges', formData.endplateChanges, ['minimal', 'moderate', 'extensive'], handleChange)}
+              lysis and sclerosis.
+            </p>
+            <p>
+              The intervertebral disc space shows {renderInput('discMaterial', formData.discMaterial, 'heterogeneous fluid signal', handleChange, 30)}
+              on T2-weighted sequences.
+            </p>
+            <p>
+              Paraspinal changes: {renderSelect('paraspinalChanges', formData.paraspinalChanges, ['present', 'absent'], handleChange)}
+            </p>
+            <p>
+              Spinal cord compression: {renderSelect('cordCompression', formData.cordCompression, ['none', 'mild', 'moderate', 'severe'], handleChange)}
+            </p>
+            <p>
+              Post-contrast enhancement: {renderSelect('enhancement', formData.enhancement, ['minimal', 'moderate', 'marked'], handleChange)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-amber-200">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-amber-600" />
+            Generated Report
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-6 font-mono text-sm whitespace-pre-wrap border-2 border-gray-200 min-h-[200px]">
+            {reportText}
+          </div>
+        </div>
+
+        <button
+          onClick={copyReport}
+          className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const AtlantoaxialTemplate = () => {
+  const [formData, setFormData] = useState({
+    subluxation: 'present',
+    dorsalCompression: 'moderate',
+    odontoidProcess: 'hypoplastic',
+    ligamentStatus: 'ruptured',
+    cordSignal: 'T2 hyperintense',
+    atlantalArch: 'normal',
+    stability: 'unstable',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+${formData.subluxation === 'present' ? 'There is atlantoaxial subluxation with' : 'No atlantoaxial subluxation is evident. There is'} ${formData.dorsalCompression} dorsal compression of the cervical spinal cord at the C1-C2 level. The odontoid process (dens) appears ${formData.odontoidProcess}. ${formData.ligamentStatus === 'ruptured' ? 'The dorsal atlantoaxial ligament appears disrupted/ruptured.' : formData.ligamentStatus === 'attenuated' ? 'The dorsal atlantoaxial ligament appears attenuated but intact.' : 'The dorsal atlantoaxial ligament appears intact.'} The spinal cord shows ${formData.cordSignal} signal change consistent with myelomalacia/edema. The dorsal arch of the atlas is ${formData.atlantalArch}. ${formData.stability === 'unstable' ? 'Alignment is unstable with increased atlantoaxial distance on flexion.' : 'Alignment appears relatively stable.'}
+
+IMPRESSION:
+Atlantoaxial instability with ${formData.dorsalCompression} spinal cord compression. ${formData.odontoidProcess !== 'normal' ? `${formData.odontoidProcess.charAt(0).toUpperCase() + formData.odontoidProcess.slice(1)} odontoid process.` : ''} ${formData.ligamentStatus === 'ruptured' ? 'Dorsal atlantoaxial ligament rupture.' : ''} Spinal cord signal changes consistent with myelopathy. Surgical stabilization recommended.`;
+
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-rose-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl">
+              <Bone className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Atlantoaxial Instability Report Builder</h2>
+              <p className="text-gray-600">Fill in the details to generate your report</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-lg leading-relaxed text-gray-800">
+            <p>
+              Atlantoaxial subluxation: {renderSelect('subluxation', formData.subluxation, ['present', 'absent'], handleChange)}
+            </p>
+            <p>
+              Dorsal spinal cord compression: {renderSelect('dorsalCompression', formData.dorsalCompression, ['none', 'mild', 'moderate', 'severe'], handleChange)}
+            </p>
+            <p>
+              Odontoid process: {renderSelect('odontoidProcess', formData.odontoidProcess, ['normal', 'hypoplastic', 'aplastic', 'fractured'], handleChange)}
+            </p>
+            <p>
+              Dorsal atlantoaxial ligament: {renderSelect('ligamentStatus', formData.ligamentStatus, ['intact', 'attenuated', 'ruptured'], handleChange)}
+            </p>
+            <p>
+              Spinal cord signal: {renderInput('cordSignal', formData.cordSignal, 'T2 hyperintense', handleChange, 25)}
+            </p>
+            <p>
+              Dorsal arch of atlas: {renderSelect('atlantalArch', formData.atlantalArch, ['normal', 'hypoplastic', 'absent'], handleChange)}
+            </p>
+            <p>
+              Stability: {renderSelect('stability', formData.stability, ['stable', 'unstable'], handleChange)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-rose-200">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-rose-600" />
+            Generated Report
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-6 font-mono text-sm whitespace-pre-wrap border-2 border-gray-200 min-h-[200px]">
+            {reportText}
+          </div>
+        </div>
+
+        <button
+          onClick={copyReport}
+          className="w-full bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const DMTemplate = () => {
+  const [formData, setFormData] = useState({
+    location: 'thoracolumbar',
+    severity: 'moderate',
+    cordAtrophy: 'present',
+    signalChange: 'T2 hyperintense',
+    distribution: 'symmetric',
+    dorsalColumns: 'affected',
+    lateralColumns: 'affected',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+There is ${formData.severity} ${formData.distribution} ${formData.signalChange} signal change within the ${formData.location} spinal cord. ${formData.dorsalColumns === 'affected' ? 'The dorsal columns show increased T2 signal.' : ''} ${formData.lateralColumns === 'affected' ? 'The lateral columns also demonstrate increased T2 signal.' : ''} ${formData.cordAtrophy === 'present' ? 'Spinal cord atrophy is evident at the affected levels.' : 'No significant spinal cord atrophy is noted.'} No contrast enhancement is present. No compressive lesions are identified. Intervertebral discs show age-appropriate degenerative changes without significant canal stenosis.
+
+IMPRESSION:
+${formData.severity.charAt(0).toUpperCase() + formData.severity.slice(1)} ${formData.distribution} T2 hyperintense signal change in the ${formData.location} spinal cord ${formData.cordAtrophy === 'present' ? 'with cord atrophy' : 'without atrophy'}, most consistent with degenerative myelopathy. No compressive or inflammatory component identified. Clinical correlation with genetic testing (SOD1 mutation) recommended.`;
+
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-slate-50 to-zinc-50 p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-gray-300">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-gray-500 to-slate-500 rounded-xl">
+              <Navigation className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Degenerative Myelopathy Report Builder</h2>
+              <p className="text-gray-600">Fill in the details to generate your report</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-lg leading-relaxed text-gray-800">
+            <p>
+              Location: {renderSelect('location', formData.location, ['cervical', 'cervicothoracic', 'thoracolumbar', 'lumbosacral', 'multifocal'], handleChange)}
+            </p>
+            <p>
+              Severity of signal change: {renderSelect('severity', formData.severity, ['mild', 'moderate', 'severe'], handleChange)}
+            </p>
+            <p>
+              Signal appearance: {renderInput('signalChange', formData.signalChange, 'T2 hyperintense', handleChange, 25)}
+            </p>
+            <p>
+              Distribution: {renderSelect('distribution', formData.distribution, ['symmetric', 'asymmetric'], handleChange)}
+            </p>
+            <p>
+              Spinal cord atrophy: {renderSelect('cordAtrophy', formData.cordAtrophy, ['present', 'absent'], handleChange)}
+            </p>
+            <p>
+              Dorsal columns: {renderSelect('dorsalColumns', formData.dorsalColumns, ['affected', 'normal'], handleChange)}
+            </p>
+            <p>
+              Lateral columns: {renderSelect('lateralColumns', formData.lateralColumns, ['affected', 'normal'], handleChange)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-gray-300">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-gray-600" />
+            Generated Report
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-6 font-mono text-sm whitespace-pre-wrap border-2 border-gray-200 min-h-[200px]">
+            {reportText}
+          </div>
+        </div>
+
+        <button
+          onClick={copyReport}
+          className="w-full bg-gradient-to-r from-gray-500 to-slate-500 hover:from-gray-600 hover:to-slate-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const LumbosacralTemplate = () => {
+  const [formData, setFormData] = useState({
+    discDegeneration: 'severe',
+    facetJoints: 'degenerative changes',
+    caudaEquina: 'moderate',
+    foramenStenosis: 'bilateral moderate',
+    epiduralFat: 'present',
+    instability: 'present',
+    nerveRootCompression: 'L7 and S1',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+There is ${formData.discDegeneration} degenerative disc disease at L7-S1 with disc space narrowing and loss of T2 signal intensity. The facet joints demonstrate ${formData.facetJoints} with hypertrophy and periarticular new bone formation. ${formData.caudaEquina !== 'none' ? `There is ${formData.caudaEquina} compression of the cauda equina within the lumbosacral canal.` : 'The cauda equina appears normal without compression.'} ${formData.foramenStenosis !== 'none' ? `${formData.foramenStenosis.charAt(0).toUpperCase() + formData.foramenStenosis.slice(1)} foraminal stenosis is present` : 'Neural foramina appear patent'} affecting the ${formData.nerveRootCompression} nerve roots. ${formData.epiduralFat === 'present' ? 'Epidural fat proliferation contributes to canal stenosis.' : ''} ${formData.instability === 'present' ? 'Dynamic imaging suggests lumbosacral instability.' : 'No evidence of instability on static imaging.'}
+
+IMPRESSION:
+Lumbosacral stenosis with ${formData.discDegeneration} degenerative disc disease and facet joint osteoarthritis. ${formData.caudaEquina !== 'none' ? `${formData.caudaEquina.charAt(0).toUpperCase() + formData.caudaEquina.slice(1)} cauda equina compression.` : ''} ${formData.foramenStenosis !== 'none' ? `${formData.foramenStenosis} foraminal stenosis with ${formData.nerveRootCompression} nerve root impingement.` : ''} ${formData.instability === 'present' ? 'Lumbosacral instability present.' : ''} Surgical decompression and stabilization may be indicated based on clinical severity.`;
+
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-lime-50 via-green-50 to-emerald-50 p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-lime-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-lime-500 to-green-500 rounded-xl">
+              <Bandage className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Lumbosacral Stenosis Report Builder</h2>
+              <p className="text-gray-600">Fill in the details to generate your report</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-lg leading-relaxed text-gray-800">
+            <p>
+              Disc degeneration severity: {renderSelect('discDegeneration', formData.discDegeneration, ['mild', 'moderate', 'severe'], handleChange)}
+            </p>
+            <p>
+              Facet joints: {renderInput('facetJoints', formData.facetJoints, 'degenerative changes', handleChange, 30)}
+            </p>
+            <p>
+              Cauda equina compression: {renderSelect('caudaEquina', formData.caudaEquina, ['none', 'mild', 'moderate', 'severe'], handleChange)}
+            </p>
+            <p>
+              Foraminal stenosis: {renderSelect('foramenStenosis', formData.foramenStenosis, ['none', 'unilateral mild', 'unilateral moderate', 'unilateral severe', 'bilateral mild', 'bilateral moderate', 'bilateral severe'], handleChange)}
+            </p>
+            <p>
+              Affected nerve roots: {renderInput('nerveRootCompression', formData.nerveRootCompression, 'L7 and S1', handleChange, 25)}
+            </p>
+            <p>
+              Epidural fat proliferation: {renderSelect('epiduralFat', formData.epiduralFat, ['present', 'absent'], handleChange)}
+            </p>
+            <p>
+              Lumbosacral instability: {renderSelect('instability', formData.instability, ['present', 'absent'], handleChange)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-lime-200">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-lime-600" />
+            Generated Report
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-6 font-mono text-sm whitespace-pre-wrap border-2 border-gray-200 min-h-[200px]">
+            {reportText}
+          </div>
+        </div>
+
+        <button
+          onClick={copyReport}
+          className="w-full bg-gradient-to-r from-lime-500 to-green-500 hover:from-lime-600 hover:to-green-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const ArachnoidTemplate = () => {
+  const [formData, setFormData] = useState({
+    location: 'T12-L1',
+    size: 'moderate',
+    cordCompression: 'moderate',
+    cordSignal: 'normal',
+    cystContents: 'CSF-like fluid',
+    communication: 'communicating',
+    dorsalVentral: 'dorsal',
+  });
+
+  const [reportText, setReportText] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  useEffect(() => {
+    const generatedReport = `FINDINGS:
+There is a ${formData.dorsalVentral} ${formData.size} extradural cystic structure at ${formData.location} consistent with an arachnoid diverticulum. The lesion contains ${formData.cystContents} that follows CSF signal on all sequences. ${formData.communication === 'communicating' ? 'The diverticulum appears to communicate with the subarachnoid space.' : 'No clear communication with the subarachnoid space is identified.'} The spinal cord demonstrates ${formData.cordCompression} compression with ${formData.dorsalVentral === 'dorsal' ? 'ventral displacement' : 'dorsal displacement'}. The spinal cord parenchyma shows ${formData.cordSignal} signal intensity. No abnormal contrast enhancement is present.
+
+IMPRESSION:
+${formData.dorsalVentral.charAt(0).toUpperCase() + formData.dorsalVentral.slice(1)} arachnoid diverticulum at ${formData.location} causing ${formData.cordCompression} spinal cord compression. ${formData.cordSignal !== 'normal' ? `Associated ${formData.cordSignal} spinal cord signal changes suggesting myelopathy.` : 'No intramedullary signal changes at this time.'} Surgical fenestration or marsupialization may be indicated based on clinical presentation.`;
+
+    setReportText(generatedReport);
+  }, [formData]);
+
+  const copyReport = () => {
+    navigator.clipboard.writeText(reportText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 p-8">
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-violet-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl">
+              <Droplet className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">Arachnoid Diverticulum Report Builder</h2>
+              <p className="text-gray-600">Fill in the details to generate your report</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-lg leading-relaxed text-gray-800">
+            <p>
+              Location: {renderInput('location', formData.location, 'T12-L1', handleChange, 15)}
+            </p>
+            <p>
+              Size of diverticulum: {renderSelect('size', formData.size, ['small', 'moderate', 'large'], handleChange)}
+            </p>
+            <p>
+              Position: {renderSelect('dorsalVentral', formData.dorsalVentral, ['dorsal', 'ventral', 'lateral'], handleChange)}
+            </p>
+            <p>
+              Spinal cord compression: {renderSelect('cordCompression', formData.cordCompression, ['none', 'mild', 'moderate', 'severe'], handleChange)}
+            </p>
+            <p>
+              Spinal cord signal: {renderSelect('cordSignal', formData.cordSignal, ['normal', 'T2 hyperintense suggesting edema', 'T2/T1 signal change suggesting myelomalacia'], handleChange)}
+            </p>
+            <p>
+              Cyst contents: {renderInput('cystContents', formData.cystContents, 'CSF-like fluid', handleChange, 25)}
+            </p>
+            <p>
+              Communication: {renderSelect('communication', formData.communication, ['communicating', 'non-communicating'], handleChange)}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-violet-200">
+          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-violet-600" />
+            Generated Report
+          </h3>
+          <div className="bg-gray-50 rounded-xl p-6 font-mono text-sm whitespace-pre-wrap border-2 border-gray-200 min-h-[200px]">
+            {reportText}
+          </div>
+        </div>
+
+        <button
+          onClick={copyReport}
+          className="w-full bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+        >
+          {copied ? (
+            <>
+              <Check size={18} />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Copy size={18} />
+              Copy Report
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default function MRIReportBuilderPage() {
   const [selectedDisease, setSelectedDisease] = useState<string>('meningioma');
@@ -1057,10 +1977,8 @@ export default function MRIReportBuilderPage() {
     { id: 'choroid', name: 'Choroid Plexus Tumor', icon: Eye, color: 'teal', gradient: 'from-teal-500 to-emerald-500' },
     { id: 'abscess', name: 'Brain Abscess', icon: AlertCircle, color: 'red', gradient: 'from-red-500 to-orange-500' },
     { id: 'nme', name: 'Necrotizing Encephalitis', icon: Flame, color: 'orange', gradient: 'from-orange-500 to-amber-500' },
-    { id: 'fungal', name: 'Fungal Encephalitis', icon: Wind, color: 'emerald', gradient: 'from-emerald-500 to-teal-500' },
-    // Spine conditions (7)
+    // Spine conditions (6)
     { id: 'fce', name: 'FCE', icon: Zap, color: 'slate', gradient: 'from-slate-500 to-gray-500' },
-    { id: 'wobbler', name: 'Wobbler Syndrome', icon: Layers, color: 'cyan', gradient: 'from-cyan-500 to-blue-500' },
     { id: 'discospondylitis', name: 'Discospondylitis', icon: Flame, color: 'amber', gradient: 'from-amber-500 to-yellow-500' },
     { id: 'atlantoaxial', name: 'Atlantoaxial Instability', icon: Bone, color: 'rose', gradient: 'from-rose-500 to-pink-500' },
     { id: 'dm', name: 'Degenerative Myelopathy', icon: Navigation, color: 'gray', gradient: 'from-gray-500 to-slate-500' },
@@ -1089,28 +2007,24 @@ export default function MRIReportBuilderPage() {
       case 'hydrocephalus':
         return <HydrocephalusTemplate />;
       case 'choroid':
-        return <div className="text-white text-center p-8">Choroid Plexus Tumor template coming soon...</div>;
+        return <ChoroidPlexusTemplate />;
       case 'abscess':
-        return <div className="text-white text-center p-8">Brain Abscess template coming soon...</div>;
+        return <BrainAbscessTemplate />;
       case 'nme':
-        return <div className="text-white text-center p-8">Necrotizing Encephalitis template coming soon...</div>;
-      case 'fungal':
-        return <div className="text-white text-center p-8">Fungal Encephalitis template coming soon...</div>;
+        return <NMETemplate />;
       // Spine conditions
       case 'fce':
-        return <div className="text-white text-center p-8">FCE template coming soon...</div>;
-      case 'wobbler':
-        return <div className="text-white text-center p-8">Wobbler Syndrome template coming soon...</div>;
+        return <FCETemplate />;
       case 'discospondylitis':
-        return <div className="text-white text-center p-8">Discospondylitis template coming soon...</div>;
+        return <DiscospondylitisTemplate />;
       case 'atlantoaxial':
-        return <div className="text-white text-center p-8">Atlantoaxial Instability template coming soon...</div>;
+        return <AtlantoaxialTemplate />;
       case 'dm':
-        return <div className="text-white text-center p-8">Degenerative Myelopathy template coming soon...</div>;
+        return <DMTemplate />;
       case 'lumbosacral':
-        return <div className="text-white text-center p-8">Lumbosacral Stenosis template coming soon...</div>;
+        return <LumbosacralTemplate />;
       case 'arachnoid':
-        return <div className="text-white text-center p-8">Arachnoid Diverticulum template coming soon...</div>;
+        return <ArachnoidTemplate />;
       default:
         return null;
     }
@@ -1141,7 +2055,7 @@ export default function MRIReportBuilderPage() {
 
         {/* Disease Selection Cards */}
         <div className="mb-8">
-          <h2 className="text-lg font-bold text-gray-700 mb-4">Select Disease Template (19 Templates)</h2>
+          <h2 className="text-lg font-bold text-gray-700 mb-4">Select Disease Template (15 Templates)</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {diseases.map((disease) => {
               const Icon = disease.icon;
