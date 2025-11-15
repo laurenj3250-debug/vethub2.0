@@ -6,16 +6,17 @@
  * Import patients from VetRadar, complete manual entry, and generate all outputs
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UnifiedPatient } from '@/contexts/PatientContext';
 import { VetRadarIntegrationService, VetRadarImportResult } from '@/lib/integrations/vetradar-integration';
 import { UnifiedPatientEntry } from '@/components/UnifiedPatientEntry';
-import { Download, RefreshCw, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
 
 export default function PatientImportPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [importing, setImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<VetRadarImportResult | null>(null);
   const [patients, setPatients] = useState<UnifiedPatient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -23,15 +24,29 @@ export default function PatientImportPage() {
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
 
   /**
+   * Keyboard shortcut for import (Cmd/Ctrl + Enter)
+   */
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !importing && email && password) {
+        handleImport();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [importing, email, password]);
+
+  /**
    * Import patients from VetRadar
    */
   async function handleImport() {
     if (!email || !password) {
-      alert('Please enter VetRadar credentials');
+      setError('Please enter VetRadar credentials');
       return;
     }
 
     setImporting(true);
+    setError(null);
 
     try {
       const service = new VetRadarIntegrationService();
@@ -47,16 +62,14 @@ export default function PatientImportPage() {
         if (result.patients.length > 0) {
           setSelectedPatientId(result.patients[0].id);
         }
-
-        alert(`✅ Successfully imported ${result.patients.length} patients!`);
       } else {
-        alert(`❌ Import failed: ${result.errors?.join(', ')}`);
+        setError(result.errors?.join(', ') || 'Import failed');
       }
 
       await service.logout();
     } catch (error) {
       console.error('Import error:', error);
-      alert(`❌ Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred during import');
     } finally {
       setImporting(false);
     }
@@ -97,61 +110,84 @@ export default function PatientImportPage() {
           </p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border border-red-300 rounded-lg p-4 mb-6" role="alert">
+            <div className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <p className="text-red-800 font-medium">Import Failed</p>
+                <p className="text-red-700 text-sm mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Import Section */}
         {!importResult && (
           <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
               Step 1: Import from VetRadar
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="vetradar-email" className="block text-sm font-medium text-gray-700 mb-2">
                   VetRadar Email
                 </label>
                 <input
+                  id="vetradar-email"
+                  name="vetradar-email"
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="your-email@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 focus:border-blue-500 transition-all"
                   disabled={importing}
+                  aria-required="true"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="vetradar-password" className="block text-sm font-medium text-gray-700 mb-2">
                   VetRadar Password
                 </label>
                 <input
+                  id="vetradar-password"
+                  name="vetradar-password"
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 focus:border-blue-500 transition-all"
                   disabled={importing}
+                  aria-required="true"
                 />
               </div>
 
               <button
                 onClick={handleImport}
                 disabled={importing || !email || !password}
-                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
+                aria-busy={importing}
+                aria-live="polite"
+                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-purple-700 focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2"
               >
                 {importing ? (
                   <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    <RefreshCw className="w-5 h-5 animate-spin" aria-hidden="true" />
                     <span>Importing from VetRadar...</span>
                   </>
                 ) : (
                   <>
-                    <Download className="w-5 h-5" />
+                    <Download className="w-5 h-5" aria-hidden="true" />
                     <span>Import Patients from VetRadar</span>
                   </>
                 )}
               </button>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mt-4">
+              <div className="bg-blue-100 border border-blue-300 rounded-md p-4 mt-4">
                 <p className="text-sm text-blue-800">
                   <strong>What will be imported:</strong>
                 </p>
@@ -161,6 +197,9 @@ export default function PatientImportPage() {
                   <li>• Only 5-7 fields will need manual entry per patient</li>
                   <li>• Estimated time: ~17-37 seconds per patient</li>
                 </ul>
+                <p className="text-xs text-blue-600 mt-3 italic">
+                  💡 Tip: Press Cmd/Ctrl + Enter to import
+                </p>
               </div>
             </div>
           </div>
@@ -214,7 +253,7 @@ export default function PatientImportPage() {
               {/* Patient List */}
               <div className="bg-white rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">
+                  <h2 className="text-2xl font-semibold text-gray-900">
                     Patients ({patients.length})
                   </h2>
                   <button
@@ -222,56 +261,69 @@ export default function PatientImportPage() {
                       setImportResult(null);
                       setPatients([]);
                       setSelectedPatientId(null);
+                      setError(null);
                     }}
-                    className="text-sm text-blue-600 hover:text-blue-700"
+                    className="text-sm text-blue-600 hover:text-blue-700 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 rounded px-2 py-1 transition-all"
+                    aria-label="Start a new import"
                   >
                     Import Again
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                  {patients.map(patient => {
-                    const requirements = importResult.manualEntryRequirements.find(
-                      req => req.patientName === patient.demographics.name
-                    );
+                {importing ? (
+                  <div className="space-y-2" aria-live="polite" aria-busy="true">
+                    <p className="text-sm text-gray-600 mb-4">Loading patients...</p>
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="animate-pulse bg-gray-200 h-20 rounded-lg" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                    {patients.map(patient => {
+                      const requirements = importResult.manualEntryRequirements.find(
+                        req => req.patientName === patient.demographics.name
+                      );
 
-                    const isComplete = requirements?.required.length === 0;
-                    const isSelected = patient.id === selectedPatientId;
+                      const isComplete = requirements?.required.length === 0;
+                      const isSelected = patient.id === selectedPatientId;
 
-                    return (
-                      <button
-                        key={patient.id}
-                        onClick={() => setSelectedPatientId(patient.id)}
-                        className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {patient.demographics.name}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {patient.roundingData?.signalment}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {patient.currentStay?.location} • {patient.roundingData?.codeStatus}
-                            </p>
+                      return (
+                        <button
+                          key={patient.id}
+                          onClick={() => setSelectedPatientId(patient.id)}
+                          aria-label={`Select ${patient.demographics.name} for data entry${isComplete ? ' (complete)' : ' (incomplete)'}`}
+                          aria-pressed={isSelected}
+                          className={`w-full text-left p-3 rounded-lg border-2 transition-all focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 ${
+                            isSelected
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                {patient.demographics.name}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {patient.roundingData?.signalment}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {patient.currentStay?.location} • {patient.roundingData?.codeStatus}
+                              </p>
+                            </div>
+                            <div aria-hidden="true">
+                              {isComplete ? (
+                                <CheckCircle className="w-5 h-5 text-emerald-600" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full border-2 border-amber-500" />
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            {isComplete ? (
-                              <CheckCircle className="w-5 h-5 text-emerald-600" />
-                            ) : (
-                              <div className="w-5 h-5 rounded-full border-2 border-amber-500" />
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Patient Entry Form */}
