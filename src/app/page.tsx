@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
@@ -1540,6 +1540,20 @@ export default function VetHub() {
             >
               <TableProperties size={18} />
               Appointment Schedule
+            </Link>
+            <Link
+              href="/mri-builder"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <Brain size={18} />
+              MRI Builder
+            </Link>
+            <Link
+              href="/residency"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <Award size={18} />
+              Residency Tracker
             </Link>
             <button
               onClick={logout}
