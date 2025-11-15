@@ -9,13 +9,48 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['PT Sans', 'sans-serif'],
-        headline: ['PT Sans', 'sans-serif'],
-        code: ['monospace'],
+        sans: ['Inter', 'PT Sans', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        body: ['Inter', 'PT Sans', 'sans-serif'],
+        headline: ['Inter', 'PT Sans', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
+        code: ['JetBrains Mono', 'monospace'],
+      },
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1.5' }],      // 12px - Caption
+        'sm': ['0.8125rem', { lineHeight: '1.5' }],    // 13px - Small
+        'base': ['0.875rem', { lineHeight: '1.5' }],   // 14px - Body default
+        'lg': ['1rem', { lineHeight: '1.5' }],         // 16px - Body large
+        'xl': ['1.125rem', { lineHeight: '1.25' }],    // 18px - H4
+        '2xl': ['1.25rem', { lineHeight: '1.25' }],    // 20px - H3
+        '3xl': ['1.5rem', { lineHeight: '1.25' }],     // 24px - H2
+        '4xl': ['2rem', { lineHeight: '1.25' }],       // 32px - H1
       },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+
+        // VetHub Brand Colors
+        'vethub-primary': {
+          DEFAULT: '#3B82F6',  // Primary Blue
+          hover: '#2563EB',
+          active: '#1D4ED8',
+        },
+
+        // VetHub Patient Status Colors
+        'patient-status': {
+          critical: '#DC2626',    // Red-600
+          monitoring: '#F59E0B',  // Amber-500
+          stable: '#10B981',      // Emerald-500
+          discharged: '#6B7280',  // Gray-500
+        },
+
+        // VetHub Module Colors (for page backgrounds)
+        'module': {
+          rounding: '#059669',    // Emerald-600
+          soap: '#7C3AED',        // Purple-600
+          appointments: '#2563EB', // Blue-600
+        },
+
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
@@ -65,10 +100,25 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
       },
+      spacing: {
+        '0': '0px',
+        '0.5': '0.125rem',  // 2px
+        '1': '0.25rem',     // 4px
+        '2': '0.5rem',      // 8px
+        '3': '0.75rem',     // 12px
+        '4': '1rem',        // 16px
+        '6': '1.5rem',      // 24px
+        '8': '2rem',        // 32px
+        '12': '3rem',       // 48px
+        '16': '4rem',       // 64px
+      },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        'sm': '0.25rem',    // 4px
+        'DEFAULT': '0.375rem', // 6px
+        'md': '0.5rem',     // 8px
+        'lg': '0.75rem',    // 12px
+        'xl': '1rem',       // 16px
+        'full': '9999px',
       },
       keyframes: {
         'accordion-down': {

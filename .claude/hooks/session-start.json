@@ -1,0 +1,8 @@
+{
+  "description": "Load learnings and remind about workflow on session start",
+  "enabled": true,
+  "command": "node",
+  "args": ["-e", "const fs = require('fs'); const path = require('path'); const learningsPath = path.join(process.cwd(), '.claude/learnings/mistakes.md'); let learnings = ''; try { learnings = fs.readFileSync(learningsPath, 'utf-8'); const recentMistakes = learnings.split('##').slice(1, 6).map(section => section.split('\\n')[0].trim()).join(', '); console.log(JSON.stringify({ systemMessage: `\\n📚 **VetHub Learning System Active**\\n\\nI have loaded ${learnings.split('##').length - 1} documented learnings to avoid repeating mistakes.\\n\\nRecent learnings: ${recentMistakes}\\n\\n**Workflow Reminders**:\\n- Use design tokens from tailwind.config.ts (patient-status-*, module-*)\\n- Run @agent-design-review after UI changes\\n- Write Playwright tests for new features (npm run test:ui)\\n- Check .claude/learnings/mistakes.md before implementing\\n\\nType /design-review to analyze current branch changes.` })); } catch (err) { console.log(JSON.stringify({ systemMessage: '\\n📚 **VetHub Session Started** - Ready to build veterinary features with quality assurance!' })); }"],
+  "timeout": 2000,
+  "events": ["SessionStart"]
+}

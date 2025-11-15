@@ -1,0 +1,8 @@
+{
+  "description": "Automatically suggest design review after UI file edits",
+  "enabled": true,
+  "command": "node",
+  "args": ["-e", "const input = JSON.parse(process.argv[1]); const uiFiles = ['/src/app/', '/src/components/', '.tsx', '.jsx']; const editedFile = input.tool_input?.file_path || ''; const isUIFile = uiFiles.some(pattern => editedFile.includes(pattern)); if (input.tool_name === 'Edit' && isUIFile && !editedFile.includes('/ui/')) { console.log(JSON.stringify({ systemMessage: '\\n💡 **Design Review Suggestion**: You just modified a UI component. Consider running @agent-design-review to validate:\\n- Responsive design (375px, 768px, 1440px)\\n- Accessibility (WCAG 2.1 AA)\\n- Design system compliance\\n- VetHub clinical workflow patterns\\n\\nOr run /design-review for a quick check.' })); }"],
+  "timeout": 1000,
+  "events": ["PostToolUse"]
+}

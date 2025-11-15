@@ -1,0 +1,615 @@
+/**
+ * VetRadar Web Scraper
+ *
+ * Integrates with VetRadar anesthesia and treatment monitoring system.
+ * Uses Playwright to scrape treatment sheets and patient data.
+ *
+ * Note: This is a web scraping implementation. If VetRadar provides an API,
+ * that should be used instead for better reliability and performance.
+ */
+
+import { chromium, Browser, Page } from 'playwright';
+
+export interface VetRadarPatient {
+  id: string;
+  name: string;
+  species: string;
+  age: string;
+  sex: string;
+  weight: number;
+  location: string;
+  status: string;
+  cage_location?: string;
+  ward?: string;
+}
+
+export interface VetRadarTreatment {
+  medication: string;
+  dose: string;
+  route: string;
+  frequency: string;
+  time?: string;
+}
+
+export interface VetRadarFluid {
+  type: string;
+  rate: string;
+  units: string;
+}
+
+export interface VetRadarTreatmentSheet {
+  patientId: string;
+  patientName: string;
+  species: string;
+  age: string;
+  sex: string;
+  weight: number;
+  location: string;
+  medications: VetRadarTreatment[];
+  fluids: VetRadarFluid[];
+  vitals?: {
+    temperature?: number;
+    heartRate?: number;
+    respiratoryRate?: number;
+    timestamp?: string;
+  }[];
+  nursingNotes?: string;
+  concerns?: string;
+}
+
+export interface VetRadarSession {
+  browser: Browser;
+  page: Page;
+}
+
+export class VetRadarScraper {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = process.env.VETRADAR_BASE_URL || 'https://app.vetradar.com';
+  }
+
+  /**
+   * Login to VetRadar and create a session
+   */
+  async login(username: string, password: string): Promise<VetRadarSession> {
+    const browser = await chromium.launch({
+      headless: false, // Run in headed mode to see what's happening
+      slowMo: 100, // Slow down actions for debugging
+    });
+
+    const page = await browser.newPage();
+
+    try {
+      console.log(`[VetRadar] Navigating to ${this.baseUrl}/login`);
+
+      // Navigate to login page with longer timeout
+      await page.goto(`${this.baseUrl}/login`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 60000
+      });
+
+      console.log('[VetRadar] Waiting for login form...');
+
+      // Wait for the page to be fully loaded
+      await page.waitForTimeout(2000);
+
+      // Find all input fields
+      const inputs = await page.locator('input').all();
+      console.log(`[VetRadar] Found ${inputs.length} input fields`);
+
+      if (inputs.length < 2) {
+        throw new Error('Could not find email and password inputs');
+      }
+
+      console.log('[VetRadar] Filling in credentials...');
+
+      // Fill in email (first input)
+      await inputs[0].fill(username);
+
+      // Fill in password (second input) and press Enter
+      await inputs[1].fill(password);
+      await inputs[1].press('Enter');
+
+      console.log('[VetRadar] Submitted login form...');
+
+      console.log('[VetRadar] Waiting for navigation...');
+
+      // Wait for navigation to complete (give it more time)
+      try {
+        await page.waitForURL(url => !url.includes('/login'), { timeout: 45000 });
+        console.log('[VetRadar] URL changed - navigation successful');
+      } catch (e) {
+        console.log('[VetRadar] Timeout waiting for URL change, checking current state...');
+      }
+
+      // Give extra time for page to load
+      await page.waitForTimeout(3000);
+
+      console.log('[VetRadar] Checking if logged in...');
+
+      // Check if we're on a dashboard or home page (not login page)
+      const currentUrl = page.url();
+      console.log(`[VetRadar] Current URL: ${currentUrl}`);
+
+      // Handle email verification page
+      if (currentUrl.includes('/verify_email')) {
+        console.log('[VetRadar] On email verification page - looking for skip button...');
+
+        try {
+          // Look for "Skip for 24 hours" button
+          const skipButton = page.locator('button:has-text("Skip"), button:has-text("skip"), a:has-text("Skip"), a:has-text("skip")').first();
+          await skipButton.click({ timeout: 10000 });
+          console.log('[VetRadar] Clicked skip button');
+
+          // Wait for navigation after skip
+          await page.waitForTimeout(3000);
+          console.log('[VetRadar] Successfully skipped email verification');
+        } catch (e) {
+          console.log('[VetRadar] Could not find or click skip button:', e);
+          await page.screenshot({ path: 'vetradar-verify-email.png', fullPage: true });
+        }
+      }
+
+      // Handle PIN setup/verification page
+      if (page.url().includes('/set_up_pin') || page.url().includes('/verify') || page.url().includes('/pin')) {
+        console.log('[VetRadar] On PIN page - entering PIN 32597...');
+
+        try {
+          // Wait a moment for page to be interactive
+          await page.waitForTimeout(2000);
+
+          // Get only visible input fields
+          const pinInputs = await page.locator('input:visible').all();
+          console.log(`[VetRadar] Found ${pinInputs.length} visible input fields`);
+
+          // Enter PIN: 32597
+          const pin = '32597';
+
+          if (pinInputs.length === 5) {
+            // Enter each digit into separate boxes
+            for (let i = 0; i < 5; i++) {
+              await pinInputs[i].click();
+              await pinInputs[i].type(pin[i], { delay: 100 });
+              console.log(`[VetRadar] Entered digit ${i + 1}: ${pin[i]}`);
+            }
+          } else {
+            // Try entering the full PIN in the first visible input
+            console.log('[VetRadar] Entering full PIN in first input...');
+            await pinInputs[0].click();
+            await pinInputs[0].type(pin, { delay: 100 });
+          }
+
+          // Wait a moment and then click Confirm PIN button
+          await page.waitForTimeout(1000);
+          const confirmBtn = await page.getByText('Confirm PIN', { exact: false });
+          await confirmBtn.click();
+          console.log('[VetRadar] Clicked Confirm PIN button');
+
+          // Wait for navigation
+          await page.waitForTimeout(3000);
+          console.log('[VetRadar] Successfully confirmed PIN');
+        } catch (e) {
+          console.log('[VetRadar] Could not enter PIN, error:', e);
+          await page.screenshot({ path: 'vetradar-pin-entry-error.png', fullPage: true });
+        }
+      }
+
+      const finalUrl = page.url();
+      console.log(`[VetRadar] Final URL: ${finalUrl}`);
+      const isLoggedIn = !finalUrl.includes('/login');
+
+      if (!isLoggedIn) {
+        // Check for error messages
+        const errorMessages = await page.locator('.error, .alert, [role="alert"]').allTextContents();
+        console.log('[VetRadar] Error messages:', errorMessages);
+
+        // Take a screenshot for debugging
+        await page.screenshot({ path: 'vetradar-login-failed.png', fullPage: true });
+        throw new Error(`Login failed - still on login page. Errors: ${errorMessages.join(', ')}`);
+      }
+
+      console.log('[VetRadar] Login successful!');
+
+      return { browser, page };
+    } catch (error) {
+      console.error('[VetRadar] Login error:', error);
+      await page.screenshot({ path: 'vetradar-error.png' }).catch(() => {});
+      await browser.close();
+      throw new Error(`VetRadar login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get list of active patients filtered by Neurology/Neurosurgery
+   */
+  async getActivePatients(session: VetRadarSession): Promise<VetRadarPatient[]> {
+    const { page } = session;
+
+    try {
+      console.log('[VetRadar] Getting patient list...');
+
+      // Take screenshot of current page to see where we landed after PIN
+      await page.screenshot({ path: 'vetradar-after-login.png', fullPage: true });
+      console.log(`[VetRadar] Current URL after login: ${page.url()}`);
+
+      // Wait for page to be interactive
+      await page.waitForTimeout(3000);
+
+      // CRITICAL: Must filter by Neurology/Neurosurgery department
+      console.log('[VetRadar] Applying Neurology/Neurosurgery filter...');
+
+      try {
+        // Step 1: Click Filter button
+        console.log('[VetRadar] Step 1: Looking for Filter button...');
+        const filterButton = await page.getByText('Filter', { exact: true });
+        await filterButton.click();
+        console.log('[VetRadar] ✓ Clicked Filter button');
+        await page.waitForTimeout(1000);
+
+        // Take screenshot of filter menu
+        await page.screenshot({ path: 'vetradar-filter-menu.png', fullPage: true });
+
+        // Step 2: Click Department option
+        console.log('[VetRadar] Step 2: Looking for Department option...');
+        const departmentOption = await page.getByText('Department', { exact: false });
+        await departmentOption.click();
+        console.log('[VetRadar] ✓ Clicked Department');
+        await page.waitForTimeout(1000);
+
+        // Take screenshot of department submenu
+        await page.screenshot({ path: 'vetradar-department-menu.png', fullPage: true });
+
+        // Step 3: Click Neurology & Neurosurgery
+        console.log('[VetRadar] Step 3: Looking for Neurology & Neurosurgery option...');
+        const neurologySelectors = [
+          'text=Neurology & Neurosurgery',
+          'text=Neurology',
+          'text=/neurology.*neurosurgery/i',
+          'text=/neurology/i'
+        ];
+
+        let clicked = false;
+        for (const selector of neurologySelectors) {
+          try {
+            const neuroOption = page.locator(selector).first();
+            if (await neuroOption.isVisible({ timeout: 2000 })) {
+              await neuroOption.click();
+              console.log(`[VetRadar] ✓ Clicked Neurology/Neurosurgery (${selector})`);
+              clicked = true;
+              break;
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+
+        if (!clicked) {
+          console.log('[VetRadar] WARNING: Could not find Neurology & Neurosurgery option');
+          const menuText = await page.textContent('body');
+          console.log('[VetRadar] Available options:', menuText?.substring(0, 500));
+        }
+
+        // Wait for page to reload with filtered patients
+        await page.waitForTimeout(3000);
+        console.log('[VetRadar] ✓ Filter applied, waiting for patient list to reload...');
+
+        // Take screenshot after filter
+        await page.screenshot({ path: 'vetradar-after-neuro-filter.png', fullPage: true });
+
+        // Close the filter panel by clicking elsewhere or pressing Escape
+        await page.keyboard.press('Escape');
+        console.log('[VetRadar] ✓ Closed filter panel');
+        await page.waitForTimeout(1000);
+
+      } catch (e) {
+        console.log('[VetRadar] Error applying filter:', e);
+        await page.screenshot({ path: 'vetradar-filter-error.png', fullPage: true });
+        throw new Error(`Failed to apply Neurology filter: ${e}`);
+      }
+
+      // Wait for patient list to load
+      console.log('[VetRadar] Waiting for patient list...');
+      await page.waitForTimeout(2000);
+
+      // Take screenshot of patient list
+      await page.screenshot({ path: 'vetradar-patient-list.png', fullPage: true });
+
+      // Extract patient data directly from page using the visible structure
+      const patients = await page.evaluate(() => {
+        const patientData: any[] = [];
+
+        // Find all elements that contain patient names in quotes (like "Albert" Fasano)
+        const allText = document.body.innerText;
+        const patientNamePattern = /"([^"]+)"\s+([^\n]+)/g;
+
+        let match;
+        while ((match = patientNamePattern.exec(allText)) !== null) {
+          const firstName = match[1]; // e.g., "Albert"
+          const lastName = match[2].split('\n')[0].trim(); // e.g., "Fasano"
+          const fullName = `${firstName} ${lastName}`;
+
+          // Find the element containing this patient's data
+          const xpath = `//text()[contains(., '"${firstName}"')]`;
+          const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+          const node = result.singleNodeValue;
+
+          if (node && node.parentElement) {
+            // Get the patient card container (likely a parent div)
+            let card: Element | null = node.parentElement;
+            while (card && !card.textContent?.includes('Canine') && !card.textContent?.includes('Feline')) {
+              card = card.parentElement;
+            }
+
+            if (card) {
+              const cardText = card.textContent || '';
+
+              // Extract species and breed
+              const speciesMatch = cardText.match(/(Canine|Feline)\s*•\s*([^\n]+)/);
+              const species = speciesMatch ? speciesMatch[1] : '';
+              const breed = speciesMatch ? speciesMatch[2].trim() : '';
+
+              // Extract weight (e.g., "19.4kg")
+              const weightMatch = cardText.match(/(\d+\.?\d*)\s*kg/);
+              const weight = weightMatch ? parseFloat(weightMatch[1]) : 0;
+
+              // Extract age (e.g., "5y 2m")
+              const ageMatch = cardText.match(/(\d+y\s*\d*m?|\d+m)/);
+              const age = ageMatch ? ageMatch[0] : '';
+
+              // Extract sex (e.g., "MN", "FS")
+              const sexMatch = cardText.match(/\|\s*(MN|M|FS|F|MC|FC)\s/);
+              const sex = sexMatch ? sexMatch[1] : '';
+
+              // Extract location (e.g., "100 - IP#1, R16")
+              const locationMatch = cardText.match(/(\d+\s*-\s*IP#\d+[^Ph]*)/);
+              const location = locationMatch ? locationMatch[1].trim() : '';
+
+              // Extract status badge (CAUTION, FRIENDLY, etc.)
+              const statusMatch = cardText.match(/(CAUTION|FRIENDLY|UNFRIENDLY|CRITICAL)/);
+              const status = statusMatch ? statusMatch[1] : 'Active';
+
+              patientData.push({
+                id: firstName.toLowerCase().replace(/\s+/g, '-'),
+                name: fullName,
+                species,
+                breed,
+                age,
+                sex,
+                weight,
+                location,
+                status,
+              });
+            }
+          }
+        }
+
+        return patientData;
+      });
+
+      console.log(`[VetRadar] Successfully extracted ${patients.length} patients`);
+
+      if (patients.length === 0) {
+        throw new Error('No patients found on page - may need to filter by department');
+      }
+
+      // Now click into each patient to get their detailed treatment information
+      console.log('[VetRadar] Fetching detailed treatment information for each patient...');
+
+      for (let i = 0; i < patients.length; i++) {
+        const patient = patients[i];
+        console.log(`[VetRadar] [${i + 1}/${patients.length}] Getting details for ${patient.name}...`);
+
+        try {
+          // Click on the patient card to open their treatment sheet
+          const patientCard = page.locator(`text="${patient.name.split(' ')[0]}"`).first();
+          await patientCard.click();
+          console.log(`[VetRadar] Clicked on ${patient.name}`);
+
+          // Wait for treatment sheet to load
+          await page.waitForTimeout(2000);
+
+          // Take screenshot of treatment sheet
+          await page.screenshot({ path: `vetradar-treatment-${patient.id}.png`, fullPage: true });
+
+          // Extract treatment data from the page
+          const treatmentData = await page.evaluate(() => {
+            const bodyText = document.body.innerText;
+
+            // Extract medications with dosages and frequencies
+            const medications: any[] = [];
+
+            // Look for medication patterns in the text
+            // Common patterns: "Drug Name 10mg PO q8h", "Gabapentin 100mg PO TID"
+            const medPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(\d+\.?\d*\s*(?:mg|ml|mcg|units?))\s+(\w+)\s+(q\d+h|BID|TID|QID|SID|PRN|once daily|twice daily)/gi;
+
+            let match;
+            while ((match = medPattern.exec(bodyText)) !== null) {
+              medications.push({
+                medication: match[1],
+                dose: match[2],
+                route: match[3],
+                frequency: match[4]
+              });
+            }
+
+            // Extract clinical issues/problems
+            const issues: string[] = [];
+
+            // Look for common problem indicators
+            const problemPatterns = [
+              /(?:Problem|Issue|Concern|Diagnosis):\s*([^\n]+)/gi,
+              /(?:IVDD|seizure|tremor|ataxia|paresis|paralysis|pain)[^\n]*/gi,
+              /(?:No bowel movement|not eating|vomiting|diarrhea)[^\n]*/gi
+            ];
+
+            problemPatterns.forEach(pattern => {
+              let m;
+              while ((m = pattern.exec(bodyText)) !== null) {
+                const issue = m[1] || m[0];
+                if (issue && issue.length > 3 && issue.length < 200) {
+                  issues.push(issue.trim());
+                }
+              }
+            });
+
+            return {
+              medications: medications.slice(0, 20), // Limit to 20 meds
+              issues: [...new Set(issues)].slice(0, 10) // Unique issues, limit to 10
+            };
+          });
+
+          // Add treatment data to patient object
+          patient.medications = treatmentData.medications;
+          patient.issues = treatmentData.issues;
+
+          console.log(`[VetRadar] Found ${treatmentData.medications.length} medications and ${treatmentData.issues.length} issues for ${patient.name}`);
+
+          // Go back to patient list
+          await page.goBack();
+          await page.waitForTimeout(1500);
+
+        } catch (e) {
+          console.log(`[VetRadar] Error getting details for ${patient.name}:`, e);
+          patient.medications = [];
+          patient.issues = [];
+
+          // Try to go back if we're stuck
+          try {
+            await page.goBack();
+            await page.waitForTimeout(1000);
+          } catch (backError) {
+            // Ignore back errors
+          }
+        }
+      }
+
+      console.log(`[VetRadar] Completed detailed extraction for all patients`);
+      return patients;
+    } catch (error) {
+      await page.screenshot({ path: 'vetradar-patient-list-error.png', fullPage: true });
+      throw new Error(`Failed to fetch active patients: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Get treatment sheet for a specific patient
+   */
+  async getPatientTreatmentSheet(
+    patientId: string,
+    session: VetRadarSession
+  ): Promise<VetRadarTreatmentSheet> {
+    const { page } = session;
+
+    try {
+      // Navigate to patient treatment sheet
+      await page.goto(`${this.baseUrl}/patient/${patientId}/treatment`, { waitUntil: 'networkidle' });
+
+      // Wait for treatment data to load
+      await page.waitForSelector('.treatment-row, .medication-row, table', { timeout: 5000 });
+
+      // Extract treatment data
+      const treatmentData = await page.evaluate(() => {
+        // Extract medications
+        const medicationRows = document.querySelectorAll('.treatment-row, .medication-row, tbody tr');
+        const medications = Array.from(medicationRows).map(row => {
+          const medication = row.querySelector('.medication, .drug, td:nth-child(1)')?.textContent?.trim() || '';
+          const dose = row.querySelector('.dose, td:nth-child(2)')?.textContent?.trim() || '';
+          const route = row.querySelector('.route, td:nth-child(3)')?.textContent?.trim() || '';
+          const frequency = row.querySelector('.frequency, td:nth-child(4)')?.textContent?.trim() || '';
+          const time = row.querySelector('.time, td:nth-child(5)')?.textContent?.trim() || '';
+
+          return { medication, dose, route, frequency, time };
+        }).filter(med => med.medication); // Filter out empty rows
+
+        // Extract fluids
+        const fluidRows = document.querySelectorAll('.fluid-row, .fluids tr');
+        const fluids = Array.from(fluidRows).map(row => {
+          const type = row.querySelector('.fluid-type, td:nth-child(1)')?.textContent?.trim() || '';
+          const rate = row.querySelector('.rate, td:nth-child(2)')?.textContent?.trim() || '';
+          const units = row.querySelector('.units, td:nth-child(3)')?.textContent?.trim() || '';
+
+          return { type, rate, units };
+        }).filter(fluid => fluid.type);
+
+        // Extract nursing notes/concerns
+        const nursingNotes = document.querySelector('.nursing-notes, .notes, textarea[name="notes"]')?.textContent?.trim() || '';
+        const concerns = document.querySelector('.concerns, .alerts')?.textContent?.trim() || '';
+
+        // Extract patient demographics (if available on treatment sheet)
+        const patientName = document.querySelector('.patient-name, h1, h2')?.textContent?.trim() || '';
+        const demographics = document.body.textContent || '';
+
+        return {
+          patientName,
+          medications,
+          fluids,
+          nursingNotes,
+          concerns,
+        };
+      });
+
+      return {
+        patientId,
+        patientName: treatmentData.patientName,
+        species: '',
+        age: '',
+        sex: '',
+        weight: 0,
+        location: '',
+        medications: treatmentData.medications,
+        fluids: treatmentData.fluids,
+        nursingNotes: treatmentData.nursingNotes,
+        concerns: treatmentData.concerns,
+      };
+    } catch (error) {
+      throw new Error(`Failed to fetch treatment sheet: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Close VetRadar session
+   */
+  async closeSession(session: VetRadarSession): Promise<void> {
+    await session.browser.close();
+  }
+
+  /**
+   * Parse VetRadar treatment data into VetHub rounding format
+   */
+  parseToRoundingData(treatmentSheet: VetRadarTreatmentSheet): {
+    signalment: string;
+    location: string;
+    therapeutics: string;
+    fluids: string;
+    concerns: string;
+  } {
+    const signalment = [
+      treatmentSheet.species,
+      treatmentSheet.age,
+      treatmentSheet.sex,
+      treatmentSheet.weight ? `${treatmentSheet.weight}kg` : ''
+    ].filter(Boolean).join(', ');
+
+    const therapeutics = treatmentSheet.medications
+      .map(med => `${med.medication} ${med.dose} ${med.route} ${med.frequency}`.trim())
+      .join('; ');
+
+    const fluids = treatmentSheet.fluids
+      .map(fluid => `${fluid.type} at ${fluid.rate} ${fluid.units}`.trim())
+      .join('; ');
+
+    const concerns = [
+      treatmentSheet.concerns,
+      treatmentSheet.nursingNotes
+    ].filter(Boolean).join(' | ');
+
+    return {
+      signalment,
+      location: treatmentSheet.location || '',
+      therapeutics,
+      fluids,
+      concerns,
+    };
+  }
+}
