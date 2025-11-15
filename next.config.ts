@@ -30,14 +30,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    // Fix for Playwright font file imports
-    config.module.rules.push({
-      test: /\.(ttf|woff|woff2|eot|otf)$/,
-      type: 'asset/resource',
-    });
-    return config;
-  },
 };
 
 export default nextConfig;

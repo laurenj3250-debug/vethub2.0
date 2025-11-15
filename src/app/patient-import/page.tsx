@@ -8,13 +8,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { UnifiedPatient } from '@/contexts/PatientContext';
-import { VetRadarIntegrationService, VetRadarImportResult } from '@/lib/integrations/vetradar-integration';
 import { UnifiedPatientEntry } from '@/components/UnifiedPatientEntry';
 import { Download, RefreshCw, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
 
+// VetRadar import result type
+interface VetRadarImportResult {
+  success: boolean;
+  patients: UnifiedPatient[];
+  manualEntryRequirements: Array<{
+    patientName: string;
+    required: string[];
+    optional: string[];
+    estimatedTimeSeconds: number;
+  }>;
+  totalEstimatedTimeSeconds: number;
+  errors?: string[];
+}
+
 export default function PatientImportPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Auto-fill credentials from environment variables if available
+  const [email, setEmail] = useState(process.env.NEXT_PUBLIC_VETRADAR_EMAIL || '');
+  const [password, setPassword] = useState(process.env.NEXT_PUBLIC_VETRADAR_PASSWORD || '');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<VetRadarImportResult | null>(null);
@@ -37,7 +51,7 @@ export default function PatientImportPage() {
   }, [importing, email, password]);
 
   /**
-   * Import patients from VetRadar
+   * Import patients from VetRadar via API route
    */
   async function handleImport() {
     if (!email || !password) {
@@ -49,10 +63,15 @@ export default function PatientImportPage() {
     setError(null);
 
     try {
-      const service = new VetRadarIntegrationService();
-      await service.login(email, password);
+      const response = await fetch('/api/integrations/vetradar/patients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      const result = await service.importActivePatients();
+      const result: VetRadarImportResult = await response.json();
 
       if (result.success) {
         setImportResult(result);
@@ -65,8 +84,6 @@ export default function PatientImportPage() {
       } else {
         setError(result.errors?.join(', ') || 'Import failed');
       }
-
-      await service.logout();
     } catch (error) {
       console.error('Import error:', error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred during import');
@@ -256,18 +273,29 @@ export default function PatientImportPage() {
                   <h2 className="text-2xl font-semibold text-gray-900">
                     Patients ({patients.length})
                   </h2>
-                  <button
-                    onClick={() => {
-                      setImportResult(null);
-                      setPatients([]);
-                      setSelectedPatientId(null);
-                      setError(null);
-                    }}
-                    className="text-sm text-blue-600 hover:text-blue-700 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 rounded px-2 py-1 transition-all"
-                    aria-label="Start a new import"
-                  >
-                    Import Again
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleImport}
+                      disabled={importing}
+                      className="text-sm text-emerald-600 hover:text-emerald-700 focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 rounded px-2 py-1 transition-all disabled:opacity-50"
+                      aria-label="Sync medications and treatments from VetRadar"
+                      title="Refresh medications/treatments from VetRadar (preserves your manual entries)"
+                    >
+                      {importing ? 'Syncing...' : '🔄 Sync'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setImportResult(null);
+                        setPatients([]);
+                        setSelectedPatientId(null);
+                        setError(null);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 rounded px-2 py-1 transition-all"
+                      aria-label="Start a new import"
+                    >
+                      Import Again
+                    </button>
+                  </div>
                 </div>
 
                 {importing ? (

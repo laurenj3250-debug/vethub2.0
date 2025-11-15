@@ -1,0 +1,121 @@
+// VetHub 2.0 Database Schema
+// UnifiedPatient data model with support for SOAP notes, rounding, MRI, tasks, stickers
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Main patient model
+model Patient {
+  id     Int      @id @default(autoincrement())
+  status String   // Active | Discharged | MRI | Surgery
+
+  // Demographics (JSON field)
+  demographics Json
+
+  // Medical history (JSON field)
+  medicalHistory Json @default("{}")
+
+  // Current hospitalization (JSON field, nullable)
+  currentStay Json?
+
+  // Rounding data (JSON field, nullable)
+  roundingData Json?
+
+  // MRI data (JSON field, nullable)
+  mriData Json?
+
+  // Sticker data (JSON field, nullable)
+  stickerData Json?
+
+  // Appointment info (JSON field, nullable)
+  appointmentInfo Json?
+
+  // Metadata
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastAccessedBy  String?
+
+  // Relations
+  soapNotes       SOAPNote[]
+  tasks           Task[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// SOAP Note model
+model SOAPNote {
+  id          String   @id @default(cuid())
+  patientId   Int
+  patient     Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  createdBy   String?
+  visitType   String   // recheck | initial
+
+  // Subjective (JSON field)
+  subjective  Json     @default("{}")
+
+  // Objective - Physical Exam (JSON field)
+  physicalExam Json?
+
+  // Objective - Neuro Exam (JSON field)
+  neuroExam    Json?
+
+  // Assessment (JSON field)
+  assessment   Json?
+
+  // Plan (JSON field)
+  plan         Json?
+
+  @@index([patientId])
+  @@index([createdAt])
+}
+
+// Task model
+model Task {
+  id          String    @id @default(cuid())
+  patientId   Int?
+  patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  category    String?
+  timeOfDay   String?   // morning | evening | overnight | anytime
+  priority    String?   // low | medium | high | urgent
+  assignedTo  String?
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  dueDate     DateTime?
+
+  @@index([patientId])
+  @@index([completed])
+  @@index([createdAt])
+}
+
+// Common items for auto-complete
+model CommonProblem {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model CommonComment {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model CommonMedication {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}

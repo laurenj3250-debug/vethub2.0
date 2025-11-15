@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePatientContext } from '@/contexts/PatientContext';
@@ -20,6 +20,7 @@ const GlobalKeyboardHandler = dynamic(() => import('@/components/GlobalKeyboardH
 
 export function RoundingPageClient() {
   const [mounted, setMounted] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const { patients, loadPatients } = usePatientContext();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
@@ -29,6 +30,44 @@ export function RoundingPageClient() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleSyncFromVetRadar = async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/integrations/vetradar/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: process.env.NEXT_PUBLIC_VETRADAR_EMAIL,
+          password: process.env.NEXT_PUBLIC_VETRADAR_PASSWORD,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: "✅ Synced from VetRadar",
+          description: `Updated ${result.patients.length} patient(s) with latest medications and treatments.`,
+        });
+        await loadPatients(); // Refresh patient list
+      } else {
+        toast({
+          title: "❌ Sync Failed",
+          description: result.errors?.join(', ') || 'Could not sync from VetRadar',
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Sync Error",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (!mounted) {
     return (
@@ -57,7 +96,17 @@ export function RoundingPageClient() {
               <FileSpreadsheet size={24} />
               Rounding Sheet
             </h1>
-            <div className="w-32"></div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSyncFromVetRadar}
+                disabled={syncing}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white rounded-lg transition border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Sync medications and treatments from VetRadar"
+              >
+                <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+                {syncing ? 'Syncing...' : 'Sync VetRadar'}
+              </button>
+            </div>
           </div>
         </header>
 

@@ -305,99 +305,51 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Helper to save patients to localStorage
+  const saveToLocalStorage = useCallback((patients: UnifiedPatient[]) => {
+    localStorage.setItem('vethub_patients', JSON.stringify(patients));
+  }, []);
+
   // Load patients from API and transform to unified model
   const loadPatients = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const rawPatients = await apiClient.getPatients();
+      // Try to load from API first (database)
+      try {
+        const rawPatients = await apiClient.getPatients();
 
-      // Transform backend data to unified model
-      const unified: UnifiedPatient[] = rawPatients.map((p: any) => ({
-        id: p.id,
-        status: p.status || 'Active',
-        demographics: {
-          name: p.name,
-          age: p.patient_info?.age,
-          sex: p.patient_info?.sex,
-          breed: p.patient_info?.breed,
-          species: p.patient_info?.species,
-          weight: p.patient_info?.weight,
-          ownerName: p.patient_info?.ownerName,
-          ownerPhone: p.patient_info?.ownerPhone,
-          microchip: p.patient_info?.microchip,
-        },
-        medicalHistory: {
-          allergies: p.patient_info?.allergies,
-          chronicConditions: p.patient_info?.chronicConditions,
-          previousSurgeries: p.patient_info?.previousSurgeries,
-          vaccinationStatus: p.patient_info?.vaccinationStatus,
-        },
-        currentStay: p.current_stay ? {
-          admitDate: new Date(p.current_stay.admitDate),
-          location: p.current_stay.location,
-          icuCriteria: p.current_stay.icuCriteria,
-          codeStatus: p.current_stay.codeStatus,
-          attending: p.current_stay.attending,
-        } : undefined,
-        soapNotes: Array.isArray(p.soap_notes) ? p.soap_notes : (p.soap_data ? [{
-          id: 'legacy',
-          createdAt: new Date(),
-          visitType: p.soap_data.visitType || 'recheck',
-          currentHistory: p.soap_data.currentHistory,
-          lastVisit: p.soap_data.lastVisit,
-          medications: p.soap_data.medications,
-          csvd: p.soap_data.csvd,
-          pupd: p.soap_data.pupd,
-          appetite: p.soap_data.appetite,
-          physicalExam: {
-            ent: p.soap_data.peENT,
-            oral: p.soap_data.peOral,
-            pln: p.soap_data.pePLN,
-            cv: p.soap_data.peCV,
-            resp: p.soap_data.peResp,
-            abd: p.soap_data.peAbd,
-            rectal: p.soap_data.peRectal,
-            ms: p.soap_data.peMS,
-            integ: p.soap_data.peInteg,
-          },
-          neuroExam: {
-            mentalStatus: p.soap_data.mentalStatus,
-            gait: p.soap_data.gait,
-            cranialNerves: p.soap_data.cranialNerves,
-            posturalReactions: p.soap_data.posturalReactions,
-            spinalReflexes: p.soap_data.spinalReflexes,
-            tone: p.soap_data.tone,
-            muscleMass: p.soap_data.muscleMass,
-            nociception: p.soap_data.nociception,
-            examBy: p.soap_data.examBy,
-          },
-          progression: p.soap_data.progression,
-          neurolocalization: p.soap_data.neurolocalization,
-          ddx: p.soap_data.ddx,
-          diagnosticsToday: p.soap_data.diagnosticsToday,
-          treatments: p.soap_data.treatments,
-          discussionChanges: p.soap_data.discussionChanges,
-        }] : []),
-        roundingData: p.rounding_data ? {
-          ...p.rounding_data,
-          lastUpdated: p.rounding_data.lastUpdated ? new Date(p.rounding_data.lastUpdated) : undefined,
-        } : undefined,
-        mriData: p.mri_data,
-        tasks: Array.isArray(p.tasks) ? p.tasks.map((t: any) => ({
-          ...t,
-          createdAt: new Date(t.createdAt || t.created_at),
-          completedAt: t.completedAt ? new Date(t.completedAt) : undefined,
-          dueDate: t.dueDate ? new Date(t.dueDate) : undefined,
-        })) : [],
-        appointmentInfo: p.appointment_info,
-        createdAt: new Date(p.created_at || Date.now()),
-        updatedAt: new Date(p.updated_at || Date.now()),
-        lastAccessedBy: p.last_accessed_by,
-      }));
+        // If API returns UnifiedPatient format (from our new /api/patients endpoint)
+        if (rawPatients.length > 0 && rawPatients[0].demographics) {
+          setPatients(rawPatients);
+          setIsLoading(false);
+          return;
+        }
+      } catch (apiError) {
+        console.warn('[PatientContext] API call failed, falling back to localStorage:', apiError);
+      }
 
-      setPatients(unified);
+      // Fallback to localStorage if API is unavailable
+      const localData = localStorage.getItem('vethub_patients');
+      if (localData) {
+        const localPatients = JSON.parse(localData);
+        setPatients(localPatients.map((p: any) => ({
+          ...p,
+          createdAt: new Date(p.createdAt),
+          updatedAt: new Date(p.updatedAt),
+          currentStay: p.currentStay ? {
+            ...p.currentStay,
+            admitDate: new Date(p.currentStay.admitDate)
+          } : undefined,
+        })));
+        setIsLoading(false);
+        return;
+      }
+
+      // If no data available, start with empty array
+      setPatients([]);
+      setIsLoading(false);
     } catch (err) {
       console.error('Failed to load patients:', err);
       setError(err as Error);
@@ -424,22 +376,43 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
 
   // Create patient
   const createPatient = useCallback(async (data: Partial<UnifiedPatient>) => {
-    const backendData = {
-      name: data.demographics?.name || 'Unnamed Patient',
-      status: data.status || 'Active',
-      patient_info: data.demographics,
-      current_stay: data.currentStay,
-      soap_data: data.soapNotes?.[0],
-      rounding_data: data.roundingData,
-      mri_data: data.mriData,
-      appointment_info: data.appointmentInfo,
-    };
+    try {
+      // Try to create via API first
+      const created = await apiClient.createPatient(data);
 
-    const created = await apiClient.createPatient(backendData);
-    await loadPatients(); // Reload to get unified format
+      // Update local state with API response
+      const updated = [...patients, created];
+      setPatients(updated);
+      saveToLocalStorage(updated);
 
-    return patients.find(p => p.id === created.id)!;
-  }, [loadPatients, patients]);
+      return created;
+    } catch (apiError) {
+      console.warn('[PatientContext] API create failed, using localStorage only:', apiError);
+
+      // Fallback to localStorage-only creation
+      const newPatient: UnifiedPatient = {
+        id: Date.now(),
+        status: data.status || 'Active',
+        demographics: data.demographics || { name: 'Unnamed Patient' },
+        medicalHistory: data.medicalHistory || {},
+        currentStay: data.currentStay,
+        soapNotes: data.soapNotes || [],
+        roundingData: data.roundingData,
+        mriData: data.mriData,
+        tasks: data.tasks || [],
+        stickerData: data.stickerData,
+        appointmentInfo: data.appointmentInfo,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const updated = [...patients, newPatient];
+      setPatients(updated);
+      saveToLocalStorage(updated);
+
+      return newPatient;
+    }
+  }, [patients, saveToLocalStorage]);
 
   // Update patient
   const updatePatient = useCallback(async (id: number, data: Partial<UnifiedPatient>) => {
@@ -595,84 +568,22 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Import patients from VetRadar
+  // NOTE: This function has been deprecated in favor of the /patient-import page with API-based imports
+  // Keeping for backward compatibility with /integrations page, but VetRadar scraper import is disabled
   const importPatientsFromVetRadar = useCallback(async (vetRadarPatients: any[]) => {
     const results = {
       imported: 0,
       skipped: 0,
-      errors: [] as string[],
+      errors: ['This import method is deprecated. Please use /patient-import page instead.'] as string[],
     };
 
-    for (const vrPatient of vetRadarPatients) {
-      try {
-        // Check if patient already exists (by name matching)
-        const existingPatient = patients.find(
-          p => p.demographics.name.toLowerCase() === vrPatient.name.toLowerCase()
-        );
+    console.warn('[VetRadar Import] This import method is deprecated. Use /patient-import page instead.');
 
-        if (existingPatient) {
-          results.skipped++;
-          console.log(`[VetRadar Import] Skipping ${vrPatient.name} - already exists`);
-          continue;
-        }
-
-        // Import the VetRadar scraper to use parseToRoundingData
-        const { VetRadarScraper } = await import('@/lib/integrations/vetradar-scraper');
-        const scraper = new VetRadarScraper();
-        const roundingData = scraper.parseToRoundingData(vrPatient);
-
-        // Create unified patient object
-        const patientData: Partial<UnifiedPatient> = {
-          status: 'Active',
-          demographics: {
-            name: vrPatient.name,
-            species: vrPatient.species,
-            age: vrPatient.age,
-            sex: vrPatient.sex,
-            breed: vrPatient.breed || '',
-            weight: vrPatient.weight ? `${vrPatient.weight}` : '',
-          },
-          currentStay: {
-            admitDate: new Date(),
-            location: vrPatient.location,
-            codeStatus: roundingData.codeStatus,
-          },
-          roundingData: {
-            signalment: roundingData.signalment,
-            location: roundingData.location,
-            icuCriteria: roundingData.icuCriteria,
-            codeStatus: roundingData.codeStatus,
-            neurolocalization: roundingData.neurolocalization,
-            problems: roundingData.problems,
-            diagnosticFindings: roundingData.diagnosticFindings,
-            therapeutics: roundingData.therapeutics,
-            ivc: roundingData.ivc,
-            fluids: roundingData.fluids,
-            cri: roundingData.cri,
-            overnightDx: roundingData.overnightDx,
-            concerns: roundingData.concerns,
-            comments: roundingData.comments,
-            lastUpdated: new Date(),
-          },
-          soapNotes: [],
-          tasks: [],
-        };
-
-        // Create patient in backend
-        await createPatient(patientData);
-        results.imported++;
-        console.log(`[VetRadar Import] Successfully imported ${vrPatient.name}`);
-      } catch (error) {
-        const errorMsg = `Failed to import ${vrPatient.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        results.errors.push(errorMsg);
-        console.error(`[VetRadar Import] ${errorMsg}`);
-      }
-    }
-
-    // Reload patients to show newly imported ones
-    await loadPatients();
+    // Legacy function disabled to prevent client-side Playwright imports
+    // Use /patient-import page which uses server-side API for VetRadar imports
 
     return results;
-  }, [patients, createPatient, loadPatients]);
+  }, []);
 
   const value: PatientContextValue = {
     patients,

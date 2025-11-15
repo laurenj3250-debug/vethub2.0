@@ -77,8 +77,7 @@ export class VetRadarScraper {
    */
   async login(username: string, password: string): Promise<VetRadarSession> {
     const browser = await chromium.launch({
-      headless: false, // Run in headed mode to see what's happening
-      slowMo: 100, // Slow down actions for debugging
+      headless: true, // Run in headless mode (no visible browser window)
     });
 
     const page = await browser.newPage();

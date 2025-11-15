@@ -50,3 +50,5 @@ backend/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+/src/generated/prisma
