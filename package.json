@@ -13,7 +13,7 @@
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report",
     "test:vetradar": "npx tsx scripts/test-vetradar-import.ts",
-    "postinstall": "prisma generate || echo 'Prisma generation skipped'",
+    "postinstall": "prisma generate && npx playwright install chromium --with-deps || echo 'Setup skipped'",
     "db:push": "prisma db push",
     "db:studio": "prisma studio"
   },
