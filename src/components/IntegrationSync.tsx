@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { usePatientContext } from '@/contexts/PatientContext';
+import { Loader2, RefreshCw, CheckCircle2, XCircle, Download } from 'lucide-react';
 
 interface Patient {
   id: string;
@@ -20,12 +21,15 @@ interface Patient {
 export function IntegrationSync() {
   const [syncing, setSyncing] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [vetRadarPatients, setVetRadarPatients] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<{
     ezyvet?: boolean;
     vetradar?: boolean;
   }>({});
   const { toast } = useToast();
+  const { importPatientsFromVetRadar } = usePatientContext();
 
   const testEzyVetConnection = async () => {
     setTesting(true);
@@ -85,9 +89,10 @@ export function IntegrationSync() {
       const data = await response.json();
 
       if (data.success) {
+        setVetRadarPatients(data.patients || []);
         toast({
           title: 'VetRadar Sync Complete',
-          description: `Found ${data.count} active patients`,
+          description: `Found ${data.count} active patients. Click "Import to VetHub" to add them.`,
         });
       } else {
         throw new Error(data.error);
@@ -100,6 +105,41 @@ export function IntegrationSync() {
       });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const importVetRadarPatients = async () => {
+    if (vetRadarPatients.length === 0) {
+      toast({
+        title: 'No Patients to Import',
+        description: 'Please sync from VetRadar first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const results = await importPatientsFromVetRadar(vetRadarPatients);
+
+      toast({
+        title: 'Import Complete',
+        description: `Imported ${results.imported} patients. Skipped ${results.skipped} duplicates.${results.errors.length > 0 ? ` ${results.errors.length} errors.` : ''}`,
+        variant: results.errors.length > 0 ? 'destructive' : 'default',
+      });
+
+      // Clear VetRadar patients after import
+      if (results.imported > 0) {
+        setVetRadarPatients([]);
+      }
+    } catch (error) {
+      toast({
+        title: 'Import Failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -211,26 +251,101 @@ export function IntegrationSync() {
         <h3 className="text-xl font-semibold mb-4 text-white">VetRadar Integration</h3>
 
         <p className="text-sm text-gray-400 mb-4">
-          Fetch treatment sheets from VetRadar monitoring system
+          Fetch active Neurology/Neurosurgery patients and import to VetHub
         </p>
 
-        <Button
-          onClick={syncFromVetRadar}
-          disabled={syncing}
-          className="bg-purple-600 hover:bg-purple-700 text-white"
-        >
-          {syncing ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Syncing...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Sync from VetRadar
-            </>
+        <div className="flex gap-3 mb-4">
+          <Button
+            onClick={syncFromVetRadar}
+            disabled={syncing || importing}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            {syncing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sync from VetRadar
+              </>
+            )}
+          </Button>
+
+          {vetRadarPatients.length > 0 && (
+            <Button
+              onClick={importVetRadarPatients}
+              disabled={importing || syncing}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {importing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Import {vetRadarPatients.length} to VetHub
+                </>
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
+
+        {vetRadarPatients.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm text-gray-400">
+              Ready to import {vetRadarPatients.length} patients from VetRadar
+            </p>
+
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {vetRadarPatients.map((patient, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 border border-slate-700 rounded bg-slate-900"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-white">{patient.name}</p>
+                      <p className="text-sm text-gray-400">
+                        {patient.species} • {patient.breed || 'Unknown breed'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {patient.age} | {patient.sex} | {patient.weight}kg
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Location: {patient.location}
+                      </p>
+                      {patient.medications && patient.medications.length > 0 && (
+                        <p className="text-xs text-emerald-400 mt-1">
+                          {patient.medications.length} medications
+                        </p>
+                      )}
+                      {patient.issues && patient.issues.length > 0 && (
+                        <p className="text-xs text-amber-400">
+                          {patient.issues.length} clinical issues
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0">
+                      {patient.status && (
+                        <span className={`px-2 py-1 text-xs rounded ${
+                          patient.status.toLowerCase().includes('critical') || patient.status.toLowerCase().includes('caution')
+                            ? 'bg-red-900/30 text-red-300'
+                            : 'bg-green-900/30 text-green-300'
+                        }`}>
+                          {patient.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Setup Instructions */}

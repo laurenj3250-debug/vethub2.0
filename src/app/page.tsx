@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
@@ -1515,6 +1515,13 @@ export default function VetHub() {
             >
               <FileSpreadsheet size={18} />
               All Rounds
+            </Link>
+            <Link
+              href="/patient-import"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <Download size={18} />
+              Import from VetRadar
             </Link>
             <button
               onClick={() => setShowMRISchedule(!showMRISchedule)}

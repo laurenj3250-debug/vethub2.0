@@ -14,6 +14,7 @@ export interface VetRadarPatient {
   id: string;
   name: string;
   species: string;
+  breed?: string;
   age: string;
   sex: string;
   weight: number;
@@ -21,6 +22,8 @@ export interface VetRadarPatient {
   status: string;
   cage_location?: string;
   ward?: string;
+  medications?: VetRadarTreatment[];
+  issues?: string[];
 }
 
 export interface VetRadarTreatment {
@@ -117,7 +120,7 @@ export class VetRadarScraper {
 
       // Wait for navigation to complete (give it more time)
       try {
-        await page.waitForURL(url => !url.includes('/login'), { timeout: 45000 });
+        await page.waitForURL(url => !url.toString().includes('/login'), { timeout: 45000 });
         console.log('[VetRadar] URL changed - navigation successful');
       } catch (e) {
         console.log('[VetRadar] Timeout waiting for URL change, checking current state...');
@@ -575,9 +578,9 @@ export class VetRadarScraper {
   }
 
   /**
-   * Parse VetRadar treatment data into VetHub rounding format
+   * Parse VetRadar treatment sheet into VetHub rounding format
    */
-  parseToRoundingData(treatmentSheet: VetRadarTreatmentSheet): {
+  parseTreatmentSheetToRoundingData(treatmentSheet: VetRadarTreatmentSheet): {
     signalment: string;
     location: string;
     therapeutics: string;
@@ -610,6 +613,136 @@ export class VetRadarScraper {
       therapeutics,
       fluids,
       concerns,
+    };
+  }
+
+  /**
+   * Parse VetRadar patient data into VetHub rounding format
+   * Auto-fills fields where data is available, infers IVC/CRI status,
+   * and sets smart defaults for fields requiring clinical judgment
+   */
+  parseToRoundingData(patient: VetRadarPatient): {
+    signalment: string;
+    location: string;
+    therapeutics: string;
+    fluids: string;
+    ivc: string;
+    cri: string;
+    problems: string;
+    concerns: string;
+    codeStatus: string;
+    icuCriteria: string;
+    neurolocalization: string;
+    diagnosticFindings: string;
+    overnightDx: string;
+    comments: string;
+  } {
+    // 1. SIGNALMENT - Auto-fillable from demographics
+    const signalment = [
+      patient.species,
+      patient.age,
+      patient.sex,
+      patient.weight ? `${patient.weight}kg` : ''
+    ].filter(Boolean).join(', ');
+
+    // 2. LOCATION - Map VetRadar location to IP/ICU
+    let location = '';
+    if (patient.location) {
+      // VetRadar locations like "100 - IP#1, R16" or "ICU, Cage 5"
+      if (patient.location.toLowerCase().includes('icu')) {
+        location = 'ICU';
+      } else if (patient.location.toLowerCase().includes('ip')) {
+        location = 'IP';
+      } else {
+        location = 'IP'; // Default to IP if unclear
+      }
+    }
+
+    // 3. THERAPEUTICS - Format medications
+    const medications = patient.medications || [];
+    const therapeutics = medications
+      .map(med => `${med.medication} ${med.dose} ${med.route} ${med.frequency}`.trim())
+      .join('; ');
+
+    // 4. FLUIDS - Check if patient has fluids running (from medications or separate fluid data)
+    const fluidsText = medications
+      .filter(med => {
+        const medLower = med.medication.toLowerCase();
+        return medLower.includes('lrs') ||
+               medLower.includes('lactated ringer') ||
+               medLower.includes('saline') ||
+               medLower.includes('normosol') ||
+               medLower.includes('plasmalyte') ||
+               medLower.includes('fluid');
+      })
+      .map(fluid => `${fluid.medication} ${fluid.dose} ${fluid.route} ${fluid.frequency}`.trim())
+      .join('; ');
+
+    // 5. IVC STATUS - Infer from presence of fluids
+    const ivc = fluidsText ? 'Y' : 'N';
+
+    // 6. CRI STATUS - Detect CRI medications
+    const hasCRI = medications.some(med => {
+      const medLower = med.medication.toLowerCase();
+      const freqLower = med.frequency.toLowerCase();
+      return medLower.includes('cri') ||
+             freqLower.includes('cri') ||
+             medLower.includes('fentanyl') ||
+             medLower.includes('lidocaine') ||
+             medLower.includes('ketamine') ||
+             (medLower.includes('infusion') && !medLower.includes('fluid'));
+    });
+    const cri = hasCRI ? 'Y' : 'N';
+
+    // 7. PROBLEMS - Extract from VetRadar clinical issues
+    const issues = patient.issues || [];
+    const problems = issues.join('\n');
+
+    // 8. CONCERNS - Combine any nursing notes or concerns
+    const concerns = patient.cage_location || '';
+
+    // 9. CODE STATUS - Default to Yellow (requires veterinarian review)
+    // Could infer from status badge: CAUTION/CRITICAL → Orange/Red
+    let codeStatus = 'Yellow';
+    if (patient.status) {
+      const statusLower = patient.status.toLowerCase();
+      if (statusLower.includes('critical') || statusLower.includes('caution')) {
+        codeStatus = 'Orange';
+      } else if (statusLower.includes('friendly') || statusLower.includes('stable')) {
+        codeStatus = 'Green';
+      }
+    }
+
+    // 10. ICU CRITERIA - Leave blank (requires clinical decision)
+    const icuCriteria = '';
+
+    // 11. NEUROLOCALIZATION - Leave blank (requires neuro exam)
+    const neurolocalization = '';
+
+    // 12. DIAGNOSTIC FINDINGS - Leave blank (requires MRI/lab integration)
+    const diagnosticFindings = '';
+
+    // 13. OVERNIGHT DX - Leave blank (created during rounds)
+    const overnightDx = '';
+
+    // 14. COMMENTS - Note that this was imported from VetRadar
+    const comments = 'Imported from VetRadar - Please review and complete missing fields';
+
+    return {
+      signalment,
+      location,
+      therapeutics,
+      fluids: fluidsText,
+      ivc,
+      cri,
+      problems,
+      concerns,
+      codeStatus,
+      icuCriteria,
+      neurolocalization,
+      diagnosticFindings,
+      overnightDx,
+      comments,
     };
   }
 }

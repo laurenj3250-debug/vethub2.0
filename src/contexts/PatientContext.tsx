@@ -23,7 +23,11 @@ export interface UnifiedPatient {
     weight?: string;
     ownerName?: string;
     ownerPhone?: string;
+    ownerEmail?: string;      // NEW - for stickers/communication
+    ownerAddress?: string;    // NEW - for stickers
     microchip?: string;
+    colorMarkings?: string;   // NEW - for stickers ("Beige/black/white")
+    dateOfBirth?: string;     // NEW - for stickers
   };
 
   // Medical history (shared baseline)
@@ -54,6 +58,9 @@ export interface UnifiedPatient {
 
   // Tasks assigned to this patient
   tasks: PatientTask[];
+
+  // Sticker generation data (NEW)
+  stickerData?: StickerData;
 
   // Appointment info (if from appointment schedule)
   appointmentInfo?: {
@@ -120,6 +127,31 @@ export interface SOAPNote {
   discussionChanges?: string;
 }
 
+// ============================================================================
+// LAB RESULTS INTERFACES
+// ============================================================================
+
+export interface LabValue {
+  parameter: string;        // e.g., "WBC", "HCT", "ALT"
+  value: number | string;
+  unit: string;
+  referenceRange: string;   // e.g., "5.0-16.0"
+  referenceLow?: number;
+  referenceHigh?: number;
+  isAbnormal: boolean;
+  flag?: 'High' | 'Low' | 'Critical High' | 'Critical Low';
+}
+
+export interface LabPanel {
+  values: LabValue[];
+  performedDate?: Date;
+  labName?: string;
+}
+
+// ============================================================================
+// ROUNDING DATA INTERFACE (Enhanced)
+// ============================================================================
+
 export interface RoundingData {
   signalment?: string;
   location?: string;
@@ -136,6 +168,39 @@ export interface RoundingData {
   concerns?: string;
   comments?: string;
   lastUpdated?: Date;
+
+  // Lab Results (NEW)
+  labResults?: {
+    cbc?: LabPanel;
+    chemistry?: LabPanel;
+    lastUpdated?: Date;
+  };
+
+  // Imaging (NEW)
+  chestXray?: {
+    findings: string;  // Default: "NSF" (No Significant Findings)
+    date?: Date;
+    radiologist?: string;
+  };
+}
+
+// ============================================================================
+// MRI DATA INTERFACE (Enhanced)
+// ============================================================================
+
+export interface MRICalculatedDoses {
+  opioid: {
+    name: 'Methadone' | 'Butorphanol';
+    doseMg: number;
+    volumeMl: number;
+  };
+  valium: {
+    doseMg: number;
+    volumeMl: number;
+  };
+  contrast: {
+    volumeMl: number;
+  };
 }
 
 export interface MRIData {
@@ -150,6 +215,15 @@ export interface MRIData {
   radiologistNotes?: string;
   completed?: boolean;
   completedAt?: Date;
+
+  // Anesthesia-specific (NEW)
+  npoTime?: Date;           // NPO start time
+  asaStatus?: 1 | 2 | 3 | 4 | 5;  // ASA physical status classification
+  preMedDrug?: 'Methadone' | 'Butorphanol';  // Auto-selected based on scanType
+
+  // Auto-calculated doses (NEW)
+  calculatedDoses?: MRICalculatedDoses;
+  autoCalculate?: boolean;  // Enable auto-calculation from weight
 }
 
 export interface PatientTask {
@@ -164,6 +238,20 @@ export interface PatientTask {
   completedAt?: Date;
   createdAt: Date;
   dueDate?: Date;
+}
+
+// ============================================================================
+// STICKER DATA INTERFACE
+// ============================================================================
+
+export interface StickerData {
+  isNewAdmit: boolean;
+  isSurgery: boolean;
+  bigLabelCount?: number;    // Auto-calculated based on admission flags
+  tinySheetCount?: number;   // Auto-calculated based on admission flags
+  bigLabelsPrinted?: boolean;
+  tinyLabelsPrinted?: boolean;
+  stickersPrintedAt?: Date;
 }
 
 // ============================================================================
@@ -195,6 +283,13 @@ interface PatientContextValue {
   addTask: (id: number, task: Omit<PatientTask, 'id' | 'createdAt'>) => Promise<void>;
   updateTask: (patientId: number, taskId: string, updates: Partial<PatientTask>) => Promise<void>;
   deleteTask: (patientId: number, taskId: string) => Promise<void>;
+
+  // VetRadar Integration
+  importPatientsFromVetRadar: (vetRadarPatients: any[]) => Promise<{
+    imported: number;
+    skipped: number;
+    errors: string[];
+  }>;
 }
 
 const PatientContext = createContext<PatientContextValue | undefined>(undefined);
@@ -499,6 +594,86 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
     ));
   }, []);
 
+  // Import patients from VetRadar
+  const importPatientsFromVetRadar = useCallback(async (vetRadarPatients: any[]) => {
+    const results = {
+      imported: 0,
+      skipped: 0,
+      errors: [] as string[],
+    };
+
+    for (const vrPatient of vetRadarPatients) {
+      try {
+        // Check if patient already exists (by name matching)
+        const existingPatient = patients.find(
+          p => p.demographics.name.toLowerCase() === vrPatient.name.toLowerCase()
+        );
+
+        if (existingPatient) {
+          results.skipped++;
+          console.log(`[VetRadar Import] Skipping ${vrPatient.name} - already exists`);
+          continue;
+        }
+
+        // Import the VetRadar scraper to use parseToRoundingData
+        const { VetRadarScraper } = await import('@/lib/integrations/vetradar-scraper');
+        const scraper = new VetRadarScraper();
+        const roundingData = scraper.parseToRoundingData(vrPatient);
+
+        // Create unified patient object
+        const patientData: Partial<UnifiedPatient> = {
+          status: 'Active',
+          demographics: {
+            name: vrPatient.name,
+            species: vrPatient.species,
+            age: vrPatient.age,
+            sex: vrPatient.sex,
+            breed: vrPatient.breed || '',
+            weight: vrPatient.weight ? `${vrPatient.weight}` : '',
+          },
+          currentStay: {
+            admitDate: new Date(),
+            location: vrPatient.location,
+            codeStatus: roundingData.codeStatus,
+          },
+          roundingData: {
+            signalment: roundingData.signalment,
+            location: roundingData.location,
+            icuCriteria: roundingData.icuCriteria,
+            codeStatus: roundingData.codeStatus,
+            neurolocalization: roundingData.neurolocalization,
+            problems: roundingData.problems,
+            diagnosticFindings: roundingData.diagnosticFindings,
+            therapeutics: roundingData.therapeutics,
+            ivc: roundingData.ivc,
+            fluids: roundingData.fluids,
+            cri: roundingData.cri,
+            overnightDx: roundingData.overnightDx,
+            concerns: roundingData.concerns,
+            comments: roundingData.comments,
+            lastUpdated: new Date(),
+          },
+          soapNotes: [],
+          tasks: [],
+        };
+
+        // Create patient in backend
+        await createPatient(patientData);
+        results.imported++;
+        console.log(`[VetRadar Import] Successfully imported ${vrPatient.name}`);
+      } catch (error) {
+        const errorMsg = `Failed to import ${vrPatient.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        results.errors.push(errorMsg);
+        console.error(`[VetRadar Import] ${errorMsg}`);
+      }
+    }
+
+    // Reload patients to show newly imported ones
+    await loadPatients();
+
+    return results;
+  }, [patients, createPatient, loadPatients]);
+
   const value: PatientContextValue = {
     patients,
     selectedPatientId,
@@ -517,6 +692,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
     addTask,
     updateTask,
     deleteTask,
+    importPatientsFromVetRadar,
   };
 
   return (

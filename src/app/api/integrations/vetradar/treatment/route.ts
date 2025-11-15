@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
     try {
       const treatmentSheet = await scraper.getPatientTreatmentSheet(patientId, session);
-      const roundingData = scraper.parseToRoundingData(treatmentSheet);
+      const roundingData = scraper.parseTreatmentSheetToRoundingData(treatmentSheet);
 
       return NextResponse.json({
         success: true,

@@ -11,7 +11,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test:vetradar": "npx tsx scripts/test-vetradar-import.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
@@ -46,6 +47,8 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "genkit": "^1.1.0",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
     "patch-package": "^8.0.0",
@@ -66,6 +69,7 @@
     "playwright": "^1.56.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }
