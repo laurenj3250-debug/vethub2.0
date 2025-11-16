@@ -60,9 +60,12 @@ export async function POST(
 
     const body = await request.json();
 
-    if (!body.title || typeof body.title !== 'string') {
+    // Support both 'title' and 'name' fields for compatibility
+    const taskTitle = body.title || body.name;
+
+    if (!taskTitle || typeof taskTitle !== 'string') {
       return NextResponse.json(
-        { error: 'Task title is required' },
+        { error: 'Task title or name is required' },
         { status: 400 }
       );
     }
@@ -82,7 +85,7 @@ export async function POST(
 
     const task = await prisma.task.create({
       data: {
-        title: body.title.trim(),
+        title: taskTitle.trim(),
         description: body.description || undefined,
         category: body.category || undefined,
         timeOfDay: body.timeOfDay || undefined,
