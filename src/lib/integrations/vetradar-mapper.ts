@@ -108,7 +108,8 @@ export function mapVetRadarToUnifiedPatient(
     signalment,
     location,
     icuCriteria: meetsICUCriteria,
-    codeStatus,
+    code: codeStatus, // Maps to 'code' field in rounding sheet
+    codeStatus, // Keep for backwards compatibility
     problems,
     diagnosticFindings: '', // Requires manual entry (lab results)
     therapeutics,
