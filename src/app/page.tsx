@@ -1086,9 +1086,9 @@ export default function VetHub() {
       // Build TSV data with header
       const header = 'Name\tPatient ID\tWeight (kg)\tScan Type';
       const rows = mriPatients.map((patient) => {
-        const name = patient.name || '';
-        const patientId = patient.patient_info?.patientId || '';
-        const weight = (patient.patient_info?.weight || '').replace(/[^\d.]/g, '');
+        const name = patient.demographics?.name || patient.name || '';
+        const patientId = patient.demographics?.patientId || patient.patient_info?.patientId || '';
+        const weight = (patient.demographics?.weight || patient.patient_info?.weight || '').replace(/[^\d.]/g, '');
         const scanType = patient.mri_data?.scanType || '';
 
         return `${name}\t${patientId}\t${weight}\t${scanType}`;
@@ -1117,7 +1117,7 @@ export default function VetHub() {
       const rounding = patient.rounding_data || {};
 
       const line = [
-        patient.name || '',
+        patient.demographics?.name || patient.name || '',
         rounding.signalment || '',
         rounding.location || '',
         rounding.icuCriteria || '',
@@ -1137,7 +1137,7 @@ export default function VetHub() {
 
       toast({
         title: '✅ Line Copied!',
-        description: `${patient.name}'s rounding sheet line copied to clipboard`
+        description: `${patient.demographics?.name || patient.name || 'Unnamed'}'s rounding sheet line copied to clipboard`
       });
     } catch (error) {
       console.error('Copy line error:', error);
@@ -1166,7 +1166,7 @@ export default function VetHub() {
         const rounding = patient.rounding_data || {};
 
         const fields = [
-          patient.name || '',
+          patient.demographics?.name || patient.name || '',
           rounding.signalment || '',
           rounding.location || '',
           rounding.icuCriteria || '',
@@ -1242,13 +1242,13 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      toast({ title: 'Generating stickers...', description: `Creating stickers for ${patient.name}` });
+      toast({ title: 'Generating stickers...', description: `Creating stickers for ${patient.demographics?.name || patient.name || 'Unnamed'}` });
 
       await downloadAllStickersPDF(patient as any);
 
       toast({
         title: '✅ Stickers Generated!',
-        description: `Downloaded stickers for ${patient.name}`
+        description: `Downloaded stickers for ${patient.demographics?.name || patient.name || 'Unnamed'}`
       });
     } catch (error) {
       console.error('Sticker generation error:', error);
@@ -1675,7 +1675,7 @@ export default function VetHub() {
                 >
                   <option value="">General/Hospital-Wide</option>
                   {patients.map(patient => (
-                    <option key={patient.id} value={patient.id}>{patient.name}</option>
+                    <option key={patient.id} value={patient.id}>{patient.demographics?.name || patient.name || 'Unnamed'}</option>
                   ))}
                 </select>
                 <input
@@ -1792,7 +1792,7 @@ export default function VetHub() {
                   const colors = getPatientColor(patient.id);
                   return (
                     <div key={patient.id} className={`${colors.bg} rounded-lg p-2 border ${colors.border}`}>
-                      <h3 className="text-white font-bold mb-1.5 text-sm">{patient.name}</h3>
+                      <h3 className="text-white font-bold mb-1.5 text-sm">{patient.demographics?.name || patient.name || 'Unnamed'}</h3>
                       <div className="space-y-1">
                         {tasks.map((task: any) => {
                           const category = getTaskCategory(task.name);
@@ -1882,7 +1882,7 @@ export default function VetHub() {
                                 ) : (
                                   <Circle size={12} />
                                 )}
-                                {patient.name}
+                                {patient.demographics?.name || patient.name || 'Unnamed'}
                               </button>
                             );
                           })}
@@ -1961,7 +1961,7 @@ export default function VetHub() {
                   const todayTasks = allTasks.filter((t: any) => t.date === today);
                   // Apply hide completed filter
                   const tasks = todayTasks.filter((t: any) => !hideCompletedTasks || !t.completed);
-                  const info = patient.patient_info || {};
+                  const info = patient.demographics || patient.patient_info || {};
                   const emoji = getSpeciesEmoji(info.species);
                   const completedCount = tasks.filter((t: any) => t.completed).length;
                   const totalCount = tasks.length;
@@ -2098,7 +2098,7 @@ export default function VetHub() {
                                     onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   >
                                     <span className="text-sm">{emoji}</span>
-                                    {patient.name}
+                                    {patient.demographics?.name || patient.name || 'Unnamed'}
                                   </div>
                                 </div>
                                 <button
