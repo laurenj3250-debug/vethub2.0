@@ -437,9 +437,11 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
   // Delete patient
   const deletePatient = useCallback(async (id: number) => {
     await apiClient.deletePatient(String(id));
-    setPatients(prev => prev.filter(p => p.id !== id));
+    const updatedPatients = patients.filter(p => p.id !== id);
+    setPatients(updatedPatients);
+    saveToLocalStorage(updatedPatients); // Update localStorage to prevent deleted patients from reappearing
     if (selectedPatientId === id) setSelectedPatientId(null);
-  }, [selectedPatientId]);
+  }, [selectedPatientId, patients, saveToLocalStorage]);
 
   // Update demographics only
   const updateDemographics = useCallback(async (id: number, demographics: Partial<UnifiedPatient['demographics']>) => {

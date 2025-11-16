@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain } from 'lucide-react';
+import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain, ExternalLink } from 'lucide-react';
 // TEMPORARILY COMMENTED OUT TO DEBUG - import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import type { NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
@@ -1000,17 +1000,23 @@ export function EnhancedRoundingSheet({
 
                   {/* Name */}
                   <td className="p-2">
-                    <button
-                      onClick={() => onPatientClick(patient.id)}
-                      className="text-white font-medium text-xs hover:text-cyan-400 transition cursor-pointer underline decoration-dotted flex items-center gap-1"
-                    >
-                      {patient.demographics?.name || patient.name || ''}
-                      {hasSOAPData && (
-                        <span title="Has SOAP data">
-                          <Sparkles className="w-3 h-3 text-cyan-400" />
-                        </span>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-medium text-xs select-text flex items-center gap-1">
+                        {patient.demographics?.name || patient.name || ''}
+                        {hasSOAPData && (
+                          <span title="Has SOAP data">
+                            <Sparkles className="w-3 h-3 text-cyan-400" />
+                          </span>
+                        )}
+                      </span>
+                      <button
+                        onClick={() => onPatientClick(patient.id)}
+                        className="text-cyan-400 hover:text-cyan-300 transition flex-shrink-0"
+                        title="View patient details"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
                   </td>
 
                   {/* Signalment */}
