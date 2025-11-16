@@ -240,26 +240,44 @@ export class VetRadarScraper {
         }
       }
 
-      // Check for PIN inputs on the page (regardless of URL)
-      const pinInputs = await page.locator('input[type="text"]:visible, input[type="tel"]:visible, input[type="number"]:visible, input:not([type]):visible').all();
+      // Check for verification/PIN inputs on the page (regardless of URL)
+      const allInputs = await page.locator('input[type="text"]:visible, input[type="tel"]:visible, input[type="number"]:visible, input:not([type]):visible').all();
 
-      if (pinInputs.length >= 5) {
-        console.log(`[VetRadar] Found ${pinInputs.length} input fields - appears to be PIN page`);
+      if (allInputs.length >= 5) {
+        console.log(`[VetRadar] Found ${allInputs.length} input fields`);
 
         try {
           // Wait a moment for page to be interactive
           await page.waitForTimeout(2000);
 
-          // Enter PIN: 32597
-          const pin = '32597';
+          // Determine if this is email verification (6 digits) or PIN (5 digits)
+          // Email verification code: 780419 (6 digits)
+          // PIN code: 32597 (5 digits)
 
-          // Enter each digit into the first 5 input boxes
-          console.log('[VetRadar] Entering PIN digits into separate boxes...');
-          for (let i = 0; i < 5; i++) {
-            await pinInputs[i].click();
-            await pinInputs[i].fill(''); // Clear first
-            await pinInputs[i].type(pin[i], { delay: 150 });
-            console.log(`[VetRadar] Entered digit ${i + 1}: ${pin[i]}`);
+          let code: string;
+          let numInputs: number;
+
+          if (allInputs.length === 6) {
+            console.log('[VetRadar] Detected 6 inputs - entering email verification code...');
+            code = '780419';
+            numInputs = 6;
+          } else if (allInputs.length === 5) {
+            console.log('[VetRadar] Detected 5 inputs - entering PIN...');
+            code = '32597';
+            numInputs = 5;
+          } else {
+            console.log('[VetRadar] Entering code into first available inputs...');
+            code = allInputs.length === 6 ? '780419' : '32597';
+            numInputs = Math.min(allInputs.length, code.length);
+          }
+
+          // Enter each digit into separate boxes
+          console.log(`[VetRadar] Entering ${code.length}-digit code into ${numInputs} boxes...`);
+          for (let i = 0; i < numInputs && i < code.length; i++) {
+            await allInputs[i].click();
+            await allInputs[i].fill(''); // Clear first
+            await allInputs[i].type(code[i], { delay: 150 });
+            console.log(`[VetRadar] Entered digit ${i + 1}: ${code[i]}`);
             await page.waitForTimeout(200);
           }
 
