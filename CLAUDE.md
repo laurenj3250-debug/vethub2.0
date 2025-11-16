@@ -41,6 +41,36 @@ Invoke the `@agent-design-review` subagent for thorough design validation when:
 - Before finalizing PRs with visual changes
 - Needing comprehensive accessibility and responsiveness testing
 
+## DEVELOPMENT WORKFLOW (MANDATORY)
+
+**CRITICAL**: Before making ANY code changes, read `BEFORE-YOU-CODE.md` and follow `.claude-workflow.md`
+
+### Before any code changes:
+1. Read `BEFORE-YOU-CODE.md` checklist
+2. Identify the EXACT error (not assumptions)
+3. Find the ACTUAL code causing it
+4. Verify the fix will work BEFORE writing it
+
+### After any code changes:
+1. Run `npm run dev` and check for errors
+2. Test the specific endpoint that was broken
+3. Run `./scripts/verify-api.sh` to verify API endpoints
+4. Verify in browser that it actually works
+5. THEN commit - not before
+
+### When debugging:
+1. Look at server logs FIRST
+2. Check the actual API route code
+3. Check what the frontend sends
+4. Compare field names
+5. Don't guess - verify
+
+### API Verification Script
+Run `./scripts/verify-api.sh` to test all API endpoints:
+- Tests patients, general tasks, and patient tasks endpoints
+- Automatically creates, updates, and deletes test tasks
+- Verifies all CRUD operations work correctly
+
 ## Tech Stack
 - **Framework**: Next.js 15 with Turbopack
 - **UI Library**: React 18 with Radix UI components
