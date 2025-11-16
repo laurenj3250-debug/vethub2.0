@@ -29,6 +29,8 @@ export interface UnifiedPatient {
     microchip?: string;
     colorMarkings?: string;   // NEW - for stickers ("Beige/black/white")
     dateOfBirth?: string;     // NEW - for stickers
+    clientId?: string;        // Client code number (e.g., "674251") - from VetRadar
+    patientId?: string;       // Consult/patient number (e.g., "5878433") - from VetRadar
   };
 
   // Medical history (shared baseline)

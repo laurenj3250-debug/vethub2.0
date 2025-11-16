@@ -103,16 +103,37 @@ export default function PatientImportPage() {
   }
 
   /**
-   * Save patient to database (placeholder)
+   * Save patient to database
    */
   async function handleSavePatient(patient: UnifiedPatient) {
-    // TODO: Implement database persistence
-    console.log('Saving patient to database:', patient);
+    try {
+      console.log('Saving patient to database:', patient);
 
-    // For now, just update in state
-    handleUpdatePatient(patient);
+      // Save to database via API
+      const response = await fetch('/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patient),
+      });
 
-    return Promise.resolve();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to save patient');
+      }
+
+      const savedPatient = await response.json();
+
+      // Update in state with saved patient (includes database ID)
+      handleUpdatePatient(savedPatient);
+
+      alert(`✅ ${patient.demographics.name} saved successfully!`);
+
+      return savedPatient;
+    } catch (error) {
+      console.error('Save patient error:', error);
+      alert(`Failed to save ${patient.demographics.name}. Please try again.`);
+      throw error;
+    }
   }
 
   /**

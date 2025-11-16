@@ -155,6 +155,8 @@ export function mapVetRadarToUnifiedPatient(
       microchip: existingPatient?.demographics?.microchip,
       colorMarkings: existingPatient?.demographics?.colorMarkings,
       dateOfBirth: existingPatient?.demographics?.dateOfBirth,
+      clientId: existingPatient?.demographics?.clientId || vetRadarPatient.clientId,  // Preserve EzyVet clientId if exists
+      patientId: existingPatient?.demographics?.patientId || vetRadarPatient.consultNumber || vetRadarPatient.patientId,  // Consult # - prefer existing (from EzyVet)
     },
 
     status: mapVetRadarStatusToPatientStatus(vetRadarPatient.status),

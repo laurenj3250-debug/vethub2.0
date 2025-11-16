@@ -16,7 +16,8 @@ import { calculateStickerCounts } from '@/lib/sticker-calculator';
  */
 export interface BigLabelData {
   patientName: string;
-  mrn?: string;
+  clientId?: string;      // Code number (12pt) - e.g., "674251"
+  patientId?: string;     // Consult number (14pt bold) - e.g., "5878433"
   ownerName: string;
   ownerPhone: string;
   ownerAddress?: string;
@@ -53,7 +54,8 @@ export function formatPatientForBigLabel(patient: UnifiedPatient): BigLabelData 
 
   return {
     patientName: demo.name,
-    mrn: patient.mrn,
+    clientId: demo.clientId,        // Code number (e.g., "674251")
+    patientId: demo.patientId,      // Consult number (e.g., "5878433")
     ownerName: demo.ownerName || '',
     ownerPhone: demo.ownerPhone || '',
     ownerAddress: demo.ownerAddress,
@@ -89,52 +91,51 @@ export function formatPatientForTinyLabel(patient: UnifiedPatient): TinyLabelDat
 
 /**
  * Generate HTML for big patient labels
- * Prints on Avery 5163 (2" x 4" - 10 labels per sheet)
- * Using 3.25" x 2" layout to fit patient info
+ * 70mm x 45mm label format matching clinic standard
  */
 export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2): string {
   const data = formatPatientForBigLabel(patient);
 
+  // Format phone numbers with line break if multiple
+  const formatPhones = (phone: string) => {
+    if (!phone) return '';
+    // Split by comma and add line breaks
+    const phones = phone.split(',').map(p => p.trim());
+    return phones.join(',<br>');
+  };
+
   // Generate array of label HTML (duplicate for count)
   const labels = Array(count).fill(null).map(() => `
-    <div class="big-label">
-      <div class="label-header">
-        <div class="patient-name">${escapeHtml(data.patientName)}</div>
-        ${data.mrn ? `<div class="mrn">MRN: ${escapeHtml(data.mrn)}</div>` : ''}
-      </div>
-
-      <div class="owner-section">
-        <div class="owner-name">${escapeHtml(data.ownerName)}</div>
-        <div class="owner-contact">${escapeHtml(data.ownerPhone)}</div>
-        ${data.ownerAddress ? `<div class="owner-address">${escapeHtml(data.ownerAddress)}</div>` : ''}
-      </div>
-
-      <div class="patient-info">
-        <div class="info-row">
-          <span class="label-text">Species/Breed:</span>
-          <span class="value-text">${escapeHtml(data.species)} / ${escapeHtml(data.breed)}</span>
-        </div>
-        ${data.colorMarkings ? `
-        <div class="info-row">
-          <span class="label-text">Color/Markings:</span>
-          <span class="value-text">${escapeHtml(data.colorMarkings)}</span>
-        </div>
-        ` : ''}
-        <div class="info-row">
-          <span class="label-text">Sex/Weight:</span>
-          <span class="value-text">${escapeHtml(data.sex)} / ${escapeHtml(data.weight)}</span>
-        </div>
-        <div class="info-row">
-          <span class="label-text">DOB/Age:</span>
-          <span class="value-text">${escapeHtml(data.dateOfBirth || '')} / ${escapeHtml(data.age || '')}</span>
-        </div>
-        ${data.microchip ? `
-        <div class="info-row">
-          <span class="label-text">Microchip:</span>
-          <span class="value-text">${escapeHtml(data.microchip)}</span>
-        </div>
-        ` : ''}
-      </div>
+    <div class="label">
+      <!-- Line 1: Name 14pt, Code 12pt, Consult 14pt -->
+      <p class="line top">
+        <span class="bold large">${escapeHtml(data.patientName)}</span>
+        &nbsp;<span class="small">${escapeHtml(data.clientId || '')}</span>
+        &nbsp;<span class="bold large">${escapeHtml(data.patientId || '')}</span>
+      </p>
+      <!-- Line 2: Owner 14pt, Phone(s) 12pt -->
+      <p class="line owner">
+        <span class="bold large">${escapeHtml(data.ownerName)}</span>
+        &nbsp;<span class="small">${formatPhones(data.ownerPhone)}</span>
+      </p>
+      <!-- Remaining lines: all 12pt -->
+      <p class="line small">
+        <span class="bold">Species:</span> (${escapeHtml(data.species)})
+      </p>
+      <p class="line small">
+        <span class="bold">Breed:</span> ${escapeHtml(data.breed)}
+      </p>
+      <p class="line small">
+        <span class="bold">Color:</span> ${escapeHtml(data.colorMarkings || '')}
+      </p>
+      <p class="line small">
+        <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
+        &nbsp;&nbsp;<span class="bold">Weight:</span> ${escapeHtml(data.weight)}
+      </p>
+      <p class="line small">
+        <span class="bold">DOB:</span> ${escapeHtml(data.dateOfBirth || '')}
+        &nbsp;&nbsp;<span class="bold">Age:</span> ${escapeHtml(data.age || '')}
+      </p>
     </div>
   `).join('\n');
 
@@ -143,95 +144,46 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Patient Labels - ${data.patientName}</title>
+  <title>Patient Labels - ${escapeHtml(data.patientName)}</title>
   <style>
-    @page {
-      size: letter;
-      margin: 0.5in;
-    }
-
     body {
-      font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
+      background: #f5f5f5;
+      font-family: Arial, Helvetica, sans-serif;
     }
-
     .label-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.125in;
+      gap: 5mm;
+      padding: 10mm;
     }
-
-    .big-label {
-      width: 3.25in;
-      height: 2in;
-      border: 2px solid #000;
-      padding: 0.1in;
+    /* 70 x 45 mm label */
+    .label {
+      width: 70mm;
+      height: 45mm;
+      padding: 3mm 4mm;
+      background: #ffffff;
+      box-shadow: 0 0 3px rgba(0,0,0,0.35);
       box-sizing: border-box;
-      page-break-inside: avoid;
-      background: white;
-    }
-
-    .label-header {
-      border-bottom: 1px solid #000;
-      padding-bottom: 2px;
-      margin-bottom: 4px;
-    }
-
-    .patient-name {
-      font-size: 14pt;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-
-    .mrn {
-      font-size: 9pt;
-      color: #333;
-    }
-
-    .owner-section {
-      margin-bottom: 4px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid #ccc;
-    }
-
-    .owner-name {
-      font-size: 11pt;
-      font-weight: bold;
-    }
-
-    .owner-contact {
-      font-size: 9pt;
-      color: #333;
-    }
-
-    .owner-address {
-      font-size: 8pt;
-      color: #555;
-    }
-
-    .patient-info {
-      font-size: 9pt;
-    }
-
-    .info-row {
-      margin-bottom: 1px;
+      color: #000;
       line-height: 1.2;
+      page-break-inside: avoid;
     }
-
-    .label-text {
-      font-weight: bold;
-      display: inline-block;
-      width: 90px;
-    }
-
-    .value-text {
-      display: inline-block;
-    }
+    .line { margin: 0; padding: 0; }
+    .bold  { font-weight: bold; }
+    .large { font-size: 14pt; }
+    .small { font-size: 12pt; }
+    .top   { margin-bottom: 1mm; }
+    .owner { margin-bottom: 1.5mm; }
 
     @media print {
-      body { margin: 0; }
-      .big-label { page-break-inside: avoid; }
+      body { background: white; }
+      .label-container { padding: 0; }
+      .label {
+        page-break-inside: avoid;
+        box-shadow: none;
+      }
     }
   </style>
 </head>

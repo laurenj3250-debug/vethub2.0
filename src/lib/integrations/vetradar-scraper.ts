@@ -26,6 +26,9 @@ export interface VetRadarPatient {
   treatments?: string[];
   medications?: VetRadarTreatment[];
   issues?: string[];
+  patientId?: string;      // Patient ID from VetRadar (e.g., "674131")
+  clientId?: string;       // Client/Owner ID (if available)
+  consultNumber?: string;  // Consult number (e.g., "5877395")
 }
 
 export interface VetRadarTreatment {
@@ -816,6 +819,14 @@ export class VetRadarScraper {
             treatments.push(`${count} ${category}${details ? ' ' + details : ''}`);
           }
 
+          // Extract Patient ID (e.g., "Patient ID: 674131")
+          const patientIdMatch = block.match(/Patient ID:\s*(\d+)/i);
+          const patientId = patientIdMatch ? patientIdMatch[1] : undefined;
+
+          // Extract Consult Number (e.g., "Consult # 5877395" or "Consult: 5877395")
+          const consultMatch = block.match(/Consult\s*[#:]?\s*(\d+)/i);
+          const consultNumber = consultMatch ? consultMatch[1] : undefined;
+
           patients.push({
             id: firstName.toLowerCase().replace(/\s+/g, '-'),
             name: fullName,
@@ -829,7 +840,9 @@ export class VetRadarScraper {
             criticalNotes,
             treatments,
             medications: [], // Will be filled later if we click into patient
-            issues: []
+            issues: [],
+            patientId,        // VetRadar Patient ID for stickers
+            consultNumber,    // Consult number (if visible)
           });
 
           console.log(`[VetRadar] Parsed patient: ${fullName} - ${treatments.length} treatments`);
