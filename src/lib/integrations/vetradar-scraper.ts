@@ -934,12 +934,97 @@ export class VetRadarScraper {
             // Wait for patient detail page to fully load
             await page.waitForTimeout(3000);
 
-            // Scroll down to medications section (usually below monitoring vitals)
-            console.log(`[VetRadar] Scrolling down to medications section...`);
-            await page.evaluate(() => {
-              window.scrollTo(0, document.body.scrollHeight);
+            // CRITICAL FIX: Navigate to treatments section before taking screenshot
+            console.log(`[VetRadar] Looking for treatments/medications section...`);
+
+            // Try multiple strategies to access the treatments section
+            let treatmentsVisible = false;
+
+            // Strategy 1: Look for "Add treatments" link and click it to expand treatments
+            try {
+              console.log(`[VetRadar] Strategy 1: Looking for "Add treatments" link...`);
+              const addTreatmentsLink = page.locator('text="Add treatments", a:has-text("Add treatment"), button:has-text("Add treatment")').first();
+              if (await addTreatmentsLink.isVisible({ timeout: 3000 })) {
+                console.log(`[VetRadar] Found "Add treatments" link - clicking to expand section...`);
+                await addTreatmentsLink.click();
+                await page.waitForTimeout(2000); // Wait for section to expand
+                treatmentsVisible = true;
+                console.log(`[VetRadar] ✓ Treatments section should now be visible`);
+              }
+            } catch (e) {
+              console.log(`[VetRadar] Strategy 1 failed:`, e);
+            }
+
+            // Strategy 2: Look for "BP, SPO2, ECG" section and scroll past it to reach treatments
+            if (!treatmentsVisible) {
+              try {
+                console.log(`[VetRadar] Strategy 2: Scrolling past monitoring vitals section...`);
+                const bpSection = page.locator('text="BP, SPO2, ECG"').first();
+                if (await bpSection.isVisible({ timeout: 3000 })) {
+                  // Scroll to BP section first
+                  await bpSection.scrollIntoViewIfNeeded();
+                  await page.waitForTimeout(500);
+
+                  // Then scroll down more to get past monitoring vitals
+                  await page.evaluate(() => {
+                    window.scrollBy(0, 400); // Scroll down 400px past monitoring
+                  });
+                  await page.waitForTimeout(1500);
+                  console.log(`[VetRadar] ✓ Scrolled past monitoring vitals`);
+                  treatmentsVisible = true;
+                }
+              } catch (e) {
+                console.log(`[VetRadar] Strategy 2 failed:`, e);
+              }
+            }
+
+            // Strategy 3: Look for specific treatment/medication keywords and scroll to them
+            if (!treatmentsVisible) {
+              try {
+                console.log(`[VetRadar] Strategy 3: Looking for medication/treatment keywords...`);
+                const treatmentKeywords = [
+                  'text=/medication/i',
+                  'text=/treatment/i',
+                  'text=/therapeutic/i',
+                  'text=/drug/i',
+                  'text=/fluids/i',
+                ];
+
+                for (const keyword of treatmentKeywords) {
+                  try {
+                    const element = page.locator(keyword).first();
+                    if (await element.isVisible({ timeout: 2000 })) {
+                      console.log(`[VetRadar] Found element with keyword: ${keyword}`);
+                      await element.scrollIntoViewIfNeeded();
+                      await page.waitForTimeout(1500);
+                      treatmentsVisible = true;
+                      console.log(`[VetRadar] ✓ Scrolled to treatments area`);
+                      break;
+                    }
+                  } catch (e) {
+                    continue;
+                  }
+                }
+              } catch (e) {
+                console.log(`[VetRadar] Strategy 3 failed:`, e);
+              }
+            }
+
+            // Strategy 4: Scroll to bottom of page (original approach - fallback)
+            if (!treatmentsVisible) {
+              console.log(`[VetRadar] Strategy 4: Scrolling to bottom of page (fallback)...`);
+              await page.evaluate(() => {
+                window.scrollTo(0, document.body.scrollHeight);
+              });
+              await page.waitForTimeout(2000);
+            }
+
+            // Final check: Log what's visible on page for debugging
+            const pageText = await page.evaluate(() => {
+              // Get visible text from page
+              return document.body.innerText.substring(0, 500);
             });
-            await page.waitForTimeout(2000); // Wait for scroll and any dynamic content to load
+            console.log(`[VetRadar] Page content preview (first 500 chars):`, pageText);
 
             // Take screenshot of patient detail page (full page to capture medications)
             const screenshotPath = `vetradar-patient-${patient.name.replace(/\s+/g, '-')}.png`;
