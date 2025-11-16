@@ -485,8 +485,10 @@ export default function VetHub() {
         type: patientType,
         status: 'New Admit',
         added_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        patient_info: {
-          patientId: parsed.patientId || '',
+        demographics: {
+          name: parsed.patientName || fullName,
+          patientId: parsed.patientId || '',        // Patient ID: 618383
+          clientId: parsed.clientId || '',          // Consult # 5878668
           ownerName: parsed.ownerName || '',
           ownerPhone: parsed.ownerPhone || '',
           species: parsed.species || '',
@@ -494,9 +496,11 @@ export default function VetHub() {
           age: parsed.age || '',
           sex: parsed.sex || '',
           weight: parsed.weight || '',
+          dateOfBirth: parsed.dateOfBirth || '',    // DOB
+          colorMarkings: parsed.colorMarkings || '',
         },
         rounding_data: {
-          signalment: [parsed.age, parsed.sex, parsed.breed].filter(Boolean).join(' '),
+          signalment: [parsed.age, parsed.sex, parsed.species, parsed.breed].filter(Boolean).join(' '),
           problems: parsed.problem || '',
           diagnosticFindings: parsed.bloodwork ? `CBC/CHEM: ${parsed.bloodwork}` : '',
           therapeutics: parsed.medications?.join('\n') || '',

@@ -22,6 +22,8 @@ export interface ParsedPatientData {
   age?: string;
   sex?: string;
   weight?: string;
+  dateOfBirth?: string;      // DOB field
+  colorMarkings?: string;    // Color/markings
   patientId?: string;
   clientId?: string;
   problem?: string;
@@ -43,6 +45,8 @@ export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientDat
       age: '',
       sex: '',
       weight: '',
+      dateOfBirth: '',
+      colorMarkings: '',
       patientId: '',
       clientId: '',
       problem: '',
@@ -76,18 +80,20 @@ Return this exact structure (use null for missing fields):
 {
   "patientName": "pet name only, remove any 'Patient' prefix",
   "ownerName": "owner LAST NAME only (surname)",
-  "ownerPhone": "phone number",
+  "ownerPhone": "phone number (primary contact)",
   "species": "dog/cat/etc",
   "breed": "breed",
-  "age": "age with units",
+  "age": "age with units (e.g., '12 years 1 month 1 day')",
   "sex": "MN/FS/etc",
   "weight": "weight with units",
-  "patientId": "patient ID number",
-  "clientId": "client ID number",
+  "dateOfBirth": "DOB in MM-DD-YYYY format",
+  "colorMarkings": "color/markings description",
+  "patientId": "Patient ID number (look for 'Patient ID:')",
+  "clientId": "Consult/Case number (look for 'Consult #')",
   "problem": "presenting complaint",
-  "bloodwork": "CBC/Chemistry values",
-  "medications": ["list", "of", "meds"],
-  "plan": "treatment plan"
+  "bloodwork": "CBC/Chemistry abnormal values",
+  "medications": ["list", "of", "all", "medications"],
+  "plan": "treatment plan/outcome"
 }
 
 Patient text:
