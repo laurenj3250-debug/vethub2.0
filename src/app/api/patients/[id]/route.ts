@@ -42,7 +42,7 @@ export async function GET(
     const transformedPatient = {
       id: patient.id,
       status: patient.status,
-      type: patient.type, // Patient type: Medical/MRI/Surgery
+      type: patient.type || 'Medical', // Patient type: Medical/MRI/Surgery (default if null)
       demographics: patient.demographics,
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
@@ -147,7 +147,7 @@ export async function PATCH(
     const transformedPatient = {
       id: patient.id,
       status: patient.status,
-      type: patient.type, // Patient type: Medical/MRI/Surgery
+      type: patient.type || 'Medical', // Patient type: Medical/MRI/Surgery (default if null)
       demographics: patient.demographics,
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
