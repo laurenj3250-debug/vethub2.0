@@ -33,7 +33,7 @@ export default function PatientImportPage() {
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<VetRadarImportResult | null>(null);
   const [patients, setPatients] = useState<UnifiedPatient[]>([]);
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);

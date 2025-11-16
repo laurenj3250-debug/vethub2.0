@@ -121,7 +121,7 @@ export function mapVetRadarToUnifiedPatient(
     comments: 'Auto-imported from VetRadar - Please review and complete missing fields',
 
     // NEW: Fields requiring manual entry
-    neurologicLocalization: '', // MANUAL ENTRY REQUIRED
+    neurolocalization: '', // MANUAL ENTRY REQUIRED
     labResults: undefined, // MANUAL ENTRY REQUIRED (paste from EasyVet)
     chestXray: {
       findings: 'NSF', // Default - update if abnormal
@@ -138,7 +138,7 @@ export function mapVetRadarToUnifiedPatient(
 
   // Build unified patient object
   const unifiedPatient: UnifiedPatient = {
-    id: existingPatient?.id || vetRadarPatient.id || `vr-${Date.now()}`,
+    id: existingPatient?.id || Number(vetRadarPatient.id) || Date.now(),
     mrn: existingPatient?.mrn,
 
     demographics: {
@@ -158,7 +158,13 @@ export function mapVetRadarToUnifiedPatient(
     },
 
     status: mapVetRadarStatusToPatientStatus(vetRadarPatient.status),
-    type: 'Medical', // Default - can be changed to Surgery/MRI
+
+    medicalHistory: {
+      allergies: existingPatient?.medicalHistory?.allergies,
+      chronicConditions: existingPatient?.medicalHistory?.chronicConditions,
+      previousSurgeries: existingPatient?.medicalHistory?.previousSurgeries,
+      vaccinationStatus: existingPatient?.medicalHistory?.vaccinationStatus,
+    },
 
     currentStay: {
       location,
@@ -167,9 +173,7 @@ export function mapVetRadarToUnifiedPatient(
       codeStatus,
     },
 
-    medications,
-
-    vitals: existingPatient?.vitals || [],
+    soapNotes: existingPatient?.soapNotes || [],
 
     roundingData,
 
@@ -185,13 +189,9 @@ export function mapVetRadarToUnifiedPatient(
 
     tasks: existingPatient?.tasks || [],
 
-    // Preserve any existing SOAP notes
-    soapNotes: existingPatient?.soapNotes || [],
-
     // Metadata
     createdAt: existingPatient?.createdAt || new Date(),
     updatedAt: new Date(),
-    lastVetRadarSync: new Date(),
   };
 
   return unifiedPatient;
@@ -271,13 +271,13 @@ export function mapTreatmentSheetToUnifiedPatient(
     overnightDx: '',
     concerns: treatmentSheet.concerns || treatmentSheet.nursingNotes || '',
     comments: 'Auto-imported from VetRadar Treatment Sheet',
-    neurologicLocalization: '',
+    neurolocalization: '',
     labResults: undefined,
     chestXray: { findings: 'NSF' },
   };
 
   const unifiedPatient: UnifiedPatient = {
-    id: existingPatient?.id || treatmentSheet.patientId || `vr-ts-${Date.now()}`,
+    id: existingPatient?.id || Number(treatmentSheet.patientId) || Date.now(),
     mrn: existingPatient?.mrn,
 
     demographics: {
@@ -297,7 +297,13 @@ export function mapTreatmentSheetToUnifiedPatient(
     },
 
     status: 'Active',
-    type: 'Medical',
+
+    medicalHistory: {
+      allergies: existingPatient?.medicalHistory?.allergies,
+      chronicConditions: existingPatient?.medicalHistory?.chronicConditions,
+      previousSurgeries: existingPatient?.medicalHistory?.previousSurgeries,
+      vaccinationStatus: existingPatient?.medicalHistory?.vaccinationStatus,
+    },
 
     currentStay: {
       location: treatmentSheet.location,
@@ -306,8 +312,8 @@ export function mapTreatmentSheetToUnifiedPatient(
       codeStatus: 'Yellow',
     },
 
-    medications,
-    vitals: existingPatient?.vitals || [],
+    soapNotes: existingPatient?.soapNotes || [],
+
     roundingData,
 
     mriData: existingPatient?.mriData || {
@@ -324,11 +330,9 @@ export function mapTreatmentSheetToUnifiedPatient(
     },
 
     tasks: existingPatient?.tasks || [],
-    soapNotes: existingPatient?.soapNotes || [],
 
     createdAt: existingPatient?.createdAt || new Date(),
     updatedAt: new Date(),
-    lastVetRadarSync: new Date(),
   };
 
   return unifiedPatient;
@@ -362,7 +366,7 @@ export function getManualEntryRequirements(patient: UnifiedPatient): {
   let timeSeconds = 0;
 
   // 1. Neurologic localization (optional - can be filled during rounding)
-  if (!patient.roundingData?.neurologicLocalization) {
+  if (!patient.roundingData?.neurolocalization) {
     optional.push('Neurologic Localization (can add during rounding)');
   }
 
@@ -377,7 +381,7 @@ export function getManualEntryRequirements(patient: UnifiedPatient): {
   }
 
   // 4. MRI fields (optional - only needed if generating MRI sheet)
-  if (patient.type === 'MRI' || patient.mriData?.scheduledTime) {
+  if (patient.status === 'MRI' || patient.mriData?.scheduledTime) {
     if (!patient.mriData?.scanType) {
       optional.push('MRI Region (needed for MRI sheet generation)');
     }
@@ -418,7 +422,7 @@ export function validatePatientForPDFGeneration(patient: UnifiedPatient): {
   }
 
   // Optional fields - show as warnings only
-  if (!patient.roundingData?.neurologicLocalization) {
+  if (!patient.roundingData?.neurolocalization) {
     warnings.push('Neurologic localization not set (can add during rounding)');
   }
 

@@ -11,6 +11,7 @@ import { apiClient } from '@/lib/api-client';
 export interface UnifiedPatient {
   // Core identification
   id: number;
+  mrn?: string; // Medical Record Number (from practice management system)
   status: 'Active' | 'Discharged' | 'MRI' | 'Surgery';
 
   // Demographics (shared across ALL features)
