@@ -116,7 +116,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       if (!updates) return;
 
       await apiClient.updatePatient(String(patientId), {
-        rounding_data: updates
+        roundingData: updates
       });
 
       toast({
@@ -141,7 +141,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     try {
       setIsSaving(true);
       const promises = Object.entries(editingData).map(([patientId, data]) =>
-        apiClient.updatePatient(patientId, { rounding_data: data })
+        apiClient.updatePatient(patientId, { roundingData: data })
       );
 
       await Promise.all(promises);
