@@ -42,6 +42,7 @@ export async function GET(
     const transformedPatient = {
       id: patient.id,
       status: patient.status,
+      type: patient.type, // Patient type: Medical/MRI/Surgery
       demographics: patient.demographics,
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
@@ -115,6 +116,7 @@ export async function PATCH(
     const updateData: any = {};
 
     if (body.status !== undefined) updateData.status = body.status;
+    if (body.type !== undefined) updateData.type = body.type; // Support patient type updates (Medical/MRI/Surgery)
     if (body.demographics !== undefined) updateData.demographics = body.demographics;
     if (body.medicalHistory !== undefined) updateData.medicalHistory = body.medicalHistory;
     if (body.currentStay !== undefined) updateData.currentStay = body.currentStay;
@@ -141,6 +143,7 @@ export async function PATCH(
     const transformedPatient = {
       id: patient.id,
       status: patient.status,
+      type: patient.type, // Patient type: Medical/MRI/Surgery
       demographics: patient.demographics,
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
