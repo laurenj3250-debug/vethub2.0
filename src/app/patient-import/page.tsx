@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import { UnifiedPatient } from '@/contexts/PatientContext';
 import { UnifiedPatientEntry } from '@/components/UnifiedPatientEntry';
-import { Download, RefreshCw, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle, AlertCircle, Clock, XCircle, Save } from 'lucide-react';
 
 // VetRadar import result type
 interface VetRadarImportResult {
@@ -133,6 +133,52 @@ export default function PatientImportPage() {
       console.error('Save patient error:', error);
       alert(`Failed to save ${patient.demographics.name}. Please try again.`);
       throw error;
+    }
+  }
+
+  /**
+   * Save all patients to database at once
+   */
+  async function handleSaveAllPatients() {
+    setGeneratingAll(true);
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      for (const patient of patients) {
+        try {
+          const response = await fetch('/api/patients', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(patient),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to save patient');
+          }
+
+          const savedPatient = await response.json();
+          handleUpdatePatient(savedPatient);
+          successCount++;
+        } catch (error) {
+          console.error(`Error saving ${patient.demographics.name}:`, error);
+          errors.push(`${patient.demographics.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          failCount++;
+        }
+      }
+
+      if (failCount === 0) {
+        alert(`✅ Successfully saved all ${successCount} patients to database!`);
+      } else {
+        alert(`⚠️ Saved ${successCount} patients, but ${failCount} failed:\n\n${errors.join('\n')}`);
+      }
+    } catch (error) {
+      console.error('Error saving patients:', error);
+      alert('Error saving patients. Please check console for details.');
+    } finally {
+      setGeneratingAll(false);
     }
   }
 
@@ -342,6 +388,24 @@ export default function PatientImportPage() {
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Bulk Actions</h2>
               <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleSaveAllPatients}
+                  disabled={generatingAll || patients.length === 0}
+                  className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium rounded-lg hover:from-emerald-700 hover:to-teal-700 focus:ring-4 focus:ring-emerald-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                >
+                  {generatingAll ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      <span>Save All Patients ({patients.length} patients)</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   onClick={handleGenerateAllStickers}
                   disabled={generatingAll || patients.length === 0}
