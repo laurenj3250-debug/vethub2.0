@@ -151,8 +151,10 @@ export class VetRadarScraper {
             }
           }
 
-          // Look for skip/continue buttons with very broad selectors
+          // Look for skip button - try clicking ALL buttons that might be the skip
           const skipSelectors = [
+            'button',  // Try all buttons
+            'a',       // Try all links
             'button:has-text("Skip")',
             'button:has-text("skip")',
             'a:has-text("Skip")',
@@ -167,28 +169,43 @@ export class VetRadarScraper {
             'a:has-text("Not now")',
             'button:has-text("Maybe later")',
             'a:has-text("Maybe later")',
-            'button:has-text("Close")',
-            'a:has-text("Close")',
-            '[data-testid*="skip"]',
-            '[class*="skip"]',
-            '[class*="close"]',
+            'button:has-text("Enter PIN")',
+            'a:has-text("Enter PIN")',
+            'button:has-text("Use PIN")',
+            'a:has-text("Use PIN")',
           ];
 
           let skipped = false;
           for (const selector of skipSelectors) {
             try {
-              const skipButton = page.locator(selector).first();
-              if (await skipButton.isVisible({ timeout: 1000 })) {
-                await skipButton.click({ timeout: 5000 });
-                console.log(`[VetRadar] Clicked skip button using: ${selector}`);
-                await page.waitForTimeout(3000);
+              const buttons = await page.locator(selector).all();
+              for (const button of buttons) {
+                try {
+                  if (await button.isVisible({ timeout: 500 })) {
+                    const btnText = await button.textContent().catch(() => '');
+                    console.log(`[VetRadar] Trying to click button: "${btnText?.trim()}"`);
 
-                // Verify we actually left the page
-                if (!page.url().includes('verify_email')) {
-                  skipped = true;
-                  break;
+                    await button.click({ timeout: 3000 });
+                    console.log(`[VetRadar] Clicked button: "${btnText?.trim()}"`);
+                    await page.waitForTimeout(2000);
+
+                    // Check if we moved away from verify_email or if PIN inputs appeared
+                    const currentUrl = page.url();
+                    const pinInputs = await page.locator('input:visible').count();
+
+                    console.log(`[VetRadar] After click - URL: ${currentUrl}, Visible inputs: ${pinInputs}`);
+
+                    if (!currentUrl.includes('verify_email') || pinInputs >= 5) {
+                      console.log('[VetRadar] Successfully moved past verification page!');
+                      skipped = true;
+                      break;
+                    }
+                  }
+                } catch (e) {
+                  continue;
                 }
               }
+              if (skipped) break;
             } catch (e) {
               continue;
             }
