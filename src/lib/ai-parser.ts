@@ -1,16 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+// Support both browser and Node.js environments
+const apiKey = typeof window !== 'undefined'
+  ? process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY  // Browser environment
+  : process.env.ANTHROPIC_API_KEY;  // Node.js environment (for scripts)
 
 // Debug: Log API key status (first 10 chars only for security)
 if (typeof window !== 'undefined') {
   console.log('Anthropic API Key status:', apiKey ? `Present (${apiKey.substring(0, 10)}...)` : 'Missing');
+} else {
+  console.log('[Node.js] Anthropic API Key status:', apiKey ? `Present (${apiKey.substring(0, 10)}...)` : 'Missing');
 }
 
 // Only initialize if API key is present
 const anthropic = apiKey ? new Anthropic({
   apiKey,
-  dangerouslyAllowBrowser: true, // Only for development
+  dangerouslyAllowBrowser: typeof window !== 'undefined', // Only allow browser in browser environment
 }) : null;
 
 export interface VetRadarMedication {

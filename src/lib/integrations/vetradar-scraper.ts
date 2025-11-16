@@ -876,47 +876,110 @@ export class VetRadarScraper {
       // Critical notes and treatment counts are already extracted
       console.log(`[VetRadar] Phase 1 complete - ${deduplicatedPatients.length} unique patients with basic data`);
 
-      // PHASE 2 - Detailed medication extraction with AI parsing
-      console.log('[VetRadar] Starting Phase 2: AI-powered medication extraction...');
+      // PHASE 2 - Detailed medication extraction (EXPERIMENTAL - currently disabled)
+      // Note: This phase attempts to click into each patient detail page to extract medications
+      // using AI parsing. It's currently disabled due to reliability issues with VetRadar's UI.
+      // Treatment counts are already extracted in Phase 1 from the patient list view.
+      //
+      // TODO: Enable this when VetRadar provides a more stable API or when we can improve
+      // the patient card clicking reliability.
+      const ENABLE_PHASE_2 = false; // Set to true to enable experimental medication extraction
 
-      for (let i = 0; i < deduplicatedPatients.length; i++) {
-        const patient = deduplicatedPatients[i];
-        console.log(`[VetRadar] Phase 2 [${i + 1}/${deduplicatedPatients.length}]: Extracting medications for ${patient.name}`);
+      if (ENABLE_PHASE_2) {
+        console.log('[VetRadar] Starting Phase 2: AI-powered medication extraction (EXPERIMENTAL)...');
 
-        try {
-          // Click on patient card to open details
-          const patientCard = page.locator(`text="${patient.name}"`).first();
-          await patientCard.click({ timeout: 5000 });
-          await page.waitForTimeout(2000);
+        for (let i = 0; i < deduplicatedPatients.length; i++) {
+          const patient = deduplicatedPatients[i];
+          console.log(`[VetRadar] Phase 2 [${i + 1}/${deduplicatedPatients.length}]: Extracting medications for ${patient.name}`);
 
-          // Extract all visible text from the patient detail view
-          const treatmentText = await page.evaluate(() => {
-            // Get text from main content area, excluding navigation
-            const mainContent = document.querySelector('main') || document.body;
-            return mainContent.innerText || '';
-          });
+          try {
+            // Try multiple strategies to click the patient card
+            let clicked = false;
 
-          console.log(`[VetRadar] Extracted ${treatmentText.length} chars of treatment data`);
+            // Split name into parts for more flexible matching
+            const nameParts = patient.name.split(' ');
+            const firstName = nameParts[0];
+            const lastName = nameParts.slice(1).join(' ');
 
-          // Use Claude Opus to parse medications from the treatment sheet
-          const { parseVetRadarMedications } = await import('@/lib/ai-parser');
-          const medications = await parseVetRadarMedications(treatmentText);
+            // Strategy 1: Try clicking by quoted first name (VetRadar format: "Axel" Randhawa)
+            try {
+              console.log(`[VetRadar] Strategy 1: Looking for quoted name "${firstName}"`);
+              const quotedNameCard = page.locator(`text=/"${firstName}"/`).first();
+              await quotedNameCard.click({ timeout: 5000 });
+              clicked = true;
+              console.log(`[VetRadar] ✓ Clicked patient card using quoted first name`);
+            } catch (e1) {
+              // Strategy 2: Try clicking by full name
+              try {
+                console.log(`[VetRadar] Strategy 2: Looking for full name "${patient.name}"`);
+                const fullNameCard = page.locator(`text="${patient.name}"`).first();
+                await fullNameCard.click({ timeout: 5000 });
+                clicked = true;
+                console.log(`[VetRadar] ✓ Clicked patient card using full name`);
+              } catch (e2) {
+                // Strategy 3: Try clicking any element containing both first and last name
+                try {
+                  console.log(`[VetRadar] Strategy 3: Looking for element with first name ${firstName}`);
+                  const cardWithName = page.locator(`[role="button"]:has-text("${firstName}"), button:has-text("${firstName}"), a:has-text("${firstName}"), div[class*="patient"]:has-text("${firstName}")`).first();
+                  await cardWithName.click({ timeout: 5000 });
+                  clicked = true;
+                  console.log(`[VetRadar] ✓ Clicked patient card using flexible selector`);
+                } catch (e3) {
+                  console.log(`[VetRadar] ✗ All click strategies failed for ${patient.name}`);
+                  throw new Error(`Could not click patient card for ${patient.name}`);
+                }
+              }
+            }
 
-          console.log(`[VetRadar] AI extracted ${medications.length} medications for ${patient.name}`);
+            if (!clicked) {
+              throw new Error(`Failed to click patient card`);
+            }
 
-          // Update patient with extracted medications
-          patient.medications = medications;
+            await page.waitForTimeout(2000);
 
-          // Close patient details (click outside or press Escape)
-          await page.keyboard.press('Escape');
-          await page.waitForTimeout(1000);
-        } catch (error) {
-          console.log(`[VetRadar] Error extracting medications for ${patient.name}:`, error);
-          // Continue with next patient
+            // Extract all visible text from the patient detail view
+            const treatmentText = await page.evaluate(() => {
+              // Get text from main content area, excluding navigation
+              const mainContent = document.querySelector('main') || document.body;
+              return mainContent.innerText || '';
+            });
+
+            console.log(`[VetRadar] Extracted ${treatmentText.length} chars of treatment data`);
+
+            // Use Claude Opus to parse medications from the treatment sheet
+            const { parseVetRadarMedications } = await import('@/lib/ai-parser');
+            const medications = await parseVetRadarMedications(treatmentText);
+
+            console.log(`[VetRadar] AI extracted ${medications.length} medications for ${patient.name}`);
+
+            // Update patient with extracted medications
+            patient.medications = medications;
+
+            // Navigate back to patient list for next patient
+            console.log(`[VetRadar] Navigating back to patient list...`);
+            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await this.waitForPageLoad(page, 'patient list after detail view');
+            await page.waitForTimeout(1000);
+          } catch (error) {
+            console.log(`[VetRadar] Error extracting medications for ${patient.name}:`, error);
+
+            // Make sure we're back on patient list even if extraction failed
+            try {
+              console.log(`[VetRadar] Ensuring we're back on patient list after error...`);
+              if (!page.url().includes('/patients')) {
+                await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              }
+              await page.waitForTimeout(1000);
+            } catch (navError) {
+              console.log(`[VetRadar] Error navigating back to patient list:`, navError);
+            }
+          }
         }
-      }
 
-      console.log(`[VetRadar] Phase 2 complete - extracted medications for ${deduplicatedPatients.filter(p => p.medications && p.medications.length > 0).length}/${deduplicatedPatients.length} patients`);
+        console.log(`[VetRadar] Phase 2 complete - extracted medications for ${deduplicatedPatients.filter(p => p.medications && p.medications.length > 0).length}/${deduplicatedPatients.length} patients`);
+      } else {
+        console.log('[VetRadar] Phase 2 (medication extraction) is disabled - using treatment counts from Phase 1');
+      }
 
       return deduplicatedPatients;
     } catch (error) {
