@@ -65,11 +65,18 @@ Invoke the `@agent-design-review` subagent for thorough design validation when:
 4. Compare field names
 5. Don't guess - verify
 
-### API Verification Script
-Run `./scripts/verify-api.sh` to test all API endpoints:
-- Tests patients, general tasks, and patient tasks endpoints
-- Automatically creates, updates, and deletes test tasks
-- Verifies all CRUD operations work correctly
+### VetHub Debug Skill
+Use the `vethub-debug` skill when debugging any VetHub issue:
+- Systematic pre-flight checklist before coding
+- Post-change verification workflow
+- API field mappings reference (`.claude/skills/vethub-debug/references/api-field-mappings.md`)
+- Common issues and solutions (`.claude/skills/vethub-debug/references/common-issues.md`)
+- Endpoint verification script (`.claude/skills/vethub-debug/scripts/verify-endpoints.sh`)
+
+### API Verification Scripts
+Two scripts available for testing:
+1. `./scripts/verify-api.sh` - Comprehensive patient and task CRUD testing
+2. `./.claude/skills/vethub-debug/scripts/verify-endpoints.sh` - Quick endpoint status check
 
 ## Tech Stack
 - **Framework**: Next.js 15 with Turbopack
