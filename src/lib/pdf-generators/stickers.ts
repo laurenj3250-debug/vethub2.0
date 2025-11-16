@@ -378,55 +378,87 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     doc.setLineWidth(0.02);
     doc.rect(x, y, labelWidth, labelHeight);
 
-    // Patient name header
+    // Line 1: Name (14pt bold) + Code (12pt) + Consult (14pt bold)
+    let currentY = y + 0.25;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(data.patientName.toUpperCase(), x + 0.1, y + 0.2);
+    doc.text(data.patientName.toUpperCase(), x + 0.1, currentY);
 
-    // MRN
-    if (data.mrn) {
-      doc.setFontSize(9);
+    // Measure name width to position code and consult
+    const nameWidth = doc.getTextWidth(data.patientName.toUpperCase());
+    let xPos = x + 0.15 + nameWidth;
+
+    if (data.clientId) {
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(`MRN: ${data.mrn}`, x + 0.1, y + 0.35);
+      doc.text(data.clientId, xPos, currentY);
+      xPos += doc.getTextWidth(data.clientId) + 0.1;
     }
 
-    // Horizontal line
-    doc.setLineWidth(0.01);
-    doc.line(x + 0.1, y + 0.4, x + labelWidth - 0.1, y + 0.4);
+    if (data.patientId) {
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(data.patientId, xPos, currentY);
+    }
 
-    // Owner section
-    let currentY = y + 0.55;
-    doc.setFontSize(11);
+    // Line 2: Owner (14pt bold) + Phone(s) (12pt)
+    currentY += 0.2;
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(data.ownerName, x + 0.1, currentY);
 
-    currentY += 0.15;
-    doc.setFontSize(9);
+    const ownerWidth = doc.getTextWidth(data.ownerName);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(data.ownerPhone, x + 0.1, currentY);
+    doc.text(data.ownerPhone, x + 0.15 + ownerWidth, currentY);
 
-    if (data.ownerAddress) {
-      currentY += 0.12;
-      doc.setFontSize(8);
-      doc.text(data.ownerAddress, x + 0.1, currentY, { maxWidth: labelWidth - 0.2 });
-    }
-
-    // Patient info section
+    // Lines 3-7: All 12pt - Species, Breed, Color, Sex/Weight, DOB/Age
     currentY += 0.2;
-    doc.setFontSize(9);
+    doc.setFontSize(12);
 
-    const infoLines = [
-      `Species/Breed: ${data.species} / ${data.breed}`,
-      data.colorMarkings ? `Color: ${data.colorMarkings}` : null,
-      `Sex/Weight: ${data.sex} / ${data.weight}`,
-      `DOB/Age: ${data.dateOfBirth || ''} / ${data.age || ''}`,
-      data.microchip ? `Microchip: ${data.microchip}` : null,
-    ].filter(Boolean) as string[];
+    // Line 3: Species
+    doc.setFont('helvetica', 'bold');
+    doc.text('Species:', x + 0.1, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` (${data.species})`, x + 0.1 + doc.getTextWidth('Species:'), currentY);
 
-    infoLines.forEach((line) => {
-      doc.text(line, x + 0.1, currentY, { maxWidth: labelWidth - 0.2 });
-      currentY += 0.12;
-    });
+    // Line 4: Breed
+    currentY += 0.15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Breed:', x + 0.1, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` ${data.breed}`, x + 0.1 + doc.getTextWidth('Breed:'), currentY);
+
+    // Line 5: Color
+    currentY += 0.15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Color:', x + 0.1, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` ${data.colorMarkings || ''}`, x + 0.1 + doc.getTextWidth('Color:'), currentY);
+
+    // Line 6: Sex and Weight
+    currentY += 0.15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Sex:', x + 0.1, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` ${data.sex}`, x + 0.1 + doc.getTextWidth('Sex:'), currentY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Weight:', x + 1.2, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` ${data.weight}`, x + 1.2 + doc.getTextWidth('Weight:'), currentY);
+
+    // Line 7: DOB and Age
+    currentY += 0.15;
+    doc.setFont('helvetica', 'bold');
+    doc.text('DOB:', x + 0.1, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` ${data.dateOfBirth || ''}`, x + 0.1 + doc.getTextWidth('DOB:'), currentY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Age:', x + 1.2, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(` ${data.age || ''}`, x + 1.2 + doc.getTextWidth('Age:'), currentY);
   }
 
   return doc.output('blob');
@@ -595,6 +627,44 @@ export async function downloadAllStickersPDF(patient: UnifiedPatient) {
 }
 
 /**
+ * Print consolidated big labels (opens print dialog)
+ */
+export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
+  const blob = await generateConsolidatedBigLabelsPDF(patients);
+  const url = URL.createObjectURL(blob);
+
+  // Open in new window for printing
+  const printWindow = window.open(url, '_blank');
+  if (printWindow) {
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+    });
+  }
+
+  // Cleanup after a delay
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
+ * Print consolidated tiny labels (opens print dialog)
+ */
+export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
+  const blob = await generateConsolidatedTinyLabelsPDF(patients);
+  const url = URL.createObjectURL(blob);
+
+  // Open in new window for printing
+  const printWindow = window.open(url, '_blank');
+  if (printWindow) {
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+    });
+  }
+
+  // Cleanup after a delay
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
  * Generate consolidated big labels PDF for multiple patients
  * Creates ONE PDF with all big labels from all patients
  */
@@ -643,61 +713,87 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       doc.setLineWidth(0.02);
       doc.rect(x, y, labelWidth, labelHeight);
 
-      // Patient name header
+      // Line 1: Name (14pt bold) + Code (12pt) + Consult (14pt bold)
+      let currentY = y + 0.25;
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(data.patientName.toUpperCase(), x + 0.1, y + 0.2);
+      doc.text(data.patientName.toUpperCase(), x + 0.1, currentY);
 
-      // Code and Consult numbers
-      if (data.clientId || data.patientId) {
-        doc.setFontSize(9);
+      // Measure name width to position code and consult
+      const nameWidth = doc.getTextWidth(data.patientName.toUpperCase());
+      let xPos = x + 0.15 + nameWidth;
+
+      if (data.clientId) {
+        doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
-        let headerText = '';
-        if (data.clientId) headerText += `Code: ${data.clientId}`;
-        if (data.patientId) {
-          if (headerText) headerText += '  ';
-          headerText += `Consult: ${data.patientId}`;
-        }
-        doc.text(headerText, x + 0.1, y + 0.35);
+        doc.text(data.clientId, xPos, currentY);
+        xPos += doc.getTextWidth(data.clientId) + 0.1;
       }
 
-      // Horizontal line
-      doc.setLineWidth(0.01);
-      doc.line(x + 0.1, y + 0.4, x + labelWidth - 0.1, y + 0.4);
+      if (data.patientId) {
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(data.patientId, xPos, currentY);
+      }
 
-      // Owner section
-      let currentY = y + 0.55;
-      doc.setFontSize(11);
+      // Line 2: Owner (14pt bold) + Phone(s) (12pt)
+      currentY += 0.2;
+      doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text(data.ownerName, x + 0.1, currentY);
 
-      currentY += 0.15;
-      doc.setFontSize(9);
+      const ownerWidth = doc.getTextWidth(data.ownerName);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(data.ownerPhone, x + 0.1, currentY);
+      doc.text(data.ownerPhone, x + 0.15 + ownerWidth, currentY);
 
-      if (data.ownerAddress) {
-        currentY += 0.12;
-        doc.setFontSize(8);
-        doc.text(data.ownerAddress, x + 0.1, currentY, { maxWidth: labelWidth - 0.2 });
-      }
-
-      // Patient info section
+      // Lines 3-7: All 12pt - Species, Breed, Color, Sex/Weight, DOB/Age
       currentY += 0.2;
-      doc.setFontSize(9);
+      doc.setFontSize(12);
 
-      const infoLines = [
-        `Species/Breed: ${data.species} / ${data.breed}`,
-        data.colorMarkings ? `Color: ${data.colorMarkings}` : null,
-        `Sex/Weight: ${data.sex} / ${data.weight}`,
-        `DOB/Age: ${data.dateOfBirth || ''} / ${data.age || ''}`,
-        data.microchip ? `Microchip: ${data.microchip}` : null,
-      ].filter(Boolean) as string[];
+      // Line 3: Species
+      doc.setFont('helvetica', 'bold');
+      doc.text('Species:', x + 0.1, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` (${data.species})`, x + 0.1 + doc.getTextWidth('Species:'), currentY);
 
-      infoLines.forEach((line) => {
-        doc.text(line, x + 0.1, currentY, { maxWidth: labelWidth - 0.2 });
-        currentY += 0.12;
-      });
+      // Line 4: Breed
+      currentY += 0.15;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Breed:', x + 0.1, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` ${data.breed}`, x + 0.1 + doc.getTextWidth('Breed:'), currentY);
+
+      // Line 5: Color
+      currentY += 0.15;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Color:', x + 0.1, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` ${data.colorMarkings || ''}`, x + 0.1 + doc.getTextWidth('Color:'), currentY);
+
+      // Line 6: Sex and Weight
+      currentY += 0.15;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Sex:', x + 0.1, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` ${data.sex}`, x + 0.1 + doc.getTextWidth('Sex:'), currentY);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Weight:', x + 1.2, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` ${data.weight}`, x + 1.2 + doc.getTextWidth('Weight:'), currentY);
+
+      // Line 7: DOB and Age
+      currentY += 0.15;
+      doc.setFont('helvetica', 'bold');
+      doc.text('DOB:', x + 0.1, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` ${data.dateOfBirth || ''}`, x + 0.1 + doc.getTextWidth('DOB:'), currentY);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Age:', x + 1.2, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` ${data.age || ''}`, x + 1.2 + doc.getTextWidth('Age:'), currentY);
 
       labelIndex++;
       isFirstLabel = false;
@@ -797,44 +893,4 @@ export async function generateConsolidatedTinyLabelsPDF(patients: UnifiedPatient
   }
 
   return doc.output('blob');
-}
-
-/**
- * Print consolidated big labels for all active patients
- * Opens print dialog directly
- */
-export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
-  const blob = await generateConsolidatedBigLabelsPDF(patients);
-  const url = URL.createObjectURL(blob);
-
-  // Open in new window and trigger print dialog
-  const printWindow = window.open(url, '_blank');
-  if (printWindow) {
-    printWindow.addEventListener('load', () => {
-      printWindow.print();
-    });
-  }
-
-  // Clean up after a delay
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
-/**
- * Print consolidated tiny labels for all active patients
- * Opens print dialog directly
- */
-export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
-  const blob = await generateConsolidatedTinyLabelsPDF(patients);
-  const url = URL.createObjectURL(blob);
-
-  // Open in new window and trigger print dialog
-  const printWindow = window.open(url, '_blank');
-  if (printWindow) {
-    printWindow.addEventListener('load', () => {
-      printWindow.print();
-    });
-  }
-
-  // Clean up after a delay
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }

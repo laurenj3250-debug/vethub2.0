@@ -232,12 +232,12 @@ export function IntegrationSync() {
                   key={patient.id}
                   className="p-3 border border-slate-700 rounded bg-slate-900"
                 >
-                  <p className="font-medium text-white">{patient.demographics?.name || patient.name || 'Unnamed'}</p>
+                  <p className="font-medium text-white">{patient.name || 'Unnamed'}</p>
                   <p className="text-sm text-gray-400">
-                    {patient.demographics?.species || patient.patient_info?.species || ''} - {patient.demographics?.breed || patient.patient_info?.breed || ''}
+                    {patient.demographics?.species || ''} - {patient.demographics?.breed || ''}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {patient.demographics?.age || patient.patient_info?.age || ''}, {patient.demographics?.weight || patient.patient_info?.weight || ''}kg
+                    {patient.demographics?.age || ''}, {patient.demographics?.weight || 0}kg
                   </p>
                 </div>
               ))}
@@ -308,12 +308,12 @@ export function IntegrationSync() {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="font-medium text-white">{patient.demographics?.name || patient.name || 'Unnamed'}</p>
+                      <p className="font-medium text-white">{patient.name || patient.demographics?.name || 'Unnamed'}</p>
                       <p className="text-sm text-gray-400">
-                        {patient.demographics?.species || patient.species || ''} • {patient.demographics?.breed || patient.breed || 'Unknown breed'}
+                        {patient.species || patient.demographics?.species || ''} • {patient.breed || patient.demographics?.breed || 'Unknown breed'}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {patient.demographics?.age || patient.age || ''} | {patient.demographics?.sex || patient.sex || ''} | {patient.demographics?.weight || patient.weight || ''}kg
+                        {patient.age || patient.demographics?.age || ''} | {patient.sex || patient.demographics?.sex || ''} | {patient.weight || patient.demographics?.weight || ''}kg
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         Location: {patient.location}
