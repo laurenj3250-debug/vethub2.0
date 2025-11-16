@@ -501,3 +501,101 @@ Return ONLY the JSON array, no other text:`
     return [];
   }
 }
+
+/**
+ * Parse VetRadar medications from screenshot using Claude Vision API
+ * More reliable than text parsing because it captures everything visible
+ */
+export async function parseVetRadarMedicationsFromScreenshot(screenshotBase64: string): Promise<VetRadarMedication[]> {
+  if (!anthropic) {
+    console.warn('Anthropic API not available - cannot parse medications from screenshot');
+    return [];
+  }
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-20250514', // Use Opus for best accuracy with medical images
+      max_tokens: 4096,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/png',
+                data: screenshotBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: `Extract ALL medications from this VetRadar patient detail page screenshot and return ONLY a JSON array with no other text or explanation.
+
+CRITICAL INSTRUCTIONS:
+- Look for medication tables, treatment sheets, or medication lists in the screenshot
+- Extract EVERY medication visible in the image
+- Include dose (with units: mg, mL, mg/kg, etc.)
+- Include route (PO, IV, SQ, IM, etc.)
+- Include frequency (q8h, BID, TID, SID, PRN, CRI, etc.)
+- Include time of administration if specified
+- DO NOT hallucinate or make up medications - only extract what you can see
+- If a medication has multiple administrations (e.g., morning and evening doses), create separate entries
+- Exclude plain fluids (LRS, saline) unless they have additives (e.g., "LRS + KCl")
+- If NO medications are visible, return an empty array []
+
+Return this exact JSON structure:
+[
+  {
+    "medication": "Medication name",
+    "dose": "dose with units (e.g., '10 mg/kg', '2.5 mL')",
+    "route": "route (PO/IV/SQ/IM/etc)",
+    "frequency": "frequency (q8h/BID/TID/SID/PRN/CRI/etc)",
+    "time": "time if specified (e.g., '8:00 AM', 'morning', optional)"
+  }
+]
+
+Return ONLY the JSON array, no other text:`
+            }
+          ]
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('No text response from Claude Opus Vision');
+    }
+
+    // Extract JSON from response
+    let jsonText = content.text.trim();
+
+    // Try to find JSON array in the response
+    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonText);
+
+    // Validate that we got an array of medications
+    if (!Array.isArray(parsed)) {
+      console.warn('Opus Vision returned non-array response, returning empty array');
+      return [];
+    }
+
+    console.log(`[Vision API] Successfully parsed ${parsed.length} medications from screenshot`);
+
+    return parsed.map(med => ({
+      medication: med.medication || '',
+      dose: med.dose || '',
+      route: med.route || '',
+      frequency: med.frequency || '',
+      time: med.time
+    }));
+  } catch (error) {
+    console.error('Error parsing VetRadar medications from screenshot:', error);
+    return [];
+  }
+}

@@ -876,17 +876,13 @@ export class VetRadarScraper {
       // Critical notes and treatment counts are already extracted
       console.log(`[VetRadar] Phase 1 complete - ${deduplicatedPatients.length} unique patients with basic data`);
 
-      // PHASE 2 - Detailed medication extraction (EXPERIMENTAL - currently disabled)
-      // Note: This phase attempts to click into each patient detail page to extract medications
-      // using AI parsing. It's currently disabled due to reliability issues with VetRadar's UI.
-      // Treatment counts are already extracted in Phase 1 from the patient list view.
-      //
-      // TODO: Enable this when VetRadar provides a more stable API or when we can improve
-      // the patient card clicking reliability.
-      const ENABLE_PHASE_2 = false; // Set to true to enable experimental medication extraction
+      // PHASE 2 - Vision-based medication extraction
+      // Uses screenshot + Claude Vision API to extract medications from patient detail pages
+      // More reliable than DOM parsing because it captures everything visible regardless of HTML structure
+      const ENABLE_PHASE_2 = true; // Vision-based extraction is reliable
 
       if (ENABLE_PHASE_2) {
-        console.log('[VetRadar] Starting Phase 2: AI-powered medication extraction (EXPERIMENTAL)...');
+        console.log('[VetRadar] Starting Phase 2: Vision-based medication extraction...');
 
         for (let i = 0; i < deduplicatedPatients.length; i++) {
           const patient = deduplicatedPatients[i];
@@ -917,7 +913,7 @@ export class VetRadarScraper {
                 clicked = true;
                 console.log(`[VetRadar] ✓ Clicked patient card using full name`);
               } catch (e2) {
-                // Strategy 3: Try clicking any element containing both first and last name
+                // Strategy 3: Try clicking any element containing first name
                 try {
                   console.log(`[VetRadar] Strategy 3: Looking for element with first name ${firstName}`);
                   const cardWithName = page.locator(`[role="button"]:has-text("${firstName}"), button:has-text("${firstName}"), a:has-text("${firstName}"), div[class*="patient"]:has-text("${firstName}")`).first();
@@ -935,22 +931,27 @@ export class VetRadarScraper {
               throw new Error(`Failed to click patient card`);
             }
 
-            await page.waitForTimeout(2000);
+            // Wait for patient detail page to fully load
+            await page.waitForTimeout(3000);
 
-            // Extract all visible text from the patient detail view
-            const treatmentText = await page.evaluate(() => {
-              // Get text from main content area, excluding navigation
-              const mainContent = document.querySelector('main') || document.body;
-              return mainContent.innerText || '';
+            // Take screenshot of patient detail page
+            const screenshotPath = `vetradar-patient-${patient.name.replace(/\s+/g, '-')}.png`;
+            await page.screenshot({
+              path: screenshotPath,
+              fullPage: true
             });
+            console.log(`[VetRadar] Screenshot saved: ${screenshotPath}`);
 
-            console.log(`[VetRadar] Extracted ${treatmentText.length} chars of treatment data`);
+            // Read screenshot as base64
+            const fs = await import('fs');
+            const screenshotBuffer = fs.readFileSync(screenshotPath);
+            const screenshotBase64 = screenshotBuffer.toString('base64');
 
-            // Use Claude Opus to parse medications from the treatment sheet
-            const { parseVetRadarMedications } = await import('@/lib/ai-parser');
-            const medications = await parseVetRadarMedications(treatmentText);
+            // Use Claude Vision API to extract medications from screenshot
+            const { parseVetRadarMedicationsFromScreenshot } = await import('@/lib/ai-parser');
+            const medications = await parseVetRadarMedicationsFromScreenshot(screenshotBase64);
 
-            console.log(`[VetRadar] AI extracted ${medications.length} medications for ${patient.name}`);
+            console.log(`[VetRadar] Vision API extracted ${medications.length} medications for ${patient.name}`);
 
             // Update patient with extracted medications
             patient.medications = medications;
@@ -958,8 +959,32 @@ export class VetRadarScraper {
             // Navigate back to patient list for next patient
             console.log(`[VetRadar] Navigating back to patient list...`);
             await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+            // Re-apply Neurology filter after navigating back
+            console.log(`[VetRadar] Re-applying Neurology filter...`);
+            try {
+              await page.waitForTimeout(2000);
+              const filterButton = await page.getByText('Filter', { exact: true });
+              await filterButton.click();
+              await page.waitForTimeout(1000);
+
+              const departmentOption = await page.getByText('Department', { exact: false });
+              await departmentOption.click();
+              await page.waitForTimeout(1000);
+
+              const neuroOption = page.locator('text=Neurology & Neurosurgery').first();
+              await neuroOption.click();
+              await page.waitForTimeout(2000);
+
+              await page.keyboard.press('Escape');
+              await page.waitForTimeout(1000);
+
+              console.log(`[VetRadar] ✓ Re-applied Neurology filter`);
+            } catch (filterError) {
+              console.log(`[VetRadar] Warning: Could not re-apply filter:`, filterError);
+            }
+
             await this.waitForPageLoad(page, 'patient list after detail view');
-            await page.waitForTimeout(1000);
           } catch (error) {
             console.log(`[VetRadar] Error extracting medications for ${patient.name}:`, error);
 
@@ -968,8 +993,8 @@ export class VetRadarScraper {
               console.log(`[VetRadar] Ensuring we're back on patient list after error...`);
               if (!page.url().includes('/patients')) {
                 await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                await page.waitForTimeout(2000);
               }
-              await page.waitForTimeout(1000);
             } catch (navError) {
               console.log(`[VetRadar] Error navigating back to patient list:`, navError);
             }
