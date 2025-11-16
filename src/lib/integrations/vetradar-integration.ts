@@ -65,14 +65,19 @@ export class VetRadarIntegrationService {
       const unifiedPatients = batchMapVetRadarPatients(vetRadarPatients, existingPatients);
 
       // Generate manual entry requirements for each patient
-      const manualEntryRequirements = unifiedPatients.map(patient => ({
-        patientName: patient.demographics.name,
-        ...getManualEntryRequirements(patient),
-      }));
+      const manualEntryRequirements = unifiedPatients.map(patient => {
+        const requirements = getManualEntryRequirements(patient);
+        return {
+          patientName: patient.demographics.name,
+          required: requirements.required,
+          optional: requirements.optional,
+          estimatedTimeSeconds: requirements.estimated_time_seconds,
+        };
+      });
 
       // Calculate total estimated time
       const totalEstimatedTimeSeconds = manualEntryRequirements.reduce(
-        (sum, req) => sum + req.estimated_time_seconds,
+        (sum, req) => sum + req.estimatedTimeSeconds,
         0
       );
 
@@ -145,7 +150,7 @@ export class VetRadarIntegrationService {
 
     // Import fresh data from VetRadar
     const freshPatient = await this.importPatient(
-      existingPatient.id,
+      String(existingPatient.id),
       existingPatient
     );
 
@@ -162,7 +167,7 @@ export class VetRadarIntegrationService {
       roundingData: {
         ...freshPatient.roundingData,
         // Keep manually entered fields
-        neurologicLocalization: existingPatient.roundingData?.neurologicLocalization || freshPatient.roundingData?.neurologicLocalization,
+        neurolocalization: existingPatient.roundingData?.neurolocalization || freshPatient.roundingData?.neurolocalization,
         labResults: existingPatient.roundingData?.labResults || freshPatient.roundingData?.labResults,
         chestXray: existingPatient.roundingData?.chestXray || freshPatient.roundingData?.chestXray,
       },
@@ -175,9 +180,6 @@ export class VetRadarIntegrationService {
 
       // Preserve SOAP notes
       soapNotes: existingPatient.soapNotes || [],
-
-      // Update sync timestamp
-      lastVetRadarSync: new Date(),
     };
 
     console.log(`[VetRadar Integration] Successfully synced ${syncedPatient.demographics.name}`);
