@@ -293,12 +293,16 @@ export class VetRadarScraper {
             await page.waitForTimeout(200);
           }
 
-          // Wait for Confirm button to appear (might not be visible until all digits entered)
-          console.log('[VetRadar] Waiting for Confirm button to appear...');
-          await page.waitForTimeout(2000);
+          // CRITICAL: Wait for page to fully load before looking for Confirm button
+          console.log('[VetRadar] Waiting for PIN page to fully load...');
+          await page.waitForTimeout(3000);
+          await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+            console.log('[VetRadar] Network idle timeout on PIN page, continuing anyway...');
+          });
+          console.log('[VetRadar] PIN page loaded, now looking for Confirm button...');
 
           // First, log ALL buttons on the page to see what's available
-          console.log('[VetRadar] Looking for confirm button - scanning all buttons on page...');
+          console.log('[VetRadar] Scanning all buttons on page...');
           try {
             const allButtons = await page.locator('button, a, [role="button"]').all();
             console.log(`[VetRadar] Found ${allButtons.length} clickable elements on PIN page`);
