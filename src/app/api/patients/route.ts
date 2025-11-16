@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       medicalHistory: patient.medicalHistory as any,
       currentStay: patient.currentStay ? {
         ...patient.currentStay as any,
-        admitDate: new Date((patient.currentStay as any).admitDate),
+        admitDate: (patient.currentStay as any).admitDate ? new Date((patient.currentStay as any).admitDate) : undefined,
       } : undefined,
       soapNotes: patient.soapNotes.map((note) => ({
         id: note.id,

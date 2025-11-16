@@ -47,7 +47,7 @@ export async function GET(
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
         ...patient.currentStay as any,
-        admitDate: new Date((patient.currentStay as any).admitDate),
+        admitDate: (patient.currentStay as any).admitDate ? new Date((patient.currentStay as any).admitDate) : undefined,
       } : undefined,
       soapNotes: patient.soapNotes.map((note) => ({
         id: note.id,
@@ -148,7 +148,7 @@ export async function PATCH(
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
         ...patient.currentStay as any,
-        admitDate: new Date((patient.currentStay as any).admitDate),
+        admitDate: (patient.currentStay as any).admitDate ? new Date((patient.currentStay as any).admitDate) : undefined,
       } : undefined,
       soapNotes: patient.soapNotes.map((note) => ({
         id: note.id,
