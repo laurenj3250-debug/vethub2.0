@@ -13,7 +13,8 @@ datasource db {
 // Main patient model
 model Patient {
   id     Int      @id @default(autoincrement())
-  status String   // Active | Discharged | MRI | Surgery
+  status String   // Active | Discharged
+  type   String   @default("Medical") // Medical | MRI | Surgery
 
   // Demographics (JSON field)
   demographics Json
