@@ -34,12 +34,26 @@ export function RoundingPageClient() {
   const handleSyncFromVetRadar = async () => {
     setSyncing(true);
     try {
+      // Get credentials from environment variables
+      const email = process.env.NEXT_PUBLIC_VETRADAR_EMAIL;
+      const password = process.env.NEXT_PUBLIC_VETRADAR_PASSWORD;
+
+      if (!email || !password) {
+        toast({
+          title: "❌ Configuration Error",
+          description: "VetRadar credentials not configured. Please contact support.",
+          variant: "destructive",
+        });
+        setSyncing(false);
+        return;
+      }
+
       const response = await fetch('/api/integrations/vetradar/patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: process.env.NEXT_PUBLIC_VETRADAR_EMAIL,
-          password: process.env.NEXT_PUBLIC_VETRADAR_PASSWORD,
+          email,
+          password,
         }),
       });
 
@@ -54,7 +68,7 @@ export function RoundingPageClient() {
       } else {
         toast({
           title: "❌ Sync Failed",
-          description: result.errors?.join(', ') || 'Could not sync from VetRadar',
+          description: result.errors?.join(', ') || result.error || 'Could not sync from VetRadar',
           variant: "destructive",
         });
       }

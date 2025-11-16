@@ -811,9 +811,8 @@ export default function VetHub() {
 
     try {
       await apiClient.createGeneralTask({
-        name: newGeneralTaskName,
+        title: newGeneralTaskName,
         completed: false,
-        date: new Date().toISOString().split('T')[0],
       });
       toast({ title: `✅ Added general task: ${newGeneralTaskName}` });
       setNewGeneralTaskName('');
