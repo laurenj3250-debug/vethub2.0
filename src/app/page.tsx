@@ -1358,8 +1358,9 @@ export default function VetHub() {
 
   const filteredPatients = patients
     .filter(p => {
-      // Search filter
-      if (!p.name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      // Search filter - support both p.name (legacy) and p.demographics.name (UnifiedPatient)
+      const patientName = p.demographics?.name || p.name || '';
+      if (!patientName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
 
       // Status filter
       if (activeFilters.status && p.status !== activeFilters.status) return false;
@@ -1380,7 +1381,9 @@ export default function VetHub() {
     })
     .sort((a, b) => {
       if (patientSortBy === 'name') {
-        return (a.name || '').localeCompare(b.name || '');
+        const aName = a.demographics?.name || a.name || '';
+        const bName = b.demographics?.name || b.name || '';
+        return aName.localeCompare(bName);
       } else if (patientSortBy === 'status') {
         return (a.status || '').localeCompare(b.status || '');
       } else if (patientSortBy === 'type') {
