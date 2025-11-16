@@ -854,13 +854,27 @@ export class VetRadarScraper {
 
       console.log(`[VetRadar] Successfully extracted ${patients.length} patients`);
 
-      if (patients.length === 0) {
+      // Deduplicate patients by name (VetRadar may show same patient multiple times)
+      const uniquePatients = new Map<string, VetRadarPatient>();
+      patients.forEach(patient => {
+        if (!uniquePatients.has(patient.name)) {
+          uniquePatients.set(patient.name, patient);
+        }
+      });
+
+      const deduplicatedPatients = Array.from(uniquePatients.values());
+
+      if (patients.length !== deduplicatedPatients.length) {
+        console.log(`[VetRadar] Removed ${patients.length - deduplicatedPatients.length} duplicate patients`);
+      }
+
+      if (deduplicatedPatients.length === 0) {
         throw new Error('No patients found on page - may need to filter by department');
       }
 
       // Phase 1 complete - we have all the basic data from the patient list view
       // Critical notes and treatment counts are already extracted
-      console.log(`[VetRadar] Phase 1 complete - ${patients.length} patients with basic data`);
+      console.log(`[VetRadar] Phase 1 complete - ${deduplicatedPatients.length} unique patients with basic data`);
 
       // TODO: PHASE 2 - Detailed medication extraction (currently disabled)
       // Phase 2 would click into each patient to get detailed medication info
@@ -868,9 +882,9 @@ export class VetRadarScraper {
       // Disabled for now due to unreliable clicking - Phase 1 provides good value already.
       // User can manually review medications when doing final rounding review.
 
-      console.log(`[VetRadar] Completed extraction for ${patients.length} patients`);
+      console.log(`[VetRadar] Completed extraction for ${deduplicatedPatients.length} patients`);
 
-      return patients;
+      return deduplicatedPatients;
     } catch (error) {
       await page.screenshot({ path: 'vetradar-patient-list-error.png', fullPage: true });
       throw new Error(`Failed to fetch active patients: ${error instanceof Error ? error.message : 'Unknown error'}`);
