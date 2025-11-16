@@ -91,6 +91,11 @@ Return ONLY the JSON object, no other text:`
 }
 
 export async function analyzeBloodwork(bloodworkText: string, species: string = 'canine'): Promise<string> {
+  if (!anthropic) {
+    console.error('Anthropic API key not configured');
+    return '';
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
@@ -140,6 +145,11 @@ Analyze and return ONLY the abnormal values with (H) or (L) flags:`
 }
 
 export async function analyzeRadiology(radiologyText: string): Promise<string> {
+  if (!anthropic) {
+    console.error('Anthropic API key not configured');
+    return '';
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -169,6 +179,11 @@ Return a brief summary (1-2 sentences):`
 }
 
 export async function parseMedications(medText: string): Promise<string> {
+  if (!anthropic) {
+    console.error('Anthropic API key not configured');
+    return '';
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -251,6 +266,11 @@ Return ONLY the JSON object, no other text:`
 }
 
 export async function determineScanType(problemText: string): Promise<string> {
+  if (!anthropic) {
+    console.error('Anthropic API key not configured');
+    return 'Unknown';
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
@@ -289,6 +309,11 @@ Return ONLY the scan location (Brain, C-Spine, T-Spine, LS, or Unknown):`
 }
 
 export async function determineNeurolocalization(clinicalSigns: string): Promise<string> {
+  if (!anthropic) {
+    console.error('Anthropic API key not configured');
+    return '';
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
