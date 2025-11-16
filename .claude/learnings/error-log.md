@@ -187,6 +187,87 @@ When encountering ANY error:
 
 ---
 
+## Error #5: VetRadar Sync Still Not Populating Medications (Deep Merge Issue)
+
+**Date**: 2025-01-16
+**Severity**: 🔴 CRITICAL - Feature regression
+
+### Symptom
+- User reports: "when i sync, meds are still not coming through from the vetradar sync"
+- VetRadar sync completes successfully (200 response)
+- Medications extracted from VetRadar correctly
+- But therapeutics field remains empty in rounding sheet after sync
+
+### Root Cause
+The previous fix (Error #3) used shallow object merge with spread operator:
+```typescript
+// ❌ WRONG - Shallow merge overwrites with undefined values
+const mergedRoundingData = {
+  ...(existingPatient.roundingData as any || {}),
+  ...(patient.roundingData || {}),
+};
+```
+
+**Why this failed:**
+- If VetRadar returns `roundingData: { therapeutics: "med list", ... }` but some other fields are undefined
+- Shallow spread copies ALL properties from right side, including undefined ones
+- Result: `{ therapeutics: "med list", someField: undefined }` overwrites `{ someField: "existing value" }`
+- Existing data gets wiped by undefined values
+
+### Solution
+```typescript
+// ✅ CORRECT - Conditional deep merge only overwrites non-empty values
+const existingRounding = (existingPatient.roundingData as any) || {};
+const newRounding = (patient.roundingData as any) || {};
+
+const mergedRoundingData = {
+  ...existingRounding,
+  // Only overwrite if VetRadar has actual non-empty values
+  ...(newRounding.signalment ? { signalment: newRounding.signalment } : {}),
+  ...(newRounding.location ? { location: newRounding.location } : {}),
+  ...(newRounding.icuCriteria ? { icuCriteria: newRounding.icuCriteria } : {}),
+  ...(newRounding.code ? { code: newRounding.code } : {}),
+  ...(newRounding.codeStatus ? { codeStatus: newRounding.codeStatus } : {}),
+  ...(newRounding.problems ? { problems: newRounding.problems } : {}),
+  ...(newRounding.diagnosticFindings ? { diagnosticFindings: newRounding.diagnosticFindings } : {}),
+  ...(newRounding.therapeutics ? { therapeutics: newRounding.therapeutics } : {}),
+  ...(newRounding.ivc ? { ivc: newRounding.ivc } : {}),
+  ...(newRounding.fluids ? { fluids: newRounding.fluids } : {}),
+  ...(newRounding.cri ? { cri: newRounding.cri } : {}),
+  ...(newRounding.overnightDx ? { overnightDx: newRounding.overnightDx } : {}),
+  ...(newRounding.concerns ? { concerns: newRounding.concerns } : {}),
+  ...(newRounding.comments ? { comments: newRounding.comments } : {}),
+};
+```
+
+Now:
+- Only fields with actual data from VetRadar overwrite existing values
+- Empty/undefined fields from VetRadar are ignored
+- Existing manual entries are preserved
+- VetRadar medications appear correctly in therapeutics field
+
+### Prevention Rule
+**When merging nested objects where some fields may be undefined: use conditional spread to only include non-empty values. NEVER use plain spread operator for partial updates.**
+
+```typescript
+// Pattern to follow for all object merges:
+const merged = {
+  ...existing,
+  ...(newData.field ? { field: newData.field } : {}),
+  ...(newData.field2 ? { field2: newData.field2 } : {}),
+};
+
+// NOT this:
+const merged = { ...existing, ...newData }; // Overwrites with undefined!
+```
+
+### Files Fixed
+- `src/app/api/integrations/vetradar/patients/route.ts` (lines 106-127)
+
+**Commit**: `c9ed22a` - "Fix VetRadar sync medications issue: use deep merge instead of shallow merge"
+
+---
+
 ## Next Error Goes Here
 
 **Template for new errors:**
