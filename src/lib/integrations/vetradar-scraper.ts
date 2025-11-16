@@ -828,7 +828,7 @@ export class VetRadarScraper {
           const consultNumber = consultMatch ? consultMatch[1] : undefined;
 
           patients.push({
-            id: firstName.toLowerCase().replace(/\s+/g, '-'),
+            id: fullName.toLowerCase().replace(/\s+/g, '-'),
             name: fullName,
             species,
             breed,
