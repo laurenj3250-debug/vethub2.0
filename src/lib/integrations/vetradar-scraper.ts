@@ -293,7 +293,8 @@ export class VetRadarScraper {
             await page.waitForTimeout(200);
           }
 
-          // Wait a moment and then look for confirm button
+          // Wait for Confirm button to appear (might not be visible until all digits entered)
+          console.log('[VetRadar] Waiting for Confirm button to appear...');
           await page.waitForTimeout(2000);
 
           // First, log ALL buttons on the page to see what's available
@@ -310,32 +311,46 @@ export class VetRadarScraper {
             console.log('[VetRadar] Error scanning buttons:', e);
           }
 
-          // Now try to find and click confirm button
-          const confirmSelectors = [
-            'button:has-text("Confirm")',
-            'button:has-text("confirm")',
-            'button:has-text("Submit")',
-            'button:has-text("Continue")',
-            'button:has-text("Next")',
-            'button:has-text("Done")',
-            'button[type="submit"]',
-            '[role="button"]:has-text("Confirm")',
-          ];
-
+          // Try to wait for Confirm button specifically
           let confirmed = false;
-          for (const selector of confirmSelectors) {
-            try {
-              const confirmBtn = page.locator(selector).first();
-              if (await confirmBtn.isVisible({ timeout: 2000 })) {
-                console.log(`[VetRadar] Found confirm button with selector: ${selector}`);
-                await confirmBtn.click({ timeout: 5000 });
-                console.log(`[VetRadar] Clicked confirm button`);
-                await page.waitForTimeout(3000);
-                confirmed = true;
-                break;
+          try {
+            console.log('[VetRadar] Waiting for Confirm button to become visible...');
+            const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("confirm")').first();
+            await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
+            console.log('[VetRadar] Confirm button is visible! Clicking...');
+            await confirmBtn.click();
+            console.log('[VetRadar] Clicked Confirm button');
+            await page.waitForTimeout(3000);
+            confirmed = true;
+          } catch (e) {
+            console.log('[VetRadar] Could not find/click Confirm button with waitFor, trying other selectors...');
+          }
+
+          // If that didn't work, try other selectors
+          if (!confirmed) {
+            const confirmSelectors = [
+              'button:has-text("Submit")',
+              'button:has-text("Continue")',
+              'button:has-text("Next")',
+              'button:has-text("Done")',
+              'button[type="submit"]',
+              '[role="button"]:has-text("Confirm")',
+            ];
+
+            for (const selector of confirmSelectors) {
+              try {
+                const confirmBtn = page.locator(selector).first();
+                if (await confirmBtn.isVisible({ timeout: 2000 })) {
+                  console.log(`[VetRadar] Found button with selector: ${selector}`);
+                  await confirmBtn.click({ timeout: 5000 });
+                  console.log(`[VetRadar] Clicked button`);
+                  await page.waitForTimeout(3000);
+                  confirmed = true;
+                  break;
+                }
+              } catch (e) {
+                continue;
               }
-            } catch (e) {
-              continue;
             }
           }
 
