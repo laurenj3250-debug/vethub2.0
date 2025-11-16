@@ -268,6 +268,94 @@ const merged = { ...existing, ...newData }; // Overwrites with undefined!
 
 ---
 
+## Error #6: Patient Type Dropdown 500 Error - Missing Database Field
+
+**Date**: 2025-01-16
+**Severity**: 🔴 CRITICAL - Core feature completely broken
+
+### Symptom
+- User reports: "still cannot change status" and "only medical can't swap to mri or get the mri specific tasks"
+- Trying to change patient type from Medical → MRI or Surgery
+- GET /api/patients/40 returns 500 error
+- Error: "Uncaught (in promise) Error: Request failed"
+- Patient type never changes, MRI tasks never auto-create
+
+### Root Cause
+The code referenced `patient.type` field in the API routes, but **the field did not exist in the database schema**.
+
+**Timeline of the issue:**
+1. Previous commits (32a4083, 38e4d8f) added `patient.type` references to API routes
+2. But Prisma schema only had `status` field, not `type` field
+3. TypeScript compiler showed errors: "Property 'type' does not exist on type..."
+4. At runtime, attempting to read `patient.type` returned `undefined`
+5. This caused API transformation to crash with 500 error
+
+**Why it kept happening:**
+- API routes tried to access `patient.type` on lines 44, 119, 146
+- Prisma had no `type` column, so patient.type was always undefined
+- GET request after PATCH crashed during data transformation
+
+### Solution
+```typescript
+// ❌ WRONG - Before (in Prisma schema):
+model Patient {
+  id     Int      @id @default(autoincrement())
+  status String   // Active | Discharged | MRI | Surgery
+  // No type field!
+}
+
+// ✅ CORRECT - After (in Prisma schema):
+model Patient {
+  id     Int      @id @default(autoincrement())
+  status String   // Active | Discharged
+  type   String   @default("Medical") // Medical | MRI | Surgery
+}
+```
+
+**Database Migration:**
+```sql
+-- Add type column to Patient table
+ALTER TABLE "Patient" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'Medical';
+
+-- Add comment for documentation
+COMMENT ON COLUMN "Patient"."type" IS 'Patient type: Medical | MRI | Surgery';
+```
+
+**Steps taken:**
+1. Added `type` field to Prisma schema with default value 'Medical'
+2. Created migration file: `prisma/migrations/20250116_add_patient_type_field/migration.sql`
+3. Regenerated Prisma client: `npx prisma generate`
+4. Migration will run automatically when Railway deploys
+
+Now:
+- `patient.type` exists in database
+- Can change patient type from Medical → MRI → Surgery
+- GET /api/patients/[id] no longer crashes
+- MRI-specific tasks auto-create when type changes to MRI
+
+### Prevention Rule
+**ALWAYS ensure database schema matches code expectations. When adding new field references in API routes, FIRST add the field to Prisma schema and run migration.**
+
+**Checklist before referencing new fields:**
+1. ✅ Add field to Prisma schema
+2. ✅ Create and run migration
+3. ✅ Regenerate Prisma client
+4. ✅ Then add field references in API code
+5. ✅ Check TypeScript compilation errors - they often reveal schema mismatches
+
+**Never ignore TypeScript errors like:**
+- "Property 'xyz' does not exist on type..."
+- These are red flags that database schema doesn't match code
+
+### Files Fixed
+- `prisma/schema.prisma` - Added type field
+- `prisma/migrations/20250116_add_patient_type_field/migration.sql` - Database migration
+- API routes (`src/app/api/patients/route.ts`, `src/app/api/patients/[id]/route.ts`) - Already referenced patient.type
+
+**Commit**: `620c14b` - "Add patient type field to database schema"
+
+---
+
 ## Next Error Goes Here
 
 **Template for new errors:**
