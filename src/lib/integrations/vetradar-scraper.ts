@@ -326,10 +326,43 @@ export class VetRadarScraper {
             }
           }
 
-          // If still on verify_email, force navigation to patients page
+          // Check if we navigated to PIN setup page after entering verification code
           await page.waitForTimeout(2000);
-          if (page.url().includes('verify_email') || page.url().includes('verify')) {
-            console.log('[VetRadar] Still on verification page, forcing navigation to /patients...');
+          const currentUrl = page.url();
+          console.log(`[VetRadar] Current URL after code entry: ${currentUrl}`);
+
+          // If we're on set_up_pin page, we need to enter the PIN now
+          if (currentUrl.includes('/set_up_pin') || currentUrl.includes('/pin')) {
+            console.log('[VetRadar] On PIN setup page - checking for PIN inputs...');
+            const pinInputs = await page.locator('input:visible').all();
+            console.log(`[VetRadar] Found ${pinInputs.length} PIN input fields`);
+
+            if (pinInputs.length >= 5) {
+              const pin = '32597';
+              console.log('[VetRadar] Entering 5-digit PIN...');
+              for (let i = 0; i < 5 && i < pinInputs.length; i++) {
+                await pinInputs[i].click();
+                await pinInputs[i].fill('');
+                await pinInputs[i].type(pin[i], { delay: 150 });
+                console.log(`[VetRadar] Entered PIN digit ${i + 1}: ${pin[i]}`);
+                await page.waitForTimeout(200);
+              }
+
+              // Wait for auto-navigation after PIN
+              await page.waitForTimeout(2000);
+              try {
+                await page.waitForURL(url => !url.includes('pin') && !url.includes('verify'), { timeout: 10000 });
+                console.log(`[VetRadar] PIN accepted, navigated to: ${page.url()}`);
+              } catch (e) {
+                console.log('[VetRadar] No auto-navigation after PIN');
+              }
+            }
+          }
+
+          // If still on verify/pin pages, force navigation to patients page
+          await page.waitForTimeout(2000);
+          if (page.url().includes('verify') || page.url().includes('pin')) {
+            console.log('[VetRadar] Still on auth page, forcing navigation to /patients...');
             const response = await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
             console.log(`[VetRadar] Navigation response status: ${response?.status()}`);
             await page.waitForTimeout(3000);
