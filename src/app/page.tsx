@@ -632,7 +632,9 @@ export default function VetHub() {
 
   const handleTypeChange = async (patientId: number, newType: string) => {
     try {
-      await apiClient.updatePatient(String(patientId), { type: newType });
+      console.log(`[handleTypeChange] Updating patient ${patientId} to type: ${newType}`);
+      const result = await apiClient.updatePatient(String(patientId), { type: newType });
+      console.log(`[handleTypeChange] API response:`, result);
       toast({ title: `✅ Type updated to ${newType}` });
 
       // Auto-create MRI tasks when type changes to "MRI"
@@ -662,7 +664,12 @@ export default function VetHub() {
 
       refetch();
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update type' });
+      console.error('[handleTypeChange] Error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: `Failed to update type: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
     }
   };
 
