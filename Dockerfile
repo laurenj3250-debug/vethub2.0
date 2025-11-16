@@ -8,6 +8,9 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production
 
+# Install Playwright browsers
+RUN npx playwright install chromium --with-deps
+
 # Copy application code
 COPY . .
 
@@ -19,8 +22,8 @@ RUN npm run build
 
 EXPOSE 3000
 
-# Copy start script
-COPY start.sh ./
-RUN chmod +x start.sh
+# Create start script inline to avoid line ending issues
+RUN echo '#!/bin/sh\nset -e\necho "Running database migrations..."\nnpx prisma db push --accept-data-loss\necho "Starting Next.js server..."\nexec npm start' > /app/start.sh && \
+    chmod +x /app/start.sh
 
-CMD ["./start.sh"]
+CMD ["/bin/sh", "/app/start.sh"]
