@@ -103,11 +103,19 @@ export async function POST(request: Request) {
             // Update existing patient (merge VetRadar data with existing data)
             console.log(`[VetRadar API] Updating existing patient: ${patient.demographics.name}`);
 
+            // Merge roundingData: VetRadar data takes priority, but keep existing fields if VetRadar doesn't have them
+            const mergedRoundingData = {
+              ...(existingPatient.roundingData as any || {}),
+              ...(patient.roundingData || {}),
+            };
+
+            console.log(`[VetRadar API] Merged rounding data for ${patient.demographics.name}:`, mergedRoundingData);
+
             const updated = await prisma.patient.update({
               where: { id: existingPatient.id },
               data: {
-                // Update therapeutics, fluids, etc. from VetRadar
-                roundingData: patient.roundingData || existingPatient.roundingData,
+                // Merge therapeutics, fluids, etc. from VetRadar with existing data
+                roundingData: mergedRoundingData,
                 // Keep existing demographics, just update status if needed
                 status: patient.status,
                 updatedAt: new Date(),
