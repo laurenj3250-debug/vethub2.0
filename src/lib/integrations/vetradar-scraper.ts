@@ -140,6 +140,14 @@ export class VetRadarScraper {
       if (currentUrl.includes('/verify_email')) {
         console.log('[VetRadar] On email verification page - looking for skip button...');
 
+        // WAIT FOR PAGE TO LOAD before looking for buttons
+        console.log('[VetRadar] Waiting for page to fully load...');
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+          console.log('[VetRadar] Network idle timeout, continuing anyway...');
+        });
+        console.log('[VetRadar] Page loaded, now searching for skip button...');
+
         try {
           // Try to find and click "Skip for 24 Hours" button
           console.log('[VetRadar] Looking for Skip button...');
@@ -444,8 +452,19 @@ export class VetRadarScraper {
       await page.screenshot({ path: 'vetradar-after-login.png', fullPage: true });
       console.log(`[VetRadar] Current URL after login: ${page.url()}`);
 
-      // Wait for page to be interactive
+      // Ensure we're on the patient list page
+      if (!page.url().includes('/patients')) {
+        console.log('[VetRadar] Not on patient list page, navigating...');
+        await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      }
+
+      // WAIT FOR PATIENT LIST PAGE TO FULLY LOAD
+      console.log('[VetRadar] Waiting for patient list page to fully load...');
       await page.waitForTimeout(3000);
+      await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+        console.log('[VetRadar] Network idle timeout, continuing anyway...');
+      });
+      console.log('[VetRadar] Patient list page loaded');
 
       // CRITICAL: Must filter by Neurology/Neurosurgery department
       console.log('[VetRadar] Applying Neurology/Neurosurgery filter...');
