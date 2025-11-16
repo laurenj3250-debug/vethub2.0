@@ -240,33 +240,27 @@ export class VetRadarScraper {
         }
       }
 
-      // Handle PIN setup/verification page
-      if (page.url().includes('/set_up_pin') || page.url().includes('/verify') || page.url().includes('/pin')) {
-        console.log('[VetRadar] On PIN page - entering PIN 32597...');
+      // Check for PIN inputs on the page (regardless of URL)
+      const pinInputs = await page.locator('input[type="text"]:visible, input[type="tel"]:visible, input[type="number"]:visible, input:not([type]):visible').all();
+
+      if (pinInputs.length >= 5) {
+        console.log(`[VetRadar] Found ${pinInputs.length} input fields - appears to be PIN page`);
 
         try {
           // Wait a moment for page to be interactive
           await page.waitForTimeout(2000);
 
-          // Get only visible input fields
-          const pinInputs = await page.locator('input:visible').all();
-          console.log(`[VetRadar] Found ${pinInputs.length} visible input fields`);
-
           // Enter PIN: 32597
           const pin = '32597';
 
-          if (pinInputs.length === 5) {
-            // Enter each digit into separate boxes
-            for (let i = 0; i < 5; i++) {
-              await pinInputs[i].click();
-              await pinInputs[i].type(pin[i], { delay: 100 });
-              console.log(`[VetRadar] Entered digit ${i + 1}: ${pin[i]}`);
-            }
-          } else if (pinInputs.length > 0) {
-            // Try entering the full PIN in the first visible input
-            console.log('[VetRadar] Entering full PIN in first input...');
-            await pinInputs[0].click();
-            await pinInputs[0].type(pin, { delay: 100 });
+          // Enter each digit into the first 5 input boxes
+          console.log('[VetRadar] Entering PIN digits into separate boxes...');
+          for (let i = 0; i < 5; i++) {
+            await pinInputs[i].click();
+            await pinInputs[i].fill(''); // Clear first
+            await pinInputs[i].type(pin[i], { delay: 150 });
+            console.log(`[VetRadar] Entered digit ${i + 1}: ${pin[i]}`);
+            await page.waitForTimeout(200);
           }
 
           // Wait a moment and then look for confirm button with flexible selectors
@@ -299,14 +293,26 @@ export class VetRadarScraper {
           if (confirmed) {
             console.log('[VetRadar] Successfully confirmed PIN');
           } else {
-            console.log('[VetRadar] No confirm button found - PIN may have been auto-submitted');
+            console.log('[VetRadar] No confirm button found - waiting for auto-submit...');
+            // Wait for auto-navigation after PIN entry
+            try {
+              await page.waitForURL(url => !url.includes('verify_email'), { timeout: 10000 });
+              console.log(`[VetRadar] PIN auto-submitted, navigated to: ${page.url()}`);
+            } catch (e) {
+              console.log('[VetRadar] No auto-navigation detected after PIN entry');
+            }
           }
 
-          // Navigate to patients page after PIN entry
-          if (!page.url().includes('/patients')) {
-            console.log('[VetRadar] Navigating to patient list page after PIN...');
-            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
-            await page.waitForTimeout(2000);
+          // If still on verify_email, force navigation to patients page
+          await page.waitForTimeout(2000);
+          if (page.url().includes('verify_email') || page.url().includes('verify')) {
+            console.log('[VetRadar] Still on verification page, forcing navigation to /patients...');
+            const response = await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+            console.log(`[VetRadar] Navigation response status: ${response?.status()}`);
+            await page.waitForTimeout(3000);
+            console.log(`[VetRadar] Current URL after forced navigation: ${page.url()}`);
+          } else {
+            console.log(`[VetRadar] Successfully moved to: ${page.url()}`);
           }
         } catch (e) {
           console.log('[VetRadar] Could not enter PIN, error:', e);
