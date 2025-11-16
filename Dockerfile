@@ -17,6 +17,10 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+# Accept NEXT_PUBLIC_ environment variables as build arguments
+ARG NEXT_PUBLIC_ANTHROPIC_API_KEY
+ENV NEXT_PUBLIC_ANTHROPIC_API_KEY=$NEXT_PUBLIC_ANTHROPIC_API_KEY
+
 # Build Next.js application
 RUN npm run build
 
