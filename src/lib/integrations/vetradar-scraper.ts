@@ -354,18 +354,43 @@ export class VetRadarScraper {
           console.log('[VetRadar] === END COMPREHENSIVE SCAN ===');
 
           // Try to wait for Confirm button specifically
+          // The button might not appear until PIN validation completes
           let confirmed = false;
           try {
-            console.log('[VetRadar] Waiting for Confirm button to become visible...');
+            console.log('[VetRadar] Waiting up to 10 seconds for Confirm button to appear...');
             const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("confirm")').first();
-            await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
+            await confirmBtn.waitFor({ state: 'visible', timeout: 10000 });
             console.log('[VetRadar] Confirm button is visible! Clicking...');
             await confirmBtn.click();
             console.log('[VetRadar] Clicked Confirm button');
             await page.waitForTimeout(3000);
             confirmed = true;
           } catch (e) {
-            console.log('[VetRadar] Could not find/click Confirm button with waitFor, trying other selectors...');
+            console.log('[VetRadar] Confirm button not found after 10s, trying other methods...');
+
+            // Maybe button is there but disabled? Try finding it anyway
+            try {
+              const anyConfirm = await page.locator('button').all();
+              console.log(`[VetRadar] Trying to find Confirm in ${anyConfirm.length} total buttons...`);
+              for (const btn of anyConfirm) {
+                const text = (await btn.textContent().catch(() => '')) || '';
+                if (text.toLowerCase().includes('confirm')) {
+                  console.log(`[VetRadar] Found button with "confirm" text: "${text.trim()}"`);
+                  const isDisabled = await btn.isDisabled().catch(() => true);
+                  const isVisible = await btn.isVisible().catch(() => false);
+                  console.log(`[VetRadar] Button disabled=${isDisabled}, visible=${isVisible}`);
+                  if (!isDisabled && isVisible) {
+                    await btn.click();
+                    console.log('[VetRadar] Clicked Confirm button!');
+                    await page.waitForTimeout(3000);
+                    confirmed = true;
+                    break;
+                  }
+                }
+              }
+            } catch (e2) {
+              console.log('[VetRadar] Error searching buttons:', e2);
+            }
           }
 
           // If that didn't work, try other selectors
