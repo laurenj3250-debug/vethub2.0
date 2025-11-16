@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const transformedPatients = patients.map((patient) => ({
       id: patient.id,
       status: patient.status,
+      type: patient.type, // Patient type: Medical/MRI/Surgery
       demographics: patient.demographics as any,
       medicalHistory: patient.medicalHistory as any,
       currentStay: patient.currentStay ? {
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
     const patient = await prisma.patient.create({
       data: {
         status: body.status || 'Active',
+        type: body.type || 'Medical', // Default to Medical if not specified
         demographics: body.demographics || { name: 'Unnamed Patient' },
         medicalHistory: body.medicalHistory || {},
         currentStay: body.currentStay || undefined,
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
       {
         id: patient.id,
         status: patient.status,
+        type: patient.type, // Patient type: Medical/MRI/Surgery
         demographics: patient.demographics,
         medicalHistory: patient.medicalHistory,
         currentStay: patient.currentStay,
