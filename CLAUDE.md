@@ -54,8 +54,21 @@ Invoke the `@agent-design-review` subagent for thorough design validation when:
 **IMPORTANT: Production-Only Workflow**
 - **Railway Project**: `empathetic-clarity`
 - **Production URL**: https://empathetic-clarity-production.up.railway.app/
-- **Database**: PostgreSQL on Railway (auto-configured via DATABASE_URL)
+- **Database**: PostgreSQL on Railway
 - **User Preference**: ⚠️ **ALWAYS use Railway production storage, NEVER local storage** ⚠️
+
+**Railway PostgreSQL Connection Details:**
+```
+Internal URL (Railway services only):
+postgresql://postgres:ncpDrcYGcGWwKSufirFOiHbOzLTZHbrq@postgres.railway.internal:5432/railway
+
+Public URL (for local development):
+postgresql://postgres:ncpDrcYGcGWwKSufirFOiHbOzLTZHbrq@shinkansen.proxy.rlwy.net:40506/railway?sslmode=require
+
+Note: The public Railway proxy URL has TLS connection issues from local development.
+For local dev, either accept database errors or set up a local PostgreSQL instance.
+Railway production environment uses the internal URL and works perfectly.
+```
 
 This project uses Railway for hosting and PostgreSQL database. The user has **explicitly requested** that all data operations, patient imports, and testing be done on the **production Railway environment**, not on local development environment.
 
@@ -64,6 +77,7 @@ This project uses Railway for hosting and PostgreSQL database. The user has **ex
 - **DO NOT** save patient data locally - all patient operations should be done on Railway production
 - Any data saved locally will NOT appear on the production site (separate databases)
 - Railway auto-deploys from GitHub main branch - push changes to deploy
+- **Known Issue**: Local dev may show database connection errors due to Railway proxy TLS issues - this is normal and doesn't affect Railway production
 
 **VetRadar Import Workflow:**
 1. Develop and test import code locally
