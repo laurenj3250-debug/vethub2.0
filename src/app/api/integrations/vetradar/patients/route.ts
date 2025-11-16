@@ -103,13 +103,32 @@ export async function POST(request: Request) {
             // Update existing patient (merge VetRadar data with existing data)
             console.log(`[VetRadar API] Updating existing patient: ${patient.demographics.name}`);
 
-            // Merge roundingData: VetRadar data takes priority, but keep existing fields if VetRadar doesn't have them
+            // Deep merge roundingData: Only overwrite fields that have actual data from VetRadar
+            const existingRounding = (existingPatient.roundingData as any) || {};
+            const newRounding = (patient.roundingData as any) || {};
+
             const mergedRoundingData = {
-              ...(existingPatient.roundingData as any || {}),
-              ...(patient.roundingData || {}),
+              ...existingRounding,
+              // Only overwrite if VetRadar has actual non-empty values
+              ...(newRounding.signalment ? { signalment: newRounding.signalment } : {}),
+              ...(newRounding.location ? { location: newRounding.location } : {}),
+              ...(newRounding.icuCriteria ? { icuCriteria: newRounding.icuCriteria } : {}),
+              ...(newRounding.code ? { code: newRounding.code } : {}),
+              ...(newRounding.codeStatus ? { codeStatus: newRounding.codeStatus } : {}),
+              ...(newRounding.problems ? { problems: newRounding.problems } : {}),
+              ...(newRounding.diagnosticFindings ? { diagnosticFindings: newRounding.diagnosticFindings } : {}),
+              ...(newRounding.therapeutics ? { therapeutics: newRounding.therapeutics } : {}),
+              ...(newRounding.ivc ? { ivc: newRounding.ivc } : {}),
+              ...(newRounding.fluids ? { fluids: newRounding.fluids } : {}),
+              ...(newRounding.cri ? { cri: newRounding.cri } : {}),
+              ...(newRounding.overnightDx ? { overnightDx: newRounding.overnightDx } : {}),
+              ...(newRounding.concerns ? { concerns: newRounding.concerns } : {}),
+              ...(newRounding.comments ? { comments: newRounding.comments } : {}),
             };
 
-            console.log(`[VetRadar API] Merged rounding data for ${patient.demographics.name}:`, mergedRoundingData);
+            console.log(`[VetRadar API] Existing roundingData:`, existingRounding);
+            console.log(`[VetRadar API] New VetRadar roundingData:`, newRounding);
+            console.log(`[VetRadar API] Merged roundingData for ${patient.demographics.name}:`, mergedRoundingData);
 
             const updated = await prisma.patient.update({
               where: { id: existingPatient.id },
