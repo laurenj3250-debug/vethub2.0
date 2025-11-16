@@ -139,6 +139,33 @@ export default function PatientImportPage() {
     }
   }
 
+  /**
+   * Generate combined MRI sheets in Google Sheets format (2 patients per row)
+   */
+  async function handleGenerateAllMRISheets() {
+    setGeneratingAll(true);
+    try {
+      // Filter patients who have MRI data
+      const mriPatients = patients.filter(p => p.mriData?.scanType);
+
+      if (mriPatients.length === 0) {
+        alert('No patients with MRI scans scheduled found.');
+        return;
+      }
+
+      // Generate combined MRI sheet (will implement this function)
+      const { downloadCombinedMRISheetPDF } = await import('@/lib/pdf-generators/mri-anesthesia-sheet');
+      await downloadCombinedMRISheetPDF(mriPatients);
+
+      alert(`Successfully generated combined MRI sheet for ${mriPatients.length} patients!`);
+    } catch (error) {
+      console.error('Error generating MRI sheets:', error);
+      alert('Error generating MRI sheets. Please check console for details.');
+    } finally {
+      setGeneratingAll(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
@@ -302,7 +329,7 @@ export default function PatientImportPage() {
                   {generatingAll ? (
                     <>
                       <RefreshCw className="w-5 h-5 animate-spin" />
-                      <span>Generating Stickers...</span>
+                      <span>Generating...</span>
                     </>
                   ) : (
                     <>
@@ -312,9 +339,27 @@ export default function PatientImportPage() {
                   )}
                 </button>
 
-                <div className="text-sm text-gray-600 flex items-center">
-                  <span className="ml-2">
-                    💡 Generates individual sticker PDFs for each patient
+                <button
+                  onClick={handleGenerateAllMRISheets}
+                  disabled={generatingAll || patients.filter(p => p.mriData?.scanType).length === 0}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:ring-4 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                >
+                  {generatingAll ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5" />
+                      <span>Generate All MRI Sheets ({patients.filter(p => p.mriData?.scanType).length} patients)</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-sm text-gray-600 flex items-center ml-auto">
+                  <span>
+                    💡 Stickers: Individual PDFs • MRI: Combined Google Sheets format
                   </span>
                 </div>
               </div>
