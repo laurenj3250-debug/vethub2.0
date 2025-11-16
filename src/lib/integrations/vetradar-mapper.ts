@@ -205,13 +205,14 @@ function mapVetRadarStatusToPatientStatus(vetRadarStatus?: string): UnifiedPatie
 
   const statusLower = vetRadarStatus.toLowerCase();
 
-  if (statusLower.includes('critical')) {
-    return 'Critical';
-  } else if (statusLower.includes('discharged')) {
+  if (statusLower.includes('discharged')) {
     return 'Discharged';
-  } else if (statusLower.includes('stable') || statusLower.includes('friendly')) {
-    return 'Stable';
+  } else if (statusLower.includes('mri')) {
+    return 'MRI';
+  } else if (statusLower.includes('surgery')) {
+    return 'Surgery';
   } else {
+    // Default to Active for critical, stable, friendly, or other statuses
     return 'Active';
   }
 }

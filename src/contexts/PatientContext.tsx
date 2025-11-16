@@ -157,7 +157,8 @@ export interface RoundingData {
   signalment?: string;
   location?: string;
   icuCriteria?: string;
-  codeStatus?: string;
+  code?: string; // Code status (Green/Yellow/Orange/Red) - used by RoundingSheet
+  codeStatus?: string; // Alias for backwards compatibility
   neurolocalization?: string;
   problems?: string;
   diagnosticFindings?: string;
