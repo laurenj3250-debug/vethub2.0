@@ -593,3 +593,251 @@ export async function downloadAllStickersPDF(patient: UnifiedPatient) {
     await downloadTinyLabelsPDF(patient);
   }
 }
+
+/**
+ * Generate consolidated big labels PDF for multiple patients
+ * Creates ONE PDF with all big labels from all patients
+ */
+export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[]): Promise<Blob> {
+  // Dynamic import to avoid SSR issues
+  const jsPDF = (await import('jspdf')).default;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'in',
+    format: 'letter',
+  });
+
+  // Label dimensions (Avery 5163 compatible)
+  const labelWidth = 3.25;
+  const labelHeight = 2.0;
+  const marginLeft = 0.5;
+  const marginTop = 0.5;
+  const gapX = 0.125;
+  const gapY = 0.125;
+  const labelsPerRow = 2;
+
+  let labelIndex = 0;
+  let isFirstLabel = true;
+
+  // Process each patient
+  for (const patient of patients) {
+    const data = formatPatientForBigLabel(patient);
+    const labelCount = patient.stickerData?.bigLabelCount ?? 2;
+
+    // Generate labels for this patient
+    for (let i = 0; i < labelCount; i++) {
+      const row = Math.floor(labelIndex / labelsPerRow);
+      const col = labelIndex % labelsPerRow;
+
+      // Add new page after every 10 labels (2 columns x 5 rows)
+      if (labelIndex > 0 && labelIndex % 10 === 0) {
+        doc.addPage();
+        isFirstLabel = false;
+      }
+
+      const x = marginLeft + col * (labelWidth + gapX);
+      const y = marginTop + (row % 5) * (labelHeight + gapY);
+
+      // Draw label border
+      doc.setLineWidth(0.02);
+      doc.rect(x, y, labelWidth, labelHeight);
+
+      // Patient name header
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(data.patientName.toUpperCase(), x + 0.1, y + 0.2);
+
+      // Code and Consult numbers
+      if (data.clientId || data.patientId) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        let headerText = '';
+        if (data.clientId) headerText += `Code: ${data.clientId}`;
+        if (data.patientId) {
+          if (headerText) headerText += '  ';
+          headerText += `Consult: ${data.patientId}`;
+        }
+        doc.text(headerText, x + 0.1, y + 0.35);
+      }
+
+      // Horizontal line
+      doc.setLineWidth(0.01);
+      doc.line(x + 0.1, y + 0.4, x + labelWidth - 0.1, y + 0.4);
+
+      // Owner section
+      let currentY = y + 0.55;
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(data.ownerName, x + 0.1, currentY);
+
+      currentY += 0.15;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(data.ownerPhone, x + 0.1, currentY);
+
+      if (data.ownerAddress) {
+        currentY += 0.12;
+        doc.setFontSize(8);
+        doc.text(data.ownerAddress, x + 0.1, currentY, { maxWidth: labelWidth - 0.2 });
+      }
+
+      // Patient info section
+      currentY += 0.2;
+      doc.setFontSize(9);
+
+      const infoLines = [
+        `Species/Breed: ${data.species} / ${data.breed}`,
+        data.colorMarkings ? `Color: ${data.colorMarkings}` : null,
+        `Sex/Weight: ${data.sex} / ${data.weight}`,
+        `DOB/Age: ${data.dateOfBirth || ''} / ${data.age || ''}`,
+        data.microchip ? `Microchip: ${data.microchip}` : null,
+      ].filter(Boolean) as string[];
+
+      infoLines.forEach((line) => {
+        doc.text(line, x + 0.1, currentY, { maxWidth: labelWidth - 0.2 });
+        currentY += 0.12;
+      });
+
+      labelIndex++;
+      isFirstLabel = false;
+    }
+  }
+
+  return doc.output('blob');
+}
+
+/**
+ * Generate consolidated tiny labels PDF for multiple patients
+ * Creates ONE PDF with all tiny labels from all patients
+ */
+export async function generateConsolidatedTinyLabelsPDF(patients: UnifiedPatient[]): Promise<Blob> {
+  // Dynamic import to avoid SSR issues
+  const jsPDF = (await import('jspdf')).default;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'in',
+    format: 'letter',
+  });
+
+  // Label dimensions
+  const labelWidth = 3.5;
+  const labelHeight = 1.25;
+  const marginLeft = 0.5;
+  const marginTop = 0.5;
+  const gapX = 0.125;
+  const gapY = 0.125;
+  const labelsPerRow = 2;
+
+  let labelIndex = 0;
+
+  // Process each patient
+  for (const patient of patients) {
+    const data = formatPatientForTinyLabel(patient);
+    const sheets = patient.stickerData?.tinySheetCount ?? 0;
+    const labelCount = sheets * 4; // 4 labels per sheet
+
+    if (labelCount === 0) continue;
+
+    // Generate labels for this patient
+    for (let i = 0; i < labelCount; i++) {
+      const row = Math.floor(labelIndex / labelsPerRow);
+      const col = labelIndex % labelsPerRow;
+
+      // Add new page after every 16 labels (2 columns x 8 rows)
+      if (labelIndex > 0 && labelIndex % 16 === 0) {
+        doc.addPage();
+      }
+
+      const x = marginLeft + col * (labelWidth + gapX);
+      const y = marginTop + (row % 8) * (labelHeight + gapY);
+
+      // Draw label border
+      doc.setLineWidth(0.01);
+      doc.rect(x, y, labelWidth, labelHeight);
+
+      // Header: Date and Patient Name
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text(data.date, x + 0.08, y + 0.12);
+
+      doc.setFontSize(9);
+      doc.text(data.patientName.toUpperCase(), x + 0.08, y + 0.25);
+
+      // Horizontal line
+      doc.setLineWidth(0.005);
+      doc.line(x + 0.08, y + 0.28, x + labelWidth - 0.08, y + 0.28);
+
+      // Patient details
+      let currentY = y + 0.4;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+
+      if (data.mrn) {
+        doc.text(`MRN: ${data.mrn}`, x + 0.08, currentY);
+        currentY += 0.12;
+      }
+
+      doc.text(`Owner: ${data.ownerName}`, x + 0.08, currentY, { maxWidth: labelWidth - 0.16 });
+      currentY += 0.12;
+
+      doc.text(`${data.species} / ${data.breed}`, x + 0.08, currentY, { maxWidth: labelWidth - 0.16 });
+      currentY += 0.12;
+
+      doc.text(`${data.sex} / ${data.age || ''}`, x + 0.08, currentY);
+      currentY += 0.15;
+
+      // ID line
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ID:', x + 0.08, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.line(x + 0.3, currentY - 0.02, x + labelWidth - 0.08, currentY - 0.02);
+
+      labelIndex++;
+    }
+  }
+
+  return doc.output('blob');
+}
+
+/**
+ * Print consolidated big labels for all active patients
+ * Opens print dialog directly
+ */
+export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
+  const blob = await generateConsolidatedBigLabelsPDF(patients);
+  const url = URL.createObjectURL(blob);
+
+  // Open in new window and trigger print dialog
+  const printWindow = window.open(url, '_blank');
+  if (printWindow) {
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+    });
+  }
+
+  // Clean up after a delay
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+/**
+ * Print consolidated tiny labels for all active patients
+ * Opens print dialog directly
+ */
+export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
+  const blob = await generateConsolidatedTinyLabelsPDF(patients);
+  const url = URL.createObjectURL(blob);
+
+  // Open in new window and trigger print dialog
+  const printWindow = window.open(url, '_blank');
+  if (printWindow) {
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+    });
+  }
+
+  // Clean up after a delay
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}

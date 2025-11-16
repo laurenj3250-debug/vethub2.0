@@ -9,7 +9,7 @@ import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, 
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
-import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF } from '@/lib/pdf-generators/stickers';
+import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels } from '@/lib/pdf-generators/stickers';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -1220,17 +1220,44 @@ export default function VetHub() {
         return;
       }
 
-      toast({ title: 'Generating stickers...', description: `Creating stickers for ${activePatients.length} patients` });
+      // Check which patients have sticker data
+      const patientsWithBigLabels = activePatients.filter(p => (p.stickerData?.bigLabelCount ?? 0) > 0);
+      const patientsWithTinyLabels = activePatients.filter(p => (p.stickerData?.tinySheetCount ?? 0) > 0);
 
-      // Generate stickers for each patient
-      for (const patient of activePatients) {
-        await downloadAllStickersPDF(patient as any);
+      if (patientsWithBigLabels.length === 0 && patientsWithTinyLabels.length === 0) {
+        toast({
+          title: 'No sticker data',
+          description: 'Configure sticker counts in patient settings first'
+        });
+        return;
       }
 
       toast({
-        title: '✅ All Stickers Generated!',
-        description: `Downloaded stickers for ${activePatients.length} patients`
+        title: 'Generating consolidated stickers...',
+        description: `Creating PDFs for ${activePatients.length} patients`
       });
+
+      // Generate and print consolidated big labels
+      if (patientsWithBigLabels.length > 0) {
+        await printConsolidatedBigLabels(patientsWithBigLabels as any);
+        toast({
+          title: '🏷️ Big Labels Ready',
+          description: `Print dialog opened for ${patientsWithBigLabels.length} patients`
+        });
+      }
+
+      // Small delay to avoid simultaneous print dialogs
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Generate and print consolidated tiny labels
+      if (patientsWithTinyLabels.length > 0) {
+        await printConsolidatedTinyLabels(patientsWithTinyLabels as any);
+        toast({
+          title: '🏷️ Tiny Labels Ready',
+          description: `Print dialog opened for ${patientsWithTinyLabels.length} patients`
+        });
+      }
+
     } catch (error) {
       console.error('Sticker generation error:', error);
       toast({ variant: 'destructive', title: 'Failed to generate stickers', description: String(error) });
