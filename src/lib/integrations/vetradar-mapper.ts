@@ -49,7 +49,7 @@ export function mapVetRadarToUnifiedPatient(
     }
   }
 
-  // Parse medications
+  // Parse medications (if available from Phase 2, otherwise use treatments)
   const medications = (vetRadarPatient.medications || []).map(med => ({
     name: med.medication,
     dose: med.dose,
@@ -59,7 +59,11 @@ export function mapVetRadarToUnifiedPatient(
     completed: false,
   }));
 
-  // Detect fluids from medications
+  // If no detailed medications, use treatment summaries from Phase 1
+  const hasMedications = medications.length > 0;
+  const treatmentSummaries = vetRadarPatient.treatments || [];
+
+  // Detect fluids from medications or treatment summaries
   const fluidsFromMeds = medications.filter(med => {
     const medLower = med.name.toLowerCase();
     return medLower.includes('lrs') ||
@@ -70,29 +74,38 @@ export function mapVetRadarToUnifiedPatient(
            medLower.includes('fluid');
   });
 
-  const fluidsText = fluidsFromMeds
-    .map(f => `${f.name} ${f.dose} ${f.route} ${f.frequency}`.trim())
-    .join('; ');
-
-  // Detect CRI medications
-  const hasCRI = medications.some(med => {
-    const medLower = med.name.toLowerCase();
-    const freqLower = med.frequency?.toLowerCase() || '';
-    return medLower.includes('cri') ||
-           freqLower.includes('cri') ||
-           medLower.includes('fentanyl') ||
-           medLower.includes('lidocaine') ||
-           medLower.includes('ketamine') ||
-           (medLower.includes('infusion') && !medLower.includes('fluid'));
+  const fluidsFromTreatments = treatmentSummaries.filter(t => {
+    const tLower = t.toLowerCase();
+    return tLower.includes('fluid') || tLower.includes('lrs') || tLower.includes('saline');
   });
 
-  // Format therapeutics (medications list)
-  const therapeutics = medications
-    .map(med => `${med.name} ${med.dose} ${med.route} ${med.frequency}`.trim())
-    .join('\n');
+  const fluidsText = hasMedications
+    ? fluidsFromMeds.map(f => `${f.name} ${f.dose} ${f.route} ${f.frequency}`.trim()).join('; ')
+    : fluidsFromTreatments.join('; ');
 
-  // Format problems from VetRadar issues
-  const problems = (vetRadarPatient.issues || []).join('\n');
+  // Detect CRI medications
+  const hasCRI = hasMedications
+    ? medications.some(med => {
+        const medLower = med.name.toLowerCase();
+        const freqLower = med.frequency?.toLowerCase() || '';
+        return medLower.includes('cri') ||
+               freqLower.includes('cri') ||
+               medLower.includes('fentanyl') ||
+               medLower.includes('lidocaine') ||
+               medLower.includes('ketamine') ||
+               (medLower.includes('infusion') && !medLower.includes('fluid'));
+      })
+    : treatmentSummaries.some(t => t.toLowerCase().includes('cri') || t.toLowerCase().includes('infusion'));
+
+  // Format therapeutics (medications list or treatment summaries)
+  const therapeutics = hasMedications
+    ? medications.map(med => `${med.name} ${med.dose} ${med.route} ${med.frequency}`.trim()).join('\n')
+    : treatmentSummaries.join('\n');
+
+  // Format problems from VetRadar issues or critical notes
+  const problems = (vetRadarPatient.issues || []).length > 0
+    ? (vetRadarPatient.issues || []).join('\n')
+    : (vetRadarPatient.criticalNotes || []).join('\n');
 
   // Build signalment
   const signalment = [
@@ -103,7 +116,8 @@ export function mapVetRadarToUnifiedPatient(
   ].filter(Boolean).join(' ');
 
   // Check if this is likely an ICU patient
-  const meetsICUCriteria = location === 'ICU' ? 'Yes' : '';
+  // IP patients get "N/A", ICU patients get "Yes", others get blank
+  const meetsICUCriteria = location === 'IP' ? 'N/A' : (location === 'ICU' ? 'Yes' : '');
 
   // Create rounding data
   const roundingData: RoundingData = {
