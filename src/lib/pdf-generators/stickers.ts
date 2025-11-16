@@ -126,7 +126,7 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
         </div>
         <div class="info-row">
           <span class="label-text">DOB/Age:</span>
-          <span class="value-text">${escapeHtml(data.dateOfBirth || '')} / ${escapeHtml(data.age)}</span>
+          <span class="value-text">${escapeHtml(data.dateOfBirth || '')} / ${escapeHtml(data.age || '')}</span>
         </div>
         ${data.microchip ? `
         <div class="info-row">
@@ -262,7 +262,7 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: numb
       ${data.mrn ? `<div class="tiny-mrn">MRN: ${escapeHtml(data.mrn)}</div>` : ''}
       <div class="tiny-owner">Owner: ${escapeHtml(data.ownerName)}</div>
       <div class="tiny-species">${escapeHtml(data.species)} / ${escapeHtml(data.breed)}</div>
-      <div class="tiny-details">${escapeHtml(data.sex)} / ${escapeHtml(data.age)}</div>
+      <div class="tiny-details">${escapeHtml(data.sex)} / ${escapeHtml(data.age || '')}</div>
       <div class="tiny-id">
         <span class="id-label">ID:</span>
         <span class="id-line">_____________________</span>
@@ -428,13 +428,13 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
 
     // Patient name header
     doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(data.patientName.toUpperCase(), x + 0.1, y + 0.2);
 
     // MRN
     if (data.mrn) {
       doc.setFontSize(9);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.text(`MRN: ${data.mrn}`, x + 0.1, y + 0.35);
     }
 
@@ -445,12 +445,12 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     // Owner section
     let currentY = y + 0.55;
     doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(data.ownerName, x + 0.1, currentY);
 
     currentY += 0.15;
     doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.text(data.ownerPhone, x + 0.1, currentY);
 
     if (data.ownerAddress) {
@@ -467,7 +467,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
       `Species/Breed: ${data.species} / ${data.breed}`,
       data.colorMarkings ? `Color: ${data.colorMarkings}` : null,
       `Sex/Weight: ${data.sex} / ${data.weight}`,
-      `DOB/Age: ${data.dateOfBirth || ''} / ${data.age}`,
+      `DOB/Age: ${data.dateOfBirth || ''} / ${data.age || ''}`,
       data.microchip ? `Microchip: ${data.microchip}` : null,
     ].filter(Boolean) as string[];
 
@@ -525,7 +525,7 @@ export async function generateTinyLabelsPDF(patient: UnifiedPatient, sheetCount?
 
     // Header: Date and Patient Name
     doc.setFontSize(7);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(data.date, x + 0.08, y + 0.12);
 
     doc.setFontSize(9);
@@ -538,7 +538,7 @@ export async function generateTinyLabelsPDF(patient: UnifiedPatient, sheetCount?
     // Patient details
     let currentY = y + 0.4;
     doc.setFontSize(8);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
 
     if (data.mrn) {
       doc.text(`MRN: ${data.mrn}`, x + 0.08, currentY);
@@ -551,14 +551,14 @@ export async function generateTinyLabelsPDF(patient: UnifiedPatient, sheetCount?
     doc.text(`${data.species} / ${data.breed}`, x + 0.08, currentY, { maxWidth: labelWidth - 0.16 });
     currentY += 0.12;
 
-    doc.text(`${data.sex} / ${data.age}`, x + 0.08, currentY);
+    doc.text(`${data.sex} / ${data.age || ''}`, x + 0.08, currentY);
     currentY += 0.15;
 
     // ID line
     doc.setFontSize(7);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('ID:', x + 0.08, currentY);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.line(x + 0.3, currentY - 0.02, x + labelWidth - 0.08, currentY - 0.02);
   }
 

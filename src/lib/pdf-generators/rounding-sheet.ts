@@ -245,7 +245,7 @@ please also have the ICU MD paged. Call the neurology resident for ANY acute neu
 ANY acute change in mentation, or ANY concern.`;
 
   doc.setFontSize(9);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
 
   // Draw header note box
   const headerLines = doc.splitTextToSize(headerNote, 700);

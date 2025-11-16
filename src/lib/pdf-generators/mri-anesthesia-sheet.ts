@@ -295,18 +295,18 @@ export async function generateMRISheetPDF(patient: UnifiedPatient): Promise<Blob
 
   // Header
   doc.setFontSize(20);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('MRI ANESTHESIA SHEET', pageWidth / 2, 50, { align: 'center' });
 
   doc.setFontSize(12);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.text('RBVH Neurology & Neurosurgery', pageWidth / 2, 70, { align: 'center' });
 
   // Sticker space
   doc.setLineWidth(1);
-  doc.setLineDash([5, 3]);
+  (doc as any).setLineDash([5, 3]);
   doc.rect(margin, 90, pageWidth - (margin * 2), 100);
-  doc.setLineDash([]);
+  (doc as any).setLineDash([]);
 
   doc.setFontSize(14);
   doc.setTextColor(150);
@@ -318,7 +318,7 @@ export async function generateMRISheetPDF(patient: UnifiedPatient): Promise<Blob
   const labelWidth = 150;
 
   doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
 
   const patientInfo = [
     ['Patient Name:', data.patientName],
@@ -330,9 +330,9 @@ export async function generateMRISheetPDF(patient: UnifiedPatient): Promise<Blob
   ];
 
   patientInfo.forEach(([label, value]) => {
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(label, margin, yPos);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
 
     // Draw underline
     doc.line(margin + labelWidth, yPos + 2, pageWidth - margin, yPos + 2);
@@ -382,10 +382,10 @@ export async function generateMRISheetPDF(patient: UnifiedPatient): Promise<Blob
   doc.setFillColor(249, 249, 249);
   doc.rect(margin, yPos, pageWidth - (margin * 2), 200, 'FD');
 
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('Anesthesia Notes / Monitoring:', margin + 10, yPos + 20);
 
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.setLineWidth(0.5);
   doc.setDrawColor(200);
   doc.rect(margin + 10, yPos + 30, pageWidth - (margin * 2) - 20, 160);
@@ -448,18 +448,18 @@ export async function generateBatchMRISheetsPDF(patients: UnifiedPatient[]): Pro
 
     // Header
     doc.setFontSize(20);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('MRI ANESTHESIA SHEET', pageWidth / 2, 50, { align: 'center' });
 
     doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.text('RBVH Neurology & Neurosurgery', pageWidth / 2, 70, { align: 'center' });
 
     // Sticker space
     doc.setLineWidth(1);
-    doc.setLineDash([5, 3]);
+    (doc as any).setLineDash([5, 3]);
     doc.rect(margin, 90, pageWidth - (margin * 2), 100);
-    doc.setLineDash([]);
+    (doc as any).setLineDash([]);
 
     doc.setFontSize(14);
     doc.setTextColor(150);
@@ -482,9 +482,9 @@ export async function generateBatchMRISheetsPDF(patients: UnifiedPatient[]): Pro
     ];
 
     patientInfo.forEach(([label, value]) => {
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text(label, margin, yPos);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.line(margin + labelWidth, yPos + 2, pageWidth - margin, yPos + 2);
       doc.text(value, margin + labelWidth + 5, yPos);
       yPos += 25;
@@ -520,9 +520,9 @@ export async function generateBatchMRISheetsPDF(patients: UnifiedPatient[]): Pro
     // Notes section
     doc.setFillColor(249, 249, 249);
     doc.rect(margin, yPos, pageWidth - (margin * 2), 200, 'FD');
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Anesthesia Notes / Monitoring:', margin + 10, yPos + 20);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     doc.setLineWidth(0.5);
     doc.setDrawColor(200);
     doc.rect(margin + 10, yPos + 30, pageWidth - (margin * 2) - 20, 160);
