@@ -666,7 +666,7 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
 
 /**
  * Generate consolidated big labels PDF for multiple patients
- * Creates ONE PDF with all big labels from all patients
+ * Creates ONE FULL-PAGE LABEL PER PATIENT - matching TF_Patient_Label format exactly
  */
 export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[]): Promise<Blob> {
   // Dynamic import to avoid SSR issues
@@ -678,51 +678,40 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
     format: 'letter',
   });
 
-  // Label dimensions (Avery 5163 compatible)
-  const labelWidth = 3.25;
-  const labelHeight = 2.0;
-  const marginLeft = 0.5;
-  const marginTop = 0.5;
-  const gapX = 0.125;
-  const gapY = 0.125;
-  const labelsPerRow = 2;
+  let isFirstPatient = true;
 
-  let labelIndex = 0;
-  let isFirstLabel = true;
-
-  // Process each patient
+  // Process each patient - ONE FULL PAGE PER PATIENT
   for (const patient of patients) {
     const data = formatPatientForBigLabel(patient);
-    const labelCount = patient.stickerData?.bigLabelCount ?? 2;
+    const labelCount = patient.stickerData?.bigLabelCount ?? 1;
 
-    // Generate labels for this patient
+    // Generate full-page labels for this patient
     for (let i = 0; i < labelCount; i++) {
-      const row = Math.floor(labelIndex / labelsPerRow);
-      const col = labelIndex % labelsPerRow;
-
-      // Add new page after every 10 labels (2 columns x 5 rows)
-      if (labelIndex > 0 && labelIndex % 10 === 0) {
+      // Add new page for each label (except the first)
+      if (!isFirstPatient) {
         doc.addPage();
-        isFirstLabel = false;
       }
+      isFirstPatient = false;
 
-      const x = marginLeft + col * (labelWidth + gapX);
-      const y = marginTop + (row % 5) * (labelHeight + gapY);
-
-      // Draw label border
-      doc.setLineWidth(0.02);
-      doc.rect(x, y, labelWidth, labelHeight);
+      // Center the content on the page with large margins
+      const pageWidth = 8.5;
+      const pageHeight = 11;
+      const leftMargin = 0.75;
+      const topMargin = 2.5; // Start content lower on page
 
       // Line 1: Name (14pt bold) + Code (12pt) + Consult (14pt bold)
-      let currentY = y + 0.25;
+      let currentY = topMargin;
+
+      // Patient Name - 14pt bold
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(data.patientName.toUpperCase(), x + 0.1, currentY);
+      doc.text(data.patientName, leftMargin, currentY);
 
       // Measure name width to position code and consult
-      const nameWidth = doc.getTextWidth(data.patientName.toUpperCase());
-      let xPos = x + 0.15 + nameWidth;
+      const nameWidth = doc.getTextWidth(data.patientName);
+      let xPos = leftMargin + nameWidth + 0.1;
 
+      // Client ID (Code) - 12pt
       if (data.clientId) {
         doc.setFontSize(12);
         doc.setFont('helvetica', 'normal');
@@ -730,73 +719,91 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
         xPos += doc.getTextWidth(data.clientId) + 0.1;
       }
 
+      // Patient ID (Consult) - 14pt bold
       if (data.patientId) {
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text(data.patientId, xPos, currentY);
       }
 
-      // Line 2: Owner (14pt bold) + Phone(s) (12pt)
-      currentY += 0.2;
+      // Line 2: Owner name (14pt bold) + Phone (12pt)
+      currentY += 0.3;
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(data.ownerName, x + 0.1, currentY);
+      doc.text(data.ownerName, leftMargin, currentY);
 
+      // Phone - 12pt
       const ownerWidth = doc.getTextWidth(data.ownerName);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(data.ownerPhone, x + 0.15 + ownerWidth, currentY);
+      doc.text(data.ownerPhone, leftMargin + ownerWidth + 0.1, currentY);
 
-      // Lines 3-7: All 12pt - Species, Breed, Color, Sex/Weight, DOB/Age
+      // Line 3: Species - 12pt
+      currentY += 0.25;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Species:', leftMargin, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.text(` (${data.species})`, leftMargin + doc.getTextWidth('Species:'), currentY);
+
+      // Line 4: Breed and Color on same line - 12pt
       currentY += 0.2;
       doc.setFontSize(12);
-
-      // Line 3: Species
       doc.setFont('helvetica', 'bold');
-      doc.text('Species:', x + 0.1, currentY);
+      doc.text('Breed:', leftMargin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(` (${data.species})`, x + 0.1 + doc.getTextWidth('Species:'), currentY);
+      const breedText = ` ${data.breed}`;
+      doc.text(breedText, leftMargin + doc.getTextWidth('Breed:'), currentY);
 
-      // Line 4: Breed
-      currentY += 0.15;
+      // Color on same line
+      const breedEndPos = leftMargin + doc.getTextWidth('Breed:') + doc.getTextWidth(breedText) + 0.3;
       doc.setFont('helvetica', 'bold');
-      doc.text('Breed:', x + 0.1, currentY);
+      doc.text('Color:', breedEndPos, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(` ${data.breed}`, x + 0.1 + doc.getTextWidth('Breed:'), currentY);
+      doc.text(` ${data.colorMarkings || ''}`, breedEndPos + doc.getTextWidth('Color:'), currentY);
 
-      // Line 5: Color
-      currentY += 0.15;
+      // Line 5: Sex and Weight on same line - 12pt
+      currentY += 0.2;
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Color:', x + 0.1, currentY);
+      doc.text('Sex:', leftMargin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(` ${data.colorMarkings || ''}`, x + 0.1 + doc.getTextWidth('Color:'), currentY);
+      const sexText = ` ${data.sex}`;
+      doc.text(sexText, leftMargin + doc.getTextWidth('Sex:'), currentY);
 
-      // Line 6: Sex and Weight
-      currentY += 0.15;
+      // Weight on same line
+      const sexEndPos = leftMargin + doc.getTextWidth('Sex:') + doc.getTextWidth(sexText) + 0.3;
       doc.setFont('helvetica', 'bold');
-      doc.text('Sex:', x + 0.1, currentY);
+      doc.text('Weight:', sexEndPos, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(` ${data.sex}`, x + 0.1 + doc.getTextWidth('Sex:'), currentY);
+      // Format weight with KG if not already included
+      let weightText = data.weight;
+      if (weightText && !weightText.toLowerCase().includes('kg') && !weightText.toLowerCase().includes('lb')) {
+        weightText += 'KG';
+      }
+      doc.text(` ${weightText}`, sexEndPos + doc.getTextWidth('Weight:'), currentY);
 
+      // Line 6: DOB and Age on same line - 12pt
+      currentY += 0.2;
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Weight:', x + 1.2, currentY);
+      doc.text('DOB:', leftMargin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(` ${data.weight}`, x + 1.2 + doc.getTextWidth('Weight:'), currentY);
+      // Format date if needed (MM-DD-YYYY format)
+      let dobText = data.dateOfBirth || '';
+      if (dobText && dobText.includes('/')) {
+        // Convert MM/DD/YYYY to MM-DD-YYYY
+        dobText = dobText.replace(/\//g, '-');
+      }
+      const dobDisplay = ` ${dobText}`;
+      doc.text(dobDisplay, leftMargin + doc.getTextWidth('DOB:'), currentY);
 
-      // Line 7: DOB and Age
-      currentY += 0.15;
+      // Age on same line
+      const dobEndPos = leftMargin + doc.getTextWidth('DOB:') + doc.getTextWidth(dobDisplay) + 0.3;
       doc.setFont('helvetica', 'bold');
-      doc.text('DOB:', x + 0.1, currentY);
+      doc.text('Age:', dobEndPos, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(` ${data.dateOfBirth || ''}`, x + 0.1 + doc.getTextWidth('DOB:'), currentY);
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Age:', x + 1.2, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(` ${data.age || ''}`, x + 1.2 + doc.getTextWidth('Age:'), currentY);
-
-      labelIndex++;
-      isFirstLabel = false;
+      doc.text(` ${data.age || ''}`, dobEndPos + doc.getTextWidth('Age:'), currentY);
     }
   }
 
