@@ -1,9 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
+const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+
+// Only initialize if API key is present
+const anthropic = apiKey ? new Anthropic({
+  apiKey,
   dangerouslyAllowBrowser: true, // Only for development
-});
+}) : null;
 
 export interface ParsedPatientData {
   patientName: string;
@@ -23,6 +26,10 @@ export interface ParsedPatientData {
 }
 
 export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientData> {
+  if (!anthropic) {
+    throw new Error('Anthropic API key not configured. Add NEXT_PUBLIC_ANTHROPIC_API_KEY to .env.local');
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307', // Fast and cheap
@@ -191,6 +198,10 @@ Return formatted list:`
 }
 
 export async function parseEzyVetBlock(fullText: string): Promise<any> {
+  if (!anthropic) {
+    throw new Error('Anthropic API key not configured. Add NEXT_PUBLIC_ANTHROPIC_API_KEY to .env.local');
+  }
+
   try {
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
