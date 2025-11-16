@@ -154,7 +154,7 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
       </td>
 
       {/* Age */}
-      {renderEditableCell(patient.age, 'age', '—')}
+      {renderEditableCell(patient.demographics?.age || patient.age, 'age', '—')}
 
       {/* Why Here Today */}
       {renderEditableCell(patient.whyHereToday, 'whyHereToday', '—')}
