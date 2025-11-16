@@ -304,19 +304,54 @@ export class VetRadarScraper {
           // CRITICAL: Wait for page to fully load before looking for Confirm button
           await this.waitForPageLoad(page, 'PIN page after digit entry');
 
-          // First, log ALL buttons on the page to see what's available
-          console.log('[VetRadar] Scanning all buttons on page...');
+          // COMPREHENSIVE DEBUGGING: See EVERYTHING on the page
+          console.log('[VetRadar] === COMPREHENSIVE PAGE SCAN ===');
           try {
-            const allButtons = await page.locator('button, a, [role="button"]').all();
-            console.log(`[VetRadar] Found ${allButtons.length} clickable elements on PIN page`);
-            for (const btn of allButtons) {
+            // Log page HTML to see structure
+            const pageContent = await page.content();
+            console.log(`[VetRadar] Page HTML length: ${pageContent.length} characters`);
+
+            // Check for iframes
+            const frames = page.frames();
+            console.log(`[VetRadar] Found ${frames.length} frames on page`);
+
+            // Log all elements
+            const allElements = await page.locator('*').all();
+            console.log(`[VetRadar] Total elements on page: ${allElements.length}`);
+
+            // Log all inputs
+            const allInputs = await page.locator('input').all();
+            console.log(`[VetRadar] Total input elements: ${allInputs.length}`);
+
+            // Log ALL clickable elements with multiple selectors
+            const buttons = await page.locator('button').all();
+            const links = await page.locator('a').all();
+            const roleButtons = await page.locator('[role="button"]').all();
+            const divs = await page.locator('div[onclick]').all();
+            const spans = await page.locator('span[onclick]').all();
+
+            console.log(`[VetRadar] Found ${buttons.length} <button> elements`);
+            console.log(`[VetRadar] Found ${links.length} <a> elements`);
+            console.log(`[VetRadar] Found ${roleButtons.length} [role="button"] elements`);
+            console.log(`[VetRadar] Found ${divs.length} clickable <div> elements`);
+            console.log(`[VetRadar] Found ${spans.length} clickable <span> elements`);
+
+            // Log all button text
+            for (const btn of buttons) {
               const text = await btn.textContent().catch(() => '');
-              const ariaLabel = await btn.getAttribute('aria-label').catch(() => '');
-              console.log(`[VetRadar] Button: "${text?.trim()}" (aria-label: "${ariaLabel}")`);
+              const type = await btn.getAttribute('type').catch(() => '');
+              const disabled = await btn.getAttribute('disabled').catch(() => '');
+              console.log(`[VetRadar] <button> type="${type}" disabled="${disabled}": "${text?.trim()}"`);
             }
+
+            // Take screenshot for manual inspection
+            await page.screenshot({ path: 'vetradar-pin-page-debug.png', fullPage: true });
+            console.log('[VetRadar] Screenshot saved: vetradar-pin-page-debug.png');
+
           } catch (e) {
-            console.log('[VetRadar] Error scanning buttons:', e);
+            console.log('[VetRadar] Error in comprehensive scan:', e);
           }
+          console.log('[VetRadar] === END COMPREHENSIVE SCAN ===');
 
           // Try to wait for Confirm button specifically
           let confirmed = false;
