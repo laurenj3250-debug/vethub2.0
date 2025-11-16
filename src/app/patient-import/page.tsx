@@ -34,6 +34,7 @@ export default function PatientImportPage() {
   const [importResult, setImportResult] = useState<VetRadarImportResult | null>(null);
   const [patients, setPatients] = useState<UnifiedPatient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [generatingAll, setGeneratingAll] = useState(false);
 
   const selectedPatient = patients.find(p => p.id === selectedPatientId);
 
@@ -112,6 +113,30 @@ export default function PatientImportPage() {
     handleUpdatePatient(patient);
 
     return Promise.resolve();
+  }
+
+  /**
+   * Generate all stickers for all patients at once
+   */
+  async function handleGenerateAllStickers() {
+    setGeneratingAll(true);
+    try {
+      const { downloadAllStickersPDF } = await import('@/lib/pdf-generators/stickers');
+
+      // Generate stickers for each patient
+      for (const patient of patients) {
+        if (patient.stickerData) {
+          await downloadAllStickersPDF(patient);
+        }
+      }
+
+      alert(`Successfully generated stickers for ${patients.length} patients!`);
+    } catch (error) {
+      console.error('Error generating stickers:', error);
+      alert('Error generating stickers. Please check console for details.');
+    } finally {
+      setGeneratingAll(false);
+    }
   }
 
   return (
@@ -262,6 +287,36 @@ export default function PatientImportPage() {
                   {(importResult.totalEstimatedTimeSeconds / 60).toFixed(1)}
                   <span className="text-lg text-gray-600"> min</span>
                 </p>
+              </div>
+            </div>
+
+            {/* Bulk Actions */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Bulk Actions</h2>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleGenerateAllStickers}
+                  disabled={generatingAll || patients.length === 0}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-pink-700 focus:ring-4 focus:ring-purple-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                >
+                  {generatingAll ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span>Generating Stickers...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-5 h-5" />
+                      <span>Generate All Stickers ({patients.length} patients)</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="text-sm text-gray-600 flex items-center">
+                  <span className="ml-2">
+                    💡 Generates individual sticker PDFs for each patient
+                  </span>
+                </div>
               </div>
             </div>
 
