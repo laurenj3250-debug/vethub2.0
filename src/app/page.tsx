@@ -969,7 +969,7 @@ export default function VetHub() {
         date: new Date().toISOString().split('T')[0],
       });
       const patient = patients.find(p => p.id === selectedPatientForTask);
-      toast({ title: `✅ Added task to ${patient?.name}: ${newPatientTaskName}` });
+      toast({ title: `✅ Added task to ${patient?.demographics?.name || patient?.name || 'patient'}: ${newPatientTaskName}` });
       setNewPatientTaskName('');
       setSelectedPatientForTask(null);
       setShowAddPatientTaskFromOverview(false);
@@ -991,7 +991,7 @@ export default function VetHub() {
           date: new Date().toISOString().split('T')[0],
         });
         const patient = patients.find(p => p.id === quickTaskPatient);
-        toast({ title: `✅ Added task to ${patient?.name}: ${quickTaskInput}` });
+        toast({ title: `✅ Added task to ${patient?.demographics?.name || patient?.name || 'patient'}: ${quickTaskInput}` });
         refetch();
       } else {
         // Add as general task
@@ -2001,7 +2001,7 @@ export default function VetHub() {
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-white font-bold flex items-center gap-1.5 text-xs">
                           <span className="text-sm">{emoji}</span>
-                          {patient.name}
+                          {patient.demographics?.name || patient.name || 'Unnamed'}
                           <span className={`text-xs ${colors.accent} text-white px-1.5 py-0.5 rounded-full ml-1`}>
                             {completedCount}/{totalCount}
                           </span>
@@ -2100,7 +2100,7 @@ export default function VetHub() {
                         </div>
                         <div className="space-y-0.5">
                           {items.map(({ task, patient }) => {
-                            const info = patient.patient_info || {};
+                            const info = patient.demographics || patient.patient_info || {};
                             const emoji = getSpeciesEmoji(info.species);
                             const colors = getPatientColor(patient.id);
                             return (
@@ -2241,17 +2241,17 @@ export default function VetHub() {
                             }}
                             className="text-white font-medium hover:text-cyan-400 transition cursor-pointer underline decoration-dotted"
                           >
-                            {patient.name}
+                            {patient.demographics?.name || patient.name || 'Unnamed'}
                           </button>
                         </td>
                         <td className="p-2">
                           <input
                             type="text"
-                            value={mriInputValues[`${patient.id}-patientId`] ?? (patient.patient_info?.patientId || '')}
+                            value={mriInputValues[`${patient.id}-patientId`] ?? (patient.demographics?.patientId || patient.patient_info?.patientId || '')}
                             onChange={(e) => {
                               debouncedMRIUpdate(patient.id, 'patientId', e.target.value, async () => {
-                                const updatedInfo = { ...patient.patient_info, patientId: e.target.value };
-                                await apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                                const updatedInfo = { ...(patient.demographics || patient.patient_info || {}), patientId: e.target.value };
+                                await apiClient.updatePatient(String(patient.id), { demographics: updatedInfo });
                               });
                             }}
                             className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
@@ -2260,11 +2260,11 @@ export default function VetHub() {
                         <td className="p-2">
                           <input
                             type="text"
-                            value={mriInputValues[`${patient.id}-weight`] ?? (patient.patient_info?.weight || '').replace(/[^\d.]/g, '')}
+                            value={mriInputValues[`${patient.id}-weight`] ?? ((patient.demographics?.weight || patient.patient_info?.weight || '').toString().replace(/[^\d.]/g, ''))}
                             onChange={(e) => {
                               debouncedMRIUpdate(patient.id, 'weight', e.target.value, async () => {
-                                const updatedInfo = { ...patient.patient_info, weight: e.target.value };
-                                await apiClient.updatePatient(String(patient.id), { patient_info: updatedInfo });
+                                const updatedInfo = { ...(patient.demographics || patient.patient_info || {}), weight: e.target.value };
+                                await apiClient.updatePatient(String(patient.id), { demographics: updatedInfo });
                               });
                             }}
                             className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
@@ -2470,7 +2470,7 @@ export default function VetHub() {
               const totalTasks = tasks.length;
               const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
               const isExpanded = expandedPatient === patient.id;
-              const info = patient.patient_info || {};
+              const info = patient.demographics || patient.patient_info || {};
               const rounding = patient.rounding_data || {};
               const emoji = getSpeciesEmoji(info.species);
 
@@ -2497,7 +2497,7 @@ export default function VetHub() {
                             onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
                             className="text-lg font-bold text-white hover:text-cyan-400 transition cursor-pointer"
                           >
-                            {patient.name}
+                            {patient.demographics?.name || patient.name || 'Unnamed'}
                           </button>
                           <select
                             value={patient.type || 'Medical'}
@@ -3239,7 +3239,7 @@ export default function VetHub() {
                     <option value="">Choose a patient...</option>
                     {patients.map(patient => (
                       <option key={patient.id} value={patient.id}>
-                        {patient.name}
+                        {patient.demographics?.name || patient.name || 'Unnamed'}
                       </option>
                     ))}
                   </select>
