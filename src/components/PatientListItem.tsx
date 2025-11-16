@@ -193,8 +193,14 @@ export function PatientListItem({
         <div className="px-4 pb-4 pt-2 border-t border-slate-700/30">
           {/* Patient info - support both UnifiedPatient (demographics) and legacy (patient_info) */}
           <div className="mb-3 text-xs text-slate-400 space-y-1">
+            {/* Show signalment if available (from VetRadar imports) */}
+            {patient.roundingData?.signalment && <div className="font-medium text-slate-300">{patient.roundingData.signalment}</div>}
+
+            {/* Show individual fields if available */}
             {(patient.demographics?.age || patient.patient_info?.age) && <div>Age: {patient.demographics?.age || patient.patient_info?.age}</div>}
             {(patient.demographics?.breed || patient.patient_info?.breed) && <div>Breed: {patient.demographics?.breed || patient.patient_info?.breed}</div>}
+            {(patient.demographics?.weight || patient.patient_info?.weight) && <div>Weight: {patient.demographics?.weight || patient.patient_info?.weight}</div>}
+            {patient.currentStay?.location && <div>Location: {patient.currentStay.location}</div>}
             {patient.id && <div>ID: {patient.id}</div>}
           </div>
 
