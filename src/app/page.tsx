@@ -421,13 +421,13 @@ export default function VetHub() {
     // Count patient tasks
     patients.forEach(patient => {
       const tasks = patient.tasks || [];
-      const todayTasks = tasks.filter((t: any) => t.date === today);
+      const todayTasks = tasks; // No date filtering - tasks don't have date field
       total += todayTasks.length;
       completed += todayTasks.filter((t: any) => t.completed).length;
     });
 
     // Count general tasks
-    const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+    const todayGeneralTasks = generalTasks; // No date filtering - tasks don't have date field
     total += todayGeneralTasks.length;
     completed += todayGeneralTasks.filter((t: any) => t.completed).length;
 
@@ -509,7 +509,7 @@ export default function VetHub() {
 
       for (const taskName of allTasks) {
         await apiClient.createTask(newPatient.id, {
-          name: taskName,
+          title: taskName,
           completed: false,
           date: new Date().toISOString().split('T')[0],
         });
@@ -572,7 +572,7 @@ export default function VetHub() {
   const handleQuickAddTask = async (patientId: number, taskName: string) => {
     try {
       await apiClient.createTask(String(patientId), {
-        name: taskName,
+        title: taskName,
         completed: false,
         date: new Date().toISOString().split('T')[0],
       });
@@ -607,12 +607,12 @@ export default function VetHub() {
         const today = new Date().toISOString().split('T')[0];
         const existingTasks = patient?.tasks || [];
         const hasDischargeTask = existingTasks.some((t: any) =>
-          t.name === 'Discharge Instructions' && t.date === today
+          (t.title || t.name) === 'Discharge Instructions' // No date check - tasks don't have date field
         );
 
         if (!hasDischargeTask) {
           await apiClient.createTask(String(patientId), {
-            name: 'Discharge Instructions',
+            title: 'Discharge Instructions',
             completed: false,
             date: today,
           });
@@ -641,12 +641,12 @@ export default function VetHub() {
 
         for (const taskName of mriTasks) {
           const hasTask = existingTasks.some((t: any) =>
-            t.name === taskName && t.date === today
+            (t.title || t.name) === taskName // No date check - tasks don't have date field
           );
 
           if (!hasTask) {
             await apiClient.createTask(String(patientId), {
-              name: taskName,
+              title: taskName,
               completed: false,
               date: today,
             });
@@ -669,7 +669,7 @@ export default function VetHub() {
 
       const tasks = patient.tasks || [];
       const categoryTasks = tasks.filter((t: any) => {
-        const taskCategory = getTaskCategory(t.name);
+        const taskCategory = getTaskCategory(t.title || t.name);
         return taskCategory === category && !t.completed;
       });
 
@@ -700,12 +700,12 @@ export default function VetHub() {
       for (const taskName of tasksToAdd) {
         // Check if task already exists for today
         const hasTask = existingTasks.some((t: any) =>
-          t.name === taskName && t.date === today
+          (t.title || t.name) === taskName // No date check - tasks don't have date field
         );
 
         if (!hasTask) {
           await apiClient.createTask(String(patientId), {
-            name: taskName,
+            title: taskName,
             completed: false,
             date: today,
           });
@@ -740,12 +740,12 @@ export default function VetHub() {
 
         for (const taskName of tasksToAdd) {
           const hasTask = existingTasks.some((t: any) =>
-            t.name === taskName && t.date === today
+            (t.title || t.name) === taskName // No date check - tasks don't have date field
           );
 
           if (!hasTask) {
             await apiClient.createTask(String(patient.id), {
-              name: taskName,
+              title: taskName,
               completed: false,
               date: today,
             });
@@ -851,7 +851,7 @@ export default function VetHub() {
         if (!patient) continue;
 
         const tasks = patient.tasks || [];
-        const todayTasks = tasks.filter((t: any) => t.date === today && !t.completed);
+        const todayTasks = tasks.filter((t: any) => !t.completed); // No date filtering - tasks don't have date field
 
         for (const task of todayTasks) {
           await apiClient.updateTask(String(patientId), String(task.id), { completed: true });
@@ -896,7 +896,7 @@ export default function VetHub() {
 
           for (const taskName of mriTasks) {
             const hasTask = existingTasks.some((t: any) =>
-              t.name === taskName && t.date === today
+              (t.title || t.name) === taskName // No date check - tasks don't have date field
             );
 
             if (!hasTask) {
@@ -926,7 +926,7 @@ export default function VetHub() {
 
       for (const patientId of Array.from(selectedPatientIds)) {
         await apiClient.createTask(String(patientId), {
-          name: taskName,
+          title: taskName,
           completed: false,
           date: today,
         });
@@ -964,7 +964,7 @@ export default function VetHub() {
 
     try {
       await apiClient.createTask(String(selectedPatientForTask), {
-        name: newPatientTaskName,
+        title: newPatientTaskName,
         completed: false,
         date: new Date().toISOString().split('T')[0],
       });
@@ -986,7 +986,7 @@ export default function VetHub() {
       if (quickTaskPatient) {
         // Add to specific patient
         await apiClient.createTask(String(quickTaskPatient), {
-          name: quickTaskInput,
+          title: quickTaskInput,
           completed: false,
           date: new Date().toISOString().split('T')[0],
         });
@@ -1348,7 +1348,7 @@ export default function VetHub() {
 
         for (const taskName of allDailyTasks) {
           const hasTask = existingTasks.some((t: any) =>
-            t.name === taskName && t.date === today
+            (t.title || t.name) === taskName // No date check - tasks don't have date field
           );
 
           if (!hasTask) {
@@ -1397,7 +1397,7 @@ export default function VetHub() {
       // Priority filter (needs attention = <50% completion)
       if (activeFilters.priority === 'needs-attention') {
         const today = new Date().toISOString().split('T')[0];
-        const tasks = (p.tasks || []).filter((t: any) => t.date === today);
+        const tasks = (p.tasks || []); // No date filtering - tasks don't have date field
         const completed = tasks.filter((t: any) => t.completed).length;
         const completionRate = tasks.length > 0 ? (completed / tasks.length) * 100 : 100;
         if (completionRate >= 50) return false;
@@ -1471,13 +1471,13 @@ export default function VetHub() {
     if (taskTimeFilter === 'all') return tasks;
     if (taskTimeFilter === 'day') {
       return tasks.filter(t => {
-        const category = getTaskCategory(t.name);
+        const category = getTaskCategory(t.title || t.name);
         return category === 'morning' || category === 'general';
       });
     }
     if (taskTimeFilter === 'night') {
       return tasks.filter(t => {
-        const category = getTaskCategory(t.name);
+        const category = getTaskCategory(t.title || t.name);
         return category === 'evening';
       });
     }
@@ -1766,7 +1766,7 @@ export default function VetHub() {
                 {/* General/Hospital-wide Tasks */}
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
-                  const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+                  const todayGeneralTasks = generalTasks; // No date filtering - tasks don't have date field
                   const filteredGeneralTasks = filterTasksByTime(todayGeneralTasks);
                   if (filteredGeneralTasks.length > 0) {
                     return (
@@ -1792,7 +1792,7 @@ export default function VetHub() {
                                 className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
                                 onClick={() => handleToggleGeneralTask(task.id, task.completed)}
                               >
-                                {task.name}
+                                {task.title || task.name}
                               </span>
                               <button
                                 onClick={() => handleDeleteGeneralTask(task.id)}
@@ -1812,7 +1812,7 @@ export default function VetHub() {
                 {/* Patient Tasks */}
                 {patients.map(patient => {
                   const today = new Date().toISOString().split('T')[0];
-                  const todayTasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                  const todayTasks = (patient.tasks || []); // No date filtering - tasks don't have date field
                   const tasks = filterTasksByTime(todayTasks);
                   if (tasks.length === 0) return null;
                   const colors = getPatientColor(patient.id);
@@ -1821,7 +1821,7 @@ export default function VetHub() {
                       <h3 className="text-white font-bold mb-1.5 text-sm">{patient.demographics?.name || patient.name || 'Unnamed'}</h3>
                       <div className="space-y-1">
                         {tasks.map((task: any) => {
-                          const category = getTaskCategory(task.name);
+                          const category = getTaskCategory(task.title || task.name);
                           const icon = getTaskIcon(category);
                           return (
                             <div
@@ -1843,7 +1843,7 @@ export default function VetHub() {
                                 className={`flex-1 cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-300'}`}
                                 onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                               >
-                                {task.name}
+                                {task.title || task.name}
                               </span>
                               <button
                                 onClick={() => handleDeleteTask(patient.id, task.id)}
@@ -1866,13 +1866,14 @@ export default function VetHub() {
                   const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
 
                   patients.forEach(patient => {
-                    const todayTasks = (patient.tasks || []).filter((t: any) => t.date === today);
+                    const todayTasks = (patient.tasks || []); // No date filtering - tasks don't have date field
                     const tasks = filterTasksByTime(todayTasks);
                     tasks.forEach((task: any) => {
-                      if (!taskGroups[task.name]) {
-                        taskGroups[task.name] = [];
+                      const taskName = task.title || task.name;
+                      if (!taskGroups[taskName]) {
+                        taskGroups[taskName] = [];
                       }
-                      taskGroups[task.name].push({ patient, task });
+                      taskGroups[taskName].push({ patient, task });
                     });
                   });
 
@@ -1984,7 +1985,7 @@ export default function VetHub() {
                   const today = new Date().toISOString().split('T')[0];
                   const allTasks = patient.tasks || [];
                   // Only show today's tasks
-                  const todayTasks = allTasks.filter((t: any) => t.date === today);
+                  const todayTasks = allTasks; // No date filtering - tasks don't have date field
                   // Apply hide completed filter
                   const tasks = todayTasks.filter((t: any) => !hideCompletedTasks || !t.completed);
                   const info = patient.demographics || patient.patient_info || {};
@@ -2027,7 +2028,7 @@ export default function VetHub() {
                               className={`flex-1 text-xs cursor-pointer ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                               onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                             >
-                              {task.name}
+                              {task.title || task.name}
                             </span>
                             <button
                               onClick={() => handleDeleteTask(patient.id, task.id)}
@@ -2059,15 +2060,13 @@ export default function VetHub() {
 
                   patients.filter(p => p.status !== 'Discharged').forEach(patient => {
                     (patient.tasks || []).forEach((task: any) => {
-                      // Only show today's tasks
-                      if (task.date === today) {
-                        // Apply hide completed filter
-                        if (!hideCompletedTasks || !task.completed) {
-                          if (!taskGroups[task.name]) {
-                            taskGroups[task.name] = [];
-                          }
-                          taskGroups[task.name].push({ task, patient });
+                      // Apply hide completed filter (no date filtering - tasks don't have date field)
+                      if (!hideCompletedTasks || !task.completed) {
+                        const taskName = task.title || task.name;
+                        if (!taskGroups[taskName]) {
+                          taskGroups[taskName] = [];
                         }
+                        taskGroups[taskName].push({ task, patient });
                       }
                     });
                   });
@@ -2148,7 +2147,7 @@ export default function VetHub() {
               <div>
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
-                  const todayGeneralTasks = generalTasks.filter((t: any) => t.date === today);
+                  const todayGeneralTasks = generalTasks; // No date filtering - tasks don't have date field
 
                   if (todayGeneralTasks.length === 0) {
                     return (
@@ -2185,7 +2184,7 @@ export default function VetHub() {
                               className={`flex-1 cursor-pointer text-sm ${task.completed ? 'line-through text-slate-500' : 'text-slate-200 font-medium'}`}
                               onClick={() => handleToggleGeneralTask(task.id, task.completed)}
                             >
-                              {task.name}
+                              {task.title || task.name}
                             </span>
                             <button
                               onClick={() => handleDeleteGeneralTask(task.id)}
@@ -2465,7 +2464,7 @@ export default function VetHub() {
             {filteredPatients.map((patient) => {
               const today = new Date().toISOString().split('T')[0];
               const allTasks = patient.tasks || [];
-              const tasks = allTasks.filter((t: any) => t.date === today); // Only show today's tasks
+              const tasks = allTasks; // No date filtering - tasks don't have date field
               const completedTasks = tasks.filter((t: any) => t.completed).length;
               const totalTasks = tasks.length;
               const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -2666,13 +2665,13 @@ export default function VetHub() {
                       </div>
 
                       {/* Morning Tasks */}
-                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+                      {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div className="mb-3">
                           <h5 className="text-xs font-bold text-yellow-400 mb-1.5 flex items-center gap-2">
                             🌅 Morning Tasks
                           </h5>
                           <div className="space-y-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
+                            {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                               <div
                                 key={task.id}
                                 className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
@@ -2691,7 +2690,7 @@ export default function VetHub() {
                                   className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
-                                  {task.name}
+                                  {task.title || task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
@@ -2706,13 +2705,13 @@ export default function VetHub() {
                       )}
 
                       {/* Evening Tasks */}
-                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+                      {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div className="mb-3">
                           <h5 className="text-xs font-bold text-indigo-400 mb-1.5 flex items-center gap-2">
                             🌙 Evening Tasks
                           </h5>
                           <div className="space-y-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
+                            {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                               <div
                                 key={task.id}
                                 className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
@@ -2731,7 +2730,7 @@ export default function VetHub() {
                                   className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
-                                  {task.name}
+                                  {task.title || task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
@@ -2746,13 +2745,13 @@ export default function VetHub() {
                       )}
 
                       {/* General Tasks (MRI/Surgery/Conditional) */}
-                      {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+                      {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div>
                           <h5 className="text-xs font-bold text-cyan-400 mb-1.5 flex items-center gap-2">
                             📋 {patient.type} Tasks & Other
                           </h5>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
+                            {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                               <div
                                 key={task.id}
                                 className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
@@ -2771,7 +2770,7 @@ export default function VetHub() {
                                   className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
-                                  {task.name}
+                                  {task.title || task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
