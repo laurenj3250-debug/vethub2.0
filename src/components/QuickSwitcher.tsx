@@ -86,13 +86,13 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
       },
     ];
 
-    // Patients
+    // Patients - support both UnifiedPatient (demographics) and legacy (patient_info) structures
     const patientResults: SearchResult[] = patients
       .filter(p => p.status !== 'Discharged')
       .map(p => ({
         id: `patient-${p.id}`,
-        title: p.name,
-        subtitle: `${p.patient_info?.age || 'Unknown age'} ${p.patient_info?.breed || ''}${p.patient_info?.breed ? ' ' + (p.patient_info?.species || 'canine') : ''}`,
+        title: p.demographics?.name || p.name || 'Unnamed',
+        subtitle: `${p.demographics?.age || p.patient_info?.age || 'Unknown age'} ${p.demographics?.breed || p.patient_info?.breed || ''}${(p.demographics?.breed || p.patient_info?.breed) ? ' ' + (p.demographics?.species || p.patient_info?.species || 'canine') : ''}`,
         icon: <User size={18} className="text-blue-400" />,
         action: () => {
           // For now, go to dashboard and highlight patient
