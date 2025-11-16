@@ -36,7 +36,8 @@ export function PatientListItem({
 }: PatientListItemProps) {
   const today = new Date().toISOString().split('T')[0];
   const allTasks = patient.tasks || [];
-  const tasks = allTasks.filter((t: any) => t.date === today);
+  // Show all tasks (don't filter by date - tasks don't have a date field, they have createdAt)
+  const tasks = allTasks;
   const completedTasks = tasks.filter((t: any) => t.completed).length;
   const totalTasks = tasks.length;
   const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
@@ -227,11 +228,11 @@ export function PatientListItem({
 
           {/* Tasks grouped by category */}
           {/* Morning Tasks */}
-          {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+          {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
             <div className="mb-3">
               <h5 className="text-xs font-bold text-yellow-400 mb-1.5">🌅 Morning Tasks</h5>
               <div className="space-y-1">
-                {tasks.filter((t: any) => getTaskCategory(t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
+                {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                   <div
                     key={task.id}
                     className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
@@ -250,7 +251,7 @@ export function PatientListItem({
                       className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                       onClick={() => onToggleTask(task.id, task.completed)}
                     >
-                      {task.name}
+                      {task.title || task.name}
                     </span>
                     <button
                       onClick={() => onDeleteTask(task.id)}
@@ -265,11 +266,11 @@ export function PatientListItem({
           )}
 
           {/* Evening Tasks */}
-          {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+          {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
             <div className="mb-3">
               <h5 className="text-xs font-bold text-indigo-400 mb-1.5">🌙 Evening Tasks</h5>
               <div className="space-y-1">
-                {tasks.filter((t: any) => getTaskCategory(t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
+                {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                   <div
                     key={task.id}
                     className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
@@ -288,7 +289,7 @@ export function PatientListItem({
                       className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                       onClick={() => onToggleTask(task.id, task.completed)}
                     >
-                      {task.name}
+                      {task.title || task.name}
                     </span>
                     <button
                       onClick={() => onDeleteTask(task.id)}
@@ -303,11 +304,11 @@ export function PatientListItem({
           )}
 
           {/* General Tasks */}
-          {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
+          {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
             <div>
               <h5 className="text-xs font-bold text-cyan-400 mb-1.5">📋 {patient.type} Tasks & Other</h5>
               <div className="space-y-1">
-                {tasks.filter((t: any) => getTaskCategory(t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => a.name.localeCompare(b.name)).map((task: any) => (
+                {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                   <div
                     key={task.id}
                     className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
@@ -326,7 +327,7 @@ export function PatientListItem({
                       className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
                       onClick={() => onToggleTask(task.id, task.completed)}
                     >
-                      {task.name}
+                      {task.title || task.name}
                     </span>
                     <button
                       onClick={() => onDeleteTask(task.id)}
