@@ -22,6 +22,8 @@ export interface VetRadarPatient {
   status: string;
   cage_location?: string;
   ward?: string;
+  criticalNotes?: string[];
+  treatments?: string[];
   medications?: VetRadarTreatment[];
   issues?: string[];
 }
@@ -312,82 +314,101 @@ export class VetRadarScraper {
 
       // Wait for patient list to load
       console.log('[VetRadar] Waiting for patient list...');
+      await page.waitForLoadState('networkidle');
       await page.waitForTimeout(2000);
 
       // Take screenshot of patient list
       await page.screenshot({ path: 'vetradar-patient-list.png', fullPage: true });
 
-      // Extract patient data directly from page using the visible structure
-      const patients = await page.evaluate(() => {
-        const patientData: any[] = [];
+      // NEW APPROACH: Select all text and copy to get structured data
+      console.log('[VetRadar] Selecting all page content...');
+      await page.keyboard.press('Control+A'); // Select all
+      await page.keyboard.press('Control+C'); // Copy
 
-        // Find all elements that contain patient names in quotes (like "Albert" Fasano)
-        const allText = document.body.innerText;
-        const patientNamePattern = /"([^"]+)"\s+([^\n]+)/g;
+      // Get the copied text from clipboard
+      const pageText = await page.evaluate(() => document.body.innerText);
+      console.log('[VetRadar] Extracted page text, length:', pageText.length);
 
-        let match;
-        while ((match = patientNamePattern.exec(allText)) !== null) {
-          const firstName = match[1]; // e.g., "Albert"
-          const lastName = match[2].split('\n')[0].trim(); // e.g., "Fasano"
+      // Parse patient data from the structured text
+      const patients: VetRadarPatient[] = [];
+
+      // Split by patient cards (each starts with a quoted name)
+      const patientBlocks = pageText.split(/(?="[A-Z])/g).filter(block => block.includes('Canine') || block.includes('Feline'));
+
+      console.log(`[VetRadar] Found ${patientBlocks.length} potential patient blocks`);
+
+      for (const block of patientBlocks) {
+        try {
+          // Extract name (e.g., "Clara" Iovino)
+          const nameMatch = block.match(/"([^"]+)"\s+([^\n]+)/);
+          if (!nameMatch) continue;
+
+          const firstName = nameMatch[1].trim();
+          const lastName = nameMatch[2].split('\n')[0].trim();
           const fullName = `${firstName} ${lastName}`;
 
-          // Find the element containing this patient's data
-          const xpath = `//text()[contains(., '"${firstName}"')]`;
-          const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-          const node = result.singleNodeValue;
+          // Extract species and breed (e.g., "Canine • Pitbull")
+          const speciesMatch = block.match(/(Canine|Feline)\s*•\s*([^\n]+)/);
+          const species = speciesMatch ? speciesMatch[1] : '';
+          const breed = speciesMatch ? speciesMatch[2].trim() : '';
 
-          if (node && node.parentElement) {
-            // Get the patient card container (likely a parent div)
-            let card: Element | null = node.parentElement;
-            while (card && !card.textContent?.includes('Canine') && !card.textContent?.includes('Feline')) {
-              card = card.parentElement;
-            }
+          // Extract weight, age, sex (e.g., "23kg | 5y 0m | FS")
+          const demographicsMatch = block.match(/(\d+\.?\d*)\s*kg\s*\|\s*(\d+y\s+\d+m|\d+y|\d+m)\s*\|\s*(MN|M|FS|F|MC|FC)/);
+          const weight = demographicsMatch ? parseFloat(demographicsMatch[1]) : 0;
+          const age = demographicsMatch ? demographicsMatch[2].trim() : '';
+          const sex = demographicsMatch ? demographicsMatch[3] : '';
 
-            if (card) {
-              const cardText = card.textContent || '';
+          // Extract location (e.g., "100 - Neuro" or "100 - IP#1, T2")
+          const locationMatch = block.match(/(\d+\s*-\s*[^\n]+?)(?:\s*Ph:|$)/);
+          const location = locationMatch ? locationMatch[1].trim() : '';
 
-              // Extract species and breed
-              const speciesMatch = cardText.match(/(Canine|Feline)\s*•\s*([^\n]+)/);
-              const species = speciesMatch ? speciesMatch[1] : '';
-              const breed = speciesMatch ? speciesMatch[2].trim() : '';
+          // Extract critical notes
+          const criticalNotes: string[] = [];
+          const notePatterns = [
+            /TL [^\n]+/g,
+            /ALERT [^\n]+/g,
+            /checked in [^\n]+/g,
+            /(?:MRI|SX|surgery|procedure) [^\n]+/gi
+          ];
 
-              // Extract weight (e.g., "19.4kg")
-              const weightMatch = cardText.match(/(\d+\.?\d*)\s*kg/);
-              const weight = weightMatch ? parseFloat(weightMatch[1]) : 0;
+          notePatterns.forEach(pattern => {
+            const matches = block.match(pattern);
+            if (matches) criticalNotes.push(...matches);
+          });
 
-              // Extract age (e.g., "5y 2m")
-              const ageMatch = cardText.match(/(\d+y\s*\d*m?|\d+m)/);
-              const age = ageMatch ? ageMatch[0] : '';
-
-              // Extract sex (e.g., "MN", "FS")
-              const sexMatch = cardText.match(/\|\s*(MN|M|FS|F|MC|FC)\s/);
-              const sex = sexMatch ? sexMatch[1] : '';
-
-              // Extract location (e.g., "100 - IP#1, R16")
-              const locationMatch = cardText.match(/(\d+\s*-\s*IP#\d+[^Ph]*)/);
-              const location = locationMatch ? locationMatch[1].trim() : '';
-
-              // Extract status badge (CAUTION, FRIENDLY, etc.)
-              const statusMatch = cardText.match(/(CAUTION|FRIENDLY|UNFRIENDLY|CRITICAL)/);
-              const status = statusMatch ? statusMatch[1] : 'Active';
-
-              patientData.push({
-                id: firstName.toLowerCase().replace(/\s+/g, '-'),
-                name: fullName,
-                species,
-                breed,
-                age,
-                sex,
-                weight,
-                location,
-                status,
-              });
-            }
+          // Extract treatment counts (e.g., "20 Monitoring Nursing Care +2")
+          const treatments: string[] = [];
+          const treatmentPattern = /(\d+)\s+(Monitoring|Nursing Care|Medications|Fluids|Procedures)(?:\s+([^\n]+))?/g;
+          let treatmentMatch;
+          while ((treatmentMatch = treatmentPattern.exec(block)) !== null) {
+            const count = treatmentMatch[1];
+            const category = treatmentMatch[2];
+            const details = treatmentMatch[3] || '';
+            treatments.push(`${count} ${category}${details ? ' ' + details : ''}`);
           }
-        }
 
-        return patientData;
-      });
+          patients.push({
+            id: firstName.toLowerCase().replace(/\s+/g, '-'),
+            name: fullName,
+            species,
+            breed,
+            age,
+            sex,
+            weight,
+            location,
+            status: 'Active',
+            criticalNotes,
+            treatments,
+            medications: [], // Will be filled later if we click into patient
+            issues: []
+          });
+
+          console.log(`[VetRadar] Parsed patient: ${fullName} - ${treatments.length} treatments`);
+        } catch (e) {
+          console.log('[VetRadar] Error parsing patient block:', e);
+          continue;
+        }
+      }
 
       console.log(`[VetRadar] Successfully extracted ${patients.length} patients`);
 
@@ -395,98 +416,11 @@ export class VetRadarScraper {
         throw new Error('No patients found on page - may need to filter by department');
       }
 
-      // Now click into each patient to get their detailed treatment information
-      console.log('[VetRadar] Fetching detailed treatment information for each patient...');
+      // Phase 1 complete - we have all the basic data from the patient list view
+      // Critical notes and treatment counts are already extracted
+      // TODO: Phase 2 would click into each patient for detailed medication info
+      console.log(`[VetRadar] Completed extraction for ${patients.length} patients`);
 
-      for (let i = 0; i < patients.length; i++) {
-        const patient = patients[i];
-        console.log(`[VetRadar] [${i + 1}/${patients.length}] Getting details for ${patient.name}...`);
-
-        try {
-          // Click on the patient card to open their treatment sheet
-          const patientCard = page.locator(`text="${patient.name.split(' ')[0]}"`).first();
-          await patientCard.click();
-          console.log(`[VetRadar] Clicked on ${patient.name}`);
-
-          // Wait for treatment sheet to load
-          await page.waitForTimeout(2000);
-
-          // Take screenshot of treatment sheet
-          await page.screenshot({ path: `vetradar-treatment-${patient.id}.png`, fullPage: true });
-
-          // Extract treatment data from the page
-          const treatmentData = await page.evaluate(() => {
-            const bodyText = document.body.innerText;
-
-            // Extract medications with dosages and frequencies
-            const medications: any[] = [];
-
-            // Look for medication patterns in the text
-            // Common patterns: "Drug Name 10mg PO q8h", "Gabapentin 100mg PO TID"
-            const medPattern = /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(\d+\.?\d*\s*(?:mg|ml|mcg|units?))\s+(\w+)\s+(q\d+h|BID|TID|QID|SID|PRN|once daily|twice daily)/gi;
-
-            let match;
-            while ((match = medPattern.exec(bodyText)) !== null) {
-              medications.push({
-                medication: match[1],
-                dose: match[2],
-                route: match[3],
-                frequency: match[4]
-              });
-            }
-
-            // Extract clinical issues/problems
-            const issues: string[] = [];
-
-            // Look for common problem indicators
-            const problemPatterns = [
-              /(?:Problem|Issue|Concern|Diagnosis):\s*([^\n]+)/gi,
-              /(?:IVDD|seizure|tremor|ataxia|paresis|paralysis|pain)[^\n]*/gi,
-              /(?:No bowel movement|not eating|vomiting|diarrhea)[^\n]*/gi
-            ];
-
-            problemPatterns.forEach(pattern => {
-              let m;
-              while ((m = pattern.exec(bodyText)) !== null) {
-                const issue = m[1] || m[0];
-                if (issue && issue.length > 3 && issue.length < 200) {
-                  issues.push(issue.trim());
-                }
-              }
-            });
-
-            return {
-              medications: medications.slice(0, 20), // Limit to 20 meds
-              issues: [...new Set(issues)].slice(0, 10) // Unique issues, limit to 10
-            };
-          });
-
-          // Add treatment data to patient object
-          patient.medications = treatmentData.medications;
-          patient.issues = treatmentData.issues;
-
-          console.log(`[VetRadar] Found ${treatmentData.medications.length} medications and ${treatmentData.issues.length} issues for ${patient.name}`);
-
-          // Go back to patient list
-          await page.goBack();
-          await page.waitForTimeout(1500);
-
-        } catch (e) {
-          console.log(`[VetRadar] Error getting details for ${patient.name}:`, e);
-          patient.medications = [];
-          patient.issues = [];
-
-          // Try to go back if we're stuck
-          try {
-            await page.goBack();
-            await page.waitForTimeout(1000);
-          } catch (backError) {
-            // Ignore back errors
-          }
-        }
-      }
-
-      console.log(`[VetRadar] Completed detailed extraction for all patients`);
       return patients;
     } catch (error) {
       await page.screenshot({ path: 'vetradar-patient-list-error.png', fullPage: true });
