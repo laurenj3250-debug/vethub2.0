@@ -91,7 +91,7 @@ export function formatPatientForTinyLabel(patient: UnifiedPatient): TinyLabelDat
 
 /**
  * Generate HTML for big patient labels
- * 70mm x 45mm label format matching clinic standard
+ * 1.937" x 3.5" label format (landscape with 90° rotation, labels with gaps)
  */
 export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2): string {
   const data = formatPatientForBigLabel(patient);
@@ -158,11 +158,11 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
       gap: 5mm;
       padding: 10mm;
     }
-    /* 70 x 45 mm label */
+    /* 1.937" x 3.5" label (49.22mm x 88.9mm) - landscape with 90° rotation */
     .label {
-      width: 70mm;
-      height: 45mm;
-      padding: 3mm 4mm;
+      width: 1.937in;
+      height: 3.5in;
+      padding: 0.1in;
       background: #ffffff;
       box-shadow: 0 0 3px rgba(0,0,0,0.35);
       box-sizing: border-box;
@@ -247,14 +247,14 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: numb
     }
 
     .tiny-label {
-      width: 3.5in;
-      height: 1.25in;
+      width: 1.252in;
+      height: 0.839in;
       border: 1px solid #000;
-      padding: 0.08in;
+      padding: 0.05in;
       box-sizing: border-box;
       page-break-inside: avoid;
       background: white;
-      font-size: 8pt;
+      font-size: 6pt;
     }
 
     .tiny-header {
@@ -267,32 +267,32 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: numb
     }
 
     .tiny-date {
-      font-size: 7pt;
+      font-size: 5pt;
     }
 
     .tiny-patient {
-      font-size: 9pt;
+      font-size: 7pt;
       text-transform: uppercase;
     }
 
     .tiny-mrn {
-      font-size: 7pt;
+      font-size: 5pt;
       color: #333;
       margin-bottom: 1px;
     }
 
     .tiny-owner {
-      font-size: 8pt;
+      font-size: 6pt;
       margin-bottom: 1px;
     }
 
     .tiny-species {
-      font-size: 8pt;
+      font-size: 6pt;
       margin-bottom: 1px;
     }
 
     .tiny-details {
-      font-size: 8pt;
+      font-size: 6pt;
       margin-bottom: 2px;
     }
 
@@ -304,12 +304,12 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: numb
 
     .id-label {
       font-weight: bold;
-      font-size: 7pt;
+      font-size: 5pt;
     }
 
     .id-line {
-      font-size: 8pt;
-      letter-spacing: 2px;
+      font-size: 6pt;
+      letter-spacing: 1px;
     }
 
     @media print {
