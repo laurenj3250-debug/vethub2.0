@@ -2,6 +2,11 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const apiKey = process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
 
+// Debug: Log API key status (first 10 chars only for security)
+if (typeof window !== 'undefined') {
+  console.log('Anthropic API Key status:', apiKey ? `Present (${apiKey.substring(0, 10)}...)` : 'Missing');
+}
+
 // Only initialize if API key is present
 const anthropic = apiKey ? new Anthropic({
   apiKey,
@@ -27,7 +32,24 @@ export interface ParsedPatientData {
 
 export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientData> {
   if (!anthropic) {
-    throw new Error('Anthropic API key not configured. Add NEXT_PUBLIC_ANTHROPIC_API_KEY to .env.local');
+    console.warn('Anthropic API not available - returning minimal patient data');
+    // Return minimal data structure when API key is not configured
+    return {
+      patientName: '',
+      ownerName: '',
+      ownerPhone: '',
+      species: '',
+      breed: '',
+      age: '',
+      sex: '',
+      weight: '',
+      patientId: '',
+      clientId: '',
+      problem: '',
+      bloodwork: '',
+      medications: [],
+      plan: '',
+    };
   }
 
   try {
@@ -214,7 +236,15 @@ Return formatted list:`
 
 export async function parseEzyVetBlock(fullText: string): Promise<any> {
   if (!anthropic) {
-    throw new Error('Anthropic API key not configured. Add NEXT_PUBLIC_ANTHROPIC_API_KEY to .env.local');
+    console.warn('Anthropic API not available - returning empty EzyVet data');
+    return {
+      signalment: '',
+      problems: '',
+      diagnosticFindings: '',
+      therapeutics: '',
+      concerns: '',
+      comments: '',
+    };
   }
 
   try {
