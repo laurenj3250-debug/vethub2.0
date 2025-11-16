@@ -141,17 +141,58 @@ export class VetRadarScraper {
         console.log('[VetRadar] On email verification page - looking for skip button...');
 
         try {
-          // Look for "Skip for 24 hours" button
-          const skipButton = page.locator('button:has-text("Skip"), button:has-text("skip"), a:has-text("Skip"), a:has-text("skip")').first();
-          await skipButton.click({ timeout: 10000 });
-          console.log('[VetRadar] Clicked skip button');
+          // Look for "Skip for 24 hours" button with more flexible selectors
+          const skipSelectors = [
+            'button:has-text("Skip")',
+            'button:has-text("skip")',
+            'a:has-text("Skip")',
+            'a:has-text("skip")',
+            'button:has-text("Later")',
+            'a:has-text("Later")',
+            '[data-testid*="skip"]',
+            '[class*="skip"]',
+          ];
 
-          // Wait for navigation after skip
-          await page.waitForTimeout(3000);
-          console.log('[VetRadar] Successfully skipped email verification');
+          let skipped = false;
+          for (const selector of skipSelectors) {
+            try {
+              const skipButton = page.locator(selector).first();
+              if (await skipButton.isVisible({ timeout: 2000 })) {
+                await skipButton.click({ timeout: 5000 });
+                console.log(`[VetRadar] Clicked skip button using: ${selector}`);
+                await page.waitForTimeout(3000);
+                skipped = true;
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+
+          if (!skipped) {
+            console.log('[VetRadar] No skip button found - attempting to navigate directly to patient list...');
+            await page.screenshot({ path: 'vetradar-verify-email.png', fullPage: true });
+
+            // Try navigating directly to the patient list page
+            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
+            console.log('[VetRadar] Navigated directly to patient list page');
+            await page.waitForTimeout(2000);
+          } else {
+            console.log('[VetRadar] Successfully skipped email verification');
+          }
         } catch (e) {
-          console.log('[VetRadar] Could not find or click skip button:', e);
-          await page.screenshot({ path: 'vetradar-verify-email.png', fullPage: true });
+          console.log('[VetRadar] Error handling email verification:', e);
+          await page.screenshot({ path: 'vetradar-verify-email-error.png', fullPage: true });
+
+          // Last resort: try direct navigation to patients page
+          try {
+            console.log('[VetRadar] Trying direct navigation to /patients as fallback...');
+            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
+            await page.waitForTimeout(2000);
+            console.log('[VetRadar] Fallback navigation successful');
+          } catch (navError) {
+            console.log('[VetRadar] Fallback navigation also failed:', navError);
+          }
         }
       }
 
@@ -177,33 +218,94 @@ export class VetRadarScraper {
               await pinInputs[i].type(pin[i], { delay: 100 });
               console.log(`[VetRadar] Entered digit ${i + 1}: ${pin[i]}`);
             }
-          } else {
+          } else if (pinInputs.length > 0) {
             // Try entering the full PIN in the first visible input
             console.log('[VetRadar] Entering full PIN in first input...');
             await pinInputs[0].click();
             await pinInputs[0].type(pin, { delay: 100 });
           }
 
-          // Wait a moment and then click Confirm PIN button
+          // Wait a moment and then look for confirm button with flexible selectors
           await page.waitForTimeout(1000);
-          const confirmBtn = await page.getByText('Confirm PIN', { exact: false });
-          await confirmBtn.click();
-          console.log('[VetRadar] Clicked Confirm PIN button');
 
-          // Wait for navigation
-          await page.waitForTimeout(3000);
-          console.log('[VetRadar] Successfully confirmed PIN');
+          const confirmSelectors = [
+            'button:has-text("Confirm")',
+            'button:has-text("confirm")',
+            'button:has-text("Submit")',
+            'button:has-text("Continue")',
+            'button[type="submit"]',
+          ];
+
+          let confirmed = false;
+          for (const selector of confirmSelectors) {
+            try {
+              const confirmBtn = page.locator(selector).first();
+              if (await confirmBtn.isVisible({ timeout: 2000 })) {
+                await confirmBtn.click({ timeout: 5000 });
+                console.log(`[VetRadar] Clicked confirm button using: ${selector}`);
+                await page.waitForTimeout(3000);
+                confirmed = true;
+                break;
+              }
+            } catch (e) {
+              continue;
+            }
+          }
+
+          if (confirmed) {
+            console.log('[VetRadar] Successfully confirmed PIN');
+          } else {
+            console.log('[VetRadar] No confirm button found - PIN may have been auto-submitted');
+          }
+
+          // Navigate to patients page after PIN entry
+          if (!page.url().includes('/patients')) {
+            console.log('[VetRadar] Navigating to patient list page after PIN...');
+            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
+            await page.waitForTimeout(2000);
+          }
         } catch (e) {
           console.log('[VetRadar] Could not enter PIN, error:', e);
           await page.screenshot({ path: 'vetradar-pin-entry-error.png', fullPage: true });
+
+          // Try navigating directly to patients page as fallback
+          try {
+            console.log('[VetRadar] Trying direct navigation to /patients after PIN error...');
+            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
+            await page.waitForTimeout(2000);
+            console.log('[VetRadar] Fallback navigation successful');
+          } catch (navError) {
+            console.log('[VetRadar] Fallback navigation also failed:', navError);
+          }
         }
       }
 
       const finalUrl = page.url();
       console.log(`[VetRadar] Final URL: ${finalUrl}`);
-      const isLoggedIn = !finalUrl.includes('/login');
 
-      if (!isLoggedIn) {
+      // Ensure we're on the patient list page or can navigate to it
+      if (!finalUrl.includes('/patients') && !finalUrl.includes('/dashboard')) {
+        console.log('[VetRadar] Not on patient list page yet - attempting final navigation...');
+
+        try {
+          await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
+          await page.waitForTimeout(2000);
+          console.log(`[VetRadar] Navigated to patient list: ${page.url()}`);
+        } catch (navError) {
+          console.log('[VetRadar] Could not navigate to patient list:', navError);
+
+          // Check if we're still on login/verify pages
+          const currentUrl = page.url();
+          if (currentUrl.includes('/login') || currentUrl.includes('/verify')) {
+            await page.screenshot({ path: 'vetradar-login-failed.png', fullPage: true });
+            throw new Error(`Login failed - stuck on: ${currentUrl}`);
+          }
+        }
+      }
+
+      // Final verification
+      const verifyUrl = page.url();
+      if (verifyUrl.includes('/login')) {
         // Check for error messages
         const errorMessages = await page.locator('.error, .alert, [role="alert"]').allTextContents();
         console.log('[VetRadar] Error messages:', errorMessages);
