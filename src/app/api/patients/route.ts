@@ -86,11 +86,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const patientType = body.type || 'Medical';
 
     const patient = await prisma.patient.create({
       data: {
         status: body.status || 'Active',
-        type: body.type || 'Medical', // Default to Medical if not specified
+        type: patientType, // Default to Medical if not specified
         demographics: body.demographics || { name: 'Unnamed Patient' },
         medicalHistory: body.medicalHistory || {},
         currentStay: body.currentStay || undefined,
@@ -106,6 +107,45 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Auto-create tasks based on patient type
+    const createdTasks: any[] = [];
+    if (['MRI', 'Surgery', 'Medical', 'Discharge'].includes(patientType)) {
+      try {
+        // Dynamically import task engine to avoid build issues
+        const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
+        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical' | 'Discharge'] || [];
+
+        for (const template of templates) {
+          const task = await prisma.task.create({
+            data: {
+              patientId: patient.id,
+              title: template.name,
+              description: template.category,
+              category: template.category,
+              timeOfDay: template.timeOfDay || null,
+              priority: template.priority || null,
+              completed: false,
+            },
+          });
+          createdTasks.push({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            category: task.category,
+            timeOfDay: task.timeOfDay,
+            priority: task.priority,
+            completed: task.completed,
+            createdAt: task.createdAt,
+          });
+        }
+
+        console.log(`[API] Auto-created ${createdTasks.length} tasks for ${patientType} patient ${patient.id}`);
+      } catch (taskError) {
+        console.error('[API] Error auto-creating tasks:', taskError);
+        // Don't fail patient creation if task creation fails
+      }
+    }
+
     return NextResponse.json(
       {
         id: patient.id,
@@ -117,7 +157,7 @@ export async function POST(request: NextRequest) {
         soapNotes: [],
         roundingData: patient.roundingData,
         mriData: patient.mriData,
-        tasks: [],
+        tasks: createdTasks,
         stickerData: patient.stickerData,
         appointmentInfo: patient.appointmentInfo,
         createdAt: patient.createdAt,
