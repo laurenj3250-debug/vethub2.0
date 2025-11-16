@@ -13,6 +13,14 @@ const anthropic = apiKey ? new Anthropic({
   dangerouslyAllowBrowser: true, // Only for development
 }) : null;
 
+export interface VetRadarMedication {
+  medication: string;
+  dose: string;
+  route: string;
+  frequency: string;
+  time?: string;
+}
+
 export interface ParsedPatientData {
   patientName: string;
   ownerName: string;
@@ -402,5 +410,89 @@ Return ONLY the most likely neuroanatomic localization. Be specific (e.g., "C1-C
   } catch (error) {
     console.error('Neurolocalization determination error:', error);
     return '';
+  }
+}
+
+/**
+ * Parse VetRadar treatment sheet text using Claude Opus for medication extraction
+ * Uses Opus for maximum accuracy with complex medical text
+ */
+export async function parseVetRadarMedications(treatmentSheetText: string): Promise<VetRadarMedication[]> {
+  if (!anthropic) {
+    console.warn('Anthropic API not available - cannot parse medications');
+    return [];
+  }
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-opus-4-20250514', // Use Opus for best accuracy with medical text
+      max_tokens: 4096,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: `Extract all medications from this VetRadar treatment sheet text and return ONLY a JSON array with no other text or explanation.
+
+CRITICAL INSTRUCTIONS:
+- Extract EVERY medication mentioned in the text
+- Include dose (with units: mg, mL, mg/kg, etc.)
+- Include route (PO, IV, SQ, IM, etc.)
+- Include frequency (q8h, BID, TID, SID, PRN, CRI, etc.)
+- Include time of administration if specified
+- DO NOT hallucinate or make up medications
+- If a medication has multiple administrations (e.g., morning and evening doses), create separate entries
+- Exclude fluids (LRS, saline) unless they have additives (e.g., "LRS + KCl")
+
+Return this exact JSON structure (empty array if no medications found):
+[
+  {
+    "medication": "Medication name",
+    "dose": "dose with units (e.g., '10 mg/kg', '2.5 mL')",
+    "route": "route (PO/IV/SQ/IM/etc)",
+    "frequency": "frequency (q8h/BID/TID/SID/PRN/CRI/etc)",
+    "time": "time if specified (e.g., '8:00 AM', 'morning', optional)"
+  }
+]
+
+Treatment sheet text:
+${treatmentSheetText}
+
+Return ONLY the JSON array, no other text:`
+        }
+      ]
+    });
+
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('No text response from Claude Opus');
+    }
+
+    // Extract JSON from response
+    let jsonText = content.text.trim();
+
+    // Try to find JSON array in the response
+    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    const parsed = JSON.parse(jsonText);
+
+    // Validate that we got an array of medications
+    if (!Array.isArray(parsed)) {
+      console.warn('Opus returned non-array response, returning empty array');
+      return [];
+    }
+
+    return parsed.map(med => ({
+      medication: med.medication || '',
+      dose: med.dose || '',
+      route: med.route || '',
+      frequency: med.frequency || '',
+      time: med.time
+    }));
+  } catch (error) {
+    console.error('VetRadar medication parsing error:', error);
+    return [];
   }
 }
