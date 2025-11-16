@@ -245,7 +245,7 @@ export function EnhancedRoundingSheet({
       onPatientUpdate?.();
       toast({
         title: '⚡ Protocol Applied!',
-        description: `${protocol.name} template loaded for ${patient.name}`
+        description: `${protocol.name} template loaded for ${patient.demographics?.name || patient.name || ''}`
       });
       setShowProtocolSelector(null);
     } catch (error) {
@@ -280,7 +280,7 @@ export function EnhancedRoundingSheet({
       onPatientUpdate?.();
       toast({
         title: '✨ Auto-populated from SOAP!',
-        description: `Filled ${Object.keys(autoFilled).length} fields for ${patient.name}`
+        description: `Filled ${Object.keys(autoFilled).length} fields for ${patient.demographics?.name || patient.name || ''}`
       });
     } catch (error) {
       toast({
@@ -342,7 +342,7 @@ export function EnhancedRoundingSheet({
       };
 
       const line = [
-        cleanField(patient.name),
+        cleanField(patient.demographics?.name || patient.name || ''),
         cleanField(rounding.signalment),
         cleanField(rounding.location),
         cleanField(rounding.icuCriteria),
@@ -362,7 +362,7 @@ export function EnhancedRoundingSheet({
 
       toast({
         title: '✅ Line Copied!',
-        description: `${patient.name}'s rounding sheet line copied to clipboard`
+        description: `${patient.demographics?.name || patient.name || ''}'s rounding sheet line copied to clipboard`
       });
     } catch (error) {
       console.error('Copy line error:', error);
@@ -410,7 +410,7 @@ export function EnhancedRoundingSheet({
     const rows = activePatients.map(patient => {
       const r = patient.rounding_data || {};
       return [
-        cleanField(patient.name, separator),
+        cleanField(patient.demographics?.name || patient.name || '', separator),
         cleanField(r.signalment, separator),
         cleanField(r.location, separator),
         cleanField(r.icuCriteria, separator),
@@ -1004,7 +1004,7 @@ export function EnhancedRoundingSheet({
                       onClick={() => onPatientClick(patient.id)}
                       className="text-white font-medium text-xs hover:text-cyan-400 transition cursor-pointer underline decoration-dotted flex items-center gap-1"
                     >
-                      {patient.name}
+                      {patient.demographics?.name || patient.name || ''}
                       {hasSOAPData && (
                         <span title="Has SOAP data">
                           <Sparkles className="w-3 h-3 text-cyan-400" />

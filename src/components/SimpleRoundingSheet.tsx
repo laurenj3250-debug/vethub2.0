@@ -79,9 +79,9 @@ export function SimpleRoundingSheet({
           <div key={patient.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold text-white">{patient.name}</h3>
+                <h3 className="text-xl font-bold text-white">{patient.demographics?.name || patient.name || 'Unnamed'}</h3>
                 <p className="text-sm text-slate-400">
-                  {patient.patient_info?.age} {patient.patient_info?.breed} {patient.patient_info?.species}
+                  {patient.demographics?.age || patient.patient_info?.age || ''} {patient.demographics?.breed || patient.patient_info?.breed || ''} {patient.demographics?.species || patient.patient_info?.species || ''}
                 </p>
               </div>
               <button

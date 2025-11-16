@@ -492,7 +492,7 @@ Discussion/Changes: ${soapData.discussionChanges || 'N/A'}
             >
               <option value="">Load from patient...</option>
               {patients.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{p.demographics?.name || p.name || 'Unnamed'}</option>
               ))}
             </select>
           )}
