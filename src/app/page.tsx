@@ -1220,11 +1220,10 @@ export default function VetHub() {
         return;
       }
 
-      // Check which patients have sticker data
+      // Check which patients have big label sticker data
       const patientsWithBigLabels = activePatients.filter(p => (p.stickerData?.bigLabelCount ?? 0) > 0);
-      const patientsWithTinyLabels = activePatients.filter(p => (p.stickerData?.tinySheetCount ?? 0) > 0);
 
-      if (patientsWithBigLabels.length === 0 && patientsWithTinyLabels.length === 0) {
+      if (patientsWithBigLabels.length === 0 && activePatients.length === 0) {
         toast({
           title: 'No sticker data',
           description: 'Configure sticker counts in patient settings first'
@@ -1249,12 +1248,12 @@ export default function VetHub() {
       // Small delay to avoid simultaneous print dialogs
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Generate and print consolidated tiny labels
-      if (patientsWithTinyLabels.length > 0) {
-        await printConsolidatedTinyLabels(patientsWithTinyLabels as any);
+      // Generate and print consolidated tiny labels (4 per patient, always)
+      if (activePatients.length > 0) {
+        await printConsolidatedTinyLabels(activePatients as any);
         toast({
           title: '🏷️ Tiny Labels Ready',
-          description: `Print dialog opened for ${patientsWithTinyLabels.length} patients`
+          description: `Print dialog opened for ${activePatients.length} patients (4 labels each)`
         });
       }
 

@@ -735,10 +735,7 @@ export async function generateConsolidatedTinyLabelsPDF(patients: UnifiedPatient
   // Process each patient
   for (const patient of patients) {
     const data = formatPatientForTinyLabel(patient);
-    const sheets = patient.stickerData?.tinySheetCount ?? 0;
-    const labelCount = sheets * 4; // 4 labels per sheet
-
-    if (labelCount === 0) continue;
+    const labelCount = 4; // Always generate 4 tiny labels per patient
 
     // Generate labels for this patient
     for (let i = 0; i < labelCount; i++) {
