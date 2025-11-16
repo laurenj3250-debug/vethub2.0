@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Trash2, Circle, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2, Circle, CheckCircle2, Tag } from 'lucide-react';
 
 interface PatientListItemProps {
   patient: any;
@@ -14,6 +14,7 @@ interface PatientListItemProps {
   onToggleTask: (taskId: string, completed: boolean) => void;
   onDeleteTask: (taskId: string) => void;
   onQuickAction: (action: string) => void;
+  onPrintStickers?: () => void;
   getTaskCategory: (taskName: string) => string;
   hideCompletedTasks: boolean;
 }
@@ -29,6 +30,7 @@ export function PatientListItem({
   onToggleTask,
   onDeleteTask,
   onQuickAction,
+  onPrintStickers,
   getTaskCategory,
   hideCompletedTasks,
 }: PatientListItemProps) {
@@ -157,6 +159,20 @@ export function PatientListItem({
         >
           {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
         </button>
+
+        {/* Print Stickers button */}
+        {onPrintStickers && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrintStickers();
+            }}
+            className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 p-1.5 rounded transition"
+            title="Print Stickers"
+          >
+            <Tag size={16} />
+          </button>
+        )}
 
         {/* Delete button */}
         <button

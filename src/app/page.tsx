@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
+import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF } from '@/lib/pdf-generators/stickers';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -1209,6 +1210,52 @@ export default function VetHub() {
     }
   };
 
+  // Sticker Print Handlers
+  const handlePrintAllStickers = async () => {
+    try {
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+
+      if (activePatients.length === 0) {
+        toast({ title: 'No active patients', description: 'Add patients to print stickers' });
+        return;
+      }
+
+      toast({ title: 'Generating stickers...', description: `Creating stickers for ${activePatients.length} patients` });
+
+      // Generate stickers for each patient
+      for (const patient of activePatients) {
+        await downloadAllStickersPDF(patient as any);
+      }
+
+      toast({
+        title: '✅ All Stickers Generated!',
+        description: `Downloaded stickers for ${activePatients.length} patients`
+      });
+    } catch (error) {
+      console.error('Sticker generation error:', error);
+      toast({ variant: 'destructive', title: 'Failed to generate stickers', description: String(error) });
+    }
+  };
+
+  const handlePrintPatientStickers = async (patientId: number) => {
+    try {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      toast({ title: 'Generating stickers...', description: `Creating stickers for ${patient.name}` });
+
+      await downloadAllStickersPDF(patient as any);
+
+      toast({
+        title: '✅ Stickers Generated!',
+        description: `Downloaded stickers for ${patient.name}`
+      });
+    } catch (error) {
+      console.error('Sticker generation error:', error);
+      toast({ variant: 'destructive', title: 'Failed to generate stickers', description: String(error) });
+    }
+  };
+
   // Load rounding data when modal opens
   useEffect(() => {
     if (roundingSheetPatient !== null) {
@@ -1528,6 +1575,13 @@ export default function VetHub() {
             >
               <Brain size={18} />
               MRI Schedule
+            </button>
+            <button
+              onClick={handlePrintAllStickers}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
+            >
+              <Tag size={18} />
+              Print All Stickers
             </button>
             <button
               onClick={() => setShowQuickReference(!showQuickReference)}
@@ -2370,6 +2424,7 @@ export default function VetHub() {
                   else if (action === 'tasks') setQuickAddMenuPatient(patient.id);
                   else if (action === 'rounds') setRoundingSheetPatient(patient.id);
                 }}
+                onPrintStickers={() => handlePrintPatientStickers(patient.id)}
                 getTaskCategory={getTaskCategory}
                 hideCompletedTasks={hideCompletedTasks}
               />
