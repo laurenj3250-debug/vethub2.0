@@ -1500,7 +1500,6 @@ export default function VetHub() {
                 setShowAllTasksView(!showAllTasksView);
                 if (!showAllTasksView) {
                   setShowTaskOverview(false);
-                  setShowAllRoundingSheets(false);
                   setShowMRISchedule(false);
                 }
               }}
@@ -2366,8 +2365,8 @@ export default function VetHub() {
                 onToggleTask={(taskId, completed) => handleToggleTask(patient.id, Number(taskId), completed)}
                 onDeleteTask={(taskId) => handleDeleteTask(patient.id, Number(taskId))}
                 onQuickAction={(action) => {
-                  if (action === 'morning') handleBulkCompleteCategory(patient.id, 'morning');
-                  else if (action === 'evening') handleBulkCompleteCategory(patient.id, 'evening');
+                  if (action === 'morning') handleCompleteAllCategory(patient.id, 'morning');
+                  else if (action === 'evening') handleCompleteAllCategory(patient.id, 'evening');
                   else if (action === 'tasks') setQuickAddMenuPatient(patient.id);
                   else if (action === 'rounds') setRoundingSheetPatient(patient.id);
                 }}

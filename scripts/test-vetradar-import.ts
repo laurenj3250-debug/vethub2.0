@@ -81,12 +81,15 @@ async function main() {
       console.log(`  • Status: ${patient.status}`);
       console.log(`  • Code Status: ${patient.roundingData?.codeStatus}`);
 
-      // Medications
+      // Medications (from therapeutics)
       console.log('\nMedications:');
-      if (patient.medications.length > 0) {
-        patient.medications.forEach(med => {
-          console.log(`  • ${med.name} ${med.dose} ${med.route} ${med.frequency}`);
-        });
+      if (patient.roundingData?.therapeutics) {
+        const meds = patient.roundingData.therapeutics.split('\n').filter(Boolean);
+        if (meds.length > 0) {
+          meds.forEach(med => console.log(`  • ${med}`));
+        } else {
+          console.log('  • None');
+        }
       } else {
         console.log('  • None');
       }

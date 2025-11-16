@@ -4,6 +4,7 @@ export interface AppointmentPatient {
 
   // Core Information
   patientName: string;
+  appointmentTime?: string; // Appointment time (for sorting)
   age: string | null;
   status: 'new' | 'recheck' | 'mri-dropoff'; // Patient visit type
 
