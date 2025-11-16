@@ -67,7 +67,7 @@ export function UnifiedPatientEntry({ patient, onUpdate, onSave }: UnifiedPatien
       ...patient,
       roundingData: {
         ...patient.roundingData,
-        neurologicLocalization: localization,
+        neurolocalization: localization,
       },
     });
   };
@@ -232,7 +232,7 @@ export function UnifiedPatientEntry({ patient, onUpdate, onSave }: UnifiedPatien
             1. Neurologic Localization <span className="text-red-600">*</span>
           </label>
           <select
-            value={patient.roundingData?.neurologicLocalization || ''}
+            value={patient.roundingData?.neurolocalization || ''}
             onChange={(e) => handleLocalizationChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
