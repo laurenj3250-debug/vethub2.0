@@ -1710,7 +1710,7 @@ export default function VetHub() {
                   className="px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
                 >
                   <option value="">General/Hospital-Wide</option>
-                  {patients.map(patient => (
+                  {filteredPatients.map(patient => (
                     <option key={patient.id} value={patient.id}>{patient.demographics?.name || patient.name || 'Unnamed'}</option>
                   ))}
                 </select>
@@ -1820,7 +1820,7 @@ export default function VetHub() {
                 })()}
 
                 {/* Patient Tasks */}
-                {patients.map(patient => {
+                {filteredPatients.map(patient => {
                   const today = new Date().toISOString().split('T')[0];
                   const todayTasks = (patient.tasks || []); // No date filtering - tasks don't have date field
                   const tasks = filterTasksByTime(todayTasks);
@@ -1875,7 +1875,7 @@ export default function VetHub() {
                   const today = new Date().toISOString().split('T')[0];
                   const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
 
-                  patients.forEach(patient => {
+                  filteredPatients.forEach(patient => {
                     const todayTasks = (patient.tasks || []); // No date filtering - tasks don't have date field
                     const tasks = filterTasksByTime(todayTasks);
                     tasks.forEach((task: any) => {
@@ -3246,7 +3246,7 @@ export default function VetHub() {
                     className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
                   >
                     <option value="">Choose a patient...</option>
-                    {patients.map(patient => (
+                    {filteredPatients.map(patient => (
                       <option key={patient.id} value={patient.id}>
                         {patient.demographics?.name || patient.name || 'Unnamed'}
                       </option>
