@@ -934,7 +934,14 @@ export class VetRadarScraper {
             // Wait for patient detail page to fully load
             await page.waitForTimeout(3000);
 
-            // Take screenshot of patient detail page
+            // Scroll down to medications section (usually below monitoring vitals)
+            console.log(`[VetRadar] Scrolling down to medications section...`);
+            await page.evaluate(() => {
+              window.scrollTo(0, document.body.scrollHeight);
+            });
+            await page.waitForTimeout(2000); // Wait for scroll and any dynamic content to load
+
+            // Take screenshot of patient detail page (full page to capture medications)
             const screenshotPath = `vetradar-patient-${patient.name.replace(/\s+/g, '-')}.png`;
             await page.screenshot({
               path: screenshotPath,
