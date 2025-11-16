@@ -360,16 +360,14 @@ export function getManualEntryRequirements(patient: UnifiedPatient): {
   const optional: string[] = [];
   let timeSeconds = 0;
 
-  // 1. Neurologic localization (always required)
+  // 1. Neurologic localization (optional - can be filled during rounding)
   if (!patient.roundingData?.neurologicLocalization) {
-    required.push('Neurologic Localization (dropdown)');
-    timeSeconds += 5;
+    optional.push('Neurologic Localization (can add during rounding)');
   }
 
-  // 2. Lab results (always required)
+  // 2. Lab results (optional - can be filled later)
   if (!patient.roundingData?.labResults?.cbc && !patient.roundingData?.labResults?.chemistry) {
-    required.push('Lab Results (paste from EasyVet)');
-    timeSeconds += 10;
+    optional.push('Lab Results (can paste from EasyVet later)');
   }
 
   // 3. Chest X-ray (optional, only if abnormal)
@@ -377,23 +375,23 @@ export function getManualEntryRequirements(patient: UnifiedPatient): {
     optional.push('Chest X-Ray Findings (only if abnormal)');
   }
 
-  // 4. MRI fields (required if MRI scheduled)
+  // 4. MRI fields (optional - only needed if generating MRI sheet)
   if (patient.type === 'MRI' || patient.mriData?.scheduledTime) {
     if (!patient.mriData?.scanType) {
-      required.push('MRI Region (Brain/C-Spine/T-Spine/LS)');
-      timeSeconds += 5;
+      optional.push('MRI Region (needed for MRI sheet generation)');
     }
     if (!patient.mriData?.asaStatus) {
-      required.push('ASA Status (1-5)');
-      timeSeconds += 5;
+      optional.push('ASA Status (needed for MRI sheet generation)');
     }
   }
 
-  // 5. Sticker flags (always required)
+  // 5. Sticker flags (optional - can be set when generating stickers)
   if (patient.stickerData && !patient.stickerData.isNewAdmit && !patient.stickerData.isSurgery) {
-    required.push('Sticker Flags (New Admit / Surgery checkboxes)');
-    timeSeconds += 2;
+    optional.push('Sticker Flags (for sticker generation)');
   }
+
+  // No required fields - all data can be completed later
+  // Patients are immediately ready to import and can be refined during rounding
 
   return {
     required,
@@ -413,29 +411,30 @@ export function validatePatientForPDFGeneration(patient: UnifiedPatient): {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Required for Rounding Sheet
+  // Critical fields for Rounding Sheet
   if (!patient.demographics.name) {
     errors.push('Patient name is required');
   }
 
+  // Optional fields - show as warnings only
   if (!patient.roundingData?.neurologicLocalization) {
-    warnings.push('Neurologic localization not set');
+    warnings.push('Neurologic localization not set (can add during rounding)');
   }
 
   if (!patient.roundingData?.labResults) {
-    warnings.push('No lab results - diagnostic findings will be blank');
+    warnings.push('No lab results (diagnostic findings will be blank - can add later)');
   }
 
-  // Required for MRI Sheet (if MRI scheduled)
+  // MRI Sheet fields (only if MRI scheduled)
   if (patient.mriData?.scheduledTime) {
     if (!patient.mriData.scanType) {
-      errors.push('MRI region is required for MRI sheet');
+      warnings.push('MRI region not set (needed for MRI sheet generation)');
     }
     if (!patient.mriData.asaStatus) {
-      errors.push('ASA status is required for MRI sheet');
+      warnings.push('ASA status not set (needed for MRI sheet generation)');
     }
     if (!patient.demographics.weight) {
-      errors.push('Patient weight is required for MRI dose calculation');
+      warnings.push('Patient weight missing (needed for MRI dose calculation)');
     }
   }
 
