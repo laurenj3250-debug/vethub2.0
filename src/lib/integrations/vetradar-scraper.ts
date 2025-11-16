@@ -293,15 +293,33 @@ export class VetRadarScraper {
             await page.waitForTimeout(200);
           }
 
-          // Wait a moment and then look for confirm button with flexible selectors
-          await page.waitForTimeout(1000);
+          // Wait a moment and then look for confirm button
+          await page.waitForTimeout(2000);
 
+          // First, log ALL buttons on the page to see what's available
+          console.log('[VetRadar] Looking for confirm button - scanning all buttons on page...');
+          try {
+            const allButtons = await page.locator('button, a, [role="button"]').all();
+            console.log(`[VetRadar] Found ${allButtons.length} clickable elements on PIN page`);
+            for (const btn of allButtons) {
+              const text = await btn.textContent().catch(() => '');
+              const ariaLabel = await btn.getAttribute('aria-label').catch(() => '');
+              console.log(`[VetRadar] Button: "${text?.trim()}" (aria-label: "${ariaLabel}")`);
+            }
+          } catch (e) {
+            console.log('[VetRadar] Error scanning buttons:', e);
+          }
+
+          // Now try to find and click confirm button
           const confirmSelectors = [
             'button:has-text("Confirm")',
             'button:has-text("confirm")',
             'button:has-text("Submit")',
             'button:has-text("Continue")',
+            'button:has-text("Next")',
+            'button:has-text("Done")',
             'button[type="submit"]',
+            '[role="button"]:has-text("Confirm")',
           ];
 
           let confirmed = false;
@@ -309,8 +327,9 @@ export class VetRadarScraper {
             try {
               const confirmBtn = page.locator(selector).first();
               if (await confirmBtn.isVisible({ timeout: 2000 })) {
+                console.log(`[VetRadar] Found confirm button with selector: ${selector}`);
                 await confirmBtn.click({ timeout: 5000 });
-                console.log(`[VetRadar] Clicked confirm button using: ${selector}`);
+                console.log(`[VetRadar] Clicked confirm button`);
                 await page.waitForTimeout(3000);
                 confirmed = true;
                 break;
@@ -320,13 +339,30 @@ export class VetRadarScraper {
             }
           }
 
+          // If no specific confirm button, try clicking ANY visible button
+          if (!confirmed) {
+            console.log('[VetRadar] No standard confirm button found - trying to click any visible button...');
+            try {
+              const anyButton = await page.locator('button:visible, a:visible, [role="button"]:visible').first();
+              if (await anyButton.isVisible({ timeout: 2000 })) {
+                const btnText = await anyButton.textContent();
+                console.log(`[VetRadar] Clicking first visible button: "${btnText?.trim()}"`);
+                await anyButton.click();
+                await page.waitForTimeout(3000);
+                confirmed = true;
+              }
+            } catch (e) {
+              console.log('[VetRadar] Could not click any button:', e);
+            }
+          }
+
           if (confirmed) {
-            console.log('[VetRadar] Successfully confirmed PIN');
+            console.log('[VetRadar] Successfully clicked button after PIN entry');
           } else {
             console.log('[VetRadar] No confirm button found - waiting for auto-submit...');
             // Wait for auto-navigation after PIN entry
             try {
-              await page.waitForURL(url => !url.includes('verify_email'), { timeout: 10000 });
+              await page.waitForURL(url => !url.includes('verify_email') && !url.includes('set_up_pin'), { timeout: 10000 });
               console.log(`[VetRadar] PIN auto-submitted, navigated to: ${page.url()}`);
             } catch (e) {
               console.log('[VetRadar] No auto-navigation detected after PIN entry');
