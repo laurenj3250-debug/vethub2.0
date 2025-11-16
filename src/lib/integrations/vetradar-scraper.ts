@@ -75,6 +75,19 @@ export class VetRadarScraper {
   }
 
   /**
+   * Helper: Wait for page to fully load before interacting
+   * ALWAYS use this before looking for buttons or elements
+   */
+  private async waitForPageLoad(page: Page, description: string = 'page') {
+    console.log(`[VetRadar] Waiting for ${description} to fully load...`);
+    await page.waitForTimeout(3000);
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+      console.log(`[VetRadar] Network idle timeout on ${description}, continuing anyway...`);
+    });
+    console.log(`[VetRadar] ${description} loaded`);
+  }
+
+  /**
    * Login to VetRadar and create a session
    */
   async login(username: string, password: string): Promise<VetRadarSession> {
@@ -141,12 +154,7 @@ export class VetRadarScraper {
         console.log('[VetRadar] On email verification page - looking for skip button...');
 
         // WAIT FOR PAGE TO LOAD before looking for buttons
-        console.log('[VetRadar] Waiting for page to fully load...');
-        await page.waitForTimeout(3000);
-        await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
-          console.log('[VetRadar] Network idle timeout, continuing anyway...');
-        });
-        console.log('[VetRadar] Page loaded, now searching for skip button...');
+        await this.waitForPageLoad(page, 'verify_email page');
 
         try {
           // Try to find and click "Skip for 24 Hours" button
@@ -294,12 +302,7 @@ export class VetRadarScraper {
           }
 
           // CRITICAL: Wait for page to fully load before looking for Confirm button
-          console.log('[VetRadar] Waiting for PIN page to fully load...');
-          await page.waitForTimeout(3000);
-          await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
-            console.log('[VetRadar] Network idle timeout on PIN page, continuing anyway...');
-          });
-          console.log('[VetRadar] PIN page loaded, now looking for Confirm button...');
+          await this.waitForPageLoad(page, 'PIN page after digit entry');
 
           // First, log ALL buttons on the page to see what's available
           console.log('[VetRadar] Scanning all buttons on page...');
@@ -565,12 +568,7 @@ export class VetRadarScraper {
       }
 
       // WAIT FOR PATIENT LIST PAGE TO FULLY LOAD
-      console.log('[VetRadar] Waiting for patient list page to fully load...');
-      await page.waitForTimeout(3000);
-      await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
-        console.log('[VetRadar] Network idle timeout, continuing anyway...');
-      });
-      console.log('[VetRadar] Patient list page loaded');
+      await this.waitForPageLoad(page, 'patient list page');
 
       // CRITICAL: Must filter by Neurology/Neurosurgery department
       console.log('[VetRadar] Applying Neurology/Neurosurgery filter...');
@@ -645,9 +643,7 @@ export class VetRadarScraper {
       }
 
       // Wait for patient list to load
-      console.log('[VetRadar] Waiting for patient list...');
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000);
+      await this.waitForPageLoad(page, 'patient list after filter');
 
       // Take screenshot of patient list
       await page.screenshot({ path: 'vetradar-patient-list.png', fullPage: true });
