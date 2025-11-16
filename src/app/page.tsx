@@ -1102,11 +1102,16 @@ export default function VetHub() {
 
   const handleExportMRISchedule = () => {
     try {
+      // Debug: Log all patients
+      console.log('[MRI Export] All patients:', patients.map(p => ({ name: p.demographics?.name || p.name, type: p.type, status: p.status })));
+
       // Filter MRI patients (exclude discharged)
       const mriPatients = patients.filter(p => p.type === 'MRI' && p.status !== 'Discharged');
 
+      console.log('[MRI Export] Filtered MRI patients:', mriPatients.map(p => ({ name: p.demographics?.name || p.name, type: p.type, status: p.status })));
+
       if (mriPatients.length === 0) {
-        toast({ variant: 'destructive', title: 'No MRI patients', description: 'No active MRI patients found' });
+        toast({ variant: 'destructive', title: 'No MRI patients', description: 'No active MRI patients found. Check that patient type is set to "MRI"' });
         return;
       }
 
