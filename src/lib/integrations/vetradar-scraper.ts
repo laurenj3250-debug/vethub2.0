@@ -304,45 +304,60 @@ export class VetRadarScraper {
           // CRITICAL: Wait for page to fully load before looking for Confirm button
           await this.waitForPageLoad(page, 'PIN page after digit entry');
 
-          // COMPREHENSIVE DEBUGGING: See EVERYTHING on the page
-          console.log('[VetRadar] === COMPREHENSIVE PAGE SCAN ===');
+          // CRITICAL FIX: Try pressing Enter key after PIN entry (common pattern)
+          console.log('[VetRadar] Trying Enter key after PIN entry...');
+          let enterKeyWorked = false;
           try {
-            // Log page HTML to see structure
-            const pageContent = await page.content();
-            console.log(`[VetRadar] Page HTML length: ${pageContent.length} characters`);
+            await page.keyboard.press('Enter');
+            console.log('[VetRadar] Pressed Enter key');
+            await page.waitForTimeout(2000);
 
+            // Check if navigation happened
+            const urlAfterEnter = page.url();
+            console.log(`[VetRadar] URL after Enter: ${urlAfterEnter}`);
+            if (!urlAfterEnter.includes('set_up_pin')) {
+              console.log('[VetRadar] ✓ Enter key worked! Navigated away from PIN page');
+              enterKeyWorked = true;
+            }
+          } catch (e) {
+            console.log('[VetRadar] Enter key did not work:', e);
+          }
+
+          // Skip button clicking if Enter key already worked
+          if (enterKeyWorked) {
+            // Continue to next iteration of login check loop
+          } else {
+
+          // COMPREHENSIVE DEBUGGING: Check ALL frames for buttons (they might be in iframes!)
+          console.log('[VetRadar] === COMPREHENSIVE PAGE SCAN (INCLUDING IFRAMES) ===');
+          try {
             // Check for iframes
             const frames = page.frames();
             console.log(`[VetRadar] Found ${frames.length} frames on page`);
 
-            // Log all elements
-            const allElements = await page.locator('*').all();
-            console.log(`[VetRadar] Total elements on page: ${allElements.length}`);
+            // Check EACH frame for buttons
+            for (let i = 0; i < frames.length; i++) {
+              const frame = frames[i];
+              const frameUrl = frame.url();
+              console.log(`[VetRadar] Checking frame ${i}: ${frameUrl}`);
 
-            // Log all inputs
-            const allInputs = await page.locator('input').all();
-            console.log(`[VetRadar] Total input elements: ${allInputs.length}`);
+              try {
+                const frameButtons = await frame.locator('button').all();
+                console.log(`[VetRadar]   Frame ${i} has ${frameButtons.length} buttons`);
 
-            // Log ALL clickable elements with multiple selectors
-            const buttons = await page.locator('button').all();
-            const links = await page.locator('a').all();
-            const roleButtons = await page.locator('[role="button"]').all();
-            const divs = await page.locator('div[onclick]').all();
-            const spans = await page.locator('span[onclick]').all();
-
-            console.log(`[VetRadar] Found ${buttons.length} <button> elements`);
-            console.log(`[VetRadar] Found ${links.length} <a> elements`);
-            console.log(`[VetRadar] Found ${roleButtons.length} [role="button"] elements`);
-            console.log(`[VetRadar] Found ${divs.length} clickable <div> elements`);
-            console.log(`[VetRadar] Found ${spans.length} clickable <span> elements`);
-
-            // Log all button text
-            for (const btn of buttons) {
-              const text = await btn.textContent().catch(() => '');
-              const type = await btn.getAttribute('type').catch(() => '');
-              const disabled = await btn.getAttribute('disabled').catch(() => '');
-              console.log(`[VetRadar] <button> type="${type}" disabled="${disabled}": "${text?.trim()}"`);
+                for (const btn of frameButtons) {
+                  const text = await btn.textContent().catch(() => '');
+                  const visible = await btn.isVisible().catch(() => false);
+                  console.log(`[VetRadar]   Frame ${i} button: "${text?.trim()}" | visible=${visible}`);
+                }
+              } catch (e) {
+                console.log(`[VetRadar]   Error scanning frame ${i}:`, e);
+              }
             }
+
+            // Also check main page
+            const buttons = await page.locator('button').all();
+            console.log(`[VetRadar] Main page has ${buttons.length} buttons`);
 
             // Take screenshot for manual inspection
             await page.screenshot({ path: 'vetradar-pin-page-debug.png', fullPage: true });
@@ -353,43 +368,67 @@ export class VetRadarScraper {
           }
           console.log('[VetRadar] === END COMPREHENSIVE SCAN ===');
 
-          // Try to wait for Confirm button specifically
-          // The button might not appear until PIN validation completes
+          // Try to find and click Confirm button (check ALL frames and main page)
           let confirmed = false;
-          try {
-            console.log('[VetRadar] Waiting up to 10 seconds for Confirm button to appear...');
-            const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("confirm")').first();
-            await confirmBtn.waitFor({ state: 'visible', timeout: 10000 });
-            console.log('[VetRadar] Confirm button is visible! Clicking...');
-            await confirmBtn.click();
-            console.log('[VetRadar] Clicked Confirm button');
-            await page.waitForTimeout(3000);
-            confirmed = true;
-          } catch (e) {
-            console.log('[VetRadar] Confirm button not found after 10s, trying other methods...');
 
-            // Maybe button is there but disabled? Try finding it anyway
+          // NEW APPROACH: Check all frames for the Confirm PIN button
+          console.log('[VetRadar] Looking for Confirm PIN button in all frames...');
+          const frames = page.frames();
+          for (let i = 0; i < frames.length; i++) {
+            const frame = frames[i];
             try {
-              const anyConfirm = await page.locator('button').all();
-              console.log(`[VetRadar] Trying to find Confirm in ${anyConfirm.length} total buttons...`);
-              for (const btn of anyConfirm) {
-                const text = (await btn.textContent().catch(() => '')) || '';
-                if (text.toLowerCase().includes('confirm')) {
-                  console.log(`[VetRadar] Found button with "confirm" text: "${text.trim()}"`);
-                  const isDisabled = await btn.isDisabled().catch(() => true);
-                  const isVisible = await btn.isVisible().catch(() => false);
-                  console.log(`[VetRadar] Button disabled=${isDisabled}, visible=${isVisible}`);
-                  if (!isDisabled && isVisible) {
-                    await btn.click();
-                    console.log('[VetRadar] Clicked Confirm button!');
-                    await page.waitForTimeout(3000);
-                    confirmed = true;
-                    break;
+              const confirmBtn = frame.locator('button:has-text("Confirm"), button:has-text("confirm"), button:has-text("Confirm PIN")').first();
+              if (await confirmBtn.isVisible({ timeout: 1000 })) {
+                console.log(`[VetRadar] Found Confirm button in frame ${i}! Clicking...`);
+                await confirmBtn.click();
+                console.log('[VetRadar] ✓ Clicked Confirm PIN button');
+                await page.waitForTimeout(3000);
+                confirmed = true;
+                break;
+              }
+            } catch (e) {
+              // This frame doesn't have the button, continue to next
+              continue;
+            }
+          }
+
+          // If not found in frames, try main page
+          if (!confirmed) {
+            try {
+              console.log('[VetRadar] Checking main page for Confirm button...');
+              const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("confirm"), button:has-text("Confirm PIN")').first();
+              await confirmBtn.waitFor({ state: 'visible', timeout: 10000 });
+              console.log('[VetRadar] Confirm button is visible! Clicking...');
+              await confirmBtn.click();
+              console.log('[VetRadar] Clicked Confirm button');
+              await page.waitForTimeout(3000);
+              confirmed = true;
+            } catch (e) {
+              console.log('[VetRadar] Confirm button not found on main page either...');
+
+              // Maybe button is there but disabled? Try finding it anyway
+              try {
+                const anyConfirm = await page.locator('button').all();
+                console.log(`[VetRadar] Trying to find Confirm in ${anyConfirm.length} total buttons...`);
+                for (const btn of anyConfirm) {
+                  const text = (await btn.textContent().catch(() => '')) || '';
+                  if (text.toLowerCase().includes('confirm')) {
+                    console.log(`[VetRadar] Found button with "confirm" text: "${text.trim()}"`);
+                    const isDisabled = await btn.isDisabled().catch(() => true);
+                    const isVisible = await btn.isVisible().catch(() => false);
+                    console.log(`[VetRadar] Button disabled=${isDisabled}, visible=${isVisible}`);
+                    if (!isDisabled && isVisible) {
+                      await btn.click();
+                      console.log('[VetRadar] Clicked Confirm button!');
+                      await page.waitForTimeout(3000);
+                      confirmed = true;
+                      break;
+                    }
                   }
                 }
+              } catch (e2) {
+                console.log('[VetRadar] Error searching buttons:', e2);
               }
-            } catch (e2) {
-              console.log('[VetRadar] Error searching buttons:', e2);
             }
           }
 
@@ -450,6 +489,8 @@ export class VetRadarScraper {
               console.log('[VetRadar] No auto-navigation detected after PIN entry');
             }
           }
+
+          } // End of else block for enterKeyWorked
 
           // Check if we navigated to PIN setup page after entering verification code
           await page.waitForTimeout(2000);
