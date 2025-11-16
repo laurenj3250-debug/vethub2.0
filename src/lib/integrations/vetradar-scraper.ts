@@ -338,31 +338,82 @@ export class VetRadarScraper {
           const currentUrl = page.url();
           console.log(`[VetRadar] Current URL after code entry: ${currentUrl}`);
 
-          // If we're on set_up_pin page, we need to enter the PIN now
+          // If we're on set_up_pin page, try to skip first, then enter PIN if needed
           if (currentUrl.includes('/set_up_pin') || currentUrl.includes('/pin')) {
-            console.log('[VetRadar] On PIN setup page - checking for PIN inputs...');
-            const pinInputs = await page.locator('input:visible').all();
-            console.log(`[VetRadar] Found ${pinInputs.length} PIN input fields`);
+            console.log('[VetRadar] On PIN setup page - looking for skip button first...');
 
-            if (pinInputs.length >= 5) {
-              const pin = '32597';
-              console.log('[VetRadar] Entering 5-digit PIN...');
-              for (let i = 0; i < 5 && i < pinInputs.length; i++) {
-                await pinInputs[i].click();
-                await pinInputs[i].fill('');
-                await pinInputs[i].type(pin[i], { delay: 150 });
-                console.log(`[VetRadar] Entered PIN digit ${i + 1}: ${pin[i]}`);
-                await page.waitForTimeout(200);
+            // FIRST: Try to skip the PIN page
+            let skippedPin = false;
+            try {
+              const skipSelectors = [
+                'text="Skip for 24 Hours"',
+                'text=/skip.*24/i',
+                'button:has-text("Skip")',
+                'a:has-text("Skip")',
+              ];
+
+              for (const selector of skipSelectors) {
+                try {
+                  const skipBtn = page.locator(selector).first();
+                  if (await skipBtn.isVisible({ timeout: 2000 })) {
+                    console.log(`[VetRadar] Found skip button on PIN page: ${selector}`);
+                    await skipBtn.click();
+                    console.log('[VetRadar] Clicked skip button on PIN page');
+                    await page.waitForTimeout(3000);
+                    skippedPin = true;
+                    break;
+                  }
+                } catch (e) {
+                  continue;
+                }
               }
 
-              // Wait for auto-navigation after PIN
-              await page.waitForTimeout(2000);
-              try {
-                await page.waitForURL(url => !url.includes('pin') && !url.includes('verify'), { timeout: 10000 });
-                console.log(`[VetRadar] PIN accepted, navigated to: ${page.url()}`);
-              } catch (e) {
-                console.log('[VetRadar] No auto-navigation after PIN');
+              if (!skippedPin) {
+                console.log('[VetRadar] No skip button found on PIN page');
               }
+            } catch (e) {
+              console.log('[VetRadar] Error looking for skip button on PIN page:', e);
+            }
+
+            // ONLY enter PIN if we didn't skip
+            if (!skippedPin) {
+              console.log('[VetRadar] No skip option - checking for PIN inputs...');
+              const pinInputs = await page.locator('input:visible').all();
+              console.log(`[VetRadar] Found ${pinInputs.length} PIN input fields`);
+
+              if (pinInputs.length >= 5) {
+                const pin = '32597';
+                console.log('[VetRadar] Entering 5-digit PIN...');
+                for (let i = 0; i < 5 && i < pinInputs.length; i++) {
+                  await pinInputs[i].click();
+                  await pinInputs[i].fill('');
+                  await pinInputs[i].type(pin[i], { delay: 150 });
+                  console.log(`[VetRadar] Entered PIN digit ${i + 1}: ${pin[i]}`);
+                  await page.waitForTimeout(200);
+                }
+
+                // Look for confirm button
+                try {
+                  const confirmBtn = page.locator('button:has-text("Confirm"), button[type="submit"]').first();
+                  if (await confirmBtn.isVisible({ timeout: 2000 })) {
+                    await confirmBtn.click();
+                    console.log('[VetRadar] Clicked confirm button after PIN');
+                  }
+                } catch (e) {
+                  console.log('[VetRadar] No confirm button, waiting for auto-submit...');
+                }
+
+                // Wait for auto-navigation after PIN
+                await page.waitForTimeout(2000);
+                try {
+                  await page.waitForURL(url => !url.includes('pin') && !url.includes('verify'), { timeout: 10000 });
+                  console.log(`[VetRadar] PIN accepted, navigated to: ${page.url()}`);
+                } catch (e) {
+                  console.log('[VetRadar] No auto-navigation after PIN');
+                }
+              }
+            } else {
+              console.log('[VetRadar] Skipped PIN page successfully');
             }
           }
 
