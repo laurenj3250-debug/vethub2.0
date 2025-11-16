@@ -30,6 +30,27 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Exclude server-only packages from client bundle
+  experimental: {
+    turbo: {
+      resolveAlias: {
+        'playwright': false,
+        'playwright-core': false,
+      },
+    },
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Exclude Playwright and other Node.js-only modules from client bundle
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'playwright': false,
+        'playwright-core': false,
+      };
+    }
+    return config;
+  },
+  serverExternalPackages: ['playwright', 'playwright-core'],
 };
 
 export default nextConfig;
