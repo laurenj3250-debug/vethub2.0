@@ -84,6 +84,12 @@ export class VetRadarIntegrationService {
       console.log(`[VetRadar Integration] Successfully imported ${unifiedPatients.length} patients`);
       console.log(`[VetRadar Integration] Total manual entry time: ~${totalEstimatedTimeSeconds} seconds (${(totalEstimatedTimeSeconds / 60).toFixed(1)} minutes)`);
 
+      // DEBUG: Log each patient being returned
+      console.log('[VetRadar Integration] Returning patients:');
+      unifiedPatients.forEach((p, i) => {
+        console.log(`  ${i + 1}. ${p.demographics.name} (ID: ${p.id}, Breed: ${p.demographics.breed})`);
+      });
+
       return {
         success: true,
         patients: unifiedPatients,

@@ -23,6 +23,8 @@ export function mapVetRadarToUnifiedPatient(
   vetRadarPatient: VetRadarPatient,
   existingPatient?: Partial<UnifiedPatient>
 ): UnifiedPatient {
+  console.log('[VetRadar Mapper] Mapping patient:', vetRadarPatient.name, '| VetRadar ID:', vetRadarPatient.id);
+
   // Parse name (VetRadar format: "FirstName LastName")
   const nameParts = vetRadarPatient.name.split(' ');
   const firstName = nameParts[0];
@@ -195,6 +197,13 @@ export function mapVetRadarToUnifiedPatient(
     createdAt: existingPatient?.createdAt || new Date(),
     updatedAt: new Date(),
   };
+
+  console.log('[VetRadar Mapper] Created UnifiedPatient:', {
+    id: unifiedPatient.id,
+    name: unifiedPatient.demographics.name,
+    breed: unifiedPatient.demographics.breed,
+    age: unifiedPatient.demographics.age,
+  });
 
   return unifiedPatient;
 }

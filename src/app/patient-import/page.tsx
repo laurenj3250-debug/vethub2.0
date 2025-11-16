@@ -75,6 +75,11 @@ export default function PatientImportPage() {
       const result: VetRadarImportResult = await response.json();
 
       if (result.success) {
+        console.log('[Patient Import Page] Received patients from API:');
+        result.patients.forEach((p, i) => {
+          console.log(`  ${i + 1}. ${p.demographics.name} (ID: ${p.id}, Breed: ${p.demographics.breed})`);
+        });
+
         setImportResult(result);
         setPatients(result.patients);
 
