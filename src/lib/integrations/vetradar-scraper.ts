@@ -151,28 +151,16 @@ export class VetRadarScraper {
             }
           }
 
-          // Look for skip button - try clicking ALL buttons that might be the skip
+          // Look for "Skip for 24 Hours" button specifically
           const skipSelectors = [
-            'button',  // Try all buttons
-            'a',       // Try all links
+            'button:has-text("Skip for 24 Hours")',
+            'button:has-text("Skip for 24")',
             'button:has-text("Skip")',
-            'button:has-text("skip")',
+            'a:has-text("Skip for 24 Hours")',
+            'a:has-text("Skip for 24")',
             'a:has-text("Skip")',
-            'a:has-text("skip")',
-            'button:has-text("Later")',
-            'a:has-text("Later")',
-            'button:has-text("Remind")',
-            'a:has-text("Remind")',
-            'button:has-text("Continue")',
-            'a:has-text("Continue")',
-            'button:has-text("Not now")',
-            'a:has-text("Not now")',
-            'button:has-text("Maybe later")',
-            'a:has-text("Maybe later")',
-            'button:has-text("Enter PIN")',
-            'a:has-text("Enter PIN")',
-            'button:has-text("Use PIN")',
-            'a:has-text("Use PIN")',
+            'button',  // Fallback: try all buttons
+            'a',       // Fallback: try all links
           ];
 
           let skipped = false;
