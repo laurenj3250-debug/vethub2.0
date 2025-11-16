@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import { UnifiedPatient } from '@/contexts/PatientContext';
 import { UnifiedPatientEntry } from '@/components/UnifiedPatientEntry';
-import { Download, RefreshCw, CheckCircle, AlertCircle, Clock, XCircle, Save } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle, AlertCircle, Clock, XCircle, Save, Home } from 'lucide-react';
 
 // VetRadar import result type
 interface VetRadarImportResult {
@@ -242,13 +242,22 @@ export default function PatientImportPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Patient Import from VetRadar
-          </h1>
-          <p className="text-gray-300">
-            Import Neurology/Neurosurgery patients, complete manual entry, and generate all outputs
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">
+              Patient Import from VetRadar
+            </h1>
+            <p className="text-gray-300">
+              Import Neurology/Neurosurgery patients, complete manual entry, and generate all outputs
+            </p>
+          </div>
+          <a
+            href="/"
+            className="flex items-center space-x-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all focus:ring-4 focus:ring-white/30"
+          >
+            <Home className="w-5 h-5" />
+            <span>Back to Dashboard</span>
+          </a>
         </div>
 
         {/* Error Message */}
