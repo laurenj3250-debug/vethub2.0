@@ -49,6 +49,30 @@ Invoke the `@agent-design-review` subagent for thorough design validation when:
 - **Testing**: Playwright for E2E testing
 - **Icons**: Lucide React
 
+## Deployment & Data Storage
+
+**IMPORTANT: Production-Only Workflow**
+- **Railway Project**: `empathetic-clarity`
+- **Production URL**: https://empathetic-clarity-production.up.railway.app/
+- **Database**: PostgreSQL on Railway (auto-configured via DATABASE_URL)
+- **User Preference**: ⚠️ **ALWAYS use Railway production storage, NEVER local storage** ⚠️
+
+This project uses Railway for hosting and PostgreSQL database. The user has **explicitly requested** that all data operations, patient imports, and testing be done on the **production Railway environment**, not on local development environment.
+
+**Local Development Guidelines:**
+- Local dev server (`npm run dev`) should **only** be used for testing UI changes and code development
+- **DO NOT** save patient data locally - all patient operations should be done on Railway production
+- Any data saved locally will NOT appear on the production site (separate databases)
+- Railway auto-deploys from GitHub main branch - push changes to deploy
+
+**VetRadar Import Workflow:**
+1. Develop and test import code locally
+2. Push changes to GitHub main
+3. Railway auto-deploys the new code
+4. User imports patients at https://empathetic-clarity-production.up.railway.app/patient-import
+5. Patients are saved to Railway PostgreSQL database
+6. Patients appear on production homepage
+
 ## Development Commands
 - `npm run dev` - Start development server
 - `npm run build` - Production build
