@@ -1102,11 +1102,11 @@ export default function VetHub() {
 
   const handleExportMRISchedule = () => {
     try {
-      // Filter MRI patients with 'New Admit' status
-      const mriPatients = patients.filter(p => p.type === 'MRI' && p.status === 'New Admit');
+      // Filter MRI patients (exclude discharged)
+      const mriPatients = patients.filter(p => p.type === 'MRI' && p.status !== 'Discharged');
 
       if (mriPatients.length === 0) {
-        toast({ variant: 'destructive', title: 'No MRI patients', description: 'No patients marked as MRI with New Admit status' });
+        toast({ variant: 'destructive', title: 'No MRI patients', description: 'No active MRI patients found' });
         return;
       }
 
