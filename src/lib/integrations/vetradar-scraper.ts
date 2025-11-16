@@ -141,61 +141,60 @@ export class VetRadarScraper {
         console.log('[VetRadar] On email verification page - looking for skip button...');
 
         try {
-          // First, log all clickable elements to see what's available
-          const allButtons = await page.locator('button, a, [role="button"]').all();
-          console.log('[VetRadar] Found clickable elements on verification page:');
-          for (const btn of allButtons) {
-            const text = await btn.textContent().catch(() => '');
-            if (text) {
-              console.log(`  - "${text.trim()}"`);
+          // Try to find and click "Skip for 24 Hours" button
+          console.log('[VetRadar] Looking for Skip button...');
+          let skipped = false;
+
+          try {
+            // Try clicking with exact text match
+            const skipButton = page.locator('text="Skip for 24 Hours"').first();
+            if (await skipButton.isVisible({ timeout: 3000 })) {
+              console.log('[VetRadar] Found "Skip for 24 Hours" button');
+              await skipButton.click();
+              console.log('[VetRadar] Clicked Skip button');
+              await page.waitForTimeout(3000);
+              skipped = true;
+            }
+          } catch (e) {
+            console.log('[VetRadar] Could not find "Skip for 24 Hours" with exact text');
+          }
+
+          // If that didn't work, try partial match
+          if (!skipped) {
+            try {
+              const skipButton = page.locator('text=/skip.*24/i').first();
+              if (await skipButton.isVisible({ timeout: 2000 })) {
+                console.log('[VetRadar] Found skip button with regex');
+                await skipButton.click();
+                console.log('[VetRadar] Clicked Skip button');
+                await page.waitForTimeout(3000);
+                skipped = true;
+              }
+            } catch (e) {
+              console.log('[VetRadar] Could not find skip button with regex');
             }
           }
 
-          // Look for "Skip for 24 Hours" button specifically
-          const skipSelectors = [
-            'button:has-text("Skip for 24 Hours")',
-            'button:has-text("Skip for 24")',
-            'button:has-text("Skip")',
-            'a:has-text("Skip for 24 Hours")',
-            'a:has-text("Skip for 24")',
-            'a:has-text("Skip")',
-            'button',  // Fallback: try all buttons
-            'a',       // Fallback: try all links
-          ];
-
-          let skipped = false;
-          for (const selector of skipSelectors) {
+          // Last resort: click any button containing "skip"
+          if (!skipped) {
             try {
-              const buttons = await page.locator(selector).all();
-              for (const button of buttons) {
-                try {
-                  if (await button.isVisible({ timeout: 500 })) {
-                    const btnText = await button.textContent().catch(() => '');
-                    console.log(`[VetRadar] Trying to click button: "${btnText?.trim()}"`);
+              const allButtons = await page.locator('button, a').all();
+              console.log(`[VetRadar] Found ${allButtons.length} clickable elements total`);
 
-                    await button.click({ timeout: 3000 });
-                    console.log(`[VetRadar] Clicked button: "${btnText?.trim()}"`);
-                    await page.waitForTimeout(2000);
+              for (const btn of allButtons) {
+                const text = await btn.textContent().catch(() => '');
+                console.log(`[VetRadar] Button text: "${text?.trim()}"`);
 
-                    // Check if we moved away from verify_email or if PIN inputs appeared
-                    const currentUrl = page.url();
-                    const pinInputs = await page.locator('input:visible').count();
-
-                    console.log(`[VetRadar] After click - URL: ${currentUrl}, Visible inputs: ${pinInputs}`);
-
-                    if (!currentUrl.includes('verify_email') || pinInputs >= 5) {
-                      console.log('[VetRadar] Successfully moved past verification page!');
-                      skipped = true;
-                      break;
-                    }
-                  }
-                } catch (e) {
-                  continue;
+                if (text && text.toLowerCase().includes('skip')) {
+                  console.log(`[VetRadar] Clicking button with "skip": "${text.trim()}"`);
+                  await btn.click();
+                  await page.waitForTimeout(3000);
+                  skipped = true;
+                  break;
                 }
               }
-              if (skipped) break;
             } catch (e) {
-              continue;
+              console.log('[VetRadar] Error searching for buttons:', e);
             }
           }
 
