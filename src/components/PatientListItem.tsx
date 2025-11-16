@@ -49,9 +49,9 @@ export function PatientListItem({
     return 'text-green-500';
   };
 
-  // Species emoji
+  // Species emoji - support both UnifiedPatient (demographics.species) and legacy (patient_info.species)
   const getSpeciesEmoji = () => {
-    const species = patient.patient_info?.species?.toLowerCase() || '';
+    const species = (patient.demographics?.species || patient.patient_info?.species || '').toLowerCase();
     if (species.includes('dog') || species.includes('canine')) return '🐕';
     if (species.includes('cat') || species.includes('feline')) return '🐈';
     return '🐾';
@@ -100,7 +100,7 @@ export function PatientListItem({
         {/* Species + Name */}
         <div className="flex items-center gap-2 min-w-[180px]">
           <span className="text-xl">{getSpeciesEmoji()}</span>
-          <span className="font-semibold text-slate-100 truncate">{patient.name}</span>
+          <span className="font-semibold text-slate-100 truncate">{patient.demographics?.name || patient.name || 'Unnamed'}</span>
         </div>
 
         {/* Type dropdown */}
@@ -134,10 +134,10 @@ export function PatientListItem({
           <option value="Discharged" className="bg-slate-800">Discharged</option>
         </select>
 
-        {/* Weight */}
-        {patient.patient_info?.weight && (
+        {/* Weight - support both UnifiedPatient (demographics.weight) and legacy (patient_info.weight) */}
+        {(patient.demographics?.weight || patient.patient_info?.weight) && (
           <span className="text-xs text-slate-400 min-w-[60px]">
-            {patient.patient_info.weight}
+            {patient.demographics?.weight || patient.patient_info?.weight}
           </span>
         )}
 
@@ -178,7 +178,8 @@ export function PatientListItem({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (confirm(`Delete ${patient.name}?`)) onDelete();
+            const patientName = patient.demographics?.name || patient.name || 'this patient';
+            if (confirm(`Delete ${patientName}?`)) onDelete();
           }}
           className="text-slate-600 hover:text-red-400 hover:bg-red-500/10 p-1 rounded transition opacity-0 group-hover:opacity-100"
         >
@@ -189,10 +190,10 @@ export function PatientListItem({
       {/* Expanded content (shows full card content when expanded) */}
       {isExpanded && (
         <div className="px-4 pb-4 pt-2 border-t border-slate-700/30">
-          {/* Patient info */}
+          {/* Patient info - support both UnifiedPatient (demographics) and legacy (patient_info) */}
           <div className="mb-3 text-xs text-slate-400 space-y-1">
-            {patient.patient_info?.age && <div>Age: {patient.patient_info.age}</div>}
-            {patient.patient_info?.breed && <div>Breed: {patient.patient_info.breed}</div>}
+            {(patient.demographics?.age || patient.patient_info?.age) && <div>Age: {patient.demographics?.age || patient.patient_info?.age}</div>}
+            {(patient.demographics?.breed || patient.patient_info?.breed) && <div>Breed: {patient.demographics?.breed || patient.patient_info?.breed}</div>}
             {patient.id && <div>ID: {patient.id}</div>}
           </div>
 
