@@ -637,29 +637,46 @@ export default function VetHub() {
       console.log(`[handleTypeChange] API response:`, result);
       toast({ title: `✅ Type updated to ${newType}` });
 
-      // Auto-create MRI tasks when type changes to "MRI"
-      if (newType === 'MRI') {
+      // Auto-create tasks based on patient type using task engine templates
+      if (['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
         const patient = patients.find(p => p.id === patientId);
-        const today = new Date().toISOString().split('T')[0];
+        const patientName = patient?.demographics?.name || 'Unknown Patient';
         const existingTasks = patient?.tasks || [];
 
-        const mriTasks = ['MRI Anesthesia Sheet', 'Blood Work', 'Chest X-rays', 'MRI Meds Sheet'];
+        // Get task templates for this patient type
+        const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
+        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[newType as 'MRI' | 'Surgery' | 'Medical' | 'Discharge'] || [];
 
-        for (const taskName of mriTasks) {
+        let createdCount = 0;
+        const taskNames: string[] = [];
+
+        for (const template of templates) {
+          // Check if task already exists (by template name)
           const hasTask = existingTasks.some((t: any) =>
-            (t.title || t.name) === taskName // No date check - tasks don't have date field
+            (t.title || t.name) === template.name
           );
 
           if (!hasTask) {
             await apiClient.createTask(String(patientId), {
-              title: taskName,
+              title: template.name,
+              description: template.category,
+              category: template.category,
+              timeOfDay: template.timeOfDay || 'anytime',
+              priority: template.priority,
               completed: false,
-              date: today,
             });
+            createdCount++;
+            taskNames.push(template.name);
           }
         }
 
-        toast({ title: '📋 Added MRI tasks', description: 'MRI Anesthesia Sheet, Blood Work, Chest X-rays, MRI Meds Sheet' });
+        if (createdCount > 0) {
+          const taskList = taskNames.slice(0, 3).join(', ') + (taskNames.length > 3 ? `, +${taskNames.length - 3} more` : '');
+          toast({
+            title: `📋 Added ${createdCount} ${newType} tasks`,
+            description: taskList
+          });
+        }
       }
 
       refetch();
