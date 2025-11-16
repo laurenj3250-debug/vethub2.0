@@ -418,8 +418,118 @@ export class VetRadarScraper {
 
       // Phase 1 complete - we have all the basic data from the patient list view
       // Critical notes and treatment counts are already extracted
-      // TODO: Phase 2 would click into each patient for detailed medication info
-      console.log(`[VetRadar] Completed extraction for ${patients.length} patients`);
+      console.log(`[VetRadar] Phase 1 complete - ${patients.length} patients with basic data`);
+
+      // PHASE 2: Extract detailed medication information from each patient
+      console.log('[VetRadar] Starting Phase 2: Detailed medication extraction...');
+
+      for (let i = 0; i < patients.length; i++) {
+        const patient = patients[i];
+        console.log(`[VetRadar] [${i + 1}/${patients.length}] Getting medications for ${patient.name}...`);
+
+        try {
+          // Step 1: Click on the patient card to open treatment sheet
+          console.log(`[VetRadar] Clicking on patient card: ${patient.name}`);
+          const patientCard = page.locator(`text="${patient.name.split(' ')[0]}"`).first();
+          await patientCard.click({ timeout: 10000 });
+          await page.waitForTimeout(2000);
+
+          // Step 2: Click the "..." (three dots) menu button
+          console.log('[VetRadar] Looking for "..." menu button...');
+          const threeDotsButton = page.locator('button:has-text("⋮"), button:has-text("..."), [aria-label*="menu"], [aria-label*="More"]').first();
+          await threeDotsButton.click({ timeout: 10000 });
+          await page.waitForTimeout(1000);
+
+          // Step 3: Click "Medications" in the sidebar menu
+          console.log('[VetRadar] Clicking "Medications" option...');
+          const medicationsOption = page.locator('text="Medications"').first();
+          await medicationsOption.click({ timeout: 10000 });
+          await page.waitForTimeout(2000);
+
+          // Step 4: Extract all text from the medications sidebar
+          console.log('[VetRadar] Extracting medication text...');
+          const medicationText = await page.evaluate(() => document.body.innerText);
+
+          // Step 5: Parse medication details
+          const medications: VetRadarTreatment[] = [];
+
+          // Look for medication patterns like:
+          // "Cefazolin 100mg/mL Injection (per mL)"
+          // "Gabapentin 100mg Capsule"
+          // "Tramadol 50mg tab"
+          const medicationLines = medicationText.split('\n').filter(line => {
+            // Filter lines that look like medications
+            const lowerLine = line.toLowerCase();
+            return (
+              (lowerLine.match(/\d+\s*mg/) || lowerLine.match(/\d+\s*mcg/)) &&
+              !lowerLine.includes('weight') &&
+              !lowerLine.includes('total') &&
+              line.trim().length > 5
+            );
+          });
+
+          for (const line of medicationLines) {
+            // Try to extract medication name and dosage
+            // Pattern: "Medication name XYZmg Form"
+            const medMatch = line.match(/^([A-Za-z\s]+?)\s+(\d+\.?\d*\s*(?:mg|mcg|mL|g|%)[^\n]*)/i);
+
+            if (medMatch) {
+              const medication = medMatch[1].trim();
+              const doseInfo = medMatch[2].trim();
+
+              medications.push({
+                medication,
+                dose: doseInfo,
+                route: '', // Not always clear from sidebar text
+                frequency: '', // Not always clear from sidebar text
+              });
+
+              console.log(`[VetRadar]   ✓ Found: ${medication} - ${doseInfo}`);
+            }
+          }
+
+          // Update patient medications
+          patient.medications = medications;
+          console.log(`[VetRadar] Extracted ${medications.length} medications for ${patient.name}`);
+
+          // Step 6: Close the sidebar and go back to patient list
+          console.log('[VetRadar] Closing sidebar and returning to patient list...');
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(1000);
+
+          // Navigate back to patient list if needed
+          const currentUrl = page.url();
+          if (!currentUrl.includes('patient')) {
+            // Already on the list, good
+          } else {
+            // Need to go back
+            await page.goBack();
+            await page.waitForTimeout(2000);
+          }
+
+        } catch (error) {
+          console.log(`[VetRadar] Error getting medications for ${patient.name}:`, error);
+          // Continue with next patient even if one fails
+          // Try to recover by pressing Escape and going back
+          try {
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(500);
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(500);
+
+            // Check if we need to navigate back
+            const currentUrl = page.url();
+            if (currentUrl.includes('patient')) {
+              await page.goBack();
+              await page.waitForTimeout(2000);
+            }
+          } catch (recoveryError) {
+            console.log('[VetRadar] Recovery failed, continuing anyway...');
+          }
+        }
+      }
+
+      console.log(`[VetRadar] Phase 2 complete - Extracted medications for ${patients.length} patients`);
 
       return patients;
     } catch (error) {
