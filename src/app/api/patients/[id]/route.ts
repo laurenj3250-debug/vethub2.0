@@ -85,8 +85,12 @@ export async function GET(
     return NextResponse.json(transformedPatient);
   } catch (error) {
     console.error('[API] Error fetching patient:', error);
+    console.error('[API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to fetch patient' },
+      {
+        error: 'Failed to fetch patient',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
@@ -186,8 +190,13 @@ export async function PATCH(
     return NextResponse.json(transformedPatient);
   } catch (error) {
     console.error('[API] Error updating patient:', error);
+    console.error('[API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[API] Update data:', updateData);
     return NextResponse.json(
-      { error: 'Failed to update patient' },
+      {
+        error: 'Failed to update patient',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }
