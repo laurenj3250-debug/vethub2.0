@@ -141,7 +141,17 @@ export class VetRadarScraper {
         console.log('[VetRadar] On email verification page - looking for skip button...');
 
         try {
-          // Look for "Skip for 24 hours" button with more flexible selectors
+          // First, log all clickable elements to see what's available
+          const allButtons = await page.locator('button, a, [role="button"]').all();
+          console.log('[VetRadar] Found clickable elements on verification page:');
+          for (const btn of allButtons) {
+            const text = await btn.textContent().catch(() => '');
+            if (text) {
+              console.log(`  - "${text.trim()}"`);
+            }
+          }
+
+          // Look for skip/continue buttons with very broad selectors
           const skipSelectors = [
             'button:has-text("Skip")',
             'button:has-text("skip")',
@@ -149,20 +159,35 @@ export class VetRadarScraper {
             'a:has-text("skip")',
             'button:has-text("Later")',
             'a:has-text("Later")',
+            'button:has-text("Remind")',
+            'a:has-text("Remind")',
+            'button:has-text("Continue")',
+            'a:has-text("Continue")',
+            'button:has-text("Not now")',
+            'a:has-text("Not now")',
+            'button:has-text("Maybe later")',
+            'a:has-text("Maybe later")',
+            'button:has-text("Close")',
+            'a:has-text("Close")',
             '[data-testid*="skip"]',
             '[class*="skip"]',
+            '[class*="close"]',
           ];
 
           let skipped = false;
           for (const selector of skipSelectors) {
             try {
               const skipButton = page.locator(selector).first();
-              if (await skipButton.isVisible({ timeout: 2000 })) {
+              if (await skipButton.isVisible({ timeout: 1000 })) {
                 await skipButton.click({ timeout: 5000 });
                 console.log(`[VetRadar] Clicked skip button using: ${selector}`);
                 await page.waitForTimeout(3000);
-                skipped = true;
-                break;
+
+                // Verify we actually left the page
+                if (!page.url().includes('verify_email')) {
+                  skipped = true;
+                  break;
+                }
               }
             } catch (e) {
               continue;
@@ -173,10 +198,29 @@ export class VetRadarScraper {
             console.log('[VetRadar] No skip button found - attempting to navigate directly to patient list...');
             await page.screenshot({ path: 'vetradar-verify-email.png', fullPage: true });
 
-            // Try navigating directly to the patient list page
-            await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'networkidle', timeout: 30000 });
-            console.log('[VetRadar] Navigated directly to patient list page');
-            await page.waitForTimeout(2000);
+            // Try navigating directly to the patient list page - with retry
+            let navigated = false;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              console.log(`[VetRadar] Navigation attempt ${attempt + 1}/3...`);
+              await page.goto(`${this.baseUrl}/patients`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.waitForTimeout(2000);
+
+              const currentUrl = page.url();
+              console.log(`[VetRadar] Current URL after navigation: ${currentUrl}`);
+
+              if (!currentUrl.includes('verify_email') && !currentUrl.includes('verify')) {
+                console.log('[VetRadar] Successfully navigated away from verification page');
+                navigated = true;
+                break;
+              }
+
+              console.log('[VetRadar] Still on verification page, retrying...');
+              await page.waitForTimeout(2000);
+            }
+
+            if (!navigated) {
+              console.log('[VetRadar] WARNING: Could not navigate away from verification page after 3 attempts');
+            }
           } else {
             console.log('[VetRadar] Successfully skipped email verification');
           }
