@@ -32,15 +32,26 @@ export function RoundingPageClient() {
   }, []);
 
   const handleSyncFromVetRadar = async () => {
-    // Prompt user for credentials
-    const email = prompt('Enter your VetRadar email:');
-    if (!email) return;
+    // Try to get stored credentials from localStorage
+    let email = localStorage.getItem('vetradar_email');
+    let password = localStorage.getItem('vetradar_password');
 
-    const password = prompt('Enter your VetRadar password:');
-    if (!password) return;
+    // If not stored, prompt user and save for next time
+    if (!email) {
+      email = prompt('Enter your VetRadar email:');
+      if (!email) return;
+      localStorage.setItem('vetradar_email', email);
+    }
+
+    if (!password) {
+      password = prompt('Enter your VetRadar password:');
+      if (!password) return;
+      localStorage.setItem('vetradar_password', password);
+    }
 
     setSyncing(true);
     try {
+      console.log('[VetRadar Sync] Starting sync...');
       const response = await fetch('/api/integrations/vetradar/patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,14 +62,20 @@ export function RoundingPageClient() {
       });
 
       const result = await response.json();
+      console.log('[VetRadar Sync] Result:', result);
 
       if (result.success) {
         toast({
           title: "✅ Synced from VetRadar",
-          description: `Updated ${result.savedCount || result.patients.length} patient(s) with latest medications and treatments.`,
+          description: `Synced ${result.savedCount || result.patients.length} patient(s). ${result.patients.length} total from VetRadar.`,
         });
         await loadPatients(); // Refresh patient list
       } else {
+        // If credentials are wrong, clear them so user can re-enter
+        if (result.error?.includes('login') || result.error?.includes('credentials')) {
+          localStorage.removeItem('vetradar_email');
+          localStorage.removeItem('vetradar_password');
+        }
         toast({
           title: "❌ Sync Failed",
           description: result.errors?.join(', ') || result.error || 'Could not sync from VetRadar',
@@ -66,6 +83,7 @@ export function RoundingPageClient() {
         });
       }
     } catch (error) {
+      console.error('[VetRadar Sync] Error:', error);
       toast({
         title: "❌ Sync Error",
         description: error instanceof Error ? error.message : 'Unknown error',

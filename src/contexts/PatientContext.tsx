@@ -423,11 +423,11 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
     const backendData: any = {};
 
     if (data.status) backendData.status = data.status;
-    if (data.demographics) backendData.patient_info = data.demographics;
-    if (data.currentStay) backendData.current_stay = data.currentStay;
-    if (data.roundingData) backendData.rounding_data = data.roundingData;
-    if (data.mriData) backendData.mri_data = data.mriData;
-    if (data.soapNotes) backendData.soap_notes = data.soapNotes;
+    if (data.demographics) backendData.demographics = data.demographics;
+    if (data.currentStay) backendData.currentStay = data.currentStay;
+    if (data.roundingData) backendData.roundingData = data.roundingData;
+    if (data.mriData) backendData.mriData = data.mriData;
+    if (data.soapNotes) backendData.soapNotes = data.soapNotes;
     if (data.tasks) backendData.tasks = data.tasks;
 
     await apiClient.updatePatient(String(id), backendData);
@@ -451,7 +451,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
       ...demographics,
     };
 
-    await apiClient.updatePatient(String(id), { patient_info: updated });
+    await apiClient.updatePatient(String(id), { demographics: updated });
 
     // Optimistic update
     setPatients(prev => prev.map(p =>
@@ -474,7 +474,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
 
     const updated = [...patient.soapNotes, newNote];
 
-    await apiClient.updatePatient(String(id), { soap_notes: updated });
+    await apiClient.updatePatient(String(id), { soapNotes: updated });
 
     setPatients(prev => prev.map(p =>
       p.id === id
@@ -494,7 +494,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
       lastUpdated: new Date(),
     };
 
-    await apiClient.updatePatient(String(id), { rounding_data: updated });
+    await apiClient.updatePatient(String(id), { roundingData: updated });
 
     setPatients(prev => prev.map(p =>
       p.id === id
@@ -513,7 +513,7 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
       ...mri,
     };
 
-    await apiClient.updatePatient(String(id), { mri_data: updated });
+    await apiClient.updatePatient(String(id), { mriData: updated });
 
     setPatients(prev => prev.map(p =>
       p.id === id

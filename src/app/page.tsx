@@ -499,14 +499,14 @@ export default function VetHub() {
           dateOfBirth: parsed.dateOfBirth || '',    // DOB
           colorMarkings: parsed.colorMarkings || '',
         },
-        rounding_data: {
+        roundingData: {
           signalment: [parsed.age, parsed.sex, parsed.species, parsed.breed].filter(Boolean).join(' '),
           problems: parsed.problem || '',
           diagnosticFindings: parsed.bloodwork ? `CBC/CHEM: ${parsed.bloodwork}` : '',
           therapeutics: parsed.medications?.join('\n') || '',
           plan: parsed.plan || '',
         },
-        mri_data: {},
+        mriData: {},
       };
 
       const newPatient = await apiClient.createPatient(patientData);
@@ -796,7 +796,7 @@ export default function VetHub() {
 
     try {
       await apiClient.updatePatient(String(roundingSheetPatient), {
-        rounding_data: roundingFormData
+        roundingData: roundingFormData
       });
       toast({ title: '✅ Rounding data saved!' });
       setRoundingSheetPatient(null);
@@ -1017,7 +1017,7 @@ export default function VetHub() {
     try {
       const text = await navigator.clipboard.readText();
       const patient = patients.find(p => p.id === roundingSheetPatient);
-      const species = patient?.patient_info?.species || 'canine';
+      const species = patient?.demographics?.species || 'canine';
 
       if (field === 'bloodwork') {
         toast({ title: '🤖 Analyzing bloodwork...', description: 'Extracting abnormals' });
@@ -1090,9 +1090,9 @@ export default function VetHub() {
       const header = 'Name\tPatient ID\tWeight (kg)\tScan Type';
       const rows = mriPatients.map((patient) => {
         const name = patient.demographics?.name || patient.name || '';
-        const patientId = patient.demographics?.patientId || patient.patient_info?.patientId || '';
-        const weight = (patient.demographics?.weight || patient.patient_info?.weight || '').replace(/[^\d.]/g, '');
-        const scanType = patient.mri_data?.scanType || '';
+        const patientId = patient.demographics?.patientId || patient.demographics?.patientId || '';
+        const weight = (patient.demographics?.weight || patient.demographics?.weight || '').replace(/[^\d.]/g, '');
+        const scanType = patient.mriData?.scanType || '';
 
         return `${name}\t${patientId}\t${weight}\t${scanType}`;
       });
@@ -1117,7 +1117,7 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const rounding = patient.rounding_data || {};
+      const rounding = patient.roundingData || {};
 
       const line = [
         patient.demographics?.name || patient.name || '',
@@ -1166,7 +1166,7 @@ export default function VetHub() {
       const header = ['Name', 'Signalment', 'Location', 'ICU Criteria', 'Code', 'Problems', 'Diagnostics', 'Therapeutics', 'IVC', 'Fluids', 'CRI', 'Overnight Dx', 'Concerns', 'Comments'].join(delimiter);
 
       const rows = activePatients.map(patient => {
-        const rounding = patient.rounding_data || {};
+        const rounding = patient.roundingData || {};
 
         const fields = [
           patient.demographics?.name || patient.name || '',
@@ -1290,7 +1290,7 @@ export default function VetHub() {
     if (roundingSheetPatient !== null) {
       const patient = patients.find(p => p.id === roundingSheetPatient);
       if (patient) {
-        setRoundingFormData(patient.rounding_data || {});
+        setRoundingFormData(patient.roundingData || {});
       }
     }
   }, [roundingSheetPatient, patients]);
@@ -1991,7 +1991,7 @@ export default function VetHub() {
                   const todayTasks = allTasks; // No date filtering - tasks don't have date field
                   // Apply hide completed filter
                   const tasks = todayTasks.filter((t: any) => !hideCompletedTasks || !t.completed);
-                  const info = patient.demographics || patient.patient_info || {};
+                  const info = patient.demographics || patient.demographics || {};
                   const emoji = getSpeciesEmoji(info.species);
                   const completedCount = tasks.filter((t: any) => t.completed).length;
                   const totalCount = tasks.length;
@@ -2102,7 +2102,7 @@ export default function VetHub() {
                         </div>
                         <div className="space-y-0.5">
                           {items.map(({ task, patient }) => {
-                            const info = patient.demographics || patient.patient_info || {};
+                            const info = patient.demographics || patient.demographics || {};
                             const emoji = getSpeciesEmoji(info.species);
                             const colors = getPatientColor(patient.id);
                             return (
@@ -2233,7 +2233,7 @@ export default function VetHub() {
                 </thead>
                 <tbody>
                   {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').map((patient, idx) => {
-                    const mriData = patient.mri_data || {};
+                    const mriData = patient.mriData || {};
                     return (
                       <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
                         <td className="p-2">
@@ -2249,10 +2249,10 @@ export default function VetHub() {
                         <td className="p-2">
                           <input
                             type="text"
-                            value={mriInputValues[`${patient.id}-patientId`] ?? (patient.demographics?.patientId || patient.patient_info?.patientId || '')}
+                            value={mriInputValues[`${patient.id}-patientId`] ?? (patient.demographics?.patientId || patient.demographics?.patientId || '')}
                             onChange={(e) => {
                               debouncedMRIUpdate(patient.id, 'patientId', e.target.value, async () => {
-                                const updatedInfo = { ...(patient.demographics || patient.patient_info || {}), patientId: e.target.value };
+                                const updatedInfo = { ...(patient.demographics || patient.demographics || {}), patientId: e.target.value };
                                 await apiClient.updatePatient(String(patient.id), { demographics: updatedInfo });
                               });
                             }}
@@ -2262,10 +2262,10 @@ export default function VetHub() {
                         <td className="p-2">
                           <input
                             type="text"
-                            value={mriInputValues[`${patient.id}-weight`] ?? ((patient.demographics?.weight || patient.patient_info?.weight || '').toString().replace(/[^\d.]/g, ''))}
+                            value={mriInputValues[`${patient.id}-weight`] ?? ((patient.demographics?.weight || patient.demographics?.weight || '').toString().replace(/[^\d.]/g, ''))}
                             onChange={(e) => {
                               debouncedMRIUpdate(patient.id, 'weight', e.target.value, async () => {
-                                const updatedInfo = { ...(patient.demographics || patient.patient_info || {}), weight: e.target.value };
+                                const updatedInfo = { ...(patient.demographics || patient.demographics || {}), weight: e.target.value };
                                 await apiClient.updatePatient(String(patient.id), { demographics: updatedInfo });
                               });
                             }}
@@ -2280,7 +2280,7 @@ export default function VetHub() {
                             onChange={(e) => {
                               debouncedMRIUpdate(patient.id, 'scanType', e.target.value, async () => {
                                 const updatedMRI = { ...mriData, scanType: e.target.value };
-                                await apiClient.updatePatient(String(patient.id), { mri_data: updatedMRI });
+                                await apiClient.updatePatient(String(patient.id), { mriData: updatedMRI });
                                 refetch();
                               });
                             }}
@@ -2472,8 +2472,8 @@ export default function VetHub() {
               const totalTasks = tasks.length;
               const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
               const isExpanded = expandedPatient === patient.id;
-              const info = patient.demographics || patient.patient_info || {};
-              const rounding = patient.rounding_data || {};
+              const info = patient.demographics || patient.demographics || {};
+              const rounding = patient.roundingData || {};
               const emoji = getSpeciesEmoji(info.species);
 
               return (
@@ -2826,8 +2826,8 @@ export default function VetHub() {
                 {(() => {
                   const patient = patients.find(p => p.id === roundingSheetPatient);
                   if (!patient) return null;
-                  const info = patient.patient_info || {};
-                  const rounding = patient.rounding_data || {};
+                  const info = patient.demographics || {};
+                  const rounding = patient.roundingData || {};
 
                   // Common dropdown options
                   const commonProblems = [

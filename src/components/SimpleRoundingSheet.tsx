@@ -7,8 +7,8 @@ interface Patient {
   id: number;
   name: string;
   status: string;
-  rounding_data?: any;
-  patient_info?: any;
+  roundingData?: any;
+  demographics?: any;
 }
 
 interface SimpleRoundingSheetProps {
@@ -46,7 +46,7 @@ export function SimpleRoundingSheet({
       if (!updates) return;
 
       await apiClient.updatePatient(String(patientId), {
-        rounding_data: updates
+        roundingData: updates
       });
 
       toast({
@@ -73,7 +73,7 @@ export function SimpleRoundingSheet({
       </div>
 
       {activePatients.map(patient => {
-        const data = editingData[patient.id] || patient.rounding_data || {};
+        const data = editingData[patient.id] || patient.roundingData || {};
 
         return (
           <div key={patient.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
@@ -81,7 +81,7 @@ export function SimpleRoundingSheet({
               <div>
                 <h3 className="text-xl font-bold text-white">{patient.demographics?.name || patient.name || 'Unnamed'}</h3>
                 <p className="text-sm text-slate-400">
-                  {patient.demographics?.age || patient.patient_info?.age || ''} {patient.demographics?.breed || patient.patient_info?.breed || ''} {patient.demographics?.species || patient.patient_info?.species || ''}
+                  {patient.demographics?.age || ''} {patient.demographics?.breed || ''} {patient.demographics?.species || ''}
                 </p>
               </div>
               <button

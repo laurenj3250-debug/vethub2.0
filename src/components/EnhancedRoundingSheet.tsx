@@ -23,10 +23,10 @@ interface Patient {
   id: number;
   name: string;
   status: string;
-  rounding_data?: any;
-  patient_info?: any;
+  roundingData?: any;
+  demographics?: any;
   // SOAP data fields
-  soap_data?: {
+  soapData?: {
     neurolocalization?: string;
     ddx?: string;
     treatments?: string;
@@ -197,9 +197,9 @@ export function EnhancedRoundingSheet({
 
   // Auto-populate from SOAP data when patient is added or SOAP is updated
   const autoPopulateFromSOAP = useCallback((patient: Patient) => {
-    if (!patient.soap_data || autoPopulateMode === 'off') return {};
+    if (!patient.soapData || autoPopulateMode === 'off') return {};
 
-    const soap = patient.soap_data;
+    const soap = patient.soapData;
     const autoFilled: any = {};
 
     // Map SOAP data to rounding fields
@@ -234,14 +234,14 @@ export function EnhancedRoundingSheet({
     const patient = patients.find(p => p.id === patientId);
     if (!patient) return;
 
-    const currentRounding = patient.rounding_data || {};
+    const currentRounding = patient.roundingData || {};
     const updatedRounding = {
       ...currentRounding,
       ...protocol.autoFill
     };
 
     try {
-      await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      await apiClient.updatePatient(String(patientId), { roundingData: updatedRounding });
       onPatientUpdate?.();
       toast({
         title: '⚡ Protocol Applied!',
@@ -260,7 +260,7 @@ export function EnhancedRoundingSheet({
   // Smart auto-populate button
   const smartAutoPopulate = useCallback(async (patientId: number) => {
     const patient = patients.find(p => p.id === patientId);
-    if (!patient || !patient.soap_data) {
+    if (!patient || !patient.soapData) {
       toast({
         title: 'No SOAP data found',
         description: 'Complete a SOAP note first to enable auto-population'
@@ -269,14 +269,14 @@ export function EnhancedRoundingSheet({
     }
 
     const autoFilled = autoPopulateFromSOAP(patient);
-    const currentRounding = patient.rounding_data || {};
+    const currentRounding = patient.roundingData || {};
     const updatedRounding = {
       ...currentRounding,
       ...autoFilled
     };
 
     try {
-      await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      await apiClient.updatePatient(String(patientId), { roundingData: updatedRounding });
       onPatientUpdate?.();
       toast({
         title: '✨ Auto-populated from SOAP!',
@@ -298,13 +298,13 @@ export function EnhancedRoundingSheet({
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const currentRounding = patient.rounding_data || {};
+      const currentRounding = patient.roundingData || {};
       const updatedRounding = {
         ...currentRounding,
         [batchField]: batchValue
       };
 
-      return apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      return apiClient.updatePatient(String(patientId), { roundingData: updatedRounding });
     });
 
     try {
@@ -332,7 +332,7 @@ export function EnhancedRoundingSheet({
     if (!patient) return;
 
     try {
-      const rounding = patient.rounding_data || {};
+      const rounding = patient.roundingData || {};
 
       // Clean function to remove tabs and newlines from field values
       const cleanField = (value: string | null | undefined) => {
@@ -408,7 +408,7 @@ export function EnhancedRoundingSheet({
     const separator = format.includes('csv') ? ',' : '\t';
 
     const rows = activePatients.map(patient => {
-      const r = patient.rounding_data || {};
+      const r = patient.roundingData || {};
       return [
         cleanField(patient.demographics?.name || patient.name || '', separator),
         cleanField(r.signalment, separator),
@@ -522,7 +522,7 @@ export function EnhancedRoundingSheet({
     if (!patient) return;
 
     const updatedRounding = {
-      ...(patient.rounding_data || {}),
+      ...(patient.roundingData || {}),
       [field]: value
     };
 
@@ -532,13 +532,13 @@ export function EnhancedRoundingSheet({
 
     // Then sync to backend and update parent asynchronously
     try {
-      await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+      await apiClient.updatePatient(String(patientId), { roundingData: updatedRounding });
 
       // Only update parent after successful save
       if (onPatientUpdate) {
         const updatedPatients = patients.map(p =>
           p.id === patientId
-            ? { ...p, rounding_data: updatedRounding }
+            ? { ...p, roundingData: updatedRounding }
             : p
         );
         onPatientUpdate(updatedPatients);
@@ -621,19 +621,19 @@ export function EnhancedRoundingSheet({
     // Set new timer - save to API and update parent after 150ms of no typing
     const newTimer = setTimeout(async () => {
       const updatedRounding = {
-        ...(patient.rounding_data || {}),
+        ...(patient.roundingData || {}),
         [field]: value
       };
 
       try {
         // Save to API
-        await apiClient.updatePatient(String(patientId), { rounding_data: updatedRounding });
+        await apiClient.updatePatient(String(patientId), { roundingData: updatedRounding });
 
         // Only now update parent (after typing stopped and saved)
         if (onPatientUpdate) {
           const updatedPatients = patients.map(p =>
             p.id === patientId
-              ? { ...p, rounding_data: updatedRounding }
+              ? { ...p, roundingData: updatedRounding }
               : p
           );
           onPatientUpdate(updatedPatients);
@@ -661,7 +661,7 @@ export function EnhancedRoundingSheet({
       return localEdits[editKey];
     }
     const patient = patients.find(p => p.id === patientId);
-    return patient?.rounding_data?.[field] ?? defaultValue;
+    return patient?.roundingData?.[field] ?? defaultValue;
   };
 
   // Memoize activePatients to prevent filtering on every render
@@ -862,8 +862,8 @@ export function EnhancedRoundingSheet({
           </thead>
           <tbody>
             {activePatients.map((patient, idx) => {
-              const rounding = patient.rounding_data || {};
-              const hasSOAPData = patient.soap_data && Object.keys(patient.soap_data).length > 0;
+              const rounding = patient.roundingData || {};
+              const hasSOAPData = patient.soapData && Object.keys(patient.soapData).length > 0;
               const isSelected = selectedPatients.has(patient.id);
 
               return (
