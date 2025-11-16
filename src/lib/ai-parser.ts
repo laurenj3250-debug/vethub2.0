@@ -54,15 +54,23 @@ export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientDat
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307', // Fast and cheap
-      max_tokens: 1024,
+      model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better accuracy with complex VetRadar exports
+      max_tokens: 2048,
       temperature: 0,
       messages: [
         {
           role: 'user',
-          content: `Extract structured data from this veterinary patient text and return ONLY a JSON object with no other text or explanation.
+          content: `Extract structured data from this veterinary patient text (which may be a VetRadar/EzyVet export or a simple patient description) and return ONLY a JSON object with no other text or explanation.
 
-IMPORTANT: For ownerName, extract the owner's LAST NAME only (surname/family name). If you see "John Smith" extract "Smith". If you only see a first name, use null.
+CRITICAL INSTRUCTIONS:
+- Read the ENTIRE text carefully to find patient demographics, owner info, and medical data
+- For age: extract the actual age from the text (e.g., "12 years 1 month" or "12 y 1 m 1 d")
+- For ownerName: extract owner's LAST NAME only (surname). "Russell Bennett" → "Bennett"
+- For patientId: look for "Consult #", "Patient ID:", or similar
+- For clientId: look for "Client ID", "Code", or owner reference number
+- For problem: extract the presenting complaint or reason for visit
+- For medications: extract all current medications mentioned
+- DO NOT make up or hallucinate data - use null if not found in the text
 
 Return this exact structure (use null for missing fields):
 {
