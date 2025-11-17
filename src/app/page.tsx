@@ -54,6 +54,10 @@ export default function VetHub() {
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
 
+  // Discharge instructions modal state
+  const [showDischargeInstructions, setShowDischargeInstructions] = useState(false);
+  const [dischargingPatientId, setDischargingPatientId] = useState<number | null>(null);
+
   // Batch operations state
   const [selectedPatientIds, setSelectedPatientIds] = useState<Set<number>>(new Set());
   const [showBatchActions, setShowBatchActions] = useState(false);
@@ -669,6 +673,10 @@ export default function VetHub() {
             description: taskList
           });
         }
+
+        // Show discharge instructions modal
+        setDischargingPatientId(patientId);
+        setShowDischargeInstructions(true);
       }
 
       refetch();
@@ -3994,6 +4002,138 @@ Please schedule a recheck appointment with the Neurology department to have stap
           </div>
         )}
 
+        {/* Discharge Instructions Modal */}
+        {showDischargeInstructions && dischargingPatientId && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 border-2 border-green-500 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 rounded-t-xl">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                  <CheckCircle2 className="text-white" size={28} />
+                  Discharge Instructions
+                </h2>
+                <p className="text-green-100 text-sm mt-1">
+                  Patient: {patients.find(p => p.id === dischargingPatientId)?.demographics?.name || 'Unknown'}
+                </p>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                <div className="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+                  <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    📋 Discharge Tasks
+                  </h3>
+                  <div className="space-y-2">
+                    {patients.find(p => p.id === dischargingPatientId)?.tasks
+                      ?.filter((t: any) =>
+                        (t.category === 'Discharge' ||
+                         ['Final Discharge Exam', 'Prepare Discharge Medications', 'Review Home Care Instructions with Owner', 'Schedule Follow-up Appointment'].includes(t.title || t.name))
+                      )
+                      .map((task: any) => (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700"
+                        >
+                          <button
+                            onClick={() => handleToggleTask(dischargingPatientId, task.id, task.completed)}
+                            className="flex-shrink-0"
+                          >
+                            {task.completed ? (
+                              <CheckCircle2 className="text-green-400" size={20} />
+                            ) : (
+                              <Circle className="text-slate-600 hover:text-green-400" size={20} />
+                            )}
+                          </button>
+                          <div className="flex-1">
+                            <p className={`font-medium ${task.completed ? 'line-through text-slate-500' : 'text-white'}`}>
+                              {task.title || task.name}
+                            </p>
+                            {task.description && (
+                              <p className="text-xs text-slate-400 mt-1">{task.description}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
+                  <h3 className="text-lg font-bold text-blue-400 mb-2">💡 Discharge Checklist</h3>
+                  <ul className="text-sm text-slate-300 space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>Review all discharge medications with owner</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>Provide written home care instructions</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>Schedule follow-up appointment</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>Ensure owner has emergency contact information</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-400">•</span>
+                      <span>Verify owner understands all instructions</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+                  <h3 className="text-lg font-bold text-yellow-400 mb-2">⚠️ Important Reminders</h3>
+                  <ul className="text-sm text-slate-300 space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-yellow-400">•</span>
+                      <span>Document discharge exam findings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-yellow-400">•</span>
+                      <span>Update medical records before discharge</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-yellow-400">•</span>
+                      <span>Complete discharge summary</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-6 bg-slate-900/50 border-t border-slate-700 flex justify-between gap-3">
+                <button
+                  onClick={() => {
+                    setShowDischargeInstructions(false);
+                    setDischargingPatientId(null);
+                  }}
+                  className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-bold transition"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={async () => {
+                    // Mark patient as fully discharged
+                    try {
+                      await apiClient.updatePatient(String(dischargingPatientId), { status: 'Discharged' });
+                      toast({ title: '✅ Patient marked as Discharged' });
+                      setShowDischargeInstructions(false);
+                      setDischargingPatientId(null);
+                      refetch();
+                    } catch (error) {
+                      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
+                    }
+                  }}
+                  className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-lg font-bold transition shadow-lg shadow-green-500/20"
+                >
+                  Mark as Discharged
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
