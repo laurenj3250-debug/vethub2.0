@@ -107,16 +107,15 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
   // Generate array of label HTML (duplicate for count)
   const labels = Array(count).fill(null).map(() => `
     <div class="label">
-      <!-- Line 1: Name 14pt, Code 12pt, Consult 14pt -->
-      <p class="line top">
-        <span class="bold large">${escapeHtml(data.patientName)}</span>
-        &nbsp;<span class="small">${escapeHtml(data.clientId || '')}</span>
-        &nbsp;<span class="bold large">${escapeHtml(data.patientId || '')}</span>
+      <!-- Line 1: Name 14pt, Code, Consult 14pt -->
+      <p class="line top large">
+        <span class="bold">${escapeHtml(data.patientName)}</span>
+        &nbsp;${escapeHtml(data.clientId || '')}&nbsp;<span class="bold">${escapeHtml(data.patientId || '')}</span>
       </p>
-      <!-- Line 2: Owner 14pt, Phone(s) 12pt -->
-      <p class="line owner">
-        <span class="bold large">${escapeHtml(data.ownerName)}</span>
-        &nbsp;<span class="small">${formatPhones(data.ownerPhone)}</span>
+      <!-- Line 2: Owner + Phone(s) - 14pt -->
+      <p class="line owner large">
+        <span class="bold">${escapeHtml(data.ownerName)}</span>
+        &nbsp;${formatPhones(data.ownerPhone)}
       </p>
       <!-- Remaining lines: all 12pt -->
       <p class="line small">
@@ -126,7 +125,7 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
         <span class="bold">Breed:</span> ${escapeHtml(data.breed)}
       </p>
       <p class="line small">
-        <span class="bold">Color:</span> ${escapeHtml(data.colorMarkings || '')}
+        <span class="bold">Mix Color:</span> ${escapeHtml(data.colorMarkings || '')}
       </p>
       <p class="line small">
         <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
@@ -150,36 +149,44 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
       margin: 0;
       padding: 0;
       background: #f5f5f5;
-      font-family: Arial, Helvetica, sans-serif;
     }
-    .label-container {
+
+    .page {
+      width: 100vw;
+      min-height: 100vh;
       display: flex;
       flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: center;
       gap: 5mm;
       padding: 10mm;
     }
-    /* 1.937" x 3.5" label (49.22mm x 88.9mm) - landscape with 90° rotation */
+
+    /* 70mm x 45mm label */
     .label {
-      width: 1.937in;
-      height: 3.5in;
-      padding: 0.1in;
+      width: 70mm;
+      height: 45mm;
+      padding: 3mm 4mm;
       background: #ffffff;
       box-shadow: 0 0 3px rgba(0,0,0,0.35);
       box-sizing: border-box;
-      color: #000;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9pt;
       line-height: 1.2;
+      color: #000;
       page-break-inside: avoid;
     }
+
     .line { margin: 0; padding: 0; }
-    .bold  { font-weight: bold; }
+    .bold { font-weight: bold; }
     .large { font-size: 14pt; }
     .small { font-size: 12pt; }
-    .top   { margin-bottom: 1mm; }
+    .top { margin-bottom: 1mm; }
     .owner { margin-bottom: 1.5mm; }
 
     @media print {
       body { background: white; }
-      .label-container { padding: 0; }
+      .page { padding: 0; }
       .label {
         page-break-inside: avoid;
         box-shadow: none;
@@ -188,7 +195,7 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
   </style>
 </head>
 <body>
-  <div class="label-container">
+  <div class="page">
     ${labels}
   </div>
 </body>
