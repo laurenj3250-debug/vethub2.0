@@ -940,33 +940,16 @@ export class VetRadarScraper {
             // Try multiple strategies to access the treatments section
             let treatmentsVisible = false;
 
-            // Strategy 1: Look for "Add treatments" link and click it to expand treatments
+            // Strategy 1: Click "Medications" link to open medications panel
             try {
-              console.log(`[VetRadar] Strategy 1: Looking for "Add treatments" link...`);
-              // Try multiple selectors for the "Add treatments" link
-              const addTreatmentsSelectors = [
-                'text="Add treatments"',
-                'a:has-text("Add treatment")',
-                'button:has-text("Add treatment")',
-                '[href*="treatment"]',
-                'a >> text=/add.*treatment/i',
-              ];
-
-              for (const selector of addTreatmentsSelectors) {
-                try {
-                  const link = page.locator(selector).first();
-                  if (await link.isVisible({ timeout: 2000 })) {
-                    console.log(`[VetRadar] Found treatments link with selector: ${selector}`);
-                    await link.click();
-                    console.log(`[VetRadar] Clicked "Add treatments" link`);
-                    await page.waitForTimeout(3000); // Wait for section to load/expand
-                    treatmentsVisible = true;
-                    console.log(`[VetRadar] ✓ Treatments section expanded`);
-                    break;
-                  }
-                } catch (selectorError) {
-                  continue; // Try next selector
-                }
+              console.log(`[VetRadar] Strategy 1: Looking for "Medications" link to click...`);
+              const medicationsLink = page.locator('text=/^Medications$/i, a:has-text("Medications"), button:has-text("Medications")').first();
+              if (await medicationsLink.isVisible({ timeout: 3000 })) {
+                console.log(`[VetRadar] Found "Medications" link - clicking to open panel...`);
+                await medicationsLink.click();
+                await page.waitForTimeout(3000); // Wait for medications panel to open
+                treatmentsVisible = true;
+                console.log(`[VetRadar] ✓ Medications panel opened`);
               }
             } catch (e) {
               console.log(`[VetRadar] Strategy 1 failed:`, e);
