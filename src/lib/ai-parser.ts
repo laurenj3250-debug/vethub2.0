@@ -539,10 +539,10 @@ CRITICAL INSTRUCTIONS:
 - Look for sections labeled "Medications", "Treatments", or "Fluids" in the screenshot
 - Extract EVERY actual medication/drug visible (e.g., Gabapentin, Tramadol, Cefazolin, Prednisone, Carprofen, etc.)
 - Include CRI medications in fluid bags (e.g., "LRS + Ketamine CRI", "Fentanyl CRI", "Lidocaine CRI")
-- Include dose with units (mg, mL, mg/kg, mcg/kg/min, etc.)
-- Include route (PO, IV, SQ, IM, Topical, Transdermal, etc.)
-- Include frequency (q8h, q12h, BID, TID, SID, PRN, CRI, etc.)
-- Include time of administration if specified
+- Include ONLY the actual dose given with units (mg, mL, tablets, capsules, etc.)
+  - EXCLUDE calculated doses per weight (DO NOT include mg/kg, mcg/kg, mg/kg/min, mcg/kg/min)
+  - Example: Extract "100mg" or "2 tablets", NOT "4.3mg/kg"
+- Include frequency/timing (q8h, q12h, BID, TID, SID, PRN, CRI, etc.)
 - If a medication has multiple administrations, create separate entries
 
 **What to EXCLUDE:**
@@ -554,9 +554,8 @@ CRITICAL INSTRUCTIONS:
 
 **How to identify MEDICATIONS:**
 - Medications have drug names (chemical/brand names) like Gabapentin, Tramadol, Cefazolin, etc.
-- Medications list doses (e.g., "100mg", "50mg/mL", "5mg/kg")
-- Medications list routes (PO, IV, SQ, IM, Topical)
-- Medications list frequency (q8h, BID, TID, CRI)
+- Medications list doses (e.g., "100mg", "2 tablets", "2.5mL")
+- Medications list frequency/timing (q8h, q12h, BID, TID, CRI)
 
 **How to identify NURSING CARE (exclude these):**
 - Task-oriented phrases like "Walk", "Feed", "NPO", "Check", "Call", "Ice"
@@ -565,18 +564,16 @@ CRITICAL INSTRUCTIONS:
 
 If NO actual medications are visible (only nursing tasks), return an empty array [].
 
-Return this exact JSON structure:
+Return this exact JSON structure with ONLY medication name, dose, and frequency:
 [
   {
     "medication": "Medication name",
-    "dose": "dose with units (e.g., '100mg', '10mg/kg', '2.5mL')",
-    "route": "route (PO/IV/SQ/IM/Topical/etc)",
-    "frequency": "frequency (q8h/BID/TID/SID/PRN/CRI/etc)",
-    "time": "time if specified (optional)"
+    "dose": "actual dose given (e.g., '100mg', '2 tablets', '2.5mL')",
+    "frequency": "frequency/timing (q8h/q12h/BID/TID/SID/PRN/CRI/etc)"
   }
 ]
 
-Return ONLY the JSON array, no other text:`
+DO NOT include "route" or "time" fields. Return ONLY the JSON array, no other text:`
             }
           ]
         }
@@ -610,9 +607,7 @@ Return ONLY the JSON array, no other text:`
     return parsed.map(med => ({
       medication: med.medication || '',
       dose: med.dose || '',
-      route: med.route || '',
-      frequency: med.frequency || '',
-      time: med.time
+      frequency: med.frequency || ''
     }));
   } catch (error) {
     console.error('Error parsing VetRadar medications from screenshot:', error);
