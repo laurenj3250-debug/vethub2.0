@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Patient Label Test</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: #f5f5f5;
+  }
+
+  /* Center the label on the screen while testing */
+  .page {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Label box – sized like the ezyVet sticker, with a thin border */
+  .label {
+    width: 70mm;
+    height: 45mm;
+    padding: 3mm 4mm;
+    background: #ffffff;
+    border: 1px solid #000;          /* border instead of shadow */
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 9pt;
+    line-height: 1.2;
+    color: #000;
+  }
+
+  .line {
+    margin: 0;
+    padding: 0;
+  }
+
+  .bold {
+    font-weight: bold;
+  }
+
+  /* First line (patient + TF + MRN) – slightly tighter */
+  .line.top {
+    margin-bottom: 1mm;
+  }
+
+  /* Owner line – a little extra space below */
+  .line.owner {
+    margin-bottom: 1.5mm;
+  }
+
+  /* TF number is regular weight and just a touch smaller like the ref image */
+  .tf {
+    font-weight: normal;
+    font-size: 8pt;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="label">
+    <!-- Patient name, TF and MRN -->
+    <p class="line top">
+      <span class="bold">Kiwi</span>
+      &nbsp;<span class="tf">TF_674251</span>
+      &nbsp;<span class="bold">5878433</span>
+    </p>
+
+    <!-- Owner + phone(s) -->
+    <p class="line owner">
+      <span class="bold">Carissa Lobo</span>
+      &nbsp;908-868-0937<br>
+      551-238-3264
+    </p>
+
+    <!-- Species -->
+    <p class="line">
+      <span class="bold">Species:</span> (Canine)
+    </p>
+
+    <!-- Breed -->
+    <p class="line">
+      <span class="bold">Breed:</span> Dachshund
+    </p>
+
+    <!-- Color (separate line, not "Mix Color") -->
+    <p class="line">
+      <span class="bold">Color:</span> Beige/Black/White
+    </p>
+
+    <!-- Sex + Weight on the same line -->
+    <p class="line">
+      <span class="bold">Sex:</span> FS
+      &nbsp;&nbsp;<span class="bold">Weight:</span> 2.38KG
+    </p>
+
+    <!-- DOB + Age on the same line -->
+    <p class="line">
+      <span class="bold">DOB:</span> 02-06-2025
+      &nbsp;&nbsp;<span class="bold">Age:</span> 9 m 9 d
+    </p>
+  </div>
+</div>
+</body>
+</html>
