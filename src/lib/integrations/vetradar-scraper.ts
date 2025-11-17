@@ -29,6 +29,10 @@ export interface VetRadarPatient {
   patientId?: string;      // Patient ID from VetRadar (e.g., "674131")
   clientId?: string;       // Client/Owner ID (if available)
   consultNumber?: string;  // Consult number (e.g., "5877395")
+  ownerName?: string;      // Owner full name (e.g., "Jessica Torres")
+  ownerPhone?: string;     // Owner phone number (e.g., "9736346190")
+  dob?: string;            // Date of birth (various formats)
+  color?: string;          // Color/Markings (e.g., "Brown", "Black and White")
 }
 
 export interface VetRadarTreatment {
@@ -933,6 +937,86 @@ export class VetRadarScraper {
 
             // Wait for patient detail page to fully load
             await page.waitForTimeout(3000);
+
+            // PHASE 2A: Extract sticker data from patient detail page
+            console.log(`[VetRadar] Extracting sticker data from patient detail page...`);
+
+            try {
+              // Expand "Patient info" section to access Patient ID, DOB, Color/Markings
+              const patientInfoSection = page.locator('text="Patient info"').first();
+              if (await patientInfoSection.isVisible({ timeout: 2000 })) {
+                console.log(`[VetRadar] Expanding "Patient info" section...`);
+                await patientInfoSection.click();
+                await page.waitForTimeout(1000);
+              }
+
+              // Expand "Owner details" section to access Client ID
+              const ownerDetailsSection = page.locator('text="Owner details"').first();
+              if (await ownerDetailsSection.isVisible({ timeout: 2000 })) {
+                console.log(`[VetRadar] Expanding "Owner details" section...`);
+                await ownerDetailsSection.click();
+                await page.waitForTimeout(1000);
+              }
+
+              // Extract all text from the right panel (where expanded sections are)
+              const rightPanelText = await page.evaluate(() => {
+                // Look for the right panel container
+                const rightPanel = document.querySelector('[class*="right"], [class*="sidebar"], [class*="panel"]');
+                if (rightPanel) {
+                  return rightPanel.textContent || '';
+                }
+                // Fallback: get all text from body
+                return document.body.textContent || '';
+              });
+
+              // Extract Owner Name (visible in header: "Jessica Torres 9736346190")
+              const ownerMatch = rightPanelText.match(/([A-Z][a-z]+\s+[A-Z][a-z]+)\s+(\d{10})/);
+              if (ownerMatch) {
+                patient.ownerName = ownerMatch[1];
+                patient.ownerPhone = ownerMatch[2];
+                console.log(`[VetRadar] Extracted Owner: ${patient.ownerName} (${patient.ownerPhone})`);
+              }
+
+              // Extract Patient ID (typically a 6-digit number like "674131")
+              const patientIdMatch = rightPanelText.match(/Patient\s+ID[:\s]+(\d{6,7})/i) ||
+                                     rightPanelText.match(/ID[:\s]+(\d{6,7})/);
+              if (patientIdMatch) {
+                patient.patientId = patientIdMatch[1];
+                console.log(`[VetRadar] Extracted Patient ID: ${patient.patientId}`);
+              }
+
+              // Extract Client ID (typically a 6-7 digit number)
+              const clientIdMatch = rightPanelText.match(/Client\s+ID[:\s]+(\d{6,7})/i) ||
+                                    rightPanelText.match(/Owner\s+ID[:\s]+(\d{6,7})/i);
+              if (clientIdMatch) {
+                patient.clientId = clientIdMatch[1];
+                console.log(`[VetRadar] Extracted Client ID: ${patient.clientId}`);
+              }
+
+              // Extract DOB (date of birth - various formats)
+              const dobMatch = rightPanelText.match(/DOB[:\s]+([\d\/\-]+)/i) ||
+                               rightPanelText.match(/Date\s+of\s+Birth[:\s]+([\d\/\-]+)/i) ||
+                               rightPanelText.match(/Born[:\s]+([\d\/\-]+)/i);
+              if (dobMatch) {
+                patient.dob = dobMatch[1];
+                console.log(`[VetRadar] Extracted DOB: ${patient.dob}`);
+              }
+
+              // Extract Color/Markings (e.g., "Brown", "Black and White", "Tan with white markings")
+              const colorMatch = rightPanelText.match(/Color[:\s]+([A-Za-z\s,&\-]+?)(?:\n|$)/i) ||
+                                 rightPanelText.match(/Colour[:\s]+([A-Za-z\s,&\-]+?)(?:\n|$)/i) ||
+                                 rightPanelText.match(/Markings[:\s]+([A-Za-z\s,&\-]+?)(?:\n|$)/i) ||
+                                 rightPanelText.match(/Mix\s+Color[:\s]+([A-Za-z\s,&\-]+?)(?:\n|$)/i);
+              if (colorMatch) {
+                patient.color = colorMatch[1].trim();
+                console.log(`[VetRadar] Extracted Color: ${patient.color}`);
+              }
+
+              console.log(`[VetRadar] ✓ Sticker data extraction complete`);
+            } catch (stickerDataError) {
+              console.log(`[VetRadar] Warning: Could not extract all sticker data:`, stickerDataError);
+              // Continue anyway - medication extraction is still valuable
+            }
 
             // CRITICAL FIX: Navigate to treatments section before taking screenshot
             console.log(`[VetRadar] Looking for treatments/medications section...`);

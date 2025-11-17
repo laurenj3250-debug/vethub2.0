@@ -164,15 +164,15 @@ export function mapVetRadarToUnifiedPatient(
       breed: vetRadarPatient.breed,
       species: vetRadarPatient.species,
       weight: vetRadarPatient.weight ? `${vetRadarPatient.weight}kg` : '',
-      ownerName: existingPatient?.demographics?.ownerName,
-      ownerPhone: existingPatient?.demographics?.ownerPhone,
+      ownerName: existingPatient?.demographics?.ownerName || vetRadarPatient.ownerName,  // Use VetRadar owner name if available
+      ownerPhone: existingPatient?.demographics?.ownerPhone || vetRadarPatient.ownerPhone,  // Use VetRadar phone if available
       ownerEmail: existingPatient?.demographics?.ownerEmail,
       ownerAddress: existingPatient?.demographics?.ownerAddress,
       microchip: existingPatient?.demographics?.microchip,
-      colorMarkings: existingPatient?.demographics?.colorMarkings,
-      dateOfBirth: existingPatient?.demographics?.dateOfBirth,
+      colorMarkings: existingPatient?.demographics?.colorMarkings || vetRadarPatient.color,  // Use VetRadar color/markings if available
+      dateOfBirth: existingPatient?.demographics?.dateOfBirth || vetRadarPatient.dob,  // Use VetRadar DOB if available
       clientId: existingPatient?.demographics?.clientId || vetRadarPatient.clientId,  // Preserve EzyVet clientId if exists
-      patientId: existingPatient?.demographics?.patientId || vetRadarPatient.consultNumber || vetRadarPatient.patientId,  // Consult # - prefer existing (from EzyVet)
+      patientId: existingPatient?.demographics?.patientId || vetRadarPatient.patientId || vetRadarPatient.consultNumber,  // Use VetRadar Patient ID first, then Consult #
     },
 
     status: mapVetRadarStatusToPatientStatus(vetRadarPatient.status),
