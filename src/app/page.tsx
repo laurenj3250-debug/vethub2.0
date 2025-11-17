@@ -492,7 +492,7 @@ export default function VetHub() {
         status: 'New Admit',
         added_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         demographics: {
-          name: parsed.patientName || fullName,
+          name: fullName,  // Use full name (patient name + owner last name) for consistency
           patientId: parsed.patientId || '',        // Patient ID: 618383
           clientId: parsed.clientId || '',          // Consult # 5878668
           ownerName: parsed.ownerName || '',
