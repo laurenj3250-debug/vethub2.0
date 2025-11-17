@@ -107,31 +107,36 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
   // Generate array of label HTML (duplicate for count)
   const labels = Array(count).fill(null).map(() => `
     <div class="label">
-      <!-- Line 1: Name 14pt, Code, Consult 14pt -->
-      <p class="line top large">
+      <!-- Line 1: Patient name + TF_ClientID + MRN -->
+      <p class="line top">
         <span class="bold">${escapeHtml(data.patientName)}</span>
-        &nbsp;${escapeHtml(data.clientId || '')}&nbsp;<span class="bold">${escapeHtml(data.patientId || '')}</span>
+        &nbsp;<span class="tf">TF_${escapeHtml(data.clientId || '')}</span>
+        &nbsp;<span class="bold">${escapeHtml(data.patientId || '')}</span>
       </p>
-      <!-- Line 2: Owner + Phone(s) - 14pt -->
-      <p class="line owner large">
+      <!-- Line 2: Owner name + phone(s) -->
+      <p class="line owner">
         <span class="bold">${escapeHtml(data.ownerName)}</span>
         &nbsp;${formatPhones(data.ownerPhone)}
       </p>
-      <!-- Remaining lines: all 12pt -->
-      <p class="line small">
+      <!-- Line 3: Species -->
+      <p class="line">
         <span class="bold">Species:</span> (${escapeHtml(data.species)})
       </p>
-      <p class="line small">
+      <!-- Line 4: Breed -->
+      <p class="line">
         <span class="bold">Breed:</span> ${escapeHtml(data.breed)}
       </p>
-      <p class="line small">
-        <span class="bold">Mix Color:</span> ${escapeHtml(data.colorMarkings || '')}
+      <!-- Line 5: Color -->
+      <p class="line">
+        <span class="bold">Color:</span> ${escapeHtml(data.colorMarkings || '')}
       </p>
-      <p class="line small">
+      <!-- Line 6: Sex + Weight -->
+      <p class="line">
         <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
         &nbsp;&nbsp;<span class="bold">Weight:</span> ${escapeHtml(data.weight)}
       </p>
-      <p class="line small">
+      <!-- Line 7: DOB + Age -->
+      <p class="line">
         <span class="bold">DOB:</span> ${escapeHtml(data.dateOfBirth || '')}
         &nbsp;&nbsp;<span class="bold">Age:</span> ${escapeHtml(data.age || '')}
       </p>
@@ -168,7 +173,7 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
       height: 45mm;
       padding: 3mm 4mm;
       background: #ffffff;
-      box-shadow: 0 0 3px rgba(0,0,0,0.35);
+      border: 1px solid #000;
       box-sizing: border-box;
       font-family: Arial, Helvetica, sans-serif;
       font-size: 9pt;
@@ -179,8 +184,7 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
 
     .line { margin: 0; padding: 0; }
     .bold { font-weight: bold; }
-    .large { font-size: 14pt; }
-    .small { font-size: 12pt; }
+    .tf { font-weight: normal; font-size: 8pt; }
     .top { margin-bottom: 1mm; }
     .owner { margin-bottom: 1.5mm; }
 
@@ -189,7 +193,6 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
       .page { padding: 0; }
       .label {
         page-break-inside: avoid;
-        box-shadow: none;
       }
     }
   </style>
