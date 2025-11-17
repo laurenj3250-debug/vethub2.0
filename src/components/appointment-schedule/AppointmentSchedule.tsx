@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Download, Printer, Save, Clock, User, ArrowUpDown } from 'lucide-react';
+import { Plus, Download, Printer, Save, Clock, User, ArrowUpDown, Camera } from 'lucide-react';
 import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { PasteModal } from './PasteModal';
 import { AppointmentRow } from './AppointmentRow';
@@ -29,6 +29,7 @@ export function AppointmentSchedule() {
   const [sortBy, setSortBy] = useState<'time' | 'name' | 'custom'>('custom');
   const { toast } = useToast();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -170,6 +171,66 @@ export function AppointmentSchedule() {
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleScreenshotUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid file type',
+        description: 'Please upload an image file (PNG, JPG, etc.)',
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/parse-appointment-screenshot', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Parsing failed');
+      }
+
+      const result = await response.json();
+
+      if (result.patients && result.patients.length > 0) {
+        setPatients([...patients, ...result.patients]);
+        toast({
+          title: '📷 Screenshot Parsed',
+          description: `Successfully extracted ${result.count} appointment(s)`,
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'No appointments found',
+          description: 'Could not extract appointment data from the screenshot',
+        });
+      }
+    } catch (error: any) {
+      console.error('Screenshot parse error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Parsing Failed',
+        description: error.message || 'Failed to parse screenshot',
+      });
+    } finally {
+      setIsProcessing(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -315,12 +376,27 @@ export function AppointmentSchedule() {
             </button>
           )}
           <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-2"
+            disabled={isProcessing}
+          >
+            <Camera size={16} />
+            {isProcessing ? 'Processing...' : 'Parse Screenshot'}
+          </button>
+          <button
             onClick={() => setShowPasteModal(true)}
             className="px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-2"
           >
             <Plus size={16} />
             Add Patients
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleScreenshotUpload}
+            className="hidden"
+          />
         </div>
       </div>
 
