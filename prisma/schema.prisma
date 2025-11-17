@@ -120,3 +120,33 @@ model CommonMedication {
   name      String   @unique
   createdAt DateTime @default(now())
 }
+
+// Appointment Schedule model
+model Appointment {
+  id               String    @id @default(cuid())
+  sortOrder        Int       // For custom drag-and-drop ordering
+  date             String    // Date of appointment (YYYY-MM-DD format)
+
+  // Core Information
+  patientName      String
+  appointmentTime  String?
+  age              String?
+  status           String    @default("recheck") // new | recheck | mri-dropoff
+
+  // Clinical Data
+  whyHereToday     String?
+  lastVisit        String?
+  mri              String?
+  bloodwork        String?
+  medications      String?
+  changesSinceLastVisit String?
+  otherNotes       String?
+
+  // Metadata
+  rawText          String?   // Original pasted text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([date])
+  @@index([appointmentTime])
+}
