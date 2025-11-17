@@ -377,11 +377,11 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
       doc.addPage();
     }
 
-    // Line 1: Name (14pt bold) + Code (12pt) + Consult (14pt bold)
+    // Line 1: Name (11pt bold) + Code (9pt) + Consult (11pt bold)
     let currentY = topMargin;
 
-    // Patient Name - 14pt bold (NOT uppercased)
-    doc.setFontSize(14);
+    // Patient Name - 11pt bold (NOT uppercased)
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text(data.patientName, leftMargin, currentY);
 
@@ -389,42 +389,42 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     const nameWidth = doc.getTextWidth(data.patientName);
     let xPos = leftMargin + nameWidth + 1;
 
-    // Client ID (Code) - 12pt
+    // Client ID (Code) - 9pt
     if (data.clientId) {
-      doc.setFontSize(12);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text(data.clientId, xPos, currentY);
       xPos += doc.getTextWidth(data.clientId) + 0.5;
     }
 
-    // Patient ID (Consult) - 14pt bold
+    // Patient ID (Consult) - 11pt bold
     if (data.patientId) {
-      doc.setFontSize(14);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text(data.patientId, xPos, currentY);
     }
 
-    // Line 2: Owner name (14pt bold) + Phone (12pt)
+    // Line 2: Owner name (11pt bold) + Phone (9pt)
     currentY += lineSpacing;
-    doc.setFontSize(14);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text(data.ownerName, leftMargin, currentY);
 
-    // Phone - 12pt
+    // Phone - 9pt
     const ownerWidth = doc.getTextWidth(data.ownerName);
-    doc.setFontSize(12);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(data.ownerPhone, leftMargin + ownerWidth + 1, currentY);
 
-    // Line 3: Species - 12pt
+    // Line 3: Species - 9pt
     currentY += lineSpacing;
-    doc.setFontSize(12);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     doc.text('Species:', leftMargin, currentY);
     doc.setFont('helvetica', 'normal');
     doc.text(` (${data.species})`, leftMargin + doc.getTextWidth('Species:'), currentY);
 
-    // Line 4: Breed and Color on SAME LINE - 12pt
+    // Line 4: Breed and Color on SAME LINE - 9pt
     currentY += lineSpacing;
     doc.setFont('helvetica', 'bold');
     doc.text('Breed:', leftMargin, currentY);
@@ -439,7 +439,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     doc.setFont('helvetica', 'normal');
     doc.text(` ${data.colorMarkings || ''}`, breedEndPos + doc.getTextWidth('Color:'), currentY);
 
-    // Line 5: Sex and Weight - 12pt
+    // Line 5: Sex and Weight - 9pt
     currentY += lineSpacing;
     doc.setFont('helvetica', 'bold');
     doc.text('Sex:', leftMargin, currentY);
@@ -453,7 +453,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     doc.setFont('helvetica', 'normal');
     doc.text(` ${data.weight}`, sexEndPos + doc.getTextWidth('Weight:'), currentY);
 
-    // Line 7: DOB and Age - 12pt
+    // Line 7: DOB and Age - 9pt
     currentY += lineSpacing;
     doc.setFont('helvetica', 'bold');
     doc.text('DOB:', leftMargin, currentY);
@@ -920,11 +920,11 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       }
       isFirstPatient = false;
 
-      // Line 1: Name (14pt bold) + Code (12pt) + Consult (14pt bold)
+      // Line 1: Name (11pt bold) + Code (9pt) + Consult (11pt bold)
       let currentY = topMargin;
 
-      // Patient Name - 14pt bold
-      doc.setFontSize(14);
+      // Patient Name - 11pt bold
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text(data.patientName, leftMargin, currentY);
 
@@ -932,42 +932,42 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       const nameWidth = doc.getTextWidth(data.patientName);
       let xPos = leftMargin + nameWidth + 1;
 
-      // Client ID (Code) - 12pt
+      // Client ID (Code) - 9pt
       if (data.clientId) {
-        doc.setFontSize(12);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.text(data.clientId, xPos, currentY);
         xPos += doc.getTextWidth(data.clientId) + 0.5;
       }
 
-      // Patient ID (Consult) - 14pt bold
+      // Patient ID (Consult) - 11pt bold
       if (data.patientId) {
-        doc.setFontSize(14);
+        doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
         doc.text(data.patientId, xPos, currentY);
       }
 
-      // Line 2: Owner name (14pt bold) + Phone (12pt)
+      // Line 2: Owner name (11pt bold) + Phone (9pt)
       currentY += lineSpacing;
-      doc.setFontSize(14);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text(data.ownerName, leftMargin, currentY);
 
-      // Phone - 12pt
+      // Phone - 9pt
       const ownerWidth = doc.getTextWidth(data.ownerName);
-      doc.setFontSize(12);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text(data.ownerPhone, leftMargin + ownerWidth + 1, currentY);
 
-      // Line 3: Species - 12pt
+      // Line 3: Species - 9pt
       currentY += lineSpacing;
-      doc.setFontSize(12);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.text('Species:', leftMargin, currentY);
       doc.setFont('helvetica', 'normal');
       doc.text(` (${data.species})`, leftMargin + doc.getTextWidth('Species:'), currentY);
 
-      // Line 4: Breed and Color on SAME LINE - 12pt
+      // Line 4: Breed and Color on SAME LINE - 9pt
       currentY += lineSpacing;
       doc.setFont('helvetica', 'bold');
       doc.text('Breed:', leftMargin, currentY);
@@ -982,7 +982,7 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       doc.setFont('helvetica', 'normal');
       doc.text(` ${data.colorMarkings || ''}`, breedEndPos + doc.getTextWidth('Color:'), currentY);
 
-      // Line 5: Sex and Weight - 12pt
+      // Line 5: Sex and Weight - 9pt
       currentY += lineSpacing;
       doc.setFont('helvetica', 'bold');
       doc.text('Sex:', leftMargin, currentY);
@@ -996,7 +996,7 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       doc.setFont('helvetica', 'normal');
       doc.text(` ${data.weight}`, sexEndPos + doc.getTextWidth('Weight:'), currentY);
 
-      // Line 6: DOB and Age - 12pt
+      // Line 6: DOB and Age - 9pt
       currentY += lineSpacing;
       doc.setFont('helvetica', 'bold');
       doc.text('DOB:', leftMargin, currentY);
