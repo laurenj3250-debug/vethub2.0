@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
@@ -51,6 +51,8 @@ export default function VetHub() {
   const [newPatientTaskName, setNewPatientTaskName] = useState('');
   const [selectedPatientForTask, setSelectedPatientForTask] = useState<number | null>(null);
   const [showQuickReference, setShowQuickReference] = useState(false);
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
+  const [showToolsMenu, setShowToolsMenu] = useState(false);
 
   // Batch operations state
   const [selectedPatientIds, setSelectedPatientIds] = useState<Set<number>>(new Set());
@@ -1613,96 +1615,122 @@ export default function VetHub() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                setShowAllTasksView(!showAllTasksView);
-                if (!showAllTasksView) {
-                  setShowTaskOverview(false);
-                  setShowMRISchedule(false);
-                }
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
-            >
-              <CheckCircle2 size={18} />
-              All Tasks
-            </button>
+          <div className="flex items-center gap-3">
+            {/* Primary Actions */}
             <Link
               href="/rounding"
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <FileSpreadsheet size={18} />
-              All Rounds
-            </Link>
-            <Link
-              href="/patient-import"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-bold hover:scale-105 transition-transform"
-            >
-              <Download size={18} />
-              Import from VetRadar
-            </Link>
-            <button
-              onClick={() => setShowMRISchedule(!showMRISchedule)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
-            >
-              <Brain size={18} />
-              MRI Schedule
-            </button>
-            <button
-              onClick={handlePrintBigLabels}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
-            >
-              <Tag size={18} />
-              Print Big Labels
-            </button>
-            <button
-              onClick={handlePrintTinyLabels}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
-            >
-              <Tag size={14} />
-              Print Tiny Labels
-            </button>
-            <button
-              onClick={() => setShowQuickReference(!showQuickReference)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
-            >
-              <BookOpen size={18} />
-              Quick Reference
-            </button>
-            <Link
-              href="/soap"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
-            >
-              <FileText size={18} />
-              SOAP Builder
+              Rounds
             </Link>
             <Link
               href="/appointments"
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <TableProperties size={18} />
-              Appointment Schedule
+              Schedule
             </Link>
-            <Link
-              href="/mri-builder"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
-            >
-              <Brain size={18} />
-              MRI Builder
-            </Link>
-            <Link
-              href="/residency"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-orange-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
-            >
-              <Award size={18} />
-              Residency Tracker
-            </Link>
+
+            {/* Print Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowPrintMenu(!showPrintMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              >
+                <Tag size={18} />
+                Print
+                <ChevronDown size={16} />
+              </button>
+              {showPrintMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                  <button
+                    onClick={() => { handlePrintBigLabels(); setShowPrintMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <Tag size={16} />
+                    Big Labels
+                  </button>
+                  <button
+                    onClick={() => { handlePrintTinyLabels(); setShowPrintMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition rounded-b-lg"
+                  >
+                    <Tag size={14} />
+                    Tiny Labels
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Tools Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowToolsMenu(!showToolsMenu)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg font-bold hover:bg-slate-600 transition"
+              >
+                <MoreHorizontal size={18} />
+                Tools
+              </button>
+              {showToolsMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                  <button
+                    onClick={() => { setShowAllTasksView(!showAllTasksView); setShowToolsMenu(false); if (!showAllTasksView) { setShowTaskOverview(false); setShowMRISchedule(false); } }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <CheckCircle2 size={16} />
+                    All Tasks
+                  </button>
+                  <button
+                    onClick={() => { setShowMRISchedule(!showMRISchedule); setShowToolsMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <Brain size={16} />
+                    MRI Schedule
+                  </button>
+                  <Link
+                    href="/patient-import"
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <Download size={16} />
+                    Import from VetRadar
+                  </Link>
+                  <Link
+                    href="/soap"
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <FileText size={16} />
+                    SOAP Builder
+                  </Link>
+                  <Link
+                    href="/mri-builder"
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <Brain size={16} />
+                    MRI Builder
+                  </Link>
+                  <button
+                    onClick={() => { setShowQuickReference(!showQuickReference); setShowToolsMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                  >
+                    <BookOpen size={16} />
+                    Quick Reference
+                  </button>
+                  <Link
+                    href="/residency"
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition rounded-b-lg"
+                  >
+                    <Award size={16} />
+                    Residency Tracker
+                  </Link>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={logout}
               className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-red-400 transition rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
             >
               <LogOut size={18} />
-              Logout
             </button>
           </div>
         </div>
