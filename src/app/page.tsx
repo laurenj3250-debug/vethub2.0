@@ -764,13 +764,15 @@ export default function VetHub() {
       const today = new Date().toISOString().split('T')[0];
 
       let totalAdded = 0;
+      let totalSkipped = 0;
 
       for (const patient of activePatients) {
         const existingTasks = patient.tasks || [];
 
         for (const taskName of tasksToAdd) {
+          // Check for existing task (including completed ones to avoid duplicates)
           const hasTask = existingTasks.some((t: any) =>
-            (t.title || t.name) === taskName // No date check - tasks don't have date field
+            (t.title || t.name) === taskName
           );
 
           if (!hasTask) {
@@ -780,14 +782,24 @@ export default function VetHub() {
               date: today,
             });
             totalAdded++;
+          } else {
+            totalSkipped++;
           }
         }
       }
 
-      if (totalAdded > 0) {
+      if (totalAdded > 0 && totalSkipped > 0) {
+        toast({
+          title: `➕ Added ${totalAdded} ${category} tasks`,
+          description: `Skipped ${totalSkipped} duplicates across ${activePatients.length} patients`
+        });
+      } else if (totalAdded > 0) {
         toast({ title: `➕ Added ${totalAdded} ${category} tasks to ${activePatients.length} patients!` });
       } else {
-        toast({ title: `All ${category} tasks already exist for today` });
+        toast({
+          title: `No tasks added`,
+          description: `All ${category} tasks already exist for all ${activePatients.length} patients`
+        });
       }
       refetch();
     } catch (error) {
