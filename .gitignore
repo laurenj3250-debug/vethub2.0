@@ -50,6 +50,8 @@ backend/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+production-test-results*.log
+test-results.log
 
 /src/generated/prisma
 vetradar-patient-*.png
