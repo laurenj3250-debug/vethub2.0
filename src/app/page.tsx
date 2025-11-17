@@ -1243,55 +1243,66 @@ export default function VetHub() {
   };
 
   // Sticker Print Handlers
-  const handlePrintAllStickers = async () => {
+  const handlePrintBigLabels = async () => {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
 
       if (activePatients.length === 0) {
-        toast({ title: 'No active patients', description: 'Add patients to print stickers' });
+        toast({ title: 'No active patients', description: 'Add patients to print big labels' });
         return;
       }
 
       // Check which patients have big label sticker data
       const patientsWithBigLabels = activePatients.filter(p => (p.stickerData?.bigLabelCount ?? 0) > 0);
 
-      if (patientsWithBigLabels.length === 0 && activePatients.length === 0) {
+      if (patientsWithBigLabels.length === 0) {
         toast({
-          title: 'No sticker data',
-          description: 'Configure sticker counts in patient settings first'
+          title: 'No big label data',
+          description: 'Configure big label counts in patient settings first'
         });
         return;
       }
 
       toast({
-        title: 'Generating consolidated stickers...',
-        description: `Creating PDFs for ${activePatients.length} patients`
+        title: 'Generating big labels...',
+        description: `Creating labels for ${patientsWithBigLabels.length} patients`
       });
 
-      // Generate and print consolidated big labels
-      if (patientsWithBigLabels.length > 0) {
-        await printConsolidatedBigLabels(patientsWithBigLabels as any);
-        toast({
-          title: '🏷️ Big Labels Ready',
-          description: `Print dialog opened for ${patientsWithBigLabels.length} patients`
-        });
-      }
+      await printConsolidatedBigLabels(patientsWithBigLabels as any);
 
-      // Small delay to avoid simultaneous print dialogs
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Generate and print consolidated tiny labels (4 per patient, always)
-      if (activePatients.length > 0) {
-        await printConsolidatedTinyLabels(activePatients as any);
-        toast({
-          title: '🏷️ Tiny Labels Ready',
-          description: `Print dialog opened for ${activePatients.length} patients (4 labels each)`
-        });
-      }
-
+      toast({
+        title: '🏷️ Big Labels Ready',
+        description: `Print dialog opened for ${patientsWithBigLabels.length} patients`
+      });
     } catch (error) {
-      console.error('Sticker generation error:', error);
-      toast({ variant: 'destructive', title: 'Failed to generate stickers', description: String(error) });
+      console.error('Big label generation error:', error);
+      toast({ variant: 'destructive', title: 'Failed to generate big labels', description: String(error) });
+    }
+  };
+
+  const handlePrintTinyLabels = async () => {
+    try {
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+
+      if (activePatients.length === 0) {
+        toast({ title: 'No active patients', description: 'Add patients to print tiny labels' });
+        return;
+      }
+
+      toast({
+        title: 'Generating tiny labels...',
+        description: `Creating 4 labels per patient for ${activePatients.length} patients`
+      });
+
+      await printConsolidatedTinyLabels(activePatients as any);
+
+      toast({
+        title: '🏷️ Tiny Labels Ready',
+        description: `Print dialog opened for ${activePatients.length} patients (4 labels each)`
+      });
+    } catch (error) {
+      console.error('Tiny label generation error:', error);
+      toast({ variant: 'destructive', title: 'Failed to generate tiny labels', description: String(error) });
     }
   };
 
@@ -1638,11 +1649,18 @@ export default function VetHub() {
               MRI Schedule
             </button>
             <button
-              onClick={handlePrintAllStickers}
+              onClick={handlePrintBigLabels}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
             >
               <Tag size={18} />
-              Print All Stickers
+              Print Big Labels
+            </button>
+            <button
+              onClick={handlePrintTinyLabels}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-400 to-amber-500 text-white rounded-lg font-bold hover:scale-105 transition-transform shadow-lg"
+            >
+              <Tag size={14} />
+              Print Tiny Labels
             </button>
             <button
               onClick={() => setShowQuickReference(!showQuickReference)}
