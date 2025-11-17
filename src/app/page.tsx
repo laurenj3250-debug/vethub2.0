@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
@@ -547,6 +547,29 @@ export default function VetHub() {
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
+    }
+  };
+
+  const handleResetAllTasks = async () => {
+    try {
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      let taskCount = 0;
+
+      for (const patient of activePatients) {
+        const completedTasks = patient.tasks.filter(t => t.completed);
+        for (const task of completedTasks) {
+          await apiClient.updateTask(String(patient.id), String(task.id), { completed: false });
+          taskCount++;
+        }
+      }
+
+      refetch();
+      toast({
+        title: '✅ Tasks Reset',
+        description: `Uncompleted ${taskCount} task${taskCount === 1 ? '' : 's'} for ${activePatients.length} patient${activePatients.length === 1 ? '' : 's'}`
+      });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to reset tasks' });
     }
   };
 
@@ -1691,6 +1714,13 @@ export default function VetHub() {
                   >
                     <CheckCircle2 size={16} />
                     All Tasks
+                  </button>
+                  <button
+                    onClick={() => { handleResetAllTasks(); setShowToolsMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition border-l-2 border-yellow-500/50"
+                  >
+                    <RotateCcw size={16} className="text-yellow-400" />
+                    <span className="text-yellow-300">Reset All Tasks</span>
                   </button>
                   <button
                     onClick={() => { setShowMRISchedule(!showMRISchedule); setShowToolsMenu(false); }}
