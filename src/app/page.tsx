@@ -2591,8 +2591,15 @@ export default function VetHub() {
                 onToggleSelect={() => togglePatientSelection(patient.id)}
                 onDelete={() => handleDeletePatient(patient.id)}
                 onUpdatePatient={(field, value) => {
-                  // Handle patient updates
-                  apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
+                  // Route to proper handlers for status and type changes
+                  if (field === 'status') {
+                    handleStatusChange(patient.id, value);
+                  } else if (field === 'type') {
+                    handleTypeChange(patient.id, value);
+                  } else {
+                    // Handle other field updates
+                    apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
+                  }
                 }}
                 onToggleTask={(taskId, completed) => handleToggleTask(patient.id, Number(taskId), completed)}
                 onDeleteTask={(taskId) => handleDeleteTask(patient.id, Number(taskId))}
