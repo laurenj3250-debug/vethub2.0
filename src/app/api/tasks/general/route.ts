@@ -65,3 +65,102 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+/**
+ * PATCH /api/tasks/general
+ * Update a general task by ID (passed in request body)
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    if (!body.id) {
+      return NextResponse.json(
+        { error: 'Task ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify task exists and is a general task (no patient association)
+    const existingTask = await prisma.task.findFirst({
+      where: {
+        id: body.id,
+        patientId: null,
+      },
+    });
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'General task not found' },
+        { status: 404 }
+      );
+    }
+
+    const updatedTask = await prisma.task.update({
+      where: { id: body.id },
+      data: {
+        title: body.title !== undefined ? body.title.trim() : undefined,
+        description: body.description !== undefined ? body.description : undefined,
+        category: body.category !== undefined ? body.category : undefined,
+        timeOfDay: body.timeOfDay !== undefined ? body.timeOfDay : undefined,
+        priority: body.priority !== undefined ? body.priority : undefined,
+        assignedTo: body.assignedTo !== undefined ? body.assignedTo : undefined,
+        dueDate: body.dueDate !== undefined ? (body.dueDate ? new Date(body.dueDate) : null) : undefined,
+        completed: body.completed !== undefined ? body.completed : undefined,
+        completedAt: body.completed !== undefined ? (body.completed ? new Date() : null) : undefined,
+      },
+    });
+
+    return NextResponse.json(updatedTask);
+  } catch (error) {
+    console.error('[API] Error updating general task:', error);
+    return NextResponse.json(
+      { error: 'Failed to update general task' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/tasks/general
+ * Delete a general task by ID (passed in request body)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    if (!body.id) {
+      return NextResponse.json(
+        { error: 'Task ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Verify task exists and is a general task (no patient association)
+    const existingTask = await prisma.task.findFirst({
+      where: {
+        id: body.id,
+        patientId: null,
+      },
+    });
+
+    if (!existingTask) {
+      return NextResponse.json(
+        { error: 'General task not found' },
+        { status: 404 }
+      );
+    }
+
+    await prisma.task.delete({
+      where: { id: body.id },
+    });
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error('[API] Error deleting general task:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete general task' },
+      { status: 500 }
+    );
+  }
+}

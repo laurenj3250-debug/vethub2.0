@@ -121,15 +121,16 @@ class ApiClient {
   }
 
   async updateGeneralTask(id: string, data: any) {
-    return this.request<any>(`/api/tasks/general/${id}`, {
+    return this.request<any>('/api/tasks/general', {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ id, ...data }),
     });
   }
 
   async deleteGeneralTask(id: string) {
-    return this.request<void>(`/api/tasks/general/${id}`, {
+    return this.request<void>('/api/tasks/general', {
       method: 'DELETE',
+      body: JSON.stringify({ id }),
     });
   }
 
