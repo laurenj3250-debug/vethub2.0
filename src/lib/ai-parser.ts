@@ -201,7 +201,7 @@ export async function analyzeRadiology(radiologyText: string): Promise<string> {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 512,
       temperature: 0,
       messages: [
@@ -235,7 +235,7 @@ export async function parseMedications(medText: string): Promise<string> {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 512,
       temperature: 0,
       messages: [
@@ -276,7 +276,7 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 1024,
       temperature: 0,
       messages: [
@@ -330,7 +330,7 @@ export async function determineScanType(problemText: string): Promise<string> {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 64,
       temperature: 0,
       messages: [
