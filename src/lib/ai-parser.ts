@@ -531,28 +531,48 @@ export async function parseVetRadarMedicationsFromScreenshot(screenshotBase64: s
             },
             {
               type: 'text',
-              text: `Extract ALL medications from this VetRadar patient detail page screenshot and return ONLY a JSON array with no other text or explanation.
+              text: `Extract ALL medications AND CRI fluids from this VetRadar patient detail page screenshot and return ONLY a JSON array with no other text or explanation.
 
 CRITICAL INSTRUCTIONS:
-- Look for medication tables, treatment sheets, or medication lists in the screenshot
-- Extract EVERY medication visible in the image
-- Include dose (with units: mg, mL, mg/kg, etc.)
-- Include route (PO, IV, SQ, IM, etc.)
-- Include frequency (q8h, BID, TID, SID, PRN, CRI, etc.)
+
+**What to INCLUDE:**
+- Look for sections labeled "Medications", "Treatments", or "Fluids" in the screenshot
+- Extract EVERY actual medication/drug visible (e.g., Gabapentin, Tramadol, Cefazolin, Prednisone, Carprofen, etc.)
+- Include CRI medications in fluid bags (e.g., "LRS + Ketamine CRI", "Fentanyl CRI", "Lidocaine CRI")
+- Include dose with units (mg, mL, mg/kg, mcg/kg/min, etc.)
+- Include route (PO, IV, SQ, IM, Topical, Transdermal, etc.)
+- Include frequency (q8h, q12h, BID, TID, SID, PRN, CRI, etc.)
 - Include time of administration if specified
-- DO NOT hallucinate or make up medications - only extract what you can see
-- If a medication has multiple administrations (e.g., morning and evening doses), create separate entries
-- Exclude plain fluids (LRS, saline) unless they have additives (e.g., "LRS + KCl")
-- If NO medications are visible, return an empty array []
+- If a medication has multiple administrations, create separate entries
+
+**What to EXCLUDE:**
+- Nursing care tasks (e.g., "NPO", "Walk", "Urination", "Defecation", "Check Cage", "Call Owner", "Ice Incision")
+- Monitoring vitals (e.g., "Temperature", "Heart Rate", "Blood Pressure")
+- Plain maintenance fluids without medication additives (e.g., plain "LRS", plain "Saline")
+- Generic task items like "Nursing Care", "Monitoring", "Attitude"
+- DO NOT extract task numbers or task counts (e.g., "6 Nursing Care 2", "1 Fluids")
+
+**How to identify MEDICATIONS:**
+- Medications have drug names (chemical/brand names) like Gabapentin, Tramadol, Cefazolin, etc.
+- Medications list doses (e.g., "100mg", "50mg/mL", "5mg/kg")
+- Medications list routes (PO, IV, SQ, IM, Topical)
+- Medications list frequency (q8h, BID, TID, CRI)
+
+**How to identify NURSING CARE (exclude these):**
+- Task-oriented phrases like "Walk", "Feed", "NPO", "Check", "Call", "Ice"
+- No drug name or chemical compound
+- Usually under "Nursing Care" or "Monitoring" sections
+
+If NO actual medications are visible (only nursing tasks), return an empty array [].
 
 Return this exact JSON structure:
 [
   {
     "medication": "Medication name",
-    "dose": "dose with units (e.g., '10 mg/kg', '2.5 mL')",
-    "route": "route (PO/IV/SQ/IM/etc)",
+    "dose": "dose with units (e.g., '100mg', '10mg/kg', '2.5mL')",
+    "route": "route (PO/IV/SQ/IM/Topical/etc)",
     "frequency": "frequency (q8h/BID/TID/SID/PRN/CRI/etc)",
-    "time": "time if specified (e.g., '8:00 AM', 'morning', optional)"
+    "time": "time if specified (optional)"
   }
 ]
 
