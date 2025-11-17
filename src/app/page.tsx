@@ -630,22 +630,44 @@ export default function VetHub() {
       await apiClient.updatePatient(String(patientId), { status: newStatus });
       toast({ title: `✅ Status updated to ${newStatus}` });
 
-      // Auto-create discharge instruction task when status changes to "Discharging"
+      // Auto-create discharge tasks when status changes to "Discharging" using task engine templates
       if (newStatus === 'Discharging') {
         const patient = patients.find(p => p.id === patientId);
-        const today = new Date().toISOString().split('T')[0];
         const existingTasks = patient?.tasks || [];
-        const hasDischargeTask = existingTasks.some((t: any) =>
-          (t.title || t.name) === 'Discharge Instructions' // No date check - tasks don't have date field
-        );
 
-        if (!hasDischargeTask) {
-          await apiClient.createTask(String(patientId), {
-            title: 'Discharge Instructions',
-            completed: false,
-            date: today,
+        // Get discharge task templates from task engine
+        const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
+        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE['Discharge'] || [];
+
+        let createdCount = 0;
+        const taskNames: string[] = [];
+
+        for (const template of templates) {
+          // Check if task already exists (by template name)
+          const hasTask = existingTasks.some((t: any) =>
+            (t.title || t.name) === template.name
+          );
+
+          if (!hasTask) {
+            await apiClient.createTask(String(patientId), {
+              title: template.name,
+              description: template.category,
+              category: template.category,
+              timeOfDay: template.timeOfDay || 'anytime',
+              priority: template.priority,
+              completed: false,
+            });
+            createdCount++;
+            taskNames.push(template.name);
+          }
+        }
+
+        if (createdCount > 0) {
+          const taskList = taskNames.slice(0, 3).join(', ') + (taskNames.length > 3 ? `, +${taskNames.length - 3} more` : '');
+          toast({
+            title: `📋 Added ${createdCount} discharge task${createdCount === 1 ? '' : 's'}`,
+            description: taskList
           });
-          toast({ title: '📋 Added: Discharge Instructions task' });
         }
       }
 
