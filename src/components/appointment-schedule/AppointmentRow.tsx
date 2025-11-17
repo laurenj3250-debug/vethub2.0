@@ -38,6 +38,53 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
     setEditingCell(null);
   };
 
+  // Parse smart time input: "930" -> "9:30 AM", "1345" -> "1:45 PM"
+  const parseTimeInput = (input: string): string => {
+    const cleaned = input.replace(/[^\d]/g, '');
+    if (cleaned.length === 0) return '';
+
+    // Handle various formats
+    let hours = 0;
+    let minutes = 0;
+
+    if (cleaned.length <= 2) {
+      // Just hours: "9" -> "9:00 AM"
+      hours = parseInt(cleaned);
+      minutes = 0;
+    } else if (cleaned.length === 3) {
+      // "930" -> "9:30 AM"
+      hours = parseInt(cleaned.substring(0, 1));
+      minutes = parseInt(cleaned.substring(1, 3));
+    } else {
+      // "1345" -> "1:45 PM"
+      hours = parseInt(cleaned.substring(0, cleaned.length - 2));
+      minutes = parseInt(cleaned.substring(cleaned.length - 2));
+    }
+
+    // Validate
+    if (hours > 23) hours = 23;
+    if (minutes > 59) minutes = 59;
+
+    // Convert to 12-hour format
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  // Generate time options in 15-minute increments
+  const generateTimeOptions = (): string[] => {
+    const options: string[] = [];
+    for (let hour = 7; hour <= 19; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        options.push(`${displayHour}:${minute.toString().padStart(2, '0')} ${period}`);
+      }
+    }
+    return options;
+  };
+
   const renderEditableCell = (value: string | null, fieldName: string, placeholder: string = '—', multiline: boolean = false) => {
     const isEditing = editingCell === fieldName;
     const isEmpty = !value;
@@ -80,6 +127,63 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
     );
   };
 
+  // Specialized time picker cell
+  const renderTimeCell = () => {
+    const isEditing = editingCell === 'appointmentTime';
+    const isEmpty = !patient.appointmentTime;
+
+    return (
+      <td
+        className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
+          isEmpty ? 'bg-slate-800/30' : ''
+        } cursor-pointer hover:bg-slate-700/20 relative group`}
+        onClick={() => !isEditing && handleCellClick('appointmentTime')}
+      >
+        {isEditing ? (
+          <div className="relative">
+            <input
+              type="text"
+              value={patient.appointmentTime || ''}
+              onChange={(e) => onUpdate(patient.id, 'appointmentTime', e.target.value)}
+              onBlur={(e) => {
+                // Parse smart input on blur
+                const parsed = parseTimeInput(e.target.value);
+                if (parsed) {
+                  onUpdate(patient.id, 'appointmentTime', parsed);
+                }
+                handleCellBlur();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const parsed = parseTimeInput(e.currentTarget.value);
+                  if (parsed) {
+                    onUpdate(patient.id, 'appointmentTime', parsed);
+                  }
+                  handleCellBlur();
+                }
+              }}
+              autoFocus
+              placeholder="9:30 AM or 930"
+              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+              list={`time-options-${patient.id}`}
+            />
+            <datalist id={`time-options-${patient.id}`}>
+              {generateTimeOptions().map((time) => (
+                <option key={time} value={time} />
+              ))}
+            </datalist>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            <span className={`flex-1 ${isEmpty ? 'text-slate-600' : 'text-slate-200 font-medium'}`}>
+              {patient.appointmentTime || '—'}
+            </span>
+          </div>
+        )}
+      </td>
+    );
+  };
+
   // Color coding based on status
   const statusColors =
     patient.status === 'new'
@@ -104,6 +208,9 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
           <GripVertical size={16} />
         </div>
       </td>
+
+      {/* Appointment Time */}
+      {renderTimeCell()}
 
       {/* Patient Name with Status Badge */}
       <td
