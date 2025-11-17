@@ -39,7 +39,7 @@ Extract ALL appointments from this image and return them as a JSON array.
 
 For EACH appointment found, extract:
 - appointmentTime: Time in 12-hour format (e.g., "9:30 AM", "2:00 PM")
-- patientName: Full patient name (pet name + owner last name if available)
+- patientName: MUST be BOTH pet name AND owner last name combined (e.g., "Buddy Smith" = pet "Buddy" + owner last name "Smith"). If you can ONLY see the pet name, try to find the owner's last name in the screenshot and append it. Format: "PetName OwnerLastName"
 - age: Age with units if visible (e.g., "5y 3m", "2 years", "6mo", or null if not shown)
 - status: Best guess from appointment type:
   * "new" for: "new patient", "first visit", "initial consult", "new client"
@@ -77,6 +77,10 @@ Return format:
     "otherNotes": "Owner requested morning appointment"
   }
 ]
+
+CRITICAL: patientName must include BOTH pet name and owner last name. Examples:
+- ✅ CORRECT: "Buddy Smith", "Max Johnson", "Luna Garcia"
+- ❌ WRONG: "Buddy", "Max", "Luna" (missing owner last name)
 
 Return ONLY the JSON array, no markdown, no explanations:`;
 

@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 Extract patient information from the following text and return a JSON array of patients.
 
 For EACH patient found, extract these fields (use null if not mentioned):
-- patientName: Full patient name (pet name + owner last name if available)
+- patientName: MUST be BOTH pet name AND owner last name combined (e.g., "Buddy Smith" = pet "Buddy" + owner last name "Smith"). If you can ONLY find the pet name (e.g., "Buddy"), try to find the owner's last name in the text and append it. Format: "PetName OwnerLastName"
 - age: Age with units (e.g., "5y 3m", "2 years", "6mo")
 - status: "new", "recheck", or "mri-dropoff" - Detect from keywords:
   * "mri-dropoff" for: "MRI drop off", "MRI drop-off", "dropping off for MRI", "MRI scheduled", "MRI today"
@@ -70,6 +70,10 @@ Return format:
     "otherNotes": "Owner reports decreased appetite"
   }
 ]
+
+CRITICAL: patientName must include BOTH pet name and owner last name. Examples:
+- ✅ CORRECT: "Buddy Smith", "Max Johnson", "Luna Garcia"
+- ❌ WRONG: "Buddy", "Max", "Luna" (missing owner last name)
 
 Return ONLY the JSON array, no markdown, no explanations:`;
 
