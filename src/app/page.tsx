@@ -521,7 +521,7 @@ export default function VetHub() {
         await apiClient.createTask(newPatient.id, {
           title: taskName,
           completed: false,
-          date: new Date().toISOString().split('T')[0],
+          dueDate: new Date().toISOString().split('T')[0],
         });
       }
 
@@ -607,7 +607,7 @@ export default function VetHub() {
       await apiClient.createTask(String(patientId), {
         title: taskName,
         completed: false,
-        date: new Date().toISOString().split('T')[0],
+        dueDate: new Date().toISOString().split('T')[0],  // Fixed: use 'dueDate' not 'date'
       });
       toast({ title: `✅ Added: ${taskName}` });
       setQuickAddMenuPatient(null);
@@ -1060,7 +1060,7 @@ export default function VetHub() {
       await apiClient.createTask(String(selectedPatientForTask), {
         title: newPatientTaskName,
         completed: false,
-        date: new Date().toISOString().split('T')[0],
+        dueDate: new Date().toISOString().split('T')[0],
       });
       const patient = patients.find(p => p.id === selectedPatientForTask);
       toast({ title: `✅ Added task to ${patient?.demographics?.name || patient?.name || 'patient'}: ${newPatientTaskName}` });
@@ -1082,7 +1082,7 @@ export default function VetHub() {
         await apiClient.createTask(String(quickTaskPatient), {
           title: quickTaskInput,
           completed: false,
-          date: new Date().toISOString().split('T')[0],
+          dueDate: new Date().toISOString().split('T')[0],
         });
         const patient = patients.find(p => p.id === quickTaskPatient);
         toast({ title: `✅ Added task to ${patient?.demographics?.name || patient?.name || 'patient'}: ${quickTaskInput}` });
