@@ -943,13 +943,30 @@ export class VetRadarScraper {
             // Strategy 1: Look for "Add treatments" link and click it to expand treatments
             try {
               console.log(`[VetRadar] Strategy 1: Looking for "Add treatments" link...`);
-              const addTreatmentsLink = page.locator('text="Add treatments", a:has-text("Add treatment"), button:has-text("Add treatment")').first();
-              if (await addTreatmentsLink.isVisible({ timeout: 3000 })) {
-                console.log(`[VetRadar] Found "Add treatments" link - clicking to expand section...`);
-                await addTreatmentsLink.click();
-                await page.waitForTimeout(2000); // Wait for section to expand
-                treatmentsVisible = true;
-                console.log(`[VetRadar] ✓ Treatments section should now be visible`);
+              // Try multiple selectors for the "Add treatments" link
+              const addTreatmentsSelectors = [
+                'text="Add treatments"',
+                'a:has-text("Add treatment")',
+                'button:has-text("Add treatment")',
+                '[href*="treatment"]',
+                'a >> text=/add.*treatment/i',
+              ];
+
+              for (const selector of addTreatmentsSelectors) {
+                try {
+                  const link = page.locator(selector).first();
+                  if (await link.isVisible({ timeout: 2000 })) {
+                    console.log(`[VetRadar] Found treatments link with selector: ${selector}`);
+                    await link.click();
+                    console.log(`[VetRadar] Clicked "Add treatments" link`);
+                    await page.waitForTimeout(3000); // Wait for section to load/expand
+                    treatmentsVisible = true;
+                    console.log(`[VetRadar] ✓ Treatments section expanded`);
+                    break;
+                  }
+                } catch (selectorError) {
+                  continue; // Try next selector
+                }
               }
             } catch (e) {
               console.log(`[VetRadar] Strategy 1 failed:`, e);
