@@ -209,7 +209,7 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
  */
 export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: number = 1): string {
   const data = formatPatientForTinyLabel(patient);
-  const labelCount = sheetCount * 4; // 4 labels per sheet
+  const labelCount = 4; // Always 4 tiny labels per patient
 
   // Generate array of label HTML
   const labels = Array(labelCount).fill(null).map((_, index) => `
@@ -633,38 +633,254 @@ export async function downloadAllStickersPDF(patient: UnifiedPatient) {
  * Print consolidated big labels (opens print dialog)
  */
 export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
-  const blob = await generateConsolidatedBigLabelsPDF(patients);
-  const url = URL.createObjectURL(blob);
+  // Generate HTML for all patients
+  const htmlPages = patients.map(patient => {
+    const count = patient.stickerData?.bigLabelCount ?? 1;
+    return generateBigLabelsHTML(patient, count);
+  }).join('\n');
 
-  // Open in new window for printing
-  const printWindow = window.open(url, '_blank');
+  // Combine all pages into one HTML document
+  const combinedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Big Labels - Consolidated</title>
+  <style>
+    @page {
+      size: 70mm 45mm;
+      margin: 0;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      width: 70mm;
+      height: 45mm;
+      padding: 3mm 4mm;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9pt;
+      line-height: 1.2;
+      page-break-after: always;
+      display: block;
+    }
+    .page:last-child {
+      page-break-after: auto;
+    }
+    .line {
+      margin: 0;
+      padding: 0;
+      line-height: 1.3;
+    }
+    .line.top {
+      margin-bottom: 1mm;
+    }
+    .bold {
+      font-weight: bold;
+    }
+    .large {
+      font-size: 14pt;
+    }
+    .small {
+      font-size: 12pt;
+    }
+    @media print {
+      body { margin: 0; padding: 0; }
+      .page { page-break-after: always; }
+      .page:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+${patients.map(patient => {
+  const data = formatPatientForBigLabel(patient);
+  const count = patient.stickerData?.bigLabelCount ?? 1;
+  return Array(count).fill(null).map(() => `
+  <div class="page">
+    <p class="line top large">
+      <span class="bold">${escapeHtml(data.patientName)}</span>
+      &nbsp;${escapeHtml(data.clientId)}&nbsp;<span class="bold">${escapeHtml(data.patientId)}</span>
+    </p>
+    <p class="line large">
+      <span class="bold">${escapeHtml(data.ownerName)}</span>
+    </p>
+    <p class="line small">
+      <span class="bold">DOB:</span> ${escapeHtml(data.dob)}
+    </p>
+    <p class="line small">
+      <span class="bold">Species/Breed:</span> ${escapeHtml(data.species)}/${escapeHtml(data.breed)}
+    </p>
+    <p class="line small">
+      <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
+      &nbsp;&nbsp;<span class="bold">Age:</span> ${escapeHtml(data.age)}
+      &nbsp;&nbsp;<span class="bold">Weight:</span> ${escapeHtml(data.weight)}
+    </p>
+    <p class="line small">
+      <span class="bold">Mix Color:</span> ${escapeHtml(data.colorMarkings)}
+    </p>
+  </div>`).join('\n');
+}).join('\n')}
+</body>
+</html>
+  `.trim();
+
+  // Open HTML in new window for printing
+  const printWindow = window.open('', '_blank');
   if (printWindow) {
-    printWindow.addEventListener('load', () => {
+    printWindow.document.write(combinedHTML);
+    printWindow.document.close();
+    printWindow.onload = () => {
       printWindow.print();
-    });
+    };
   }
-
-  // Cleanup after a delay
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /**
  * Print consolidated tiny labels (opens print dialog)
  */
 export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
-  const blob = await generateConsolidatedTinyLabelsPDF(patients);
-  const url = URL.createObjectURL(blob);
+  // Generate all tiny labels in one consolidated HTML document
+  const allLabels = patients.map(patient => {
+    const data = formatPatientForTinyLabel(patient);
+    const labelCount = 4; // Always 4 tiny labels per patient
 
-  // Open in new window for printing
-  const printWindow = window.open(url, '_blank');
+    return Array(labelCount).fill(null).map(() => `
+      <div class="tiny-label">
+        <div class="tiny-header">
+          <span class="tiny-date">${escapeHtml(data.date)}</span>
+          <span class="tiny-patient">${escapeHtml(data.patientName)}</span>
+        </div>
+        ${data.mrn ? `<div class="tiny-mrn">MRN: ${escapeHtml(data.mrn)}</div>` : ''}
+        <div class="tiny-owner">Owner: ${escapeHtml(data.ownerName)}</div>
+        <div class="tiny-species">${escapeHtml(data.species)} / ${escapeHtml(data.breed)}</div>
+        <div class="tiny-details">${escapeHtml(data.sex)} / ${escapeHtml(data.age || '')}</div>
+        <div class="tiny-id">
+          <span class="id-label">ID:</span>
+          <span class="id-line">_____________________</span>
+        </div>
+      </div>
+    `).join('\n');
+  }).join('\n');
+
+  const combinedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tiny Labels - Consolidated</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.5in;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .label-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.125in;
+    }
+
+    .tiny-label {
+      width: 1.252in;
+      height: 0.839in;
+      border: 1px solid #000;
+      padding: 0.05in;
+      box-sizing: border-box;
+      page-break-inside: avoid;
+      background: white;
+      font-size: 6pt;
+    }
+
+    .tiny-header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      border-bottom: 1px solid #000;
+      padding-bottom: 1px;
+      margin-bottom: 2px;
+    }
+
+    .tiny-date {
+      font-size: 5pt;
+    }
+
+    .tiny-patient {
+      font-size: 7pt;
+      text-transform: uppercase;
+    }
+
+    .tiny-mrn {
+      font-size: 5pt;
+      color: #333;
+      margin-bottom: 1px;
+    }
+
+    .tiny-owner {
+      font-size: 6pt;
+      margin-bottom: 1px;
+    }
+
+    .tiny-species {
+      font-size: 6pt;
+      margin-bottom: 1px;
+    }
+
+    .tiny-details {
+      font-size: 6pt;
+      margin-bottom: 2px;
+    }
+
+    .tiny-id {
+      margin-top: 3px;
+      padding-top: 2px;
+      border-top: 1px solid #ccc;
+    }
+
+    .id-label {
+      font-weight: bold;
+      font-size: 5pt;
+    }
+
+    .id-line {
+      font-size: 6pt;
+      letter-spacing: 1px;
+    }
+
+    @media print {
+      body { margin: 0; }
+      .tiny-label { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label-container">
+    ${allLabels}
+  </div>
+</body>
+</html>
+  `.trim();
+
+  // Open HTML in new window for printing
+  const printWindow = window.open('', '_blank');
   if (printWindow) {
-    printWindow.addEventListener('load', () => {
+    printWindow.document.write(combinedHTML);
+    printWindow.document.close();
+    printWindow.onload = () => {
       printWindow.print();
-    });
+    };
   }
-
-  // Cleanup after a delay
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 /**
