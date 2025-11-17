@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
@@ -550,6 +550,29 @@ export default function VetHub() {
     }
   };
 
+  const handleResetAllTasks = async () => {
+    try {
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      let taskCount = 0;
+
+      for (const patient of activePatients) {
+        const completedTasks = patient.tasks.filter(t => t.completed);
+        for (const task of completedTasks) {
+          await apiClient.updateTask(String(patient.id), String(task.id), { completed: false });
+          taskCount++;
+        }
+      }
+
+      refetch();
+      toast({
+        title: '✅ Tasks Reset',
+        description: `Uncompleted ${taskCount} task${taskCount === 1 ? '' : 's'} for ${activePatients.length} patient${activePatients.length === 1 ? '' : 's'}`
+      });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to reset tasks' });
+    }
+  };
+
   // Handle filter chip clicks
   const handleFilterClick = (filterType: string, value: string) => {
     setActiveFilters(prev => {
@@ -607,22 +630,44 @@ export default function VetHub() {
       await apiClient.updatePatient(String(patientId), { status: newStatus });
       toast({ title: `✅ Status updated to ${newStatus}` });
 
-      // Auto-create discharge instruction task when status changes to "Discharging"
+      // Auto-create discharge tasks when status changes to "Discharging" using task engine templates
       if (newStatus === 'Discharging') {
         const patient = patients.find(p => p.id === patientId);
-        const today = new Date().toISOString().split('T')[0];
         const existingTasks = patient?.tasks || [];
-        const hasDischargeTask = existingTasks.some((t: any) =>
-          (t.title || t.name) === 'Discharge Instructions' // No date check - tasks don't have date field
-        );
 
-        if (!hasDischargeTask) {
-          await apiClient.createTask(String(patientId), {
-            title: 'Discharge Instructions',
-            completed: false,
-            date: today,
+        // Get discharge task templates from task engine
+        const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
+        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE['Discharge'] || [];
+
+        let createdCount = 0;
+        const taskNames: string[] = [];
+
+        for (const template of templates) {
+          // Check if task already exists (by template name)
+          const hasTask = existingTasks.some((t: any) =>
+            (t.title || t.name) === template.name
+          );
+
+          if (!hasTask) {
+            await apiClient.createTask(String(patientId), {
+              title: template.name,
+              description: template.category,
+              category: template.category,
+              timeOfDay: template.timeOfDay || 'anytime',
+              priority: template.priority,
+              completed: false,
+            });
+            createdCount++;
+            taskNames.push(template.name);
+          }
+        }
+
+        if (createdCount > 0) {
+          const taskList = taskNames.slice(0, 3).join(', ') + (taskNames.length > 3 ? `, +${taskNames.length - 3} more` : '');
+          toast({
+            title: `📋 Added ${createdCount} discharge task${createdCount === 1 ? '' : 's'}`,
+            description: taskList
           });
-          toast({ title: '📋 Added: Discharge Instructions task' });
         }
       }
 
@@ -1691,6 +1736,13 @@ export default function VetHub() {
                   >
                     <CheckCircle2 size={16} />
                     All Tasks
+                  </button>
+                  <button
+                    onClick={() => { handleResetAllTasks(); setShowToolsMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition border-l-2 border-yellow-500/50"
+                  >
+                    <RotateCcw size={16} className="text-yellow-400" />
+                    <span className="text-yellow-300">Reset All Tasks</span>
                   </button>
                   <button
                     onClick={() => { setShowMRISchedule(!showMRISchedule); setShowToolsMenu(false); }}
