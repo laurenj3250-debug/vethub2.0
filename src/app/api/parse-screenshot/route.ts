@@ -194,20 +194,21 @@ Return ONLY a valid JSON object with fields matching SOAP structure:
 Extract patient demographics and contact information:
 
 PATIENT DATA:
-- Patient name
-- Patient ID number
+- Patient name (FULL NAME - first and last name)
+- Patient ID number (consult/patient number if visible)
+- Client ID (client code number if visible)
 - Species
-- Breed
+- Breed (COMPLETE breed name)
 - Age/Date of birth
 - Sex (M/F, neutered/intact)
 - Weight
-- Color/markings
+- Color/markings (COMPLETE description)
 
 OWNER DATA:
-- Owner name
-- Phone number(s)
+- Owner name (COMPLETE FULL NAME - must include both first AND last name if visible)
+- Phone number(s) (all phone numbers separated by commas)
 - Email
-- Address
+- Address (COMPLETE address if visible)
 
 MEDICAL SUMMARY:
 - Current medications
@@ -216,13 +217,23 @@ MEDICAL SUMMARY:
 - Recent visit dates
 - Upcoming appointments
 
+CRITICAL REQUIREMENTS:
+1. For "ownerName": Extract the COMPLETE owner name (first name + last name).
+   - Example: If you see "John Smith", extract "John Smith", NOT just "John"
+   - If you see "Smith, John", extract "John Smith"
+2. For "patientName": Extract the COMPLETE patient name
+3. For "breed": Extract the FULL breed description
+4. For "color": Extract the FULL color/markings description
+
 Return ONLY a valid JSON object:
 {
   "patientName": "",
   "patientId": "",
+  "clientId": "",
   "species": "",
   "breed": "",
   "age": "",
+  "dateOfBirth": "",
   "sex": "",
   "weight": "",
   "color": "",

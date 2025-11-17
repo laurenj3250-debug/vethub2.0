@@ -536,18 +536,18 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleTask = async (patientId: number, taskId: number, currentStatus: boolean) => {
+  const handleToggleTask = async (patientId: number, taskId: string, currentStatus: boolean) => {
     try {
-      await apiClient.updateTask(String(patientId), String(taskId), { completed: !currentStatus });
+      await apiClient.updateTask(String(patientId), taskId, { completed: !currentStatus });
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
     }
   };
 
-  const handleDeleteTask = async (patientId: number, taskId: number) => {
+  const handleDeleteTask = async (patientId: number, taskId: string) => {
     try {
-      await apiClient.deleteTask(String(patientId), String(taskId));
+      await apiClient.deleteTask(String(patientId), taskId);
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
