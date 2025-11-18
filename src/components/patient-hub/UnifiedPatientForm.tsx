@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Mic, FileText, Sparkles } from 'lucide-react';
+import { Upload, Mic, FileText, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VetRadarImageUpload } from './VetRadarImageUpload';
 
 interface UnifiedPatientFormProps {
   data: any;
@@ -87,6 +89,27 @@ export function UnifiedPatientForm({ data, onChange }: UnifiedPatientFormProps) 
     onChange(newData);
   };
 
+  const handleImageDataExtracted = (imageData: any) => {
+    // Merge image data with existing data
+    const mergedData = {
+      ...data,
+      demographics: {
+        ...data.demographics,
+        name: imageData.signalment?.split(' ')?.[0] || data.demographics?.name || '',
+      },
+      location: imageData.location || data.location,
+      clinical: {
+        ...data.clinical,
+        problems: imageData.problems || data.clinical?.problems || '',
+        diagnosticFindings: imageData.diagnosticFindings || data.clinical?.diagnosticFindings || '',
+        medications: imageData.therapeutics || data.clinical?.medications || '',
+        fluids: imageData.fluids || data.clinical?.fluids || '',
+        concerns: imageData.concerns || data.clinical?.concerns || '',
+      },
+    };
+    onChange(mergedData);
+  };
+
   return (
     <div className="space-y-6">
       {/* Quick Input Section */}
@@ -96,42 +119,41 @@ export function UnifiedPatientForm({ data, onChange }: UnifiedPatientFormProps) 
           Quick Input Methods
         </h3>
 
-        <div className="space-y-3">
-          <Textarea
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-            placeholder="Paste referral email, notes, or any patient info here..."
-            rows={4}
-            className="w-full bg-slate-800 border-slate-700 text-white"
-          />
+        <Tabs defaultValue="text" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-800">
+            <TabsTrigger value="text" className="data-[state=active]:bg-purple-600">
+              <FileText size={16} className="mr-2" />
+              Paste Text
+            </TabsTrigger>
+            <TabsTrigger value="image" className="data-[state=active]:bg-purple-600">
+              <ImageIcon size={16} className="mr-2" />
+              Upload Screenshot
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="flex gap-2">
+          <TabsContent value="text" className="space-y-3 mt-4">
+            <Textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder="Paste EzyVet/VetRadar text, referral email, or any patient info here..."
+              rows={4}
+              className="w-full bg-slate-800 border-slate-700 text-white"
+            />
+
             <Button
               onClick={() => handleQuickInput('paste')}
               disabled={!pasteText || isParsing}
-              className="flex-1 bg-purple-600 hover:bg-purple-700"
+              className="w-full bg-purple-600 hover:bg-purple-700"
             >
               <FileText size={16} className="mr-2" />
               {isParsing ? 'Parsing...' : 'Parse Text'}
             </Button>
-            <Button
-              disabled
-              className="bg-slate-700 cursor-not-allowed"
-              title="Coming soon"
-            >
-              <Mic size={16} className="mr-2" />
-              Voice
-            </Button>
-            <Button
-              disabled
-              className="bg-slate-700 cursor-not-allowed"
-              title="Coming soon"
-            >
-              <Upload size={16} className="mr-2" />
-              VetRadar
-            </Button>
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="image" className="mt-4">
+            <VetRadarImageUpload onDataExtracted={handleImageDataExtracted} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Demographics */}
