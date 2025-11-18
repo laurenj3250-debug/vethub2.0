@@ -72,7 +72,7 @@ export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientDat
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better accuracy with complex VetRadar exports
-      max_tokens: 2048,
+      max_tokens: 512, // Reduced from 2048 - JSON responses are typically <500 tokens
       temperature: 0,
       messages: [
         {
@@ -148,7 +148,7 @@ export async function analyzeBloodwork(bloodworkText: string, species: string = 
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
+      max_tokens: 512, // Reduced from 2048 - bloodwork summaries are concise
       temperature: 0,
       messages: [
         {
@@ -284,7 +284,7 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better extraction
-      max_tokens: 2048,
+      max_tokens: 1024, // Reduced from 2048 - rounding data typically <1000 tokens
       temperature: 0,
       messages: [
         {
@@ -454,8 +454,8 @@ export async function parseVetRadarMedications(treatmentSheetText: string): Prom
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-20250514', // Use Opus for best accuracy with medical text
-      max_tokens: 4096,
+      model: 'claude-sonnet-4-5-20250929', // Use Sonnet (5x cheaper than Opus, still excellent for medical text)
+      max_tokens: 1024, // Reduced from 4096 - medication lists rarely exceed 1024 tokens
       temperature: 0,
       messages: [
         {
@@ -493,7 +493,7 @@ Return ONLY the JSON array, no other text:`
 
     const content = response.content[0];
     if (content.type !== 'text') {
-      throw new Error('No text response from Claude Opus');
+      throw new Error('No text response from Claude Sonnet');
     }
 
     // Extract JSON from response
@@ -509,7 +509,7 @@ Return ONLY the JSON array, no other text:`
 
     // Validate that we got an array of medications
     if (!Array.isArray(parsed)) {
-      console.warn('Opus returned non-array response, returning empty array');
+      console.warn('Sonnet returned non-array response, returning empty array');
       return [];
     }
 
@@ -584,7 +584,7 @@ export async function parseVetRadarComprehensiveData(screenshotBase64: string): 
   try {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929', // Use Sonnet 4.5 for best medical data extraction
-      max_tokens: 4096,
+      max_tokens: 2048, // Reduced from 4096 - comprehensive data but rarely exceeds 2000 tokens
       temperature: 0,
       messages: [
         {
