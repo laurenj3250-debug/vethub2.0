@@ -29,8 +29,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
+# Install production dependencies AND prisma (needed for runtime generation)
 RUN npm ci --only=production
+RUN npm install prisma --save-dev
 
 # Install Playwright browsers
 RUN npx playwright install chromium --with-deps
@@ -38,9 +39,11 @@ RUN npx playwright install chromium --with-deps
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/package*.json ./
+
+# Copy Prisma schema (needed for generation at runtime)
+COPY --from=builder /app/prisma ./prisma
 
 # Note: Not copying node_modules/@prisma - will be generated at runtime by start script
 
