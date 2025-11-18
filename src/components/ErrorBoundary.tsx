@@ -60,12 +60,20 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
                 </pre>
               </div>
             )}
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition"
-            >
-              Reload Page
-            </button>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded transition"
+              >
+                Reload Page
+              </button>
+            </div>
           </div>
         </div>
       );

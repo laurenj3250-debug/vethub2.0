@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { UnifiedPatientForm } from '@/components/patient-hub/UnifiedPatientForm';
 import { OutputPreviewPanel } from '@/components/patient-hub/OutputPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function PatientHubPage() {
   const { toast } = useToast();
@@ -160,10 +161,12 @@ export default function PatientHubPage() {
               Enter patient data once - AI will generate everything you need
             </p>
 
-            <UnifiedPatientForm
-              data={patientData}
-              onChange={handleDataChange}
-            />
+            <ErrorBoundary fallback={<FormErrorFallback />}>
+              <UnifiedPatientForm
+                data={patientData}
+                onChange={handleDataChange}
+              />
+            </ErrorBoundary>
           </div>
 
           {/* Right: Live Preview */}
@@ -176,10 +179,12 @@ export default function PatientHubPage() {
               See what will be generated in real-time
             </p>
 
-            <OutputPreviewPanel
-              patientData={patientData}
-              outputs={generatedOutputs}
-            />
+            <ErrorBoundary fallback={<PreviewErrorFallback />}>
+              <OutputPreviewPanel
+                patientData={patientData}
+                outputs={generatedOutputs}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       </main>
@@ -267,4 +272,33 @@ function generateMRISheet(data: any) {
     sedationStart: '',
     sedationEnd: '',
   };
+}
+
+// Error Fallback Components
+function FormErrorFallback() {
+  return (
+    <div className="bg-red-900/20 border border-red-500 rounded-lg p-6 text-center">
+      <h3 className="text-red-400 font-bold mb-2">Form Error</h3>
+      <p className="text-slate-300 mb-4">
+        Unable to load patient form. Please refresh the page or try again.
+      </p>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+      >
+        Refresh Page
+      </button>
+    </div>
+  );
+}
+
+function PreviewErrorFallback() {
+  return (
+    <div className="bg-red-900/20 border border-red-500 rounded-lg p-6 text-center">
+      <h3 className="text-red-400 font-bold mb-2">Preview Error</h3>
+      <p className="text-slate-300 mb-4">
+        Unable to generate preview. Try filling out the form and generating outputs again.
+      </p>
+    </div>
+  );
 }

@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { QuickPatientNav } from '@/components/layout/QuickPatientNav';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'VetHub 2.0',
@@ -22,8 +23,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <Providers>
-          <QuickPatientNav />
-          {children}
+          <ErrorBoundary>
+            <QuickPatientNav />
+            {children}
+          </ErrorBoundary>
         </Providers>
       </body>
     </html>
