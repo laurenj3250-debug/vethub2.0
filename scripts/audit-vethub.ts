@@ -18,7 +18,7 @@
  * 10. VetRadar integration
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import * as fs from 'fs';
 import * as path from 'path';
 import { config } from 'dotenv';
@@ -430,7 +430,7 @@ async function testMRICalculations() {
       const mriPatients = await prisma.patient.findMany({
         where: {
           mriData: {
-            not: null,
+            not: Prisma.JsonNull,
           },
         },
         take: 1,
@@ -531,7 +531,7 @@ async function testRoundingSheetGeneration() {
         where: {
           status: 'Active',
           roundingData: {
-            not: null,
+            not: Prisma.JsonNull,
           },
         },
         take: 3,

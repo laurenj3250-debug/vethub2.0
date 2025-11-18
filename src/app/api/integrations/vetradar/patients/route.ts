@@ -155,9 +155,9 @@ export async function POST(request: Request) {
                 demographics: patient.demographics,
                 medicalHistory: patient.medicalHistory || {},
                 currentStay: patient.currentStay,
-                roundingData: patient.roundingData,
-                mriData: patient.mriData,
-                stickerData: patient.stickerData,
+                roundingData: patient.roundingData as any,
+                mriData: patient.mriData as any,
+                stickerData: patient.stickerData as any,
                 appointmentInfo: patient.appointmentInfo,
               },
               include: {

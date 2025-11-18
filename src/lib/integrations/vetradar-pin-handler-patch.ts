@@ -10,6 +10,9 @@
  * 4. Uses multiple fallback strategies
  */
 
+// This file is a code snippet/patch - export {} makes it a module
+export {};
+
 // Replace the existing PIN handling section (approximately lines 280-530) with this:
 
 // After detecting PIN inputs and entering the digits...

@@ -105,6 +105,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Declare updateData outside try block so it's accessible in catch
+  let updateData: any = {};
+
   try {
     const resolvedParams = await params;
     const patientId = parseInt(resolvedParams.id);
@@ -119,7 +122,7 @@ export async function PATCH(
     const body = await request.json();
 
     // Prepare update data
-    const updateData: any = {};
+    updateData = {};
 
     if (body.status !== undefined) updateData.status = body.status;
     if (body.type !== undefined) updateData.type = body.type; // Support patient type updates (Medical/MRI/Surgery)

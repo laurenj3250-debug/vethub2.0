@@ -522,7 +522,7 @@ export class VetRadarScraper {
             console.log('[VetRadar] No confirm button found - waiting for auto-submit...');
             // Wait for auto-navigation after PIN entry
             try {
-              await page.waitForURL(url => !url.includes('verify_email') && !url.includes('set_up_pin'), { timeout: 10000 });
+              await page.waitForURL(url => !url.toString().includes('verify_email') && !url.toString().includes('set_up_pin'), { timeout: 10000 });
               console.log(`[VetRadar] PIN auto-submitted, navigated to: ${page.url()}`);
             } catch (e) {
               console.log('[VetRadar] No auto-navigation detected after PIN entry');
@@ -604,7 +604,7 @@ export class VetRadarScraper {
                 // Wait for auto-navigation after PIN
                 await page.waitForTimeout(2000);
                 try {
-                  await page.waitForURL(url => !url.includes('pin') && !url.includes('verify'), { timeout: 10000 });
+                  await page.waitForURL(url => !url.toString().includes('pin') && !url.toString().includes('verify'), { timeout: 10000 });
                   console.log(`[VetRadar] PIN accepted, navigated to: ${page.url()}`);
                 } catch (e) {
                   console.log('[VetRadar] No auto-navigation after PIN');

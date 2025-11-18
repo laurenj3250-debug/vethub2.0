@@ -348,7 +348,7 @@ export class VetRadarScraperFixed {
 
         // Check if PIN auto-submitted
         try {
-          await page.waitForURL(url => !url.includes('pin') && !url.includes('set_up'), {
+          await page.waitForURL(url => !url.toString().includes('pin') && !url.toString().includes('set_up'), {
             timeout: 5000
           });
           console.log('[VetRadar] PIN auto-submitted successfully');
