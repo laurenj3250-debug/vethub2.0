@@ -150,3 +150,18 @@ model Appointment {
   @@index([date])
   @@index([appointmentTime])
 }
+
+// Smart Auto-Complete Phrases
+// Learns from user's past rounding sheets and SOAP notes
+model CommonPhrase {
+  id          String   @id @default(cuid())
+  field       String   // problems | diagnostics | therapeutics | concerns
+  phrase      String
+  usageCount  Int      @default(1)
+  createdAt   DateTime @default(now())
+  lastUsedAt  DateTime @default(now())
+
+  @@index([field])
+  @@index([usageCount])
+  @@unique([field, phrase])
+}
