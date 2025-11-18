@@ -5,6 +5,7 @@ import { Save, Copy, ExternalLink, Sparkles } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
+import { AutoCompleteInput } from '@/components/AutoCompleteInput';
 
 interface Patient {
   id: number;
@@ -402,28 +403,31 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <textarea
+                    <AutoCompleteInput
+                      field="problems"
                       value={data.problems || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'problems', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'problems')}
+                      onChange={(value) => handleFieldChange(patient.id, 'problems', value)}
+                      multiline={true}
                       rows={2}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <textarea
+                    <AutoCompleteInput
+                      field="diagnostics"
                       value={data.diagnosticFindings || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'diagnosticFindings', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
+                      onChange={(value) => handleFieldChange(patient.id, 'diagnosticFindings', value)}
+                      multiline={true}
                       rows={2}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <textarea
+                    <AutoCompleteInput
+                      field="therapeutics"
                       value={data.therapeutics || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'therapeutics', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
+                      onChange={(value) => handleFieldChange(patient.id, 'therapeutics', value)}
+                      multiline={true}
                       rows={2}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
@@ -474,11 +478,13 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <textarea
+                    <AutoCompleteInput
+                      field="concerns"
                       value={data.concerns || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'concerns', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'concerns')}
+                      onChange={(value) => handleFieldChange(patient.id, 'concerns', value)}
+                      multiline={true}
                       rows={2}
+                      placeholder={carryForward?.carriedForward ? "Enter today's concerns..." : ""}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
                     />
                   </td>
