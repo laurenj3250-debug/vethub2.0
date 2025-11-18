@@ -266,9 +266,16 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
     console.warn('Anthropic API not available - returning empty EzyVet data');
     return {
       signalment: '',
+      location: '',
+      icuCriteria: '',
+      code: '',
       problems: '',
       diagnosticFindings: '',
       therapeutics: '',
+      ivc: '',
+      fluids: '',
+      cri: '',
+      overnightDx: '',
       concerns: '',
       comments: '',
     };
@@ -276,28 +283,45 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 1024,
+      model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better extraction
+      max_tokens: 2048,
       temperature: 0,
       messages: [
         {
           role: 'user',
-          content: `Extract rounding sheet data from this EzyVet/Vet Radar export and return ONLY a JSON object.
+          content: `Extract COMPLETE rounding sheet data from this EzyVet/VetRadar export. Extract ALL available information, leaving no field empty if data exists in the text.
 
-Return this exact structure (use "" for missing fields):
+CRITICAL INSTRUCTIONS:
+- READ THE ENTIRE TEXT CAREFULLY to find every piece of clinical data
+- Extract MAXIMUM information for each field
+- For medications/fluids: include drug names, doses, routes, frequencies
+- For diagnostics: include ALL abnormal lab values and imaging findings
+- For ICU Criteria: look for oxygen support, critical monitoring needs, severe disease
+- For Code Status: look for DNR, full code, or resuscitation preferences (default to "Full Code" if not specified)
+- For location: look for ward, ICU, kennels, cage numbers
+- Use "" ONLY if data truly doesn't exist in the text
+
+Return this exact JSON structure with ALL fields filled:
 {
-  "signalment": "age sex species breed",
-  "problems": "primary problem/diagnosis",
-  "diagnosticFindings": "CBC/Chem abnormals only, imaging findings",
-  "therapeutics": "current medications with doses",
-  "concerns": "clinical concerns",
-  "comments": "important care notes"
+  "signalment": "age sex species breed (e.g., 5yo MN Golden Retriever)",
+  "location": "ward/location/cage (e.g., ICU Kennel 3, Ward B, etc.)",
+  "icuCriteria": "reasons for ICU: oxygen support, critical monitoring, seizures, etc.",
+  "code": "resuscitation status: Full Code, DNR, Limited, etc. (default: Full Code)",
+  "problems": "primary diagnosis/problem list (e.g., IVDD T12-L2, seizures, etc.)",
+  "diagnosticFindings": "COMPLETE abnormal lab values (CBC, Chem) + imaging findings (MRI, radiographs, ultrasound)",
+  "therapeutics": "ALL current medications with full details: drug dose route frequency",
+  "ivc": "intravenous catheter location and status (e.g., left cephalic, right saphenous)",
+  "fluids": "IV fluid type, rate, additives (e.g., LRS 60ml/hr, Normosol-R + KCl)",
+  "cri": "constant rate infusions with doses (e.g., Fentanyl 3mcg/kg/hr, Lidocaine 50mcg/kg/min)",
+  "overnightDx": "overnight diagnostics planned (e.g., recheck lactate q6h, BP monitoring)",
+  "concerns": "clinical concerns, trends, things to watch (e.g., declining PCV, increasing lactate)",
+  "comments": "important care notes, plan, discharge plans, owner communication"
 }
 
-EzyVet Data:
+VetRadar/EzyVet Export:
 ${fullText}
 
-Return ONLY the JSON object, no other text:`
+Return ONLY the JSON object with ALL fields maximally filled, no other text:`
         }
       ]
     });
