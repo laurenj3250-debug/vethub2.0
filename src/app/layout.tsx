@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { QuickPatientNav } from '@/components/layout/QuickPatientNav';
 
 export const metadata: Metadata = {
   title: 'VetHub 2.0',
@@ -20,7 +21,10 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          <QuickPatientNav />
+          {children}
+        </Providers>
       </body>
     </html>
   );
