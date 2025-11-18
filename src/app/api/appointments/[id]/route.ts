@@ -7,10 +7,11 @@ import { prisma } from '@/lib/prisma';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const appointmentId = params.id;
+    const resolvedParams = await params;
+    const appointmentId = resolvedParams.id;
     const body = await request.json();
 
     const appointment = await prisma.appointment.update({
@@ -47,10 +48,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const appointmentId = params.id;
+    const resolvedParams = await params;
+    const appointmentId = resolvedParams.id;
 
     await prisma.appointment.delete({
       where: { id: appointmentId },

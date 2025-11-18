@@ -7,11 +7,12 @@ import { prisma } from '@/lib/prisma';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; taskId: string } }
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
-    const patientId = parseInt(params.id);
-    const taskId = params.taskId;
+    const resolvedParams = await params;
+    const patientId = parseInt(resolvedParams.id);
+    const taskId = resolvedParams.taskId;
 
     if (isNaN(patientId)) {
       return NextResponse.json(
@@ -75,11 +76,12 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; taskId: string } }
+  { params }: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
-    const patientId = parseInt(params.id);
-    const taskId = params.taskId;
+    const resolvedParams = await params;
+    const patientId = parseInt(resolvedParams.id);
+    const taskId = resolvedParams.taskId;
 
     if (isNaN(patientId)) {
       return NextResponse.json(

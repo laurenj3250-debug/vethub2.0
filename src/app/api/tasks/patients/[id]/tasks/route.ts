@@ -7,10 +7,11 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const patientId = parseInt(params.id);
+    const resolvedParams = await params;
+    const patientId = parseInt(resolvedParams.id);
 
     if (isNaN(patientId)) {
       return NextResponse.json(
@@ -46,10 +47,11 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const patientId = parseInt(params.id);
+    const resolvedParams = await params;
+    const patientId = parseInt(resolvedParams.id);
 
     if (isNaN(patientId)) {
       return NextResponse.json(
@@ -114,9 +116,11 @@ export async function POST(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
+
     // Extract taskId from the URL path
     const url = new URL(request.url);
     const pathSegments = url.pathname.split('/');
@@ -130,7 +134,7 @@ export async function PATCH(
       );
     }
 
-    const patientId = parseInt(params.id);
+    const patientId = parseInt(resolvedParams.id);
 
     if (isNaN(patientId)) {
       return NextResponse.json(
@@ -187,9 +191,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
+
     // Extract taskId from the URL path
     const url = new URL(request.url);
     const pathSegments = url.pathname.split('/');
@@ -203,7 +209,7 @@ export async function DELETE(
       );
     }
 
-    const patientId = parseInt(params.id);
+    const patientId = parseInt(resolvedParams.id);
 
     if (isNaN(patientId)) {
       return NextResponse.json(
