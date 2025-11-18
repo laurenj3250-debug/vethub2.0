@@ -42,9 +42,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/package*.json ./
 
-# Copy node_modules/@prisma if it exists
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma || true
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma || true
+# Note: Not copying node_modules/@prisma - will be generated at runtime by start script
 
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV NODE_ENV=production
