@@ -140,53 +140,46 @@ Return ONLY the JSON object, no other text:`
 }
 
 export async function analyzeBloodwork(bloodworkText: string, species: string = 'canine'): Promise<string> {
-  if (!anthropic) {
-    console.error('Anthropic API key not configured');
-    return '';
-  }
+  // Pure logic-based bloodwork analysis - no AI needed!
+  // Parse bloodwork data and compare values to reference ranges
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 512, // Reduced from 2048 - bloodwork summaries are concise
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: `You are analyzing veterinary bloodwork. Your job is to identify and flag ALL abnormal values based on the EXACT reference ranges provided in the lab results.
+    const abnormalities: string[] = [];
 
-CRITICAL INSTRUCTIONS:
-1. The bloodwork data includes columns: Test, Results, Unit, Lowest Value, Highest Value
-2. You must parse the "Lowest Value" and "Highest Value" for EACH test - these are the reference ranges
-3. Compare the "Results" value to its specific reference range (Lowest Value to Highest Value)
-4. Flag ONLY values that fall outside their specific provided reference range
-5. Do NOT use generic reference ranges - use ONLY the ranges provided in the data
+    // Split into lines and parse each test
+    const lines = bloodworkText.split('\n').filter(line => line.trim());
 
-COMPARISON RULES:
-- If Results < Lowest Value: Flag as (L) for LOW
-- If Results > Highest Value: Flag as (H) for HIGH
-- If Results is between Lowest Value and Highest Value: DO NOT FLAG (it's normal)
-- Handle special formats like "< 0.1" (treat as very low value)
-- Ignore tests with no reference range provided
+    for (const line of lines) {
+      // Expected format: "Test Name, Result, Unit, Low Range, High Range"
+      // Or tab-separated: "Test Name\tResult\tUnit\tLow\tHigh"
+      const parts = line.includes('\t')
+        ? line.split('\t').map(p => p.trim())
+        : line.split(',').map(p => p.trim());
 
-FORMAT YOUR OUTPUT:
-- For each abnormal value: "Test Name: Result Unit (H)" or "Test Name: Result Unit (L)"
-- Example: "Platelets: 54 K/μL (L), MPV: 15.1 fL (H)"
-- If nothing is abnormal: return "No abnormalities detected"
-- Separate multiple abnormalities with commas
+      if (parts.length < 5) continue; // Need at least test, result, unit, low, high
 
-Bloodwork data:
-${bloodworkText}
+      const [testName, resultStr, unit, lowStr, highStr] = parts;
 
-Analyze and return ONLY the abnormal values with (H) or (L) flags:`
-        }
-      ]
-    });
+      // Parse numeric values
+      const result = parseFloat(resultStr.replace(/[<>]/g, ''));
+      const low = parseFloat(lowStr);
+      const high = parseFloat(highStr);
 
-    const content = response.content[0];
-    if (content.type !== 'text') return '';
+      // Skip if we couldn't parse the numbers
+      if (isNaN(result) || isNaN(low) || isNaN(high)) continue;
 
-    return content.text.trim();
+      // Compare and flag abnormalities
+      if (result < low) {
+        abnormalities.push(`${testName}: ${resultStr} ${unit} (L)`);
+      } else if (result > high) {
+        abnormalities.push(`${testName}: ${resultStr} ${unit} (H)`);
+      }
+    }
+
+    return abnormalities.length > 0
+      ? abnormalities.join(', ')
+      : 'No abnormalities detected';
+
   } catch (error) {
     console.error('Bloodwork analysis error:', error);
     return '';
@@ -228,33 +221,22 @@ Return a brief summary (1-2 sentences):`
 }
 
 export async function parseMedications(medText: string): Promise<string> {
-  if (!anthropic) {
-    console.error('Anthropic API key not configured');
-    return '';
-  }
+  // Pure logic-based medication formatting - no AI needed!
+  // Just clean up and format one medication per line
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 512,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: `Format this medication list cleanly for a rounding sheet. One medication per line.
+    // Split by common separators (newline, comma, semicolon)
+    const medications = medText
+      .split(/[\n,;]+/)
+      .map(med => med.trim())
+      .filter(med => med.length > 0)
+      .map(med => {
+        // Remove common prefixes like bullets, numbers
+        return med.replace(/^[\-\*•\d+\.\)]\s*/, '').trim();
+      })
+      .filter(med => med.length > 0);
 
-Medications:
-${medText}
-
-Return formatted list:`
-        }
-      ]
-    });
-
-    const content = response.content[0];
-    if (content.type !== 'text') return '';
-
-    return content.text.trim();
+    return medications.join('\n');
   } catch (error) {
     console.error('Medication parsing error:', error);
     return '';
@@ -262,13 +244,16 @@ Return formatted list:`
 }
 
 export async function parseEzyVetBlock(fullText: string): Promise<any> {
-  if (!anthropic) {
-    console.warn('Anthropic API not available - returning empty EzyVet data');
-    return {
+  // Pure logic-based EzyVet parsing - no AI needed!
+  // EzyVet/VetRadar exports are structured text - just extract the data
+
+  try {
+    const lines = fullText.split('\n').map(l => l.trim()).filter(l => l);
+    const data: any = {
       signalment: '',
       location: '',
       icuCriteria: '',
-      code: '',
+      code: 'Full Code',
       problems: '',
       diagnosticFindings: '',
       therapeutics: '',
@@ -279,67 +264,113 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
       concerns: '',
       comments: '',
     };
-  }
 
-  try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better extraction
-      max_tokens: 1024, // Reduced from 2048 - rounding data typically <1000 tokens
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: `Extract COMPLETE rounding sheet data from this EzyVet/VetRadar export. Extract ALL available information, leaving no field empty if data exists in the text.
+    // Extract sections by looking for common field names/patterns
+    let currentField = '';
+    let currentContent: string[] = [];
 
-CRITICAL INSTRUCTIONS:
-- READ THE ENTIRE TEXT CAREFULLY to find every piece of clinical data
-- Extract MAXIMUM information for each field
-- For medications/fluids: include drug names, doses, routes, frequencies
-- For diagnostics: include ALL abnormal lab values and imaging findings
-- For ICU Criteria: look for oxygen support, critical monitoring needs, severe disease
-- For Code Status: look for DNR, full code, or resuscitation preferences (default to "Full Code" if not specified)
-- For location: look for ward, ICU, kennels, cage numbers
-- Use "" ONLY if data truly doesn't exist in the text
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const lowerLine = line.toLowerCase();
 
-Return this exact JSON structure with ALL fields filled:
-{
-  "signalment": "age sex species breed (e.g., 5yo MN Golden Retriever)",
-  "location": "ward/location/cage (e.g., ICU Kennel 3, Ward B, etc.)",
-  "icuCriteria": "reasons for ICU: oxygen support, critical monitoring, seizures, etc.",
-  "code": "resuscitation status: Full Code, DNR, Limited, etc. (default: Full Code)",
-  "problems": "primary diagnosis/problem list (e.g., IVDD T12-L2, seizures, etc.)",
-  "diagnosticFindings": "COMPLETE abnormal lab values (CBC, Chem) + imaging findings (MRI, radiographs, ultrasound)",
-  "therapeutics": "ALL current medications with full details: drug dose route frequency",
-  "ivc": "intravenous catheter location and status (e.g., left cephalic, right saphenous)",
-  "fluids": "IV fluid type, rate, additives (e.g., LRS 60ml/hr, Normosol-R + KCl)",
-  "cri": "constant rate infusions with doses (e.g., Fentanyl 3mcg/kg/hr, Lidocaine 50mcg/kg/min)",
-  "overnightDx": "overnight diagnostics planned (e.g., recheck lactate q6h, BP monitoring)",
-  "concerns": "clinical concerns, trends, things to watch (e.g., declining PCV, increasing lactate)",
-  "comments": "important care notes, plan, discharge plans, owner communication"
-}
-
-VetRadar/EzyVet Export:
-${fullText}
-
-Return ONLY the JSON object with ALL fields maximally filled, no other text:`
+      // Detect field headers
+      if (lowerLine.includes('signalment') || lowerLine.match(/\d+y[ro]\s+(m|f|mn|fs|mc|fc)/i)) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
         }
-      ]
-    });
-
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('No text response from Claude');
+        currentField = 'signalment';
+        currentContent = [line.replace(/signalment:?/i, '').trim()];
+      } else if (lowerLine.includes('location') || lowerLine.includes('kennel') || lowerLine.includes('ward') || lowerLine.includes('cage')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'location';
+        currentContent = [line.replace(/location:?/i, '').trim()];
+      } else if (lowerLine.includes('icu') || lowerLine.includes('critical')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'icuCriteria';
+        currentContent = [line.replace(/icu criteria:?/i, '').trim()];
+      } else if (lowerLine.includes('code') && (lowerLine.includes('status') || lowerLine.includes('dnr') || lowerLine.includes('full'))) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'code';
+        currentContent = [line.replace(/code( status)?:?/i, '').trim()];
+      } else if (lowerLine.includes('problem') || lowerLine.includes('diagnosis')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'problems';
+        currentContent = [line.replace(/problem(s)?:?|diagnos(is|es):?/i, '').trim()];
+      } else if (lowerLine.includes('diagnostic') || lowerLine.includes('findings') || lowerLine.includes('lab') || lowerLine.includes('imaging')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'diagnosticFindings';
+        currentContent = [line.replace(/diagnostic findings:?|findings:?/i, '').trim()];
+      } else if (lowerLine.includes('therapeutic') || lowerLine.includes('medication') || lowerLine.includes('treatment')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'therapeutics';
+        currentContent = [line.replace(/therapeutic(s)?:?|medication(s)?:?|treatment(s)?:?/i, '').trim()];
+      } else if (lowerLine.includes('ivc') || lowerLine.includes('catheter')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'ivc';
+        currentContent = [line.replace(/ivc:?|catheter:?/i, '').trim()];
+      } else if (lowerLine.includes('fluid') && !lowerLine.includes('cri')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'fluids';
+        currentContent = [line.replace(/fluid(s)?:?/i, '').trim()];
+      } else if (lowerLine.includes('cri') || lowerLine.includes('constant rate')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'cri';
+        currentContent = [line.replace(/cri:?|constant rate infusion(s)?:?/i, '').trim()];
+      } else if (lowerLine.includes('overnight') || lowerLine.includes('overnight dx')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'overnightDx';
+        currentContent = [line.replace(/overnight( dx)?:?/i, '').trim()];
+      } else if (lowerLine.includes('concern')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'concerns';
+        currentContent = [line.replace(/concern(s)?:?/i, '').trim()];
+      } else if (lowerLine.includes('comment') || lowerLine.includes('note')) {
+        if (currentField && currentContent.length > 0) {
+          data[currentField] = currentContent.join(' ').trim();
+        }
+        currentField = 'comments';
+        currentContent = [line.replace(/comment(s)?:?|note(s)?:?/i, '').trim()];
+      } else if (currentField) {
+        // Continue accumulating content for current field
+        currentContent.push(line);
+      }
     }
 
-    // Extract JSON from response
-    let jsonText = content.text.trim();
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonText = jsonMatch[0];
+    // Save last field
+    if (currentField && currentContent.length > 0) {
+      data[currentField] = currentContent.join(' ').trim();
     }
 
-    const parsed = JSON.parse(jsonText);
-    return parsed;
+    // Clean up empty fields
+    for (const key in data) {
+      if (data[key] === '' || data[key] === ':' || data[key] === '-') {
+        data[key] = '';
+      }
+    }
+
+    return data;
   } catch (error) {
     console.error('EzyVet parsing error:', error);
     throw error;
@@ -347,42 +378,37 @@ Return ONLY the JSON object with ALL fields maximally filled, no other text:`
 }
 
 export async function determineScanType(problemText: string): Promise<string> {
-  if (!anthropic) {
-    console.error('Anthropic API key not configured');
-    return 'Unknown';
-  }
+  // Pure logic-based scan type determination - no AI needed!
+  // Simple keyword matching for MRI location
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 64,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: `Based on this veterinary presenting complaint, determine the MRI scan location needed. Return ONLY one of these options: Brain, C-Spine, T-Spine, LS, or Unknown.
+    const text = (problemText || '').toLowerCase();
 
-Common mappings:
-- Seizures, head tilt, circling, vestibular → Brain
-- Neck pain, front leg weakness → C-Spine
-- Back pain, hind limb weakness, IVDD, paralysis → LS (lumbar spine)
-- Thoracic pain → T-Spine
+    // Brain scan indicators
+    const brainKeywords = ['seizure', 'head tilt', 'circling', 'vestibular', 'brain', 'forebrain', 'cerebral', 'cranial nerve', 'nystagmus', 'stroke', 'encephalitis'];
+    if (brainKeywords.some(kw => text.includes(kw))) {
+      return 'Brain';
+    }
 
-Presenting complaint:
-${problemText || 'Not specified'}
+    // C-Spine indicators
+    const cspineKeywords = ['neck pain', 'cervical', 'c-spine', 'front leg', 'forelimb', 'tetraparesis', 'tetraplegia', 'all four limbs'];
+    if (cspineKeywords.some(kw => text.includes(kw))) {
+      return 'C-Spine';
+    }
 
-Return ONLY the scan location (Brain, C-Spine, T-Spine, LS, or Unknown):`
-        }
-      ]
-    });
+    // T-Spine indicators
+    const tspineKeywords = ['thoracic', 't-spine', 'thoracolumbar', 'mid-back'];
+    if (tspineKeywords.some(kw => text.includes(kw))) {
+      return 'T-Spine';
+    }
 
-    const content = response.content[0];
-    if (content.type !== 'text') return 'Unknown';
+    // LS (lumbar/lumbosacral) indicators
+    const lsKeywords = ['back pain', 'hind limb', 'rear leg', 'hind leg', 'paraparesis', 'paraplegia', 'ivdd', 'paralysis', 'lumbar', 'lumbosacral', 'cauda equina', 'ls', 'l-s'];
+    if (lsKeywords.some(kw => text.includes(kw))) {
+      return 'LS';
+    }
 
-    const scanType = content.text.trim();
-    // Validate response
-    const validTypes = ['Brain', 'C-Spine', 'T-Spine', 'LS', 'Unknown'];
-    return validTypes.includes(scanType) ? scanType : 'Unknown';
+    return 'Unknown';
   } catch (error) {
     console.error('Scan type determination error:', error);
     return 'Unknown';
