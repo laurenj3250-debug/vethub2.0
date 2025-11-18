@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { Save, Copy, ExternalLink } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Save, Copy, ExternalLink, Sparkles } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
+import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
 
 interface Patient {
   id: number;
@@ -27,6 +28,8 @@ interface RoundingData {
   overnightDx?: string;
   concerns?: string;  // matches modal field name
   comments?: string;
+  dayCount?: number;  // AI carry-forward: track day count
+  lastUpdated?: string;  // AI carry-forward: ISO date string
 }
 
 interface RoundingSheetProps {
@@ -38,6 +41,7 @@ interface RoundingSheetProps {
 export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
   const [editingData, setEditingData] = useState<Record<number, RoundingData>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [carryForwardResults, setCarryForwardResults] = useState<Record<number, CarryForwardResult>>({});
 
   console.log('[RoundingSheet] Received patients:', patients?.length, patients);
 
@@ -49,6 +53,34 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   if (activePatients.length > 0) {
     console.log('[RoundingSheet] First patient full structure:', JSON.stringify(activePatients[0], null, 2));
   }
+
+  // AI Carry-Forward: Pre-fill rounding data from yesterday
+  useEffect(() => {
+    const newCarryForwardResults: Record<number, CarryForwardResult> = {};
+    const newEditingData: Record<number, RoundingData> = {};
+
+    activePatients.forEach((patient) => {
+      const previousData = (patient as any)?.roundingData || patient?.rounding_data;
+      const result = carryForwardRoundingData(previousData);
+
+      newCarryForwardResults[patient.id] = result;
+
+      // Only pre-fill if data was carried forward
+      if (result.carriedForward) {
+        newEditingData[patient.id] = result.data;
+      }
+    });
+
+    setCarryForwardResults(newCarryForwardResults);
+
+    // Only update editing data if it's empty (first load)
+    setEditingData((prev) => {
+      if (Object.keys(prev).length === 0) {
+        return newEditingData;
+      }
+      return prev;
+    });
+  }, [activePatients.map(p => p.id).join(',')]); // Re-run when patient list changes
 
   // Initialize editing data from patient rounding data
   const getPatientData = (patientId: number): RoundingData => {
@@ -115,13 +147,20 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       const updates = editingData[patientId];
       if (!updates) return;
 
+      // Add timestamp for carry-forward tracking
+      const dataWithTimestamp = {
+        ...updates,
+        lastUpdated: new Date().toISOString(),
+      };
+
       await apiClient.updatePatient(String(patientId), {
-        roundingData: updates
+        roundingData: dataWithTimestamp
       });
 
+      const dayCount = updates.dayCount || 1;
       toast({
-        title: 'Saved',
-        description: 'Rounding data saved successfully'
+        title: '✅ Saved',
+        description: `Rounding data saved (Day ${dayCount})`
       });
 
       onPatientUpdate?.();
@@ -140,14 +179,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const handleSaveAll = async () => {
     try {
       setIsSaving(true);
+      const timestamp = new Date().toISOString();
       const promises = Object.entries(editingData).map(([patientId, data]) =>
-        apiClient.updatePatient(patientId, { roundingData: data })
+        apiClient.updatePatient(patientId, {
+          roundingData: { ...data, lastUpdated: timestamp }
+        })
       );
 
       await Promise.all(promises);
 
       toast({
-        title: 'Saved All',
+        title: '✅ Saved All',
         description: `Saved ${promises.length} patients`
       });
 
@@ -285,6 +327,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
             {activePatients.map(patient => {
               const data = getPatientData(patient.id);
               const hasChanges = editingData[patient.id] !== undefined;
+              const carryForward = carryForwardResults[patient.id];
 
               console.log('[RoundingSheet] Rendering patient:', patient.id, patient.name, patient);
 
@@ -296,15 +339,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                   <td className="p-2 border border-slate-600 sticky left-0 bg-slate-800 z-10">
                     <Link
                       href={`/?patient=${patient.id}`}
-                      className="group flex items-center gap-2 hover:text-emerald-400 transition"
+                      className="group flex flex-col gap-1 hover:text-emerald-400 transition"
                     >
-                      <div>
+                      <div className="flex items-center gap-2">
                         <div className="font-medium text-white group-hover:text-emerald-400">{patientName}</div>
-                        <div className="text-xs text-slate-400">
-                          {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
-                        </div>
+                        <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-emerald-400" />
                       </div>
-                      <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-emerald-400" />
+                      <div className="text-xs text-slate-400">
+                        {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
+                      </div>
+                      {carryForward?.carriedForward && (
+                        <div className="flex items-center gap-1 text-xs text-blue-400">
+                          <Sparkles size={10} />
+                          Day {data.dayCount || 1} - Pre-filled
+                        </div>
+                      )}
                     </Link>
                   </td>
                   <td className="p-1 border border-slate-600">
