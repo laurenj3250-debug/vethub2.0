@@ -1780,6 +1780,13 @@ export default function VetHub() {
                     <Brain size={16} />
                     MRI Builder
                   </Link>
+                  <Link
+                    href="/neuro-exam"
+                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition border-l-2 border-purple-500/50"
+                  >
+                    <Zap size={16} className="text-purple-400" />
+                    <span className="text-purple-200">Neuro Exam</span>
+                  </Link>
                   <button
                     onClick={() => { setShowQuickReference(!showQuickReference); setShowToolsMenu(false); }}
                     className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
