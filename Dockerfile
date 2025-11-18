@@ -14,7 +14,8 @@ RUN npx playwright install chromium --with-deps
 # Copy application code
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client (with checksum bypass for CDN issues)
+ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 RUN npx prisma generate
 
 # Accept NEXT_PUBLIC_ environment variables as build arguments
