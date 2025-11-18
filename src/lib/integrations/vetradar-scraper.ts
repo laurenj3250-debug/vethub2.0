@@ -33,6 +33,38 @@ export interface VetRadarPatient {
   ownerPhone?: string;     // Owner phone number (e.g., "9736346190")
   dob?: string;            // Date of birth (various formats)
   color?: string;          // Color/Markings (e.g., "Brown", "Black and White")
+
+  // Comprehensive treatment sheet data (from vision extraction)
+  vitals?: {
+    latestTemp?: string;
+    latestHR?: string;
+    latestRR?: string;
+    painScore?: string;
+    trends?: string;
+  };
+  physicalExam?: {
+    mm?: string;
+    crt?: string;
+    attitude?: string;
+    other?: string;
+  };
+  fluids?: {
+    type?: string;
+    rate?: string;
+    additives?: string;
+  };
+  cri?: {
+    medications?: string;
+    rates?: string;
+  };
+  ivc?: {
+    location?: string;
+    status?: string;
+  };
+  procedures?: string[];
+  nursingCare?: string[];
+  diagnosticFindings?: string;
+  concerns?: string;
 }
 
 export interface VetRadarTreatment {
@@ -1123,14 +1155,27 @@ export class VetRadarScraper {
             const screenshotBuffer = fs.readFileSync(screenshotPath);
             const screenshotBase64 = screenshotBuffer.toString('base64');
 
-            // Use Claude Vision API to extract medications from screenshot
-            const { parseVetRadarMedicationsFromScreenshot } = await import('@/lib/ai-parser');
-            const medications = await parseVetRadarMedicationsFromScreenshot(screenshotBase64);
+            // Use Claude Vision API to extract ALL clinical data from screenshot
+            const { parseVetRadarComprehensiveData } = await import('@/lib/ai-parser');
+            const comprehensiveData = await parseVetRadarComprehensiveData(screenshotBase64);
 
-            console.log(`[VetRadar] Vision API extracted ${medications.length} medications for ${patient.name}`);
+            console.log(`[VetRadar] Vision API extracted comprehensive data for ${patient.name}:`);
+            console.log(`  - Medications: ${comprehensiveData.medications.length}`);
+            console.log(`  - Vitals: ${comprehensiveData.vitals.latestTemp || 'N/A'}`);
+            console.log(`  - Fluids: ${comprehensiveData.fluids.type || 'N/A'}`);
+            console.log(`  - Procedures: ${comprehensiveData.procedures.length}`);
 
-            // Update patient with extracted medications
-            patient.medications = medications;
+            // Update patient with ALL extracted data
+            patient.medications = comprehensiveData.medications;
+            patient.vitals = comprehensiveData.vitals;
+            patient.physicalExam = comprehensiveData.physicalExam;
+            patient.fluids = comprehensiveData.fluids;
+            patient.cri = comprehensiveData.cri;
+            patient.ivc = comprehensiveData.ivc;
+            patient.procedures = comprehensiveData.procedures;
+            patient.nursingCare = comprehensiveData.nursingCare;
+            patient.diagnosticFindings = comprehensiveData.diagnosticFindings;
+            patient.concerns = comprehensiveData.concerns;
 
             // Navigate back to patient list for next patient
             console.log(`[VetRadar] Navigating back to patient list...`);

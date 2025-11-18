@@ -63,39 +63,46 @@ export function mapVetRadarToUnifiedPatient(
   const hasMedications = medications.length > 0;
   const treatmentSummaries = vetRadarPatient.treatments || [];
 
-  // Detect fluids from medications or treatment summaries
-  const fluidsFromMeds = medications.filter(med => {
-    const medLower = med.name.toLowerCase();
-    return medLower.includes('lrs') ||
-           medLower.includes('lactated ringer') ||
-           medLower.includes('saline') ||
-           medLower.includes('normosol') ||
-           medLower.includes('plasmalyte') ||
-           medLower.includes('fluid');
-  });
+  // Use comprehensive vision data if available, otherwise fallback to legacy detection
+  const fluidsText = vetRadarPatient.fluids?.type
+    ? `${vetRadarPatient.fluids.type} ${vetRadarPatient.fluids.rate || ''}`.trim()
+    : (() => {
+        // Legacy fallback: Detect fluids from medications or treatment summaries
+        const fluidsFromMeds = medications.filter(med => {
+          const medLower = med.name.toLowerCase();
+          return medLower.includes('lrs') ||
+                 medLower.includes('lactated ringer') ||
+                 medLower.includes('saline') ||
+                 medLower.includes('normosol') ||
+                 medLower.includes('plasmalyte') ||
+                 medLower.includes('fluid');
+        });
 
-  const fluidsFromTreatments = treatmentSummaries.filter(t => {
-    const tLower = t.toLowerCase();
-    return tLower.includes('fluid') || tLower.includes('lrs') || tLower.includes('saline');
-  });
+        const fluidsFromTreatments = treatmentSummaries.filter(t => {
+          const tLower = t.toLowerCase();
+          return tLower.includes('fluid') || tLower.includes('lrs') || tLower.includes('saline');
+        });
 
-  const fluidsText = hasMedications
-    ? fluidsFromMeds.map(f => `${f.name} ${f.dose} ${f.route} ${f.frequency}`.trim()).join('; ')
-    : fluidsFromTreatments.join('; ');
+        return hasMedications
+          ? fluidsFromMeds.map(f => `${f.name} ${f.dose} ${f.route} ${f.frequency}`.trim()).join('; ')
+          : fluidsFromTreatments.join('; ');
+      })();
 
-  // Detect CRI medications
-  const hasCRI = hasMedications
-    ? medications.some(med => {
-        const medLower = med.name.toLowerCase();
-        const freqLower = med.frequency?.toLowerCase() || '';
-        return medLower.includes('cri') ||
-               freqLower.includes('cri') ||
-               medLower.includes('fentanyl') ||
-               medLower.includes('lidocaine') ||
-               medLower.includes('ketamine') ||
-               (medLower.includes('infusion') && !medLower.includes('fluid'));
-      })
-    : treatmentSummaries.some(t => t.toLowerCase().includes('cri') || t.toLowerCase().includes('infusion'));
+  // Use comprehensive vision data for CRI if available
+  const hasCRI = vetRadarPatient.cri?.medications
+    ? true
+    : (hasMedications
+        ? medications.some(med => {
+            const medLower = med.name.toLowerCase();
+            const freqLower = med.frequency?.toLowerCase() || '';
+            return medLower.includes('cri') ||
+                   freqLower.includes('cri') ||
+                   medLower.includes('fentanyl') ||
+                   medLower.includes('lidocaine') ||
+                   medLower.includes('ketamine') ||
+                   (medLower.includes('infusion') && !medLower.includes('fluid'));
+          })
+        : treatmentSummaries.some(t => t.toLowerCase().includes('cri') || t.toLowerCase().includes('infusion')));
 
   // Format therapeutics (medications list or treatment summaries)
   const therapeutics = hasMedications
@@ -119,7 +126,25 @@ export function mapVetRadarToUnifiedPatient(
   // IP patients get "N/A", ICU patients get "Yes", others get blank
   const meetsICUCriteria = location === 'IP' ? 'N/A' : (location === 'ICU' ? 'Yes' : '');
 
-  // Create rounding data
+  // Build comprehensive concerns from vision data
+  const comprehensiveConcerns = [
+    vetRadarPatient.concerns,
+    vetRadarPatient.vitals?.trends,
+    vetRadarPatient.ivc?.status?.includes('replacement') ? 'Replace IVC' : '',
+  ].filter(Boolean).join('; ');
+
+  // Build comprehensive comments from physical exam and vitals
+  const comprehensiveComments = [
+    vetRadarPatient.physicalExam?.attitude ? `Attitude: ${vetRadarPatient.physicalExam.attitude}` : '',
+    vetRadarPatient.physicalExam?.mm ? `MM: ${vetRadarPatient.physicalExam.mm}` : '',
+    vetRadarPatient.physicalExam?.crt ? `CRT: ${vetRadarPatient.physicalExam.crt}` : '',
+    vetRadarPatient.vitals?.painScore ? `Pain: ${vetRadarPatient.vitals.painScore}` : '',
+    vetRadarPatient.vitals?.latestTemp ? `Temp: ${vetRadarPatient.vitals.latestTemp}` : '',
+    vetRadarPatient.vitals?.latestHR ? `HR: ${vetRadarPatient.vitals.latestHR}` : '',
+    vetRadarPatient.vitals?.latestRR ? `RR: ${vetRadarPatient.vitals.latestRR}` : '',
+  ].filter(Boolean).join('; ');
+
+  // Create rounding data with comprehensive vision extraction
   const roundingData: RoundingData = {
     signalment,
     location,
@@ -127,14 +152,14 @@ export function mapVetRadarToUnifiedPatient(
     code: codeStatus, // Maps to 'code' field in rounding sheet
     codeStatus, // Keep for backwards compatibility
     problems,
-    diagnosticFindings: '', // Requires manual entry (lab results)
+    diagnosticFindings: vetRadarPatient.diagnosticFindings || '', // From vision extraction or manual entry
     therapeutics,
     ivc: fluidsText ? 'Y' : 'N',
     fluids: fluidsText,
     cri: hasCRI ? 'Y' : 'N',
-    overnightDx: '',
-    concerns: vetRadarPatient.cage_location || '',
-    comments: 'Auto-imported from VetRadar - Please review and complete missing fields',
+    overnightDx: '', // Requires manual entry
+    concerns: comprehensiveConcerns || vetRadarPatient.cage_location || '',
+    comments: comprehensiveComments || 'Auto-imported from VetRadar - Please review and complete missing fields',
 
     // NEW: Fields requiring manual entry
     neurolocalization: '', // MANUAL ENTRY REQUIRED

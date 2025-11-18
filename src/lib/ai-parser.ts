@@ -530,15 +530,60 @@ Return ONLY the JSON array, no other text:`
  * Parse VetRadar medications from screenshot using Claude Vision API
  * More reliable than text parsing because it captures everything visible
  */
-export async function parseVetRadarMedicationsFromScreenshot(screenshotBase64: string): Promise<VetRadarMedication[]> {
+/**
+ * Comprehensive VetRadar data extraction from screenshot
+ * Extracts: medications, vitals with trends, physical exam, fluids, CRI, procedures, concerns
+ */
+export async function parseVetRadarComprehensiveData(screenshotBase64: string): Promise<{
+  medications: VetRadarMedication[];
+  vitals: {
+    latestTemp?: string;
+    latestHR?: string;
+    latestRR?: string;
+    painScore?: string;
+    trends?: string;
+  };
+  physicalExam: {
+    mm?: string;
+    crt?: string;
+    attitude?: string;
+    other?: string;
+  };
+  fluids: {
+    type?: string;
+    rate?: string;
+    additives?: string;
+  };
+  cri: {
+    medications?: string;
+    rates?: string;
+  };
+  ivc: {
+    location?: string;
+    status?: string;
+  };
+  procedures: string[];
+  nursingCare: string[];
+  diagnosticFindings?: string;
+  concerns?: string;
+}> {
   if (!anthropic) {
-    console.warn('Anthropic API not available - cannot parse medications from screenshot');
-    return [];
+    console.warn('Anthropic API not available - cannot parse VetRadar data from screenshot');
+    return {
+      medications: [],
+      vitals: {},
+      physicalExam: {},
+      fluids: {},
+      cri: {},
+      ivc: {},
+      procedures: [],
+      nursingCare: [],
+    };
   }
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-20250514', // Use Opus for best accuracy with medical images
+      model: 'claude-sonnet-4-5-20250929', // Use Sonnet 4.5 for best medical data extraction
       max_tokens: 4096,
       temperature: 0,
       messages: [
@@ -555,49 +600,63 @@ export async function parseVetRadarMedicationsFromScreenshot(screenshotBase64: s
             },
             {
               type: 'text',
-              text: `Extract ALL medications AND CRI fluids from this VetRadar patient detail page screenshot and return ONLY a JSON array with no other text or explanation.
+              text: `Analyze this VetRadar treatment sheet image and extract ALL clinical data for a veterinary rounding sheet.
 
 CRITICAL INSTRUCTIONS:
+- Read EVERY medication, dose, route, frequency from the treatment grid
+- Extract ALL vital signs with timestamps (Temp, HR, RR, Pain scores)
+- Capture physical exam findings (MM, CRT, attitude, etc.)
+- Read fluid orders (type, rate, additives)
+- Note any CRI medications with doses
+- Identify IV catheter information
+- Extract nursing care tasks and procedures
+- Note any clinical concerns or alerts
+- Capture patient demographics visible
 
-**What to INCLUDE:**
-- Look for sections labeled "Medications", "Treatments", or "Fluids" in the screenshot
-- Extract EVERY actual medication/drug visible (e.g., Gabapentin, Tramadol, Cefazolin, Prednisone, Carprofen, etc.)
-- Include CRI medications in fluid bags (e.g., "LRS + Ketamine CRI", "Fentanyl CRI", "Lidocaine CRI")
-- Include ONLY the actual dose given with units (mg, mL, tablets, capsules, etc.)
-  - EXCLUDE calculated doses per weight (DO NOT include mg/kg, mcg/kg, mg/kg/min, mcg/kg/min)
-  - Example: Extract "100mg" or "2 tablets", NOT "4.3mg/kg"
-- Include frequency/timing (q8h, q12h, BID, TID, SID, PRN, CRI, etc.)
-- If a medication has multiple administrations, create separate entries
+Return ONLY a JSON object with this exact structure:
 
-**What to EXCLUDE:**
-- Nursing care tasks (e.g., "NPO", "Walk", "Urination", "Defecation", "Check Cage", "Call Owner", "Ice Incision")
-- Monitoring vitals (e.g., "Temperature", "Heart Rate", "Blood Pressure")
-- Plain maintenance fluids without medication additives (e.g., plain "LRS", plain "Saline")
-- Generic task items like "Nursing Care", "Monitoring", "Attitude"
-- DO NOT extract task numbers or task counts (e.g., "6 Nursing Care 2", "1 Fluids")
+{
+  "medications": [
+    {
+      "medication": "medication name",
+      "dose": "dose amount",
+      "route": "PO/IV/SQ/etc",
+      "frequency": "q8h/BID/TID/etc"
+    }
+  ],
+  "vitals": {
+    "latestTemp": "most recent temp with unit",
+    "latestHR": "most recent HR",
+    "latestRR": "most recent RR",
+    "painScore": "pain score if visible",
+    "trends": "any notable trends like increasing HR, declining temp"
+  },
+  "physicalExam": {
+    "mm": "mucous membrane color",
+    "crt": "CRT in seconds",
+    "attitude": "BAR/QAR/depressed/etc",
+    "other": "any other PE findings"
+  },
+  "fluids": {
+    "type": "LRS/Normosol/etc",
+    "rate": "ml/hr or ml/kg/day",
+    "additives": "KCl, etc if visible"
+  },
+  "cri": {
+    "medications": "fentanyl, ketamine, etc with doses",
+    "rates": "mcg/kg/hr or mcg/kg/min"
+  },
+  "ivc": {
+    "location": "left cephalic, right saphenous, etc",
+    "status": "patent, needs replacement, etc"
+  },
+  "procedures": ["list of scheduled procedures"],
+  "nursingCare": ["list of nursing tasks"],
+  "diagnosticFindings": "any lab results, imaging findings visible",
+  "concerns": "clinical concerns, monitoring needs, alerts"
+}
 
-**How to identify MEDICATIONS:**
-- Medications have drug names (chemical/brand names) like Gabapentin, Tramadol, Cefazolin, etc.
-- Medications list doses (e.g., "100mg", "2 tablets", "2.5mL")
-- Medications list frequency/timing (q8h, q12h, BID, TID, CRI)
-
-**How to identify NURSING CARE (exclude these):**
-- Task-oriented phrases like "Walk", "Feed", "NPO", "Check", "Call", "Ice"
-- No drug name or chemical compound
-- Usually under "Nursing Care" or "Monitoring" sections
-
-If NO actual medications are visible (only nursing tasks), return an empty array [].
-
-Return this exact JSON structure with ONLY medication name, dose, and frequency:
-[
-  {
-    "medication": "Medication name",
-    "dose": "actual dose given (e.g., '100mg', '2 tablets', '2.5mL')",
-    "frequency": "frequency/timing (q8h/q12h/BID/TID/SID/PRN/CRI/etc)"
-  }
-]
-
-DO NOT include "route" or "time" fields. Return ONLY the JSON array, no other text:`
+Extract MAXIMUM data. If something is not visible in the image, use empty string "". Return ONLY the JSON, no other text.`
             }
           ]
         }
@@ -606,35 +665,51 @@ DO NOT include "route" or "time" fields. Return ONLY the JSON array, no other te
 
     const content = response.content[0];
     if (content.type !== 'text') {
-      throw new Error('No text response from Claude Opus Vision');
+      throw new Error('No text response from Claude Vision');
     }
 
     // Extract JSON from response
     let jsonText = content.text.trim();
-
-    // Try to find JSON array in the response
-    const jsonMatch = jsonText.match(/\[[\s\S]*\]/);
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonText = jsonMatch[0];
     }
 
     const parsed = JSON.parse(jsonText);
+    console.log(`[Vision API] Successfully parsed comprehensive VetRadar data from screenshot`);
 
-    // Validate that we got an array of medications
-    if (!Array.isArray(parsed)) {
-      console.warn('Opus Vision returned non-array response, returning empty array');
-      return [];
-    }
-
-    console.log(`[Vision API] Successfully parsed ${parsed.length} medications from screenshot`);
-
-    return parsed.map(med => ({
-      medication: med.medication || '',
-      dose: med.dose || '',
-      frequency: med.frequency || ''
-    }));
+    return {
+      medications: parsed.medications || [],
+      vitals: parsed.vitals || {},
+      physicalExam: parsed.physicalExam || {},
+      fluids: parsed.fluids || {},
+      cri: parsed.cri || {},
+      ivc: parsed.ivc || {},
+      procedures: parsed.procedures || [],
+      nursingCare: parsed.nursingCare || [],
+      diagnosticFindings: parsed.diagnosticFindings || '',
+      concerns: parsed.concerns || '',
+    };
   } catch (error) {
-    console.error('Error parsing VetRadar medications from screenshot:', error);
-    return [];
+    console.error('Error parsing VetRadar comprehensive data from screenshot:', error);
+    return {
+      medications: [],
+      vitals: {},
+      physicalExam: {},
+      fluids: {},
+      cri: {},
+      ivc: {},
+      procedures: [],
+      nursingCare: [],
+    };
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use parseVetRadarComprehensiveData instead
+ */
+export async function parseVetRadarMedicationsFromScreenshot(screenshotBase64: string): Promise<VetRadarMedication[]> {
+  const data = await parseVetRadarComprehensiveData(screenshotBase64);
+  return data.medications;
 }
