@@ -197,23 +197,94 @@ export default function NeuroExamMobile() {
           </motion.button>
         </div>
 
-        {/* Neural Network Progress - Simplified for now, will add full network later */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 relative h-3 bg-slate-800/50 rounded-full overflow-hidden" style={{ boxShadow: 'inset 0 0 10px rgba(0, 0, 0, 0.5)' }}>
-            <motion.div
-              className="h-full bg-gradient-to-r from-purple-500 via-fuchsia-500 to-purple-500 rounded-full"
-              style={{
-                width: `${progress}%`,
-                boxShadow: '0 0 20px rgba(217, 70, 239, 0.6), 0 0 40px rgba(168, 85, 247, 0.4)'
-              }}
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-            />
+        {/* Neural Network Progress Indicator */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-purple-300">Progress</span>
+            <span className="text-sm font-medium text-purple-200" style={{ textShadow: '0 0 10px rgba(168, 85, 247, 0.5)' }}>
+              {completed}/{total}
+            </span>
           </div>
-          <span className="text-sm font-medium text-purple-200" style={{ textShadow: '0 0 10px rgba(168, 85, 247, 0.5)' }}>
-            {completed}/{total}
-          </span>
+          <svg viewBox="0 0 300 60" className="w-full h-12">
+            {/* Background connections */}
+            {[...Array(17)].map((_, i) => (
+              <motion.line
+                key={`conn-${i}`}
+                x1={15 + (i * 17)}
+                y1={30}
+                x2={15 + ((i + 1) * 17)}
+                y2={30}
+                stroke="rgba(168, 85, 247, 0.2)"
+                strokeWidth="1"
+                initial={{ pathLength: 0 }}
+                animate={{
+                  pathLength: 1,
+                  stroke: sections[i + 1]?.status ? 'rgba(217, 70, 239, 0.6)' : 'rgba(168, 85, 247, 0.2)'
+                }}
+                transition={{ duration: 0.5 }}
+              />
+            ))}
+
+            {/* Nodes for each section */}
+            {Object.entries(sections).map(([id, section]) => {
+              const nodeId = parseInt(id);
+              const x = 15 + ((nodeId - 1) * 17);
+              const isComplete = section.status !== null;
+              const isNormal = section.status === 'normal';
+              const isAbnormal = section.status === 'abnormal';
+
+              return (
+                <g key={`node-${id}`}>
+                  {/* Outer glow */}
+                  {isComplete && (
+                    <motion.circle
+                      cx={x}
+                      cy={30}
+                      r={6}
+                      fill="none"
+                      stroke={isNormal ? 'rgba(16, 185, 129, 0.6)' : 'rgba(217, 70, 239, 0.6)'}
+                      strokeWidth="0"
+                      initial={{ r: 4, opacity: 0 }}
+                      animate={{ r: 8, opacity: 0.5, strokeWidth: 2 }}
+                      transition={{ duration: 0.8, repeat: Infinity, repeatType: 'reverse' }}
+                    />
+                  )}
+
+                  {/* Node circle */}
+                  <motion.circle
+                    cx={x}
+                    cy={30}
+                    r={4}
+                    fill={
+                      isNormal ? 'rgba(16, 185, 129, 0.8)' :
+                      isAbnormal ? 'rgba(217, 70, 239, 0.8)' :
+                      'rgba(168, 85, 247, 0.3)'
+                    }
+                    stroke={
+                      isNormal ? 'rgba(16, 185, 129, 1)' :
+                      isAbnormal ? 'rgba(217, 70, 239, 1)' :
+                      'rgba(168, 85, 247, 0.5)'
+                    }
+                    strokeWidth="1.5"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{
+                      scale: isComplete ? 1.2 : 1,
+                      opacity: 1
+                    }}
+                    transition={{
+                      scale: { duration: 0.3, type: 'spring', stiffness: 300 },
+                      opacity: { duration: 0.2 }
+                    }}
+                    style={{
+                      filter: isComplete
+                        ? `drop-shadow(0 0 4px ${isNormal ? 'rgba(16, 185, 129, 0.8)' : 'rgba(217, 70, 239, 0.8)'})`
+                        : 'none'
+                    }}
+                  />
+                </g>
+              );
+            })}
+          </svg>
         </div>
       </div>
 
