@@ -1151,6 +1151,7 @@ export default function VetHub() {
       toast({ title: '✨ Magic parsing...', description: 'Claude is extracting all fields from EzyVet/Vet Radar' });
       const parsed = await parseEzyVetBlock(text);
 
+      // Update rounding form data
       setRoundingFormData({
         ...roundingFormData,
         signalment: parsed.signalment || roundingFormData.signalment,
@@ -1161,7 +1162,31 @@ export default function VetHub() {
         comments: parsed.comments || roundingFormData.comments,
       });
 
-      toast({ title: '✅ All fields filled!', description: 'Review and save when ready' });
+      // IMPORTANT: Also update patient demographics for sticker printing
+      if (roundingSheetPatient) {
+        const patient = patients.find(p => p.id === roundingSheetPatient);
+        if (patient) {
+          const updatedPatient = {
+            ...patient,
+            demographics: {
+              ...patient.demographics,
+              // Update sticker fields from parsed EzyVet data
+              ownerName: parsed.ownerName || patient.demographics.ownerName,
+              ownerPhone: parsed.ownerPhone || patient.demographics.ownerPhone,
+              patientId: parsed.patientId || patient.demographics.patientId,
+              clientId: parsed.clientId || patient.demographics.clientId,
+              dateOfBirth: parsed.dateOfBirth || patient.demographics.dateOfBirth,
+              colorMarkings: parsed.colorMarkings || patient.demographics.colorMarkings,
+            },
+          };
+
+          // Save updated patient to database
+          await apiClient.updatePatient(patient.id, updatedPatient);
+          await refetch(); // Refresh patient list
+        }
+      }
+
+      toast({ title: '✅ All fields filled!', description: 'Sticker data updated automatically' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to parse data. Try using the individual icons.' });
     }
