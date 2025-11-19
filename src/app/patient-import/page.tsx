@@ -52,6 +52,50 @@ export default function PatientImportPage() {
   }, [importing, email, password]);
 
   /**
+   * Auto-save all patients to database (called immediately after import)
+   */
+  async function autoSaveAllPatients(patientsToSave: UnifiedPatient[]) {
+    let successCount = 0;
+    let failCount = 0;
+    const errors: string[] = [];
+
+    for (const patient of patientsToSave) {
+      try {
+        const response = await fetch('/api/patients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patient),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to save patient');
+        }
+
+        const savedPatient = await response.json();
+        handleUpdatePatient(savedPatient);
+        successCount++;
+        console.log(`[Auto-save] ✅ Saved ${patient.demographics.name} to database`);
+      } catch (error) {
+        console.error(`[Auto-save] ❌ Error saving ${patient.demographics.name}:`, error);
+        errors.push(`${patient.demographics.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      console.log(`[Auto-save] ✅ Successfully saved ${successCount}/${patientsToSave.length} patients to database`);
+    }
+
+    if (failCount > 0) {
+      console.error(`[Auto-save] ⚠️  Failed to save ${failCount} patients:`, errors);
+      setError(`Auto-saved ${successCount} patients, but ${failCount} failed. See console for details.`);
+    }
+
+    return { successCount, failCount, errors };
+  }
+
+  /**
    * Import patients from VetRadar via API route
    */
   async function handleImport() {
@@ -87,6 +131,11 @@ export default function PatientImportPage() {
         if (result.patients.length > 0) {
           setSelectedPatientId(result.patients[0].id);
         }
+
+        // 🔥 AUTO-SAVE: Immediately save all patients to database
+        // This connects the import flow to the rounding sheet (which reads from database)
+        console.log('[Patient Import Page] Auto-saving all patients to database...');
+        await autoSaveAllPatients(result.patients);
       } else {
         setError(result.errors?.join(', ') || 'Import failed');
       }
@@ -401,11 +450,17 @@ export default function PatientImportPage() {
             {/* Bulk Actions */}
             <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Bulk Actions</h2>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-md p-3 mb-4">
+                <p className="text-sm text-emerald-800">
+                  ✅ <strong>Patients auto-saved to database!</strong> They will appear on the rounding sheet.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-3">
                 <button
                   onClick={handleSaveAllPatients}
                   disabled={generatingAll || patients.length === 0}
                   className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium rounded-lg hover:from-emerald-700 hover:to-teal-700 focus:ring-4 focus:ring-emerald-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
+                  title="Re-save all patients to database (usually not needed since auto-save already ran)"
                 >
                   {generatingAll ? (
                     <>
@@ -415,7 +470,7 @@ export default function PatientImportPage() {
                   ) : (
                     <>
                       <Save className="w-5 h-5" />
-                      <span>Save All Patients ({patients.length} patients)</span>
+                      <span>Re-save All Patients ({patients.length} patients)</span>
                     </>
                   )}
                 </button>
