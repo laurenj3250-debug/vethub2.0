@@ -33,11 +33,13 @@ export interface BigLabelData {
 
 /**
  * Tiny Diagnostic Label Data (2" x 1" - Avery 5160 style)
+ * Matches big sticker format but smaller
  */
 export interface TinyLabelData {
   date: string;
   patientName: string;
   mrn?: string;
+  clientId?: string; // TF_ClientID
   ownerName: string;
   species: string;
   breed: string;
@@ -72,15 +74,17 @@ export function formatPatientForBigLabel(patient: UnifiedPatient): BigLabelData 
 
 /**
  * Format patient data for tiny diagnostic labels
+ * Matches big sticker format but smaller
  */
 export function formatPatientForTinyLabel(patient: UnifiedPatient): TinyLabelData {
   const demo = patient.demographics;
-  const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+  const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 
   return {
     date: today,
-    patientName: demo.name,
+    patientName: demo.name || '',
     mrn: patient.mrn,
+    clientId: demo.clientId || '',
     ownerName: demo.ownerName || '',
     species: demo.species || 'Canine',
     breed: demo.breed || '',
@@ -208,27 +212,20 @@ export function generateBigLabelsHTML(patient: UnifiedPatient, count: number = 2
 
 /**
  * Generate HTML for tiny diagnostic labels
- * Prints 4 labels per sheet (one sheet = 4 tiny labels)
+ * Format matches big stickers but smaller and center-aligned
  */
-export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: number = 1): string {
+export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 1): string {
   const data = formatPatientForTinyLabel(patient);
-  const labelCount = 4; // Always 4 tiny labels per patient
 
-  // Generate array of label HTML
-  const labels = Array(labelCount).fill(null).map((_, index) => `
+  // Generate array of label HTML (duplicates for count)
+  const labels = Array(count).fill(null).map(() => `
     <div class="tiny-label">
-      <div class="tiny-header">
-        <span class="tiny-date">${escapeHtml(data.date)}</span>
-        <span class="tiny-patient">${escapeHtml(data.patientName)}</span>
-      </div>
-      ${data.mrn ? `<div class="tiny-mrn">MRN: ${escapeHtml(data.mrn)}</div>` : ''}
-      <div class="tiny-owner">Owner: ${escapeHtml(data.ownerName)}</div>
-      <div class="tiny-species">${escapeHtml(data.species)} / ${escapeHtml(data.breed)}</div>
-      <div class="tiny-details">${escapeHtml(data.sex)} / ${escapeHtml(data.age || '')}</div>
-      <div class="tiny-id">
-        <span class="id-label">ID:</span>
-        <span class="id-line">_____________________</span>
-      </div>
+      <div class="tiny-line"><span class="label">Date:</span> ${escapeHtml(data.date)}</div>
+      <div class="tiny-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</div>
+      <div class="tiny-line">${escapeHtml(data.ownerName)}</div>
+      <div class="tiny-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</div>
+      <div class="tiny-line"><span class="label">Sex:</span> ${escapeHtml(data.sex)} <span class="label">Age:</span> ${escapeHtml(data.age || '')}</div>
+      <div class="tiny-line"><span class="label">Diagnostic ID:</span> _________________</div>
     </div>
   `).join('\n');
 
@@ -257,69 +254,31 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, sheetCount: numb
     }
 
     .tiny-label {
-      width: 1.252in;
-      height: 0.839in;
+      width: 2.625in;  /* Avery 5160 compatible: 2-5/8" x 1" */
+      height: 1.0in;
       border: 1px solid #000;
-      padding: 0.05in;
+      padding: 0.08in;
       box-sizing: border-box;
       page-break-inside: avoid;
       background: white;
-      font-size: 6pt;
-    }
-
-    .tiny-header {
-      display: flex;
-      justify-content: space-between;
-      font-weight: bold;
-      border-bottom: 1px solid #000;
-      padding-bottom: 1px;
-      margin-bottom: 2px;
-    }
-
-    .tiny-date {
-      font-size: 5pt;
-    }
-
-    .tiny-patient {
       font-size: 7pt;
-      text-transform: uppercase;
+      text-align: center; /* Middle aligned */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .tiny-mrn {
-      font-size: 5pt;
-      color: #333;
-      margin-bottom: 1px;
+    .tiny-line {
+      margin: 0.5mm 0;
+      line-height: 1.2;
     }
 
-    .tiny-owner {
-      font-size: 6pt;
-      margin-bottom: 1px;
-    }
-
-    .tiny-species {
-      font-size: 6pt;
-      margin-bottom: 1px;
-    }
-
-    .tiny-details {
-      font-size: 6pt;
-      margin-bottom: 2px;
-    }
-
-    .tiny-id {
-      margin-top: 3px;
-      padding-top: 2px;
-      border-top: 1px solid #ccc;
-    }
-
-    .id-label {
+    .tiny-line.bold {
       font-weight: bold;
-      font-size: 5pt;
     }
 
-    .id-line {
-      font-size: 6pt;
-      letter-spacing: 1px;
+    .label {
+      font-weight: bold;
     }
 
     @media print {
@@ -743,27 +702,23 @@ ${allLabels.join('\n')}
  * Print consolidated tiny labels (opens print dialog)
  */
 export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
-  // Generate all tiny labels in one consolidated HTML document
-  const allLabels = patients.map(patient => {
+  // Generate all tiny labels - each patient gets their own set
+  // Format matches big stickers but smaller
+  const allLabels = patients.flatMap(patient => {
     const data = formatPatientForTinyLabel(patient);
-    const labelCount = 4; // Always 4 tiny labels per patient
+    const count = patient.stickerData?.tinySheetCount || 1;
 
-    return Array(labelCount).fill(null).map(() => `
+    // Each patient gets 'count' number of identical tiny labels
+    return Array(count).fill(null).map(() => `
       <div class="tiny-label">
-        <div class="tiny-header">
-          <span class="tiny-date">${escapeHtml(data.date)}</span>
-          <span class="tiny-patient">${escapeHtml(data.patientName)}</span>
-        </div>
-        ${data.mrn ? `<div class="tiny-mrn">MRN: ${escapeHtml(data.mrn)}</div>` : ''}
-        <div class="tiny-owner">Owner: ${escapeHtml(data.ownerName)}</div>
-        <div class="tiny-species">${escapeHtml(data.species)} / ${escapeHtml(data.breed)}</div>
-        <div class="tiny-details">${escapeHtml(data.sex)} / ${escapeHtml(data.age || '')}</div>
-        <div class="tiny-id">
-          <span class="id-label">ID:</span>
-          <span class="id-line">_____________________</span>
-        </div>
+        <div class="tiny-line"><span class="label">Date:</span> ${escapeHtml(data.date)}</div>
+        <div class="tiny-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</div>
+        <div class="tiny-line">${escapeHtml(data.ownerName)}</div>
+        <div class="tiny-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</div>
+        <div class="tiny-line"><span class="label">Sex:</span> ${escapeHtml(data.sex)} <span class="label">Age:</span> ${escapeHtml(data.age || '')}</div>
+        <div class="tiny-line"><span class="label">Diagnostic ID:</span> _________________</div>
       </div>
-    `).join('\n');
+    `);
   }).join('\n');
 
   const combinedHTML = `
@@ -791,69 +746,31 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
     }
 
     .tiny-label {
-      width: 1.252in;
-      height: 0.839in;
+      width: 2.625in;  /* Avery 5160 compatible: 2-5/8" x 1" */
+      height: 1.0in;
       border: 1px solid #000;
-      padding: 0.05in;
+      padding: 0.08in;
       box-sizing: border-box;
       page-break-inside: avoid;
       background: white;
-      font-size: 6pt;
-    }
-
-    .tiny-header {
-      display: flex;
-      justify-content: space-between;
-      font-weight: bold;
-      border-bottom: 1px solid #000;
-      padding-bottom: 1px;
-      margin-bottom: 2px;
-    }
-
-    .tiny-date {
-      font-size: 5pt;
-    }
-
-    .tiny-patient {
       font-size: 7pt;
-      text-transform: uppercase;
+      text-align: center; /* Middle aligned */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
-    .tiny-mrn {
-      font-size: 5pt;
-      color: #333;
-      margin-bottom: 1px;
+    .tiny-line {
+      margin: 0.5mm 0;
+      line-height: 1.2;
     }
 
-    .tiny-owner {
-      font-size: 6pt;
-      margin-bottom: 1px;
-    }
-
-    .tiny-species {
-      font-size: 6pt;
-      margin-bottom: 1px;
-    }
-
-    .tiny-details {
-      font-size: 6pt;
-      margin-bottom: 2px;
-    }
-
-    .tiny-id {
-      margin-top: 3px;
-      padding-top: 2px;
-      border-top: 1px solid #ccc;
-    }
-
-    .id-label {
+    .tiny-line.bold {
       font-weight: bold;
-      font-size: 5pt;
     }
 
-    .id-line {
-      font-size: 6pt;
-      letter-spacing: 1px;
+    .label {
+      font-weight: bold;
     }
 
     @media print {
