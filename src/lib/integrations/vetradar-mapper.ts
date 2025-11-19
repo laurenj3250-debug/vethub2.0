@@ -153,8 +153,8 @@ export function mapVetRadarToUnifiedPatient(
   // Create rounding data with comprehensive vision extraction
   const roundingData: RoundingData = {
     signalment,
-    location,
-    icuCriteria: meetsICUCriteria,
+    location: location || 'IP', // Default to "IP" (In-Patient) unless specific location from VetRadar
+    icuCriteria: meetsICUCriteria || 'N/a', // Default to "N/a" unless patient meets ICU criteria
     code: codeStatus, // Maps to 'code' field in rounding sheet
     codeStatus, // Keep for backwards compatibility
     problems,

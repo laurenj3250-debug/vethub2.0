@@ -692,9 +692,16 @@ Return ONLY a JSON object with this exact structure:
   },
   "procedures": ["list of scheduled procedures"],
   "nursingCare": ["list of nursing tasks"],
-  "diagnosticFindings": "any lab results, imaging findings visible",
+  "diagnosticFindings": "CRITICAL: Extract ALL diagnostic results visible including CBC, Chem, blood work, CXR, MRI, CT, ultrasound findings. Look for text like 'CBC: Within normal limits', 'Chem: WNL', 'MRI: disc extrusion', etc. This appears in clinical notes sections.",
   "concerns": "clinical concerns, monitoring needs, alerts"
 }
+
+CRITICAL FOR diagnosticFindings:
+- Search the ENTIRE image for diagnostic results, especially in clinical notes/progress notes sections
+- Look for phrases like: "CBC -", "Chem -", "CXR -", "MRI -", "CT -", "Diagnostics:", "Lab results:"
+- Common formats: "CBC: Within normal limits", "CBC - WNL", "Chem: no significant abnormalities"
+- Include imaging findings: "MRI: T12-T13 disc extrusion", "CXR: no evidence of metastatic disease"
+- Combine all findings into a single string separated by newlines
 
 Extract MAXIMUM data. If something is not visible in the image, use empty string "". Return ONLY the JSON, no other text.`
             }
