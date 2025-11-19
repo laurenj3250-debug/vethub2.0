@@ -367,7 +367,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
   // Margins and spacing (all in mm)
   const leftMargin = 3;      // 3mm left margin
   const topMargin = 5;       // 5mm top margin
-  const lineSpacing = 5.5;   // 5.5mm between lines
+  const lineSpacing = 5.0;   // 5.0mm between lines (reduced from 5.5mm)
   const labelWidth = 70 - (2 * leftMargin); // 64mm usable width
 
   // Generate one label per page
@@ -707,10 +707,10 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
     .line {
       margin: 0;
       padding: 0;
-      margin-bottom: 0.5mm;
+      margin-bottom: 0.3mm;
     }
     .line.top {
-      margin-bottom: 1mm;
+      margin-bottom: 0.3mm;
     }
     .bold {
       font-weight: bold;
@@ -900,7 +900,7 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
   // Margins and spacing (all in mm)
   const leftMargin = 3;      // 3mm left margin
   const topMargin = 5;       // 5mm top margin
-  const lineSpacing = 5.5;   // 5.5mm between lines
+  const lineSpacing = 5.0;   // 5.0mm between lines (reduced from 5.5mm)
 
   // Process each patient - ONE FULL PAGE PER PATIENT
   for (const patient of patients) {

@@ -481,7 +481,20 @@ export default function VetHub() {
 
       // Extract patient name from demographics
       const patientName = parsed.demographics?.name?.replace(/^Patient\s/i, '') || 'Unnamed';
-      const ownerLastName = parsed.demographics?.ownerName?.split(' ').pop()?.trim() || '';
+
+      // Extract owner last name correctly
+      // Format can be "Iovino, Michael" or "Michael Iovino"
+      let ownerLastName = '';
+      if (parsed.demographics?.ownerName) {
+        const ownerName = parsed.demographics.ownerName.trim();
+        if (ownerName.includes(',')) {
+          // Format: "Iovino, Michael" → take first part (before comma)
+          ownerLastName = ownerName.split(',')[0].trim();
+        } else {
+          // Format: "Michael Iovino" → take last word
+          ownerLastName = ownerName.split(' ').pop()?.trim() || '';
+        }
+      }
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
@@ -528,6 +541,13 @@ export default function VetHub() {
             `${med.name} ${med.dose} ${med.route} ${med.frequency}`.trim()
           ).join('\n') || '',
           plan: parsed.consultations?.[0]?.plan || '',
+        },
+        // Auto-set sticker counts based on patient type
+        stickerData: {
+          isNewAdmit: true,
+          isSurgery: patientType === 'Surgery',
+          bigLabelCount: patientType === 'MRI' ? 5 : patientType === 'Surgery' ? 4 : 2,
+          tinySheetCount: patientType === 'MRI' ? 1 : patientType === 'Surgery' ? 2 : 0,
         },
         mriData: {},
       };
