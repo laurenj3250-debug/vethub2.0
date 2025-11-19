@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, AlertTriangle, Copy, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 interface SectionData {
   status: 'normal' | 'abnormal' | null;
@@ -15,6 +16,8 @@ interface Sections {
 }
 
 export default function NeuroExamMobile() {
+  const { toast } = useToast();
+  const [showSummary, setShowSummary] = useState(false);
   const [sections, setSections] = useState<Sections>({
     1: { status: null, expanded: false, data: {} },
     2: { status: null, expanded: false, data: {} },
@@ -92,6 +95,72 @@ export default function NeuroExamMobile() {
     localStorage.setItem('neuro-exam-draft', JSON.stringify(sections));
     console.log('Draft saved to localStorage', sections);
     // TODO: Also save to database
+  };
+
+  const generateSummary = () => {
+    const sectionTitles: Record<number, string> = {
+      1: 'Mentation & Behavior',
+      2: 'Posture & Position at Rest',
+      3: 'Gait Evaluation',
+      4: 'Menace Response',
+      5: 'Pupil Evaluation',
+      6: 'Eye Position & Nystagmus',
+      7: 'Palpebral Reflex',
+      8: 'Facial Sensation',
+      9: 'Jaw & Facial Motor',
+      10: 'Tongue Assessment',
+      11: 'Gag Reflex',
+      12: 'Postural Reactions',
+      13: 'Thoracic Limb Reflexes',
+      14: 'Pelvic Limb Reflexes',
+      15: 'Perineal & Anal',
+      16: 'Palpation - Spine',
+      17: 'Limb Palpation',
+      18: 'Nociception'
+    };
+
+    let summary = '=== NEUROLOGICAL EXAMINATION ===\n\n';
+
+    Object.entries(sections).forEach(([id, section]) => {
+      const sectionId = parseInt(id);
+      const title = sectionTitles[sectionId];
+
+      if (section.status === 'normal') {
+        summary += `${title}: Normal\n`;
+      } else if (section.status === 'abnormal') {
+        summary += `${title}: ABNORMAL\n`;
+        if (section.data.notes) {
+          summary += `  Notes: ${section.data.notes}\n`;
+        }
+        // Add specific findings if available
+        const findings = Object.entries(section.data)
+          .filter(([key, value]) => key !== 'notes' && value)
+          .map(([key, value]) => `  - ${key}: ${typeof value === 'boolean' ? 'Present' : value}`)
+          .join('\n');
+        if (findings) {
+          summary += findings + '\n';
+        }
+      } else {
+        summary += `${title}: Not assessed\n`;
+      }
+      summary += '\n';
+    });
+
+    summary += `\nExam Date: ${new Date().toLocaleString()}\n`;
+    summary += `Completed Sections: ${completed}/${total}`;
+
+    return summary;
+  };
+
+  const copySummary = async () => {
+    const summary = generateSummary();
+    try {
+      await navigator.clipboard.writeText(summary);
+      toast({ title: 'Summary copied!', description: 'Neuro exam summary copied to clipboard' });
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('Summary copied to clipboard!');
+    }
   };
 
   const handleComplete = () => {
@@ -1311,6 +1380,60 @@ export default function NeuroExamMobile() {
           </div>
         </ExamSection>
       </div>
+
+      {/* Exam Summary Section */}
+      {completed > 0 && (
+        <div className="p-4 pb-32">
+          <motion.div
+            className="bg-slate-900/50 backdrop-blur-sm rounded-2xl border border-purple-500/20 overflow-hidden"
+            style={{ boxShadow: '0 0 20px rgba(168, 85, 247, 0.2)' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <button
+              onClick={() => setShowSummary(!showSummary)}
+              className="w-full p-4 flex items-center justify-between hover:bg-purple-900/20 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <FileText size={20} className="text-purple-400" />
+                <span className="font-medium text-purple-50" style={{ textShadow: '0 0 10px rgba(168, 85, 247, 0.3)' }}>
+                  Exam Summary
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <motion.button
+                  onClick={(e) => { e.stopPropagation(); copySummary(); }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+                  style={{ boxShadow: '0 0 15px rgba(168, 85, 247, 0.5)' }}
+                >
+                  <Copy size={16} />
+                  Copy
+                </motion.button>
+                <ChevronDown
+                  size={20}
+                  className={`text-purple-300 transition-transform ${showSummary ? 'rotate-180' : ''}`}
+                />
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {showSummary && (
+                <motion.div
+                  className="px-4 pb-4 border-t border-purple-500/20"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                >
+                  <pre className="mt-3 p-4 bg-slate-800/50 rounded-lg text-purple-100 text-sm font-mono whitespace-pre-wrap overflow-x-auto border border-purple-500/20">
+                    {generateSummary()}
+                  </pre>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      )}
 
       {/* Sticky Footer with safe area support */}
       <div className="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md border-t border-purple-500/30 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-lg shadow-purple-500/20">
