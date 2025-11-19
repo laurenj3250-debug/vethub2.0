@@ -56,9 +56,9 @@ EXPOSE 3000
 RUN echo '#!/bin/sh\n\
 set -e\n\
 echo "Ensuring Prisma client is generated..."\n\
-npx prisma generate 2>&1 || echo "Prisma client already exists"\n\
+npx prisma generate\n\
 echo "Running database migrations..."\n\
-npx prisma migrate deploy 2>&1 || echo "Database already up to date"\n\
+npx prisma migrate deploy\n\
 echo "Starting Next.js server..."\n\
 exec npm start' > /app/start.sh && chmod +x /app/start.sh
 
