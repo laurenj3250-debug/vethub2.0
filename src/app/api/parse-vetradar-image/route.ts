@@ -51,7 +51,13 @@ export async function POST(request: NextRequest) {
               type: 'text',
               text: `Analyze this VetRadar treatment sheet image and extract ALL clinical data for a veterinary rounding sheet.
 
-CRITICAL INSTRUCTIONS:
+CRITICAL INSTRUCTIONS FOR STICKER DATA:
+- FIND patient ID, client ID, consult number (usually in header or sidebar)
+- FIND owner name and phone number (check patient info section)
+- FIND date of birth (DOB) and color/markings if visible
+- These fields are ESSENTIAL for label printing - look carefully!
+
+CRITICAL INSTRUCTIONS FOR TREATMENT DATA:
 - Read EVERY medication, dose, route, frequency from the treatment grid
 - Extract ALL vital signs with timestamps (Temp, HR, RR, Pain scores)
 - Capture physical exam findings (MM, CRT, attitude, etc.)
@@ -60,12 +66,18 @@ CRITICAL INSTRUCTIONS:
 - Identify IV catheter information
 - Extract nursing care tasks and procedures
 - Note any clinical concerns or alerts
-- Capture patient demographics visible
 
 Return ONLY a JSON object with this exact structure:
 
 {
   "patientName": "patient name from header",
+  "patientId": "patient ID number if visible (e.g., 674131)",
+  "clientId": "client/owner ID number if visible",
+  "consultNumber": "consult number if visible (e.g., 5877395)",
+  "ownerName": "owner full name if visible",
+  "ownerPhone": "owner phone number if visible",
+  "dateOfBirth": "patient date of birth if visible",
+  "color": "patient color/markings if visible",
   "signalment": "age sex species breed weight",
   "location": "ward/kennel/cage location",
   "problems": "primary diagnosis/presenting complaint",
@@ -165,9 +177,21 @@ Extract MAXIMUM data. If something is not visible in the image, use empty string
       ].filter(Boolean).join('; '),
     };
 
+    // Include demographics for sticker printing
+    const demographics = {
+      patientId: parsed.patientId || '',
+      clientId: parsed.clientId || '',
+      consultNumber: parsed.consultNumber || '',
+      ownerName: parsed.ownerName || '',
+      ownerPhone: parsed.ownerPhone || '',
+      dateOfBirth: parsed.dateOfBirth || '',
+      color: parsed.color || '',
+    };
+
     return NextResponse.json({
       success: true,
       data: roundingData,
+      demographics, // Include demographics for sticker data
       raw: parsed, // Include raw parsed data for debugging
     });
 
