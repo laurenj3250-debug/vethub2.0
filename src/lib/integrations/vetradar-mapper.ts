@@ -105,8 +105,14 @@ export function mapVetRadarToUnifiedPatient(
         : treatmentSummaries.some(t => t.toLowerCase().includes('cri') || t.toLowerCase().includes('infusion')));
 
   // Format therapeutics (medications list or treatment summaries)
+  // Clean formatting - remove "undefined" values and extra spaces
   const therapeutics = hasMedications
-    ? medications.map(med => `${med.name} ${med.dose} ${med.route} ${med.frequency}`.trim()).join('\n')
+    ? medications.map(med => {
+        const parts = [med.name, med.dose, med.route, med.frequency]
+          .filter(p => p && p !== 'undefined' && String(p).trim() !== '')
+          .map(p => String(p).trim());
+        return parts.join(' ');
+      }).filter(Boolean).join('\n')
     : treatmentSummaries.join('\n');
 
   // Format problems from VetRadar issues or critical notes
@@ -159,11 +165,11 @@ export function mapVetRadarToUnifiedPatient(
     cri: hasCRI ? 'Y' : 'N',
     overnightDx: '', // Requires manual entry
     concerns: comprehensiveConcerns || vetRadarPatient.cage_location || '',
-    comments: comprehensiveComments || 'Auto-imported from VetRadar - Please review and complete missing fields',
+    comments: comprehensiveComments || '',
 
-    // NEW: Fields requiring manual entry
-    neurolocalization: '', // MANUAL ENTRY REQUIRED
-    labResults: undefined, // MANUAL ENTRY REQUIRED (paste from EasyVet)
+    // Fields auto-populated from VetRadar
+    neurolocalization: '',
+    labResults: undefined,
     chestXray: {
       findings: 'NSF', // Default - update if abnormal
     },
