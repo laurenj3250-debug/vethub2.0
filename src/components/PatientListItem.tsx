@@ -34,6 +34,7 @@ export function PatientListItem({
   getTaskCategory,
   hideCompletedTasks,
 }: PatientListItemProps) {
+  const [showEditDemographics, setShowEditDemographics] = useState(false);
   const today = new Date().toISOString().split('T')[0];
   const allTasks = patient.tasks || [];
   // Show all tasks (don't filter by date - tasks don't have a date field, they have createdAt)
@@ -205,7 +206,7 @@ export function PatientListItem({
           </div>
 
           {/* Quick action buttons */}
-          <div className="flex gap-2 mb-3">
+          <div className="flex gap-2 mb-3 flex-wrap">
             <button
               onClick={() => onQuickAction('morning')}
               className="px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded text-xs font-medium hover:bg-yellow-500/30 transition border border-yellow-500/30"
@@ -230,7 +231,141 @@ export function PatientListItem({
             >
               📊 Rounds
             </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowEditDemographics(!showEditDemographics); }}
+              className="px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium hover:bg-purple-500/30 transition border border-purple-500/30"
+            >
+              ✏️ Edit Info
+            </button>
           </div>
+
+          {/* Edit Demographics Form */}
+          {showEditDemographics && (
+            <div className="bg-slate-900/50 border border-purple-500/30 rounded-lg p-4 mb-3">
+              <h4 className="text-sm font-bold text-purple-400 mb-3">Edit Patient Demographics</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400">Patient Name</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.name || ''}
+                    onChange={(e) => onUpdatePatient('demographics.name', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Owner Name</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.ownerName || ''}
+                    onChange={(e) => onUpdatePatient('demographics.ownerName', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Owner Phone</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.ownerPhone || ''}
+                    onChange={(e) => onUpdatePatient('demographics.ownerPhone', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Patient ID</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.patientId || ''}
+                    onChange={(e) => onUpdatePatient('demographics.patientId', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Client ID / Consult #</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.clientId || ''}
+                    onChange={(e) => onUpdatePatient('demographics.clientId', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Date of Birth</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.dateOfBirth || ''}
+                    onChange={(e) => onUpdatePatient('demographics.dateOfBirth', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    placeholder="MM-DD-YYYY"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Species</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.species || ''}
+                    onChange={(e) => onUpdatePatient('demographics.species', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Breed</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.breed || ''}
+                    onChange={(e) => onUpdatePatient('demographics.breed', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Age</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.age || ''}
+                    onChange={(e) => onUpdatePatient('demographics.age', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Sex</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.sex || ''}
+                    onChange={(e) => onUpdatePatient('demographics.sex', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    placeholder="MN, FS, etc"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Weight</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.weight || ''}
+                    onChange={(e) => onUpdatePatient('demographics.weight', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    placeholder="21.8kg"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Color/Markings</label>
+                  <input
+                    type="text"
+                    value={patient.demographics?.colorMarkings || ''}
+                    onChange={(e) => onUpdatePatient('demographics.colorMarkings', e.target.value)}
+                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                  />
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  onClick={() => setShowEditDemographics(false)}
+                  className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded text-xs hover:bg-slate-600 transition"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Tasks grouped by category */}
           {/* Morning Tasks */}
