@@ -12,14 +12,14 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Try to generate Prisma client (may fail if CDN is down)
+# Generate Prisma client (required for build)
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
-RUN npx prisma generate || echo "Prisma generation skipped - will retry at runtime"
+RUN npx prisma generate
 
-# Build Next.js (ignoring TypeScript/Prisma errors)
+# Build Next.js
 ENV SKIP_ENV_VALIDATION=true
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN npm run build || echo "Build completed with warnings"
+RUN npm run build
 
 # Stage 2: Production runtime
 FROM mcr.microsoft.com/playwright:v1.48.2-jammy
@@ -42,21 +42,21 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/package*.json ./
 
-# Copy Prisma schema (needed for generation at runtime)
+# Copy Prisma schema (needed for migrations at runtime)
 COPY --from=builder /app/prisma ./prisma
 
-# Note: Not copying node_modules/@prisma - will be generated at runtime by start script
+# Copy generated Prisma Client from builder
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 ENV NODE_ENV=production
 
 EXPOSE 3000
 
-# Create start script that ensures Prisma is ready
+# Create start script that runs migrations and starts server
 RUN echo '#!/bin/sh\n\
 set -e\n\
-echo "Ensuring Prisma client is generated..."\n\
-npx prisma generate\n\
 echo "Running database migrations..."\n\
 npx prisma migrate deploy\n\
 echo "Starting Next.js server..."\n\
