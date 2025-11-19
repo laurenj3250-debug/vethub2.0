@@ -465,10 +465,23 @@ export default function VetHub() {
 
     setIsAddingPatient(true);
     try {
-      const parsed = await parsePatientBlurb(patientBlurb);
-      const patientName = parsed.patientName?.replace(/^Patient\s/i, '') || 'Unnamed';
-      // AI now extracts owner last name directly, no need to split
-      const ownerLastName = parsed.ownerName?.trim() || '';
+      // Use the same comprehensive parser as Magic Paste
+      const response = await fetch('/api/parse-ezyvet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: patientBlurb }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to parse patient data');
+      }
+
+      const result = await response.json();
+      const parsed = result.data;
+
+      // Extract patient name from demographics
+      const patientName = parsed.demographics?.name?.replace(/^Patient\s/i, '') || 'Unnamed';
+      const ownerLastName = parsed.demographics?.ownerName?.split(' ').pop()?.trim() || '';
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
@@ -493,24 +506,28 @@ export default function VetHub() {
         added_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         demographics: {
           name: fullName,  // Use full name (patient name + owner last name) for consistency
-          patientId: parsed.patientId || '',        // Patient ID: 618383
-          clientId: parsed.clientId || '',          // Consult # 5878668
-          ownerName: parsed.ownerName || '',
-          ownerPhone: parsed.ownerPhone || '',
-          species: parsed.species || '',
-          breed: parsed.breed || '',
-          age: parsed.age || '',
-          sex: parsed.sex || '',
-          weight: parsed.weight || '',
-          dateOfBirth: parsed.dateOfBirth || '',    // DOB
-          colorMarkings: parsed.colorMarkings || '',
+          patientId: parsed.demographics?.patientId || '',
+          clientId: parsed.consultations?.[0]?.consultNumber || parsed.demographics?.clientId || '',
+          ownerName: parsed.demographics?.ownerName || '',
+          ownerPhone: parsed.demographics?.ownerPhone || '',
+          ownerEmail: parsed.demographics?.ownerEmail || '',
+          species: parsed.demographics?.species || '',
+          breed: parsed.demographics?.breed || '',
+          age: parsed.demographics?.age || '',
+          sex: parsed.demographics?.sex || '',
+          weight: parsed.demographics?.weight || '',
+          dateOfBirth: parsed.demographics?.dateOfBirth || '',
+          colorMarkings: parsed.demographics?.color || '',
+          microchip: parsed.demographics?.microchip || '',
         },
         roundingData: {
-          signalment: [parsed.age, parsed.sex, parsed.species, parsed.breed].filter(Boolean).join(' '),
-          problems: parsed.problem || '',
-          diagnosticFindings: parsed.bloodwork ? `CBC/CHEM: ${parsed.bloodwork}` : '',
-          therapeutics: parsed.medications?.join('\n') || '',
-          plan: parsed.plan || '',
+          signalment: [parsed.demographics?.age, parsed.demographics?.sex, parsed.demographics?.species, parsed.demographics?.breed].filter(Boolean).join(' '),
+          problems: parsed.consultations?.[0]?.chiefComplaint || '',
+          diagnosticFindings: parsed.diagnostics?.radiographs || '',
+          therapeutics: parsed.medications?.map((med: any) =>
+            `${med.name} ${med.dose} ${med.route} ${med.frequency}`.trim()
+          ).join('\n') || '',
+          plan: parsed.consultations?.[0]?.plan || '',
         },
         mriData: {},
       };
