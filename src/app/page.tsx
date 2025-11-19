@@ -1148,22 +1148,69 @@ export default function VetHub() {
     try {
       const text = await navigator.clipboard.readText();
 
-      toast({ title: '✨ Magic parsing...', description: 'Claude is extracting all fields from EzyVet/Vet Radar' });
-      const parsed = await parseEzyVetBlock(text);
+      toast({ title: '✨ Magic parsing...', description: 'Claude AI is extracting all fields including sticker data' });
 
-      // Update rounding form data ONLY (don't touch demographics)
-      setRoundingFormData({
-        ...roundingFormData,
-        signalment: parsed.signalment || roundingFormData.signalment,
-        problems: parsed.problems || roundingFormData.problems,
-        diagnosticFindings: parsed.diagnosticFindings || roundingFormData.diagnosticFindings,
-        therapeutics: parsed.therapeutics || roundingFormData.therapeutics,
-        concerns: parsed.concerns || roundingFormData.concerns,
-        comments: parsed.comments || roundingFormData.comments,
+      // Use AI-powered parser for better accuracy
+      const response = await fetch('/api/parse-ezyvet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
       });
 
-      toast({ title: '✅ All fields filled!', description: 'Review and save when ready' });
+      if (!response.ok) {
+        throw new Error('Failed to parse EzyVet data');
+      }
+
+      const result = await response.json();
+      const parsed = result.data;
+
+      // Update rounding form data
+      setRoundingFormData({
+        ...roundingFormData,
+        signalment: parsed.demographics?.age && parsed.demographics?.sex ?
+          `${parsed.demographics.age} ${parsed.demographics.sex} ${parsed.demographics.species} ${parsed.demographics.breed} ${parsed.demographics.weight}`.trim() :
+          roundingFormData.signalment,
+        problems: parsed.consultations?.[0]?.chiefComplaint || roundingFormData.problems,
+        diagnosticFindings: parsed.diagnosticFindings || roundingFormData.diagnosticFindings,
+        therapeutics: parsed.medications?.map((med: any) =>
+          `${med.name} ${med.dose} ${med.route} ${med.frequency}`.trim()
+        ).join('\n') || roundingFormData.therapeutics,
+        concerns: roundingFormData.concerns,
+        comments: roundingFormData.comments,
+      });
+
+      // Update patient demographics for stickers
+      if (roundingSheetPatient) {
+        const patient = patients.find(p => p.id === roundingSheetPatient);
+        if (patient && parsed.demographics) {
+          const updatedPatient = {
+            ...patient,
+            demographics: {
+              ...patient.demographics,
+              name: parsed.demographics.name || patient.demographics.name,
+              ownerName: parsed.demographics.ownerName || patient.demographics.ownerName,
+              ownerPhone: parsed.demographics.ownerPhone || patient.demographics.ownerPhone,
+              patientId: parsed.demographics.patientId || patient.demographics.patientId,
+              clientId: parsed.demographics.clientId || patient.demographics.clientId,
+              dateOfBirth: parsed.demographics.dateOfBirth || patient.demographics.dateOfBirth,
+              colorMarkings: parsed.demographics.color || patient.demographics.colorMarkings,
+              species: parsed.demographics.species || patient.demographics.species,
+              breed: parsed.demographics.breed || patient.demographics.breed,
+              age: parsed.demographics.age || patient.demographics.age,
+              sex: parsed.demographics.sex || patient.demographics.sex,
+              weight: parsed.demographics.weight || patient.demographics.weight,
+            },
+          };
+
+          // Save to database
+          await apiClient.updatePatient(patient.id, updatedPatient);
+          await refetch();
+        }
+      }
+
+      toast({ title: '✅ All fields filled!', description: 'Rounding data + sticker demographics saved' });
     } catch (error) {
+      console.error('Magic paste error:', error);
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to parse data. Try using the individual icons.' });
     }
   };
