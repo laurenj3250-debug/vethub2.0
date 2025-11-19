@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, AlertTriangle, Copy, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +18,9 @@ interface Sections {
 export default function NeuroExamMobile() {
   const { toast } = useToast();
   const [showSummary, setShowSummary] = useState(false);
+  const [currentExamId, setCurrentExamId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [sections, setSections] = useState<Sections>({
     1: { status: null, expanded: false, data: {} },
     2: { status: null, expanded: false, data: {} },
@@ -38,6 +41,63 @@ export default function NeuroExamMobile() {
     17: { status: null, expanded: false, data: {} },
     18: { status: null, expanded: false, data: {} },
   });
+
+  // Load or create exam on mount
+  useEffect(() => {
+    const loadExam = async () => {
+      try {
+        // Check for draft in localStorage first
+        const draftId = localStorage.getItem('neuro-exam-draft-id');
+
+        if (draftId) {
+          // Load existing draft from database
+          const response = await fetch(`/api/neuro-exams/${draftId}`);
+          if (response.ok) {
+            const exam = await response.json();
+            setCurrentExamId(exam.id);
+            setSections(exam.sections);
+            console.log('Loaded existing draft:', exam.id);
+          } else {
+            // Draft not found, create new
+            await createNewExam();
+          }
+        } else {
+          // No draft, create new exam
+          await createNewExam();
+        }
+      } catch (error) {
+        console.error('Error loading exam:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load exam. Starting fresh.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const createNewExam = async () => {
+      try {
+        const response = await fetch('/api/neuro-exams', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sections: {} }),
+        });
+
+        if (response.ok) {
+          const exam = await response.json();
+          setCurrentExamId(exam.id);
+          localStorage.setItem('neuro-exam-draft-id', exam.id);
+          console.log('Created new exam:', exam.id);
+        }
+      } catch (error) {
+        console.error('Error creating exam:', error);
+      }
+    };
+
+    loadExam();
+  }, [toast]);
 
   const toggleSection = (id: number) => {
     setSections(prev => ({
@@ -90,11 +150,62 @@ export default function NeuroExamMobile() {
   const total = Object.keys(sections).length;
   const progress = (completed / total) * 100;
 
-  const handleSaveDraft = () => {
-    // Auto-save to localStorage
-    localStorage.setItem('neuro-exam-draft', JSON.stringify(sections));
-    console.log('Draft saved to localStorage', sections);
-    // TODO: Also save to database
+  // Auto-save to database when sections change
+  useEffect(() => {
+    if (!currentExamId || isLoading) return;
+
+    const saveToDatabase = async () => {
+      setIsSaving(true);
+      try {
+        await fetch(`/api/neuro-exams/${currentExamId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sections }),
+        });
+        console.log('Auto-saved to database');
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    // Debounce auto-save by 1 second
+    const timeoutId = setTimeout(saveToDatabase, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [sections, currentExamId, isLoading]);
+
+  const handleSaveDraft = async () => {
+    if (!currentExamId) {
+      toast({
+        title: 'Error',
+        description: 'No active exam to save',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await fetch(`/api/neuro-exams/${currentExamId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections }),
+      });
+      toast({
+        title: 'Draft saved!',
+        description: 'Your exam has been saved'
+      });
+    } catch (error) {
+      console.error('Save failed:', error);
+      toast({
+        title: 'Save failed',
+        description: 'Could not save exam',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const generateSummary = () => {
@@ -163,37 +274,87 @@ export default function NeuroExamMobile() {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     const incomplete = Object.entries(sections).filter(([_, s]) => !s.status);
     if (incomplete.length > 0) {
       const proceed = confirm(`${incomplete.length} sections incomplete. Complete anyway?`);
       if (!proceed) return;
     }
-    // Save to localStorage
-    localStorage.setItem('neuro-exam-complete', JSON.stringify({
-      sections,
-      completedAt: new Date().toISOString()
-    }));
-    console.log('Exam completed!', sections);
-    // TODO: Save to database
-    alert('Exam saved successfully!');
+
+    if (!currentExamId) {
+      toast({
+        title: 'Error',
+        description: 'No active exam to complete',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Final save to database
+      await fetch(`/api/neuro-exams/${currentExamId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections }),
+      });
+
+      // Clear draft ID to start fresh next time
+      localStorage.removeItem('neuro-exam-draft-id');
+
+      toast({
+        title: 'Exam completed!',
+        description: 'Your neuro exam has been saved to the database'
+      });
+
+      // Reset to start a new exam
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Error completing exam:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save exam',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-purple-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-purple-200 text-lg">Loading exam...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-950 via-slate-950 to-purple-950 pb-24">
       {/* Sticky Header */}
       <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md shadow-lg shadow-purple-500/20 z-10 p-4 border-b border-purple-500/20">
         <div className="flex justify-between items-center mb-3">
-          <h1 className="text-xl font-semibold text-purple-50" style={{ textShadow: '0 0 20px rgba(168, 85, 247, 0.6)' }}>
-            Neuro Exam
-          </h1>
+          <div>
+            <h1 className="text-xl font-semibold text-purple-50" style={{ textShadow: '0 0 20px rgba(168, 85, 247, 0.6)' }}>
+              Neuro Exam
+            </h1>
+            {isSaving && (
+              <p className="text-xs text-purple-300 mt-1">Saving...</p>
+            )}
+          </div>
           <motion.button
             onClick={handleSaveDraft}
             whileTap={{ scale: 0.95 }}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-shadow"
+            disabled={isSaving}
+            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-purple-500/50 hover:shadow-purple-500/70 transition-shadow disabled:opacity-50"
             style={{ boxShadow: '0 0 20px rgba(168, 85, 247, 0.4), inset 0 0 20px rgba(168, 85, 247, 0.2)' }}
           >
-            Save Draft
+            {isSaving ? 'Saving...' : 'Save Draft'}
           </motion.button>
         </div>
 
@@ -1511,13 +1672,14 @@ export default function NeuroExamMobile() {
         <motion.button
           onClick={handleComplete}
           whileTap={{ scale: 0.98 }}
-          className="w-full py-4 bg-gradient-to-r from-emerald-600 via-purple-600 to-fuchsia-600 text-white rounded-xl font-medium text-lg"
+          disabled={isSaving}
+          className="w-full py-4 bg-gradient-to-r from-emerald-600 via-purple-600 to-fuchsia-600 text-white rounded-xl font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           style={{
             boxShadow: '0 0 30px rgba(168, 85, 247, 0.6), 0 0 60px rgba(217, 70, 239, 0.4), inset 0 0 20px rgba(168, 85, 247, 0.2)',
             textShadow: '0 0 10px rgba(255, 255, 255, 0.5)'
           }}
         >
-          Complete Exam ({completed}/{total})
+          {isSaving ? 'Saving...' : `Complete Exam (${completed}/${total})`}
         </motion.button>
       </div>
     </div>

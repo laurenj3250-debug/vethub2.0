@@ -45,6 +45,7 @@ model Patient {
   // Relations
   soapNotes       SOAPNote[]
   tasks           Task[]
+  neuroExams      NeuroExam[]
 
   @@index([status])
   @@index([createdAt])
@@ -164,4 +165,23 @@ model CommonPhrase {
   @@index([field])
   @@index([usageCount])
   @@unique([field, phrase])
+}
+
+// Neuro Exam model - Comprehensive neurological examination
+model NeuroExam {
+  id          String    @id @default(cuid())
+  patientId   Int?      // Optional - can be standalone or linked to patient
+  patient     Patient?  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // Exam sections data (JSON field)
+  // Each section contains: status (normal/abnormal), expanded (boolean), data (findings)
+  sections    Json      @default("{}")
+
+  // Metadata
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?   // Who performed the exam
+
+  @@index([patientId])
+  @@index([createdAt])
 }
