@@ -1514,11 +1514,11 @@ export default function VetHub() {
     localStorage.setItem('dashboardViewMode', viewMode);
   }, [viewMode]);
 
-  // Automatic daily task creation - runs when app loads on a new day
+  // Automatic daily task reset - runs when app loads on a new day
   const hasRunAutoCreation = useRef(false);
 
   useEffect(() => {
-    const autoCreateDailyTasks = async () => {
+    const autoResetDailyTasks = async () => {
       if (!patients || patients.length === 0) return;
       if (hasRunAutoCreation.current) return; // Prevent duplicate runs
 
@@ -1536,17 +1536,31 @@ export default function VetHub() {
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
       const allDailyTasks = [...morningTasks, ...eveningTasks];
 
+      let totalReset = 0;
       let totalAdded = 0;
 
       for (const patient of activePatients) {
         const existingTasks = patient.tasks || [];
 
         for (const taskName of allDailyTasks) {
-          const hasTask = existingTasks.some((t: any) =>
-            (t.title || t.name) === taskName // No date check - tasks don't have date field
+          const existingTask = existingTasks.find((t: any) =>
+            (t.title || t.name) === taskName
           );
 
-          if (!hasTask) {
+          if (existingTask) {
+            // Task exists - reset it to uncompleted if it was completed
+            if (existingTask.completed) {
+              try {
+                await apiClient.updateTask(String(patient.id), String(existingTask.id), {
+                  completed: false,
+                });
+                totalReset++;
+              } catch (error) {
+                console.error('Failed to reset task:', error);
+              }
+            }
+          } else {
+            // Task doesn't exist - create it
             try {
               await apiClient.createTask(String(patient.id), {
                 name: taskName,
@@ -1565,16 +1579,20 @@ export default function VetHub() {
       localStorage.setItem('lastDailyTaskCheck', today);
       hasRunAutoCreation.current = true;
 
-      if (totalAdded > 0) {
+      if (totalReset > 0 || totalAdded > 0) {
         refetch();
+        const messages = [];
+        if (totalReset > 0) messages.push(`Reset ${totalReset} tasks`);
+        if (totalAdded > 0) messages.push(`Added ${totalAdded} tasks`);
+
         toast({
-          title: `🌅 Good Morning!`,
-          description: `Auto-added ${totalAdded} tasks for ${activePatients.length} patients`
+          title: `🌅 New Day!`,
+          description: messages.join(' • ') + ` for ${activePatients.length} patients`
         });
       }
     };
 
-    autoCreateDailyTasks();
+    autoResetDailyTasks();
   }, [patients.length]); // Run when patients are loaded
 
   const filteredPatients = patients
