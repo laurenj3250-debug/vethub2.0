@@ -424,7 +424,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     doc.setFont('helvetica', 'normal');
     doc.text(` (${data.species})`, leftMargin + doc.getTextWidth('Species:'), currentY);
 
-    // Line 4: Breed and Color on SAME LINE - 9pt
+    // Line 4: Breed - 9pt
     currentY += lineSpacing;
     doc.setFont('helvetica', 'bold');
     doc.text('Breed:', leftMargin, currentY);
@@ -432,7 +432,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     const breedText = ` ${data.breed}`;
     doc.text(breedText, leftMargin + doc.getTextWidth('Breed:'), currentY);
 
-    // Add Color on same line
+    // Color on same line
     const breedEndPos = leftMargin + doc.getTextWidth('Breed:') + doc.getTextWidth(breedText) + 2;
     doc.setFont('helvetica', 'bold');
     doc.text('Color:', breedEndPos, currentY);
@@ -453,7 +453,7 @@ export async function generateBigLabelsPDF(patient: UnifiedPatient, count?: numb
     doc.setFont('helvetica', 'normal');
     doc.text(` ${data.weight}`, sexEndPos + doc.getTextWidth('Weight:'), currentY);
 
-    // Line 7: DOB and Age - 9pt
+    // Line 6: DOB and Age - 9pt
     currentY += lineSpacing;
     doc.setFont('helvetica', 'bold');
     doc.text('DOB:', leftMargin, currentY);
@@ -636,13 +636,41 @@ export async function downloadAllStickersPDF(patient: UnifiedPatient) {
  * Print consolidated big labels (opens print dialog)
  */
 export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
-  // Generate HTML for all patients
-  const htmlPages = patients.map(patient => {
+  // Generate labels for all patients (each patient gets the specified number of labels)
+  const allLabels = patients.flatMap(patient => {
+    const data = formatPatientForBigLabel(patient);
     const count = patient.stickerData?.bigLabelCount ?? 1;
-    return generateBigLabelsHTML(patient, count);
-  }).join('\n');
 
-  // Combine all pages into one HTML document
+    // Create the specified number of labels for this patient
+    return Array(count).fill(null).map(() => `
+  <div class="page">
+    <p class="line top">
+      <span class="bold">${escapeHtml(data.patientName)}</span>
+      &nbsp;${escapeHtml(data.clientId || '')}&nbsp;<span class="bold">${escapeHtml(data.patientId || '')}</span>
+    </p>
+    <p class="line">
+      <span class="bold">${escapeHtml(data.ownerName)}</span>
+      &nbsp;${escapeHtml(data.ownerPhone)}
+    </p>
+    <p class="line">
+      <span class="bold">Species:</span> (${escapeHtml(data.species)})
+    </p>
+    <p class="line">
+      <span class="bold">Breed:</span> ${escapeHtml(data.breed)}
+      &nbsp;&nbsp;<span class="bold">Color:</span> ${escapeHtml(data.colorMarkings || '')}
+    </p>
+    <p class="line">
+      <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
+      &nbsp;&nbsp;<span class="bold">Weight:</span> ${escapeHtml(data.weight)}
+    </p>
+    <p class="line">
+      <span class="bold">DOB:</span> ${escapeHtml(data.dateOfBirth || '')}
+      &nbsp;&nbsp;<span class="bold">Age:</span> ${escapeHtml(data.age || '')}
+    </p>
+  </div>`);
+  });
+
+  // Combine all labels into one HTML document
   const combinedHTML = `
 <!DOCTYPE html>
 <html>
@@ -669,7 +697,7 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
       padding: 3mm 4mm;
       font-family: Arial, Helvetica, sans-serif;
       font-size: 9pt;
-      line-height: 1.2;
+      line-height: 1.3;
       page-break-after: always;
       display: block;
     }
@@ -679,19 +707,13 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
     .line {
       margin: 0;
       padding: 0;
-      line-height: 1.3;
+      margin-bottom: 0.5mm;
     }
     .line.top {
       margin-bottom: 1mm;
     }
     .bold {
       font-weight: bold;
-    }
-    .large {
-      font-size: 14pt;
-    }
-    .small {
-      font-size: 12pt;
     }
     @media print {
       body { margin: 0; padding: 0; }
@@ -701,34 +723,7 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
   </style>
 </head>
 <body>
-${patients.map(patient => {
-  const data = formatPatientForBigLabel(patient);
-  const count = patient.stickerData?.bigLabelCount ?? 1;
-  return Array(count).fill(null).map(() => `
-  <div class="page">
-    <p class="line top large">
-      <span class="bold">${escapeHtml(data.patientName)}</span>
-      &nbsp;${escapeHtml(data.clientId)}&nbsp;<span class="bold">${escapeHtml(data.patientId)}</span>
-    </p>
-    <p class="line large">
-      <span class="bold">${escapeHtml(data.ownerName)}</span>
-    </p>
-    <p class="line small">
-      <span class="bold">DOB:</span> ${escapeHtml(data.dob)}
-    </p>
-    <p class="line small">
-      <span class="bold">Species/Breed:</span> ${escapeHtml(data.species)}/${escapeHtml(data.breed)}
-    </p>
-    <p class="line small">
-      <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
-      &nbsp;&nbsp;<span class="bold">Age:</span> ${escapeHtml(data.age)}
-      &nbsp;&nbsp;<span class="bold">Weight:</span> ${escapeHtml(data.weight)}
-    </p>
-    <p class="line small">
-      <span class="bold">Mix Color:</span> ${escapeHtml(data.colorMarkings)}
-    </p>
-  </div>`).join('\n');
-}).join('\n')}
+${allLabels.join('\n')}
 </body>
 </html>
   `.trim();
@@ -967,7 +962,7 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       doc.setFont('helvetica', 'normal');
       doc.text(` (${data.species})`, leftMargin + doc.getTextWidth('Species:'), currentY);
 
-      // Line 4: Breed and Color on SAME LINE - 9pt
+      // Line 4: Breed - 9pt
       currentY += lineSpacing;
       doc.setFont('helvetica', 'bold');
       doc.text('Breed:', leftMargin, currentY);
@@ -975,7 +970,7 @@ export async function generateConsolidatedBigLabelsPDF(patients: UnifiedPatient[
       const breedText = ` ${data.breed}`;
       doc.text(breedText, leftMargin + doc.getTextWidth('Breed:'), currentY);
 
-      // Add Color on same line
+      // Color on same line
       const breedEndPos = leftMargin + doc.getTextWidth('Breed:') + doc.getTextWidth(breedText) + 2;
       doc.setFont('helvetica', 'bold');
       doc.text('Color:', breedEndPos, currentY);
