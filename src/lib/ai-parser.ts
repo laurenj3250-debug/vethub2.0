@@ -263,6 +263,13 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
       overnightDx: '',
       concerns: '',
       comments: '',
+      // Sticker demographics
+      ownerName: '',
+      ownerPhone: '',
+      patientId: '',
+      clientId: '',
+      dateOfBirth: '',
+      colorMarkings: '',
     };
 
     // Extract sections by looking for common field names/patterns
@@ -352,6 +359,26 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
         }
         currentField = 'comments';
         currentContent = [line.replace(/comment(s)?:?|note(s)?:?/i, '').trim()];
+      }
+      // Sticker demographics extraction
+      else if (lowerLine.includes('owner') && !lowerLine.includes('id') && !lowerLine.includes('client')) {
+        const match = line.match(/owner:?\s*(.+)/i);
+        if (match) data.ownerName = match[1].trim();
+      } else if (lowerLine.includes('ph:') || lowerLine.includes('phone') || lowerLine.includes('cell')) {
+        const match = line.match(/(?:ph|phone|cell):?\s*([0-9\-\(\)\s]+)/i);
+        if (match) data.ownerPhone = match[1].trim().replace(/\D/g, ''); // Strip non-digits
+      } else if (lowerLine.includes('patient id') || lowerLine.match(/\btf_\d+/i)) {
+        const match = line.match(/(?:patient id:?\s*)?(\btf_\d+|\d{6,})/i);
+        if (match) data.patientId = match[1].trim();
+      } else if (lowerLine.includes('client id') || lowerLine.includes('owner id')) {
+        const match = line.match(/(?:client|owner)\s*id:?\s*(\d+)/i);
+        if (match) data.clientId = match[1].trim();
+      } else if (lowerLine.includes('date of birth') || lowerLine.includes('dob')) {
+        const match = line.match(/(?:date of birth|dob):?\s*(.+)/i);
+        if (match) data.dateOfBirth = match[1].trim();
+      } else if (lowerLine.includes('color') && !lowerLine.includes('code')) {
+        const match = line.match(/color:?\s*(.+)/i);
+        if (match) data.colorMarkings = match[1].trim();
       } else if (currentField) {
         // Continue accumulating content for current field
         currentContent.push(line);
@@ -367,6 +394,20 @@ export async function parseEzyVetBlock(fullText: string): Promise<any> {
     for (const key in data) {
       if (data[key] === '' || data[key] === ':' || data[key] === '-') {
         data[key] = '';
+      }
+    }
+
+    // Auto-populate diagnosticFindings with pending tests if empty
+    if (!data.diagnosticFindings || data.diagnosticFindings.trim() === '') {
+      data.diagnosticFindings = 'CXR: pending, CBC/Chem: pending';
+    } else {
+      // If there's content but no mention of pending tests, append them
+      const lower = data.diagnosticFindings.toLowerCase();
+      if (!lower.includes('cxr') && !lower.includes('chest x-ray') && !lower.includes('radiograph')) {
+        data.diagnosticFindings = `CXR: pending, ${data.diagnosticFindings}`;
+      }
+      if (!lower.includes('cbc') && !lower.includes('chem') && !lower.includes('bloodwork')) {
+        data.diagnosticFindings = `${data.diagnosticFindings}, CBC/Chem: pending`;
       }
     }
 
