@@ -58,7 +58,7 @@ set -e\n\
 echo "Ensuring Prisma client is generated..."\n\
 npx prisma generate 2>&1 || echo "Prisma client already exists"\n\
 echo "Running database migrations..."\n\
-npx prisma db push --accept-data-loss 2>&1 || echo "Database already up to date"\n\
+npx prisma migrate deploy 2>&1 || echo "Database already up to date"\n\
 echo "Starting Next.js server..."\n\
 exec npm start' > /app/start.sh && chmod +x /app/start.sh
 
