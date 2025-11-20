@@ -741,12 +741,21 @@ ${allLabels.join('\n')}
 export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
   // Generate all tiny labels - each patient gets their own set
   // Format matches user's HTML template exactly
+
+  console.log('[printConsolidatedTinyLabels] Starting with patients:', patients.length);
+
   const allLabels = patients.flatMap(patient => {
     const data = formatPatientForTinyLabel(patient);
     const count = patient.stickerData?.tinySheetCount || 1;
 
+    console.log(`[printConsolidatedTinyLabels] Patient: ${data.patientName}`);
+    console.log(`  - stickerData:`, patient.stickerData);
+    console.log(`  - tinySheetCount: ${count}`);
+
     // Each patient gets 'count' number of identical tiny labels
-    return Array(count).fill(null).map(() => `
+    const labels = Array(count).fill(null).map((_, index) => {
+      console.log(`  - Generating label ${index + 1}/${count} for ${data.patientName}`);
+      return `
       <div class="tiny-label">
         <p class="line date-line"><span class="bold">Date:</span> ${escapeHtml(data.date)}</p>
         <p class="line name-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</p>
@@ -755,8 +764,14 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
         <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold">Age:</span> ${escapeHtml(data.age || '')}</p>
         <p class="line id-line">Diagnostic ID:</p>
       </div>
-    `);
+    `;
+    });
+
+    console.log(`  - Generated ${labels.length} labels for ${data.patientName}`);
+    return labels;
   }).join('\n');
+
+  console.log('[printConsolidatedTinyLabels] Total HTML length:', allLabels.length);
 
   const combinedHTML = `
 <!DOCTYPE html>

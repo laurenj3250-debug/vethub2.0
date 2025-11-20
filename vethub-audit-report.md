@@ -1,14 +1,14 @@
 # VetHub Comprehensive Audit Report
 
-**Generated:** 2025-11-16T22:46:26.217Z
+**Generated:** 2025-11-20T00:19:05.400Z
 **Test URL:** http://localhost:3000
-**Health Score:** 64% (7/11 tests passing)
+**Health Score:** 33% (2/6 tests passing)
 
 ## Summary
 
-- ✅ **PASS:** 7
+- ✅ **PASS:** 2
 - ❌ **FAIL:** 4
-- ⏭️ **SKIP:** 0
+- ⏭️ **SKIP:** 5
 - **Total Tests:** 11
 
 ---
@@ -17,91 +17,105 @@
 
 ### 1. Patient Data Loading
 
-**Status:** ✅ PASSING (2/2 tests)
+**Status:** ❌ FAILING (0/1 tests)
 
-- ✅ **GET /api/patients**: Loaded 9 patients
-- ✅ **Patient type field exists**: Type: MRI
+- ❌ **GET /api/patients**: Expected array, got undefined
+  ```
+  fetch failed
+  ```
+- ⏭️ **Patient type field exists**: No patients to check
 
 ---
 
 ### 2. Patient CRUD Operations
 
-**Status:** ❌ FAILING (2/3 tests)
+**Status:** ❌ FAILING (0/1 tests)
 
-- ✅ **POST /api/patients**: Created patient ID: 43
-- ❌ **PUT /api/patients/:id**: Status: 405
-- ✅ **DELETE /api/patients/:id**: Deleted patient 43
+- ❌ **POST /api/patients**: Status: 0
+  ```
+  fetch failed
+  ```
+- ⏭️ **PUT /api/patients/:id**: No patient created to update
+- ⏭️ **DELETE /api/patients/:id**: No patient created to delete
 
 ---
 
 ### 3. Task Management
 
-**Status:** ❌ FAILING (0/1 tests)
+**Status:** ✅ PASSING (0/0 tests)
 
-- ❌ **POST /api/patients/:id/tasks**: Status: 404
-  ```
-  <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/chunks/src_app_globals_b805903d.css" data-precedence="next_static/chunks/src_app_globals_b805903d.css"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_fd44f5a4._.js"/><script src="/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_2ecbf5fa._.js" async=""></script><script src="/_next/static/chunks/node_modules_%40swc_helpers_cjs_00636ac3._.js" async=""></script><script src="/_next/static/chunks/_e69f0d32._.js" async=""></script><script src="/_next/static/chunks/_93808211._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_1a6ee436._.js" async=""></script><script src="/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js" async=""></script><script src="/_next/static/chunks/node_modules_3d823d1a._.js" async=""></script><script src="/_next/static/chunks/src_00ca3bb4._.js" async=""></script><script src="/_next/static/chunks/src_app_layout_tsx_c0237562._.js" async=""></script><meta name="robots" content="noindex"/><title>404: This page could not be found.</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/><link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&amp;display=swap" rel="stylesheet"/><title>VetHub 2.0</title><meta name="description" content="An advanced patient and task manager for veterinary professionals."/><link rel="icon" href="/favicon.ico?favicon.56766c03.ico" sizes="48x48" type="image/x-icon"/><script>document.querySelectorAll('body link[rel="icon"], body link[rel="apple-touch-icon"]').forEach(el => document.head.appendChild(el))</script><script src="/_next/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js" noModule=""></script></head><body class="font-body antialiased"><div style="font-family:system-ui,&quot;Segoe UI&quot;,Roboto,Helvetica,Arial,sans-serif,&quot;Apple Color Emoji&quot;,&quot;Segoe UI Emoji&quot;;height:100vh;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center"><div><style>body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}</style><h1 class="next-error-h1" style="display:inline-block;margin:0 20px 0 0;padding:0 23px 0 0;font-size:24px;font-weight:500;vertical-align:top;line-height:49px">404</h1><div style="display:inline-block"><h2 style="font-size:14px;font-weight:400;line-height:49px;margin:0">This page could not be found.</h2></div></div></div><!--$--><!--/$--><!--$--><!--/$--><div role="region" aria-label="Notifications (F8)" tabindex="-1" style="pointer-events:none"><ol tabindex="-1" class="fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"></ol></div><script src="/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_fd44f5a4._.js" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,"3:\"$Sreact.fragment\"\n5:I[\"[project]/node_modules/next/dist/client/components/layout-router.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"default\"]\n6:I[\"[project]/node_modules/next/dist/client/components/render-from-template-context.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"default\"]\n8:I[\"[project]/src/components/Providers.tsx [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_3d823d1a._.js\",\"/_next/static/chunks/src_00ca3bb4._.js\",\"/_next/static/chunks/src_app_layout_tsx_c0237562._.js\"],\"Providers\"]\n12:I[\"[project]/node_modules/next/dist/client/components/metadata/metadata-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"MetadataBoundary\"]\n15:I[\"[project]/node_modules/next/dist/client/components/metadata/metadata-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"OutletBoundary\"]\n1c:I[\"[project]/node_modules/next/dist/client/components/metadata/async-metadata.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"AsyncMetadataOutlet\"]\n22:I[\"[project]/node_modules/next/dist/client/components/metadata/metadata-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"ViewportBoundary\"]\n28:I[\"[project]/node_modules/next/dist/client/components/error-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"default\"]\n29:\"$Sreact.suspense\"\n2a:I[\"[project]/node_module"])</script><script>self.__next_f.push([1,"s/next/dist/client/components/metadata/async-metadata.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"AsyncMetadata\"]\n:HL[\"/_next/static/chunks/src_app_globals_b805903d.css\",\"style\"]\n2:{\"name\":\"Preloads\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"preloadCallbacks\":[\"$E(()=\u003e{ctx.componentMod.preloadStyle(fullHref,ctx.renderOpts.crossOrigin,ctx.nonce)})\"]}}\n1:D\"$2\"\n1:null\n7:{\"name\":\"RootLayout\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"children\":[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$3\",null,{\"children\":[\"$\",\"$L6\",null,{},null,[],1]},null,[],0],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$Y\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"},null,[],1],\"params\":\"$Y\"}}\n4:D\"$7\"\na:{\"name\":\"NotFound\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n9:D\"$a\"\nb:{\"name\":\"HTTPAccessErrorFallback\",\"env\":\"Server\",\"key\":null,\"owner\":\"$a\",\"stack\":[],\"props\":{\"status\":404,\"message\":\"This page could not be found.\"}}\n9:D\"$b\"\n9:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"},\"$b\",[],1],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}},\"$b\",[],1],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"v"])</script><script>self.__next_f.push([1,"erticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":404},\"$b\",[],1],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"},\"$b\",[],1]},\"$b\",[],1]]},\"$b\",[],1]},\"$b\",[],1]]\n4:[\"$\",\"html\",null,{\"lang\":\"en\",\"suppressHydrationWarning\":true,\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"link\",null,{\"rel\":\"preconnect\",\"href\":\"https://fonts.googleapis.com\"},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",66,272]],1],[\"$\",\"link\",null,{\"rel\":\"preconnect\",\"href\":\"https://fonts.gstatic.com\",\"crossOrigin\":\"\"},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",74,272]],1],[\"$\",\"link\",null,{\"href\":\"https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700\u0026display=swap\",\"rel\":\"stylesheet\"},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",83,272]],1]]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",64,264]],1],[\"$\",\"body\",null,{\"className\":\"font-body antialiased\",\"children\":[\"$\",\"$L8\",null,{\"children\":[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L6\",null,{},null,[],1],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":[\"$9\",[]],\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"},null,[],1]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",99,278]],1]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",97,264]],1]]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",60,263]],1]\nd:{\"name\":\"NotFound\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"params\":\"$@\",\"searchParams\":\"$@\"}}\nc:D\"$d\"\ne:"])</script><script>self.__next_f.push([1,"{\"name\":\"HTTPAccessErrorFallback\",\"env\":\"Server\",\"key\":null,\"owner\":\"$d\",\"stack\":[],\"props\":{\"status\":404,\"message\":\"This page could not be found.\"}}\nc:D\"$e\"\nc:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"},\"$e\",[],1],[\"$\",\"div\",null,{\"style\":\"$9:1:props:style\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}},\"$e\",[],1],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":\"$9:1:props:children:props:children:1:props:style\",\"children\":404},\"$e\",[],1],[\"$\",\"div\",null,{\"style\":\"$9:1:props:children:props:children:2:props:style\",\"children\":[\"$\",\"h2\",null,{\"style\":\"$9:1:props:children:props:children:2:props:children:props:style\",\"children\":\"This page could not be found.\"},\"$e\",[],1]},\"$e\",[],1]]},\"$e\",[],1]},\"$e\",[],1]]\n10:{\"name\":\"\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\nf:D\"$10\"\n11:{\"name\":\"MetadataTree\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\nf:D\"$11\"\n14:{\"name\":\"__next_metadata_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":\"$11\",\"stack\":[],\"props\":{}}\n13:D\"$14\"\nf:[\"$\",\"$L12\",null,{\"children\":\"$L13\"},\"$11\",[],1]\n17:{\"name\":\"__next_outlet_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"ready\":\"$E(async function getViewportReady() {\\n        await viewport();\\n        return undefined;\\n    })\"}}\n16:D\"$17\"\n19:{\"name\":\"__next_outlet_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"ready\":\"$E(async function getMetadataReady() {\\n        // Only warm up metadata() call when it's blocking metadata,\\n        // otherwise it will be fully managed by AsyncMetadata component.\\n        if (!serveStreamingMetadata) {\\n            await metadata();\\n        }\\n        return undefined;\\n    })\"}}\n18:D\"$19\"\n1b:{\"name\":\"StreamingMetadataOutlet\",\"env\":\"Se"])</script><script>self.__next_f.push([1,"rver\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n1a:D\"$1b\"\n1a:[\"$\",\"$L1c\",null,{\"promise\":\"$@1d\"},\"$1b\",[],1]\n1f:{\"name\":\"NonIndex\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"pagePath\":\"/404\",\"statusCode\":404,\"isPossibleServerAction\":false}}\n1e:D\"$1f\"\n1e:[\"$\",\"meta\",null,{\"name\":\"robots\",\"content\":\"noindex\"},null,[],1]\n21:{\"name\":\"ViewportTree\",\"env\":\"Server\",\"key\":\"PeeN2gUgDmWRB6m6NcdPU\",\"owner\":null,\"stack\":[],\"props\":{}}\n20:D\"$21\"\n24:{\"name\":\"__next_viewport_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":\"$21\",\"stack\":[],\"props\":{}}\n23:D\"$24\"\n20:[\"$\",\"$3\",\"PeeN2gUgDmWRB6m6NcdPU\",{\"children\":[[\"$\",\"$L22\",null,{\"children\":\"$L23\"},\"$21\",[],1],null]},null,null,0]\n26:{\"name\":\"\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n25:D\"$26\"\n25:null\n27:[]\n0:{\"P\":\"$1\",\"b\":\"development\",\"p\":\"\",\"c\":[\"\",\"api\",\"patients\",\"40\",\"tasks\"],\"i\":false,\"f\":[[[\"\",{\"children\":[\"/_not-found\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",true],[\"\",[\"$\",\"$3\",\"c\",{\"children\":[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/src_app_globals_b805903d.css\",\"precedence\":\"next_static/chunks/src_app_globals_b805903d.css\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"},null,[],0],[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/node_modules_3d823d1a._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,[],0],[\"$\",\"script\",\"script-1\",{\"src\":\"/_next/static/chunks/src_00ca3bb4._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,[],0],[\"$\",\"script\",\"script-2\",{\"src\":\"/_next/static/chunks/src_app_layout_tsx_c0237562._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,[],0]],\"$4\"]},null,[],0],{\"children\":[\"/_not-found\",[\"$\",\"$3\",\"c\",{\"children\":[null,[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L6\",null,{},null,[],1],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"},null,[],1]]},null,[],0],{\"children\":[\"__PAGE__\",[\"$\",\"$3\","])</script><script>self.__next_f.push([1,"\"c\",{\"children\":[\"$c\",\"$f\",null,[\"$\",\"$L15\",null,{\"children\":[\"$L16\",\"$L18\",\"$1a\"]},null,[],1]]},null,[],0],{},null,false]},null,false]},null,false],[\"$\",\"$3\",\"h\",{\"children\":[\"$1e\",\"$20\",\"$25\"]},null,[],0],false]],\"m\":\"$W27\",\"G\":[\"$28\",\"$undefined\"],\"s\":false,\"S\":false}\n13:[\"$\",\"$29\",null,{\"fallback\":null,\"children\":[\"$\",\"$L2a\",null,{\"promise\":\"$@2b\"},\"$14\",[],1]},\"$14\",[],1]\n18:null\n23:[[\"$\",\"meta\",\"0\",{\"charSet\":\"utf-8\"},\"$17\",[],0],[\"$\",\"meta\",\"1\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"},\"$17\",[],0]]\n16:null\n"])</script><script>self.__next_f.push([1,"2b:{\"metadata\":[[\"$\",\"title\",\"0\",{\"children\":\"VetHub 2.0\"},\"$14\",[],0],[\"$\",\"meta\",\"1\",{\"name\":\"description\",\"content\":\"An advanced patient and task manager for veterinary professionals.\"},\"$14\",[],0],[\"$\",\"link\",\"2\",{\"rel\":\"icon\",\"href\":\"/favicon.ico?favicon.56766c03.ico\",\"sizes\":\"48x48\",\"type\":\"image/x-icon\"},\"$14\",[],0]],\"error\":null,\"digest\":\"$undefined\"}\n1d:{\"metadata\":\"$2b:metadata\",\"error\":null,\"digest\":\"$undefined\"}\n"])</script></body></html>
-  ```
+- ⏭️ **Task creation**: No patients available for task testing
 
 ---
 
 ### 4. Task Auto-Creation
 
-**Status:** ❌ FAILING (0/1 tests)
+**Status:** ✅ PASSING (0/0 tests)
 
-- ❌ **MRI tasks auto-created**: No tasks were auto-created for MRI patient
+- ⏭️ **Task auto-creation**: No patients available
 
 ---
 
 ### 5. VetRadar Integration
 
-**Status:** ❌ FAILING (0/1 tests)
+**Status:** ✅ PASSING (1/1 tests)
 
-- ❌ **VetRadar login endpoint**: Endpoint not found (404)
+- ✅ **VetRadar login endpoint**: Endpoint exists (status: 0)
 
 ---
 
 ### 6. Database Health
 
-**Status:** ✅ PASSING (1/1 tests)
+**Status:** ❌ FAILING (0/1 tests)
 
-- ✅ **Database connectivity**: Database queries working
+- ❌ **Database connectivity**: Database query failed
+  ```
+  fetch failed
+  ```
 
 ---
 
 ### 7. Application Health
 
-**Status:** ✅ PASSING (2/2 tests)
+**Status:** ❌ FAILING (1/2 tests)
 
-- ✅ **Homepage loads**: Status: 200
+- ❌ **Homepage loads**: Request failed
+  ```
+  fetch failed
+  ```
 - ✅ **API routes accessible**: API is responding
 
 
 ## Critical Failures
 
-### 2. Patient CRUD Operations - PUT /api/patients/:id
+### 1. Patient Data Loading - GET /api/patients
 
-**Error:** Unknown error
-
-
-
-### 3. Task Management - POST /api/patients/:id/tasks
-
-**Error:** <!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="stylesheet" href="/_next/static/chunks/src_app_globals_b805903d.css" data-precedence="next_static/chunks/src_app_globals_b805903d.css"/><link rel="preload" as="script" fetchPriority="low" href="/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_fd44f5a4._.js"/><script src="/_next/static/chunks/node_modules_next_dist_compiled_2ce9398a._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_client_8f19e6fb._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_2ecbf5fa._.js" async=""></script><script src="/_next/static/chunks/node_modules_%40swc_helpers_cjs_00636ac3._.js" async=""></script><script src="/_next/static/chunks/_e69f0d32._.js" async=""></script><script src="/_next/static/chunks/_93808211._.js" async=""></script><script src="/_next/static/chunks/node_modules_next_dist_1a6ee436._.js" async=""></script><script src="/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js" async=""></script><script src="/_next/static/chunks/node_modules_3d823d1a._.js" async=""></script><script src="/_next/static/chunks/src_00ca3bb4._.js" async=""></script><script src="/_next/static/chunks/src_app_layout_tsx_c0237562._.js" async=""></script><meta name="robots" content="noindex"/><title>404: This page could not be found.</title><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/><link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&amp;display=swap" rel="stylesheet"/><title>VetHub 2.0</title><meta name="description" content="An advanced patient and task manager for veterinary professionals."/><link rel="icon" href="/favicon.ico?favicon.56766c03.ico" sizes="48x48" type="image/x-icon"/><script>document.querySelectorAll('body link[rel="icon"], body link[rel="apple-touch-icon"]').forEach(el => document.head.appendChild(el))</script><script src="/_next/static/chunks/node_modules_next_dist_build_polyfills_polyfill-nomodule.js" noModule=""></script></head><body class="font-body antialiased"><div style="font-family:system-ui,&quot;Segoe UI&quot;,Roboto,Helvetica,Arial,sans-serif,&quot;Apple Color Emoji&quot;,&quot;Segoe UI Emoji&quot;;height:100vh;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center"><div><style>body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}</style><h1 class="next-error-h1" style="display:inline-block;margin:0 20px 0 0;padding:0 23px 0 0;font-size:24px;font-weight:500;vertical-align:top;line-height:49px">404</h1><div style="display:inline-block"><h2 style="font-size:14px;font-weight:400;line-height:49px;margin:0">This page could not be found.</h2></div></div></div><!--$--><!--/$--><!--$--><!--/$--><div role="region" aria-label="Notifications (F8)" tabindex="-1" style="pointer-events:none"><ol tabindex="-1" class="fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]"></ol></div><script src="/_next/static/chunks/%5Bturbopack%5D_browser_dev_hmr-client_hmr-client_ts_fd44f5a4._.js" async=""></script><script>(self.__next_f=self.__next_f||[]).push([0])</script><script>self.__next_f.push([1,"3:\"$Sreact.fragment\"\n5:I[\"[project]/node_modules/next/dist/client/components/layout-router.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"default\"]\n6:I[\"[project]/node_modules/next/dist/client/components/render-from-template-context.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"default\"]\n8:I[\"[project]/src/components/Providers.tsx [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_3d823d1a._.js\",\"/_next/static/chunks/src_00ca3bb4._.js\",\"/_next/static/chunks/src_app_layout_tsx_c0237562._.js\"],\"Providers\"]\n12:I[\"[project]/node_modules/next/dist/client/components/metadata/metadata-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"MetadataBoundary\"]\n15:I[\"[project]/node_modules/next/dist/client/components/metadata/metadata-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"OutletBoundary\"]\n1c:I[\"[project]/node_modules/next/dist/client/components/metadata/async-metadata.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"AsyncMetadataOutlet\"]\n22:I[\"[project]/node_modules/next/dist/client/components/metadata/metadata-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"ViewportBoundary\"]\n28:I[\"[project]/node_modules/next/dist/client/components/error-boundary.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"default\"]\n29:\"$Sreact.suspense\"\n2a:I[\"[project]/node_module"])</script><script>self.__next_f.push([1,"s/next/dist/client/components/metadata/async-metadata.js [app-client] (ecmascript)\",[\"/_next/static/chunks/node_modules_next_dist_1a6ee436._.js\",\"/_next/static/chunks/src_app_favicon_ico_mjs_8a7a8fdc._.js\"],\"AsyncMetadata\"]\n:HL[\"/_next/static/chunks/src_app_globals_b805903d.css\",\"style\"]\n2:{\"name\":\"Preloads\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"preloadCallbacks\":[\"$E(()=\u003e{ctx.componentMod.preloadStyle(fullHref,ctx.renderOpts.crossOrigin,ctx.nonce)})\"]}}\n1:D\"$2\"\n1:null\n7:{\"name\":\"RootLayout\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"children\":[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$3\",null,{\"children\":[\"$\",\"$L6\",null,{},null,[],1]},null,[],0],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$Y\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"},null,[],1],\"params\":\"$Y\"}}\n4:D\"$7\"\na:{\"name\":\"NotFound\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n9:D\"$a\"\nb:{\"name\":\"HTTPAccessErrorFallback\",\"env\":\"Server\",\"key\":null,\"owner\":\"$a\",\"stack\":[],\"props\":{\"status\":404,\"message\":\"This page could not be found.\"}}\n9:D\"$b\"\n9:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"},\"$b\",[],1],[\"$\",\"div\",null,{\"style\":{\"fontFamily\":\"system-ui,\\\"Segoe UI\\\",Roboto,Helvetica,Arial,sans-serif,\\\"Apple Color Emoji\\\",\\\"Segoe UI Emoji\\\"\",\"height\":\"100vh\",\"textAlign\":\"center\",\"display\":\"flex\",\"flexDirection\":\"column\",\"alignItems\":\"center\",\"justifyContent\":\"center\"},\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}},\"$b\",[],1],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":{\"display\":\"inline-block\",\"margin\":\"0 20px 0 0\",\"padding\":\"0 23px 0 0\",\"fontSize\":24,\"fontWeight\":500,\"v"])</script><script>self.__next_f.push([1,"erticalAlign\":\"top\",\"lineHeight\":\"49px\"},\"children\":404},\"$b\",[],1],[\"$\",\"div\",null,{\"style\":{\"display\":\"inline-block\"},\"children\":[\"$\",\"h2\",null,{\"style\":{\"fontSize\":14,\"fontWeight\":400,\"lineHeight\":\"49px\",\"margin\":0},\"children\":\"This page could not be found.\"},\"$b\",[],1]},\"$b\",[],1]]},\"$b\",[],1]},\"$b\",[],1]]\n4:[\"$\",\"html\",null,{\"lang\":\"en\",\"suppressHydrationWarning\":true,\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"link\",null,{\"rel\":\"preconnect\",\"href\":\"https://fonts.googleapis.com\"},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",66,272]],1],[\"$\",\"link\",null,{\"rel\":\"preconnect\",\"href\":\"https://fonts.gstatic.com\",\"crossOrigin\":\"\"},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",74,272]],1],[\"$\",\"link\",null,{\"href\":\"https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700\u0026display=swap\",\"rel\":\"stylesheet\"},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",83,272]],1]]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",64,264]],1],[\"$\",\"body\",null,{\"className\":\"font-body antialiased\",\"children\":[\"$\",\"$L8\",null,{\"children\":[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L6\",null,{},null,[],1],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":[\"$9\",[]],\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"},null,[],1]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",99,278]],1]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",97,264]],1]]},\"$7\",[[\"RootLayout\",\"/Users/laurenjohnston/Documents/vethub2.0/.next/server/chunks/ssr/_2ba683f0._.js\",60,263]],1]\nd:{\"name\":\"NotFound\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"params\":\"$@\",\"searchParams\":\"$@\"}}\nc:D\"$d\"\ne:"])</script><script>self.__next_f.push([1,"{\"name\":\"HTTPAccessErrorFallback\",\"env\":\"Server\",\"key\":null,\"owner\":\"$d\",\"stack\":[],\"props\":{\"status\":404,\"message\":\"This page could not be found.\"}}\nc:D\"$e\"\nc:[[\"$\",\"title\",null,{\"children\":\"404: This page could not be found.\"},\"$e\",[],1],[\"$\",\"div\",null,{\"style\":\"$9:1:props:style\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"body{color:#000;background:#fff;margin:0}.next-error-h1{border-right:1px solid rgba(0,0,0,.3)}@media (prefers-color-scheme:dark){body{color:#fff;background:#000}.next-error-h1{border-right:1px solid rgba(255,255,255,.3)}}\"}},\"$e\",[],1],[\"$\",\"h1\",null,{\"className\":\"next-error-h1\",\"style\":\"$9:1:props:children:props:children:1:props:style\",\"children\":404},\"$e\",[],1],[\"$\",\"div\",null,{\"style\":\"$9:1:props:children:props:children:2:props:style\",\"children\":[\"$\",\"h2\",null,{\"style\":\"$9:1:props:children:props:children:2:props:children:props:style\",\"children\":\"This page could not be found.\"},\"$e\",[],1]},\"$e\",[],1]]},\"$e\",[],1]},\"$e\",[],1]]\n10:{\"name\":\"\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\nf:D\"$10\"\n11:{\"name\":\"MetadataTree\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\nf:D\"$11\"\n14:{\"name\":\"__next_metadata_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":\"$11\",\"stack\":[],\"props\":{}}\n13:D\"$14\"\nf:[\"$\",\"$L12\",null,{\"children\":\"$L13\"},\"$11\",[],1]\n17:{\"name\":\"__next_outlet_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"ready\":\"$E(async function getViewportReady() {\\n        await viewport();\\n        return undefined;\\n    })\"}}\n16:D\"$17\"\n19:{\"name\":\"__next_outlet_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"ready\":\"$E(async function getMetadataReady() {\\n        // Only warm up metadata() call when it's blocking metadata,\\n        // otherwise it will be fully managed by AsyncMetadata component.\\n        if (!serveStreamingMetadata) {\\n            await metadata();\\n        }\\n        return undefined;\\n    })\"}}\n18:D\"$19\"\n1b:{\"name\":\"StreamingMetadataOutlet\",\"env\":\"Se"])</script><script>self.__next_f.push([1,"rver\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n1a:D\"$1b\"\n1a:[\"$\",\"$L1c\",null,{\"promise\":\"$@1d\"},\"$1b\",[],1]\n1f:{\"name\":\"NonIndex\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{\"pagePath\":\"/404\",\"statusCode\":404,\"isPossibleServerAction\":false}}\n1e:D\"$1f\"\n1e:[\"$\",\"meta\",null,{\"name\":\"robots\",\"content\":\"noindex\"},null,[],1]\n21:{\"name\":\"ViewportTree\",\"env\":\"Server\",\"key\":\"PeeN2gUgDmWRB6m6NcdPU\",\"owner\":null,\"stack\":[],\"props\":{}}\n20:D\"$21\"\n24:{\"name\":\"__next_viewport_boundary__\",\"env\":\"Server\",\"key\":null,\"owner\":\"$21\",\"stack\":[],\"props\":{}}\n23:D\"$24\"\n20:[\"$\",\"$3\",\"PeeN2gUgDmWRB6m6NcdPU\",{\"children\":[[\"$\",\"$L22\",null,{\"children\":\"$L23\"},\"$21\",[],1],null]},null,null,0]\n26:{\"name\":\"\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n25:D\"$26\"\n25:null\n27:[]\n0:{\"P\":\"$1\",\"b\":\"development\",\"p\":\"\",\"c\":[\"\",\"api\",\"patients\",\"40\",\"tasks\"],\"i\":false,\"f\":[[[\"\",{\"children\":[\"/_not-found\",{\"children\":[\"__PAGE__\",{}]}]},\"$undefined\",\"$undefined\",true],[\"\",[\"$\",\"$3\",\"c\",{\"children\":[[[\"$\",\"link\",\"0\",{\"rel\":\"stylesheet\",\"href\":\"/_next/static/chunks/src_app_globals_b805903d.css\",\"precedence\":\"next_static/chunks/src_app_globals_b805903d.css\",\"crossOrigin\":\"$undefined\",\"nonce\":\"$undefined\"},null,[],0],[\"$\",\"script\",\"script-0\",{\"src\":\"/_next/static/chunks/node_modules_3d823d1a._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,[],0],[\"$\",\"script\",\"script-1\",{\"src\":\"/_next/static/chunks/src_00ca3bb4._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,[],0],[\"$\",\"script\",\"script-2\",{\"src\":\"/_next/static/chunks/src_app_layout_tsx_c0237562._.js\",\"async\":true,\"nonce\":\"$undefined\"},null,[],0]],\"$4\"]},null,[],0],{\"children\":[\"/_not-found\",[\"$\",\"$3\",\"c\",{\"children\":[null,[\"$\",\"$L5\",null,{\"parallelRouterKey\":\"children\",\"error\":\"$undefined\",\"errorStyles\":\"$undefined\",\"errorScripts\":\"$undefined\",\"template\":[\"$\",\"$L6\",null,{},null,[],1],\"templateStyles\":\"$undefined\",\"templateScripts\":\"$undefined\",\"notFound\":\"$undefined\",\"forbidden\":\"$undefined\",\"unauthorized\":\"$undefined\"},null,[],1]]},null,[],0],{\"children\":[\"__PAGE__\",[\"$\",\"$3\","])</script><script>self.__next_f.push([1,"\"c\",{\"children\":[\"$c\",\"$f\",null,[\"$\",\"$L15\",null,{\"children\":[\"$L16\",\"$L18\",\"$1a\"]},null,[],1]]},null,[],0],{},null,false]},null,false]},null,false],[\"$\",\"$3\",\"h\",{\"children\":[\"$1e\",\"$20\",\"$25\"]},null,[],0],false]],\"m\":\"$W27\",\"G\":[\"$28\",\"$undefined\"],\"s\":false,\"S\":false}\n13:[\"$\",\"$29\",null,{\"fallback\":null,\"children\":[\"$\",\"$L2a\",null,{\"promise\":\"$@2b\"},\"$14\",[],1]},\"$14\",[],1]\n18:null\n23:[[\"$\",\"meta\",\"0\",{\"charSet\":\"utf-8\"},\"$17\",[],0],[\"$\",\"meta\",\"1\",{\"name\":\"viewport\",\"content\":\"width=device-width, initial-scale=1\"},\"$17\",[],0]]\n16:null\n"])</script><script>self.__next_f.push([1,"2b:{\"metadata\":[[\"$\",\"title\",\"0\",{\"children\":\"VetHub 2.0\"},\"$14\",[],0],[\"$\",\"meta\",\"1\",{\"name\":\"description\",\"content\":\"An advanced patient and task manager for veterinary professionals.\"},\"$14\",[],0],[\"$\",\"link\",\"2\",{\"rel\":\"icon\",\"href\":\"/favicon.ico?favicon.56766c03.ico\",\"sizes\":\"48x48\",\"type\":\"image/x-icon\"},\"$14\",[],0]],\"error\":null,\"digest\":\"$undefined\"}\n1d:{\"metadata\":\"$2b:metadata\",\"error\":null,\"digest\":\"$undefined\"}\n"])</script></body></html>
+**Error:** fetch failed
 
 
 
-### 4. Task Auto-Creation - MRI tasks auto-created
+### 2. Patient CRUD Operations - POST /api/patients
 
-**Error:** Unknown error
-
-
-
-### 5. VetRadar Integration - VetRadar login endpoint
-
-**Error:** Unknown error
+**Error:** fetch failed
 
 
+
+### 6. Database Health - Database connectivity
+
+**Error:** fetch failed
+
+
+
+### 7. Application Health - Homepage loads
+
+**Error:** fetch failed
+
+```
+TypeError: fetch failed
+    at node:internal/deps/undici/undici:15845:13
+    at async test7_ApplicationHealth (/Users/laurenjohnston/Documents/vethub2.0/.claude/skills/vethub-comprehensive-audit/scripts/run-audit.ts:304:22)
+    at async main (/Users/laurenjohnston/Documents/vethub2.0/.claude/skills/vethub-comprehensive-audit/scripts/run-audit.ts:428:3)
+```
 
 
 ## Recommendations
@@ -109,22 +123,17 @@
 
 ### Immediate Actions Required
 
-1. **Fix PUT /api/patients/:id** in 2. Patient CRUD Operations
-1. **Fix POST /api/patients/:id/tasks** in 3. Task Management
-1. **Fix MRI tasks auto-created** in 4. Task Auto-Creation
-1. **Fix VetRadar login endpoint** in 5. VetRadar Integration
+1. **Fix GET /api/patients** in 1. Patient Data Loading
+1. **Fix POST /api/patients** in 2. Patient CRUD Operations
+1. **Fix Database connectivity** in 6. Database Health
+1. **Fix Homepage loads** in 7. Application Health
 
 ### Root Cause Analysis
 
 Based on the failures:
 
-- **Database Schema Issue:** The patient.type column appears to be missing. Run the manual SQL migration:
-  ```sql
-  ALTER TABLE "Patient" ADD COLUMN "type" TEXT DEFAULT 'Medical';
-  ```
 
 
-- **Missing Endpoints:** Some API routes are not implemented or misconfigured.
 
 
 
