@@ -133,7 +133,7 @@ interface SOAPBuilderProps {
   onPatientSelect?: (patientId: number) => void;
 }
 
-export function SOAPBuilder({ patients, onSave, onPatientSelect }: SOAPBuilderProps) {
+export function SOAPBuilder({ patients = [], onSave, onPatientSelect }: SOAPBuilderProps) {
   const { toast } = useToast();
   const [expandedSections, setExpandedSections] = useState<string[]>(['patient', 'history', 'neuro']);
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -226,22 +226,30 @@ export function SOAPBuilder({ patients, onSave, onPatientSelect }: SOAPBuilderPr
   };
 
   const loadFromPatient = (patient: any) => {
-    const patientInfo = patient.patient_info || {};
+    // Support both old and new unified patient data structures
+    const demographics = patient.demographics || patient.patient_info || {};
+    const patientName = demographics.name || patient.name || '';
+
+    // Try to get latest SOAP note from new structure
+    const latestSOAP = patient.soapNotes?.[patient.soapNotes.length - 1];
+    const oldSOAPData = patient.soap_data || {};
+
     setSOAPData(prev => ({
       ...prev,
       patientId: patient.id,
-      name: patient.name || '',
-      age: patientInfo.age || '',
-      sex: patientInfo.sex || '',
-      breed: patientInfo.breed || '',
-      species: patientInfo.species || 'Canine',
-      medications: patientInfo.medications || '',
-      // Load from previous SOAP if exists
-      ...patient.soap_data,
+      name: patientName,
+      age: demographics.age || '',
+      sex: demographics.sex || '',
+      breed: demographics.breed || '',
+      species: demographics.species || 'Canine',
+      medications: latestSOAP?.medications || demographics.medications || '',
+      // Load from previous SOAP if exists (prefer new structure, fall back to old)
+      ...oldSOAPData,
+      ...(latestSOAP || {}),
     }));
     toast({
       title: '📋 Patient Loaded',
-      description: `${patient.name}'s information populated`,
+      description: `${patientName}'s information populated`,
     });
   };
 
