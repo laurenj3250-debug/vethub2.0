@@ -35,55 +35,119 @@ export interface TaskWithMetadata extends TaskTemplate {
 // ============================================================================
 
 export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
-  // MRI patients - minimal essential tasks only
+  // MRI patients - essential pre-procedure tasks
   'MRI': [
     {
-      id: 'mri-anesthesia-sheet',
-      name: 'Anesthesia Sheet',
+      id: 'mri-black-book',
+      name: 'Black Book',
       category: 'Pre-procedure',
       estimatedMinutes: 5,
       priority: 'high',
       timeOfDay: 'morning',
     },
     {
-      id: 'mri-stickers',
-      name: 'Stickers',
+      id: 'mri-blood-work',
+      name: 'Blood Work',
       category: 'Pre-procedure',
-      estimatedMinutes: 2,
+      estimatedMinutes: 10,
       priority: 'high',
       timeOfDay: 'morning',
     },
     {
-      id: 'mri-drug-sheet',
-      name: 'Drug Sheet',
+      id: 'mri-chest-xrays',
+      name: 'Chest X-rays',
+      category: 'Pre-procedure',
+      estimatedMinutes: 15,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'mri-anesthesia-sheet',
+      name: 'MRI Anesthesia Sheet',
+      category: 'Pre-procedure',
+      estimatedMinutes: 5,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'mri-meds-sheet',
+      name: 'MRI Meds Sheet',
       category: 'Pre-procedure',
       estimatedMinutes: 3,
       priority: 'high',
       timeOfDay: 'morning',
     },
-  ],
-
-  // Surgery patients - minimal essential tasks only
-  'Surgery': [
     {
-      id: 'surgery-sheet',
-      name: 'Surgery Sheet',
+      id: 'mri-npo',
+      name: 'NPO',
       category: 'Pre-procedure',
-      estimatedMinutes: 5,
+      estimatedMinutes: 1,
       priority: 'high',
       timeOfDay: 'morning',
     },
     {
-      id: 'surgery-stickers',
-      name: 'Stickers',
+      id: 'mri-stickers-large',
+      name: 'Print 5 Stickers',
       category: 'Pre-procedure',
       estimatedMinutes: 2,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'mri-stickers-sheet',
+      name: 'Print 1 Sheet Small Stickers',
+      category: 'Pre-procedure',
+      estimatedMinutes: 2,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+  ],
+
+  // Surgery patients - essential pre-procedure tasks
+  'Surgery': [
+    {
+      id: 'surgery-slip',
+      name: 'Surgery Slip',
+      category: 'Pre-procedure',
+      estimatedMinutes: 5,
       priority: 'high',
       timeOfDay: 'morning',
     },
     {
       id: 'surgery-board',
-      name: 'Write on Board',
+      name: 'Written on Board',
+      category: 'Pre-procedure',
+      estimatedMinutes: 2,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'surgery-stickers-large',
+      name: 'Print 4 Large Stickers',
+      category: 'Pre-procedure',
+      estimatedMinutes: 2,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'surgery-stickers-sheets',
+      name: 'Print 2 Sheets Small Stickers',
+      category: 'Pre-procedure',
+      estimatedMinutes: 2,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'surgery-sheet',
+      name: 'Print Surgery Sheet',
+      category: 'Pre-procedure',
+      estimatedMinutes: 3,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'surgery-clear-daily',
+      name: 'Clear Daily',
       category: 'Pre-procedure',
       estimatedMinutes: 2,
       priority: 'high',
@@ -91,32 +155,23 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
     },
   ],
 
-  // Medical patients - minimal essential tasks only
+  // Medical patients - essential admission tasks
   'Medical': [
     {
-      id: 'morning-meds',
-      name: 'Morning Medications',
-      category: 'Daily Care',
-      estimatedMinutes: 5,
+      id: 'medical-admission-soap',
+      name: 'Admission SOAP',
+      category: 'Admission',
+      estimatedMinutes: 15,
       priority: 'high',
       timeOfDay: 'morning',
     },
     {
-      id: 'evening-meds',
-      name: 'Evening Medications',
-      category: 'Daily Care',
-      estimatedMinutes: 5,
-      priority: 'high',
-      timeOfDay: 'evening',
-    },
-    {
-      id: 'rounding-sheet',
-      name: 'Update Rounding Sheet',
-      category: 'Documentation',
-      estimatedMinutes: 5,
+      id: 'medical-treatment-sheet',
+      name: 'Treatment Sheet Created',
+      category: 'Admission',
+      estimatedMinutes: 10,
       priority: 'high',
       timeOfDay: 'morning',
-      autoCompleteOn: { type: 'rounding_updated' },
     },
   ],
 
