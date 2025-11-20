@@ -1433,23 +1433,23 @@ export default function VetHub() {
 
   const handlePrintTinyLabels = async () => {
     try {
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const activePatients = patients.filter(p => p.status !== 'Discharged' && (p.type === 'Surgery' || p.type === 'MRI'));
 
       if (activePatients.length === 0) {
-        toast({ title: 'No active patients', description: 'Add patients to print tiny labels' });
+        toast({ title: 'No Surgery/MRI patients', description: 'Tiny labels are only for Surgery and MRI patients' });
         return;
       }
 
       toast({
         title: 'Generating tiny labels...',
-        description: `Creating 4 labels per patient for ${activePatients.length} patients`
+        description: `Creating 4 labels per patient for ${activePatients.length} Surgery/MRI patients`
       });
 
       await printConsolidatedTinyLabels(activePatients as any);
 
       toast({
         title: '🏷️ Tiny Labels Ready',
-        description: `Print dialog opened for ${activePatients.length} patients (4 labels each)`
+        description: `Print dialog opened for ${activePatients.length} Surgery/MRI patients (4 labels each)`
       });
     } catch (error) {
       console.error('Tiny label generation error:', error);
@@ -2708,12 +2708,16 @@ export default function VetHub() {
                 onQuickAction={(action) => {
                   if (action === 'morning') handleCompleteAllCategory(patient.id, 'morning');
                   else if (action === 'evening') handleCompleteAllCategory(patient.id, 'evening');
-                  else if (action === 'tasks') setQuickAddMenuPatient(patient.id);
+                  else if (action === 'tasks') setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id);
                   else if (action === 'rounds') setRoundingSheetPatient(patient.id);
                 }}
                 onPrintStickers={() => handlePrintPatientStickers(patient.id)}
                 getTaskCategory={getTaskCategory}
                 hideCompletedTasks={hideCompletedTasks}
+                showQuickAddMenu={quickAddMenuPatient === patient.id}
+                onAddTask={(taskName) => handleQuickAddTask(patient.id, taskName)}
+                customTaskName={customTaskName}
+                onCustomTaskNameChange={setCustomTaskName}
               />
             ))}
           </div>
