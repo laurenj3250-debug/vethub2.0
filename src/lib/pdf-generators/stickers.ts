@@ -218,14 +218,15 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
   const data = formatPatientForTinyLabel(patient);
 
   // Generate array of label HTML (duplicates for count)
+  // Format matches user's HTML template exactly
   const labels = Array(count).fill(null).map(() => `
     <div class="tiny-label">
-      <div class="tiny-line"><span class="label">Date:</span> ${escapeHtml(data.date)}</div>
-      <div class="tiny-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</div>
-      <div class="tiny-line">${escapeHtml(data.ownerName)}</div>
-      <div class="tiny-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</div>
-      <div class="tiny-line"><span class="label">Sex:</span> ${escapeHtml(data.sex)} <span class="label">Age:</span> ${escapeHtml(data.age || '')}</div>
-      <div class="tiny-line"><span class="label">Diagnostic ID:</span> _________________</div>
+      <p class="line date-line"><span class="bold">Date:</span> ${escapeHtml(data.date)}</p>
+      <p class="line name-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</p>
+      <p class="line owner-line extrabold">${escapeHtml(data.ownerName)}</p>
+      <p class="line breed-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</p>
+      <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold age-label">Age:</span> ${escapeHtml(data.age || '')}</p>
+      <p class="line id-line">Diagnostic ID:</p>
     </div>
   `).join('\n');
 
@@ -242,9 +243,14 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: Georgia, serif; /* Georgia font as specified */
       margin: 0;
       padding: 0;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
     }
 
     .label-container {
@@ -254,36 +260,71 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
     }
 
     .tiny-label {
-      width: 2.625in;  /* Avery 5160 compatible: 2-5/8" x 1" */
-      height: 1.0in;
-      border: 1px solid #000;
-      padding: 0.08in;
+      width: 50mm;  /* Exact dimensions from template */
+      height: 35mm;
+      border: 1px solid black;
+      padding: 0.1mm; /* Internal margin as specified */
       box-sizing: border-box;
       page-break-inside: avoid;
       background: white;
-      font-size: 7pt;
-      text-align: center; /* Middle aligned */
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
+      overflow: hidden;
     }
 
-    .tiny-line {
-      margin: 0.5mm 0;
-      line-height: 1.2;
+    .line {
+      text-align: center;
+      font-size: 10px; /* text-xxs = 10px as specified */
+      line-height: 1.1; /* Tight line height */
     }
 
-    .tiny-line.bold {
+    /* Specific margin for each line matching template */
+    .date-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .name-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .owner-line {
+      margin-bottom: 1px; /* mb-px for main section break */
+    }
+
+    .breed-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .sex-age-line {
+      margin-bottom: 1px; /* mb-px for small separator */
+    }
+
+    .id-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .bold {
       font-weight: bold;
     }
 
-    .label {
-      font-weight: bold;
+    .extrabold {
+      font-weight: 800; /* font-extrabold */
+    }
+
+    .age-label {
+      margin-left: 16px; /* ml-4 spacing */
     }
 
     @media print {
-      body { margin: 0; }
-      .tiny-label { page-break-inside: avoid; }
+      body {
+        margin: 0;
+        background: white;
+      }
+      .tiny-label {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
@@ -703,7 +744,7 @@ ${allLabels.join('\n')}
  */
 export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
   // Generate all tiny labels - each patient gets their own set
-  // Format matches big stickers but smaller
+  // Format matches user's HTML template exactly
   const allLabels = patients.flatMap(patient => {
     const data = formatPatientForTinyLabel(patient);
     const count = patient.stickerData?.tinySheetCount || 1;
@@ -711,12 +752,12 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
     // Each patient gets 'count' number of identical tiny labels
     return Array(count).fill(null).map(() => `
       <div class="tiny-label">
-        <div class="tiny-line"><span class="label">Date:</span> ${escapeHtml(data.date)}</div>
-        <div class="tiny-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</div>
-        <div class="tiny-line">${escapeHtml(data.ownerName)}</div>
-        <div class="tiny-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</div>
-        <div class="tiny-line"><span class="label">Sex:</span> ${escapeHtml(data.sex)} <span class="label">Age:</span> ${escapeHtml(data.age || '')}</div>
-        <div class="tiny-line"><span class="label">Diagnostic ID:</span> _________________</div>
+        <p class="line date-line"><span class="bold">Date:</span> ${escapeHtml(data.date)}</p>
+        <p class="line name-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</p>
+        <p class="line owner-line extrabold">${escapeHtml(data.ownerName)}</p>
+        <p class="line breed-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</p>
+        <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold age-label">Age:</span> ${escapeHtml(data.age || '')}</p>
+        <p class="line id-line">Diagnostic ID:</p>
       </div>
     `);
   }).join('\n');
@@ -734,9 +775,14 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
     }
 
     body {
-      font-family: Arial, sans-serif;
+      font-family: Georgia, serif; /* Georgia font as specified */
       margin: 0;
       padding: 0;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
     }
 
     .label-container {
@@ -746,36 +792,71 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
     }
 
     .tiny-label {
-      width: 2.625in;  /* Avery 5160 compatible: 2-5/8" x 1" */
-      height: 1.0in;
-      border: 1px solid #000;
-      padding: 0.08in;
+      width: 50mm;  /* Exact dimensions from template */
+      height: 35mm;
+      border: 1px solid black;
+      padding: 0.1mm; /* Internal margin as specified */
       box-sizing: border-box;
       page-break-inside: avoid;
       background: white;
-      font-size: 7pt;
-      text-align: center; /* Middle aligned */
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
+      overflow: hidden;
     }
 
-    .tiny-line {
-      margin: 0.5mm 0;
-      line-height: 1.2;
+    .line {
+      text-align: center;
+      font-size: 10px; /* text-xxs = 10px as specified */
+      line-height: 1.1; /* Tight line height */
     }
 
-    .tiny-line.bold {
+    /* Specific margin for each line matching template */
+    .date-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .name-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .owner-line {
+      margin-bottom: 1px; /* mb-px for main section break */
+    }
+
+    .breed-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .sex-age-line {
+      margin-bottom: 1px; /* mb-px for small separator */
+    }
+
+    .id-line {
+      margin-bottom: 0; /* mb-0 */
+    }
+
+    .bold {
       font-weight: bold;
     }
 
-    .label {
-      font-weight: bold;
+    .extrabold {
+      font-weight: 800; /* font-extrabold */
+    }
+
+    .age-label {
+      margin-left: 16px; /* ml-4 spacing */
     }
 
     @media print {
-      body { margin: 0; }
-      .tiny-label { page-break-inside: avoid; }
+      body {
+        margin: 0;
+        background: white;
+      }
+      .tiny-label {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
