@@ -390,11 +390,12 @@ Abdomen: ${soapData.peAbd || 'WNL'}
 
 NEUROLOGICAL EXAM:
 Mental Status: ${soapData.mentalStatus}
-Gait: ${soapData.gait || 'Not documented'}
-Cranial Nerves: ${soapData.cranialNerves || 'Not documented'}
-Postural Reactions: ${soapData.posturalReactions || 'Not documented'}
-Spinal Reflexes: ${soapData.spinalReflexes || 'Not documented'}
+Gait & posture: ${soapData.gait || 'Not documented'}
+Cranial nerves: ${soapData.cranialNerves || 'Not documented'}
+Postural reactions: ${soapData.posturalReactions || 'Not documented'}
+Spinal reflexes: ${soapData.spinalReflexes || 'Not documented'}
 Tone: ${soapData.tone || 'Not documented'}
+Muscle mass: ${soapData.muscleMass || 'Not documented'}
 Nociception: ${soapData.nociception || 'Not documented'}
 Examined by: ${soapData.examBy}
 
