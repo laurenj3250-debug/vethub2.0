@@ -238,8 +238,8 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
   <title>Diagnostic Labels - ${data.patientName}</title>
   <style>
     @page {
-      size: letter;
-      margin: 0.5in;
+      size: 50mm 35mm; /* Match tiny label dimensions */
+      margin: 0;
     }
 
     body {
@@ -259,8 +259,6 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
       border: 1px solid black;
       padding: 0.1mm; /* Internal margin as specified */
       box-sizing: border-box;
-      page-break-inside: avoid;
-      page-break-after: always; /* Each label on its own page */
       background: white;
       display: flex;
       flex-direction: column;
@@ -312,10 +310,6 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
       body {
         margin: 0;
         background: white;
-      }
-      .tiny-label {
-        page-break-inside: avoid;
-        page-break-after: always;
       }
     }
   </style>
@@ -777,8 +771,8 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
   <title>Tiny Labels - Consolidated</title>
   <style>
     @page {
-      size: letter;
-      margin: 0.5in;
+      size: 50mm 35mm; /* Match tiny label dimensions */
+      margin: 0;
     }
 
     body {
@@ -798,8 +792,6 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
       border: 1px solid black;
       padding: 0.1mm; /* Internal margin as specified */
       box-sizing: border-box;
-      page-break-inside: avoid;
-      page-break-after: always; /* Each label on its own page */
       background: white;
       display: flex;
       flex-direction: column;
@@ -851,10 +843,6 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
       body {
         margin: 0;
         background: white;
-      }
-      .tiny-label {
-        page-break-inside: avoid;
-        page-break-after: always;
       }
     }
   </style>
