@@ -225,7 +225,7 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
       <p class="line name-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</p>
       <p class="line owner-line extrabold">${escapeHtml(data.ownerName)}</p>
       <p class="line breed-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</p>
-      <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold age-label">Age:</span> ${escapeHtml(data.age || '')}</p>
+      <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold">Age:</span> ${escapeHtml(data.age || '')}</p>
       <p class="line id-line">Diagnostic ID:</p>
     </div>
   `).join('\n');
@@ -311,10 +311,6 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
 
     .extrabold {
       font-weight: 800; /* font-extrabold */
-    }
-
-    .age-label {
-      margin-left: 16px; /* ml-4 spacing */
     }
 
     @media print {
@@ -756,7 +752,7 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
         <p class="line name-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</p>
         <p class="line owner-line extrabold">${escapeHtml(data.ownerName)}</p>
         <p class="line breed-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</p>
-        <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold age-label">Age:</span> ${escapeHtml(data.age || '')}</p>
+        <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold">Age:</span> ${escapeHtml(data.age || '')}</p>
         <p class="line id-line">Diagnostic ID:</p>
       </div>
     `);
@@ -843,10 +839,6 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
 
     .extrabold {
       font-weight: 800; /* font-extrabold */
-    }
-
-    .age-label {
-      margin-left: 16px; /* ml-4 spacing */
     }
 
     @media print {
