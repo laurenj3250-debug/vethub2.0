@@ -303,22 +303,25 @@ export function SOAPBuilder({ patients, onSave, onPatientSelect }: SOAPBuilderPr
         }),
       });
 
-      if (!response.ok) throw new Error('Parsing failed');
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Parsing failed');
+      }
+
       setSOAPData({ ...soapData, ...result.extractedData });
       toast({
         title: '✅ Fields populated!',
-        description: `Updated ${Object.keys(result.extractedData).length} fields`
+        description: `Updated ${Object.keys(result.extractedData || {}).length} fields`
       });
       setShowPasteModal(false);
       setPastedText('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Parse error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error parsing text',
-        description: 'AI parsing failed. Please try again.'
+        title: 'AI Parsing Failed',
+        description: error.message || 'Please check your API key configuration in .env.local'
       });
     } finally {
       setIsParsing(false);

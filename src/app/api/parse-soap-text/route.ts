@@ -13,6 +13,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No text provided' }, { status: 400 });
     }
 
+    // Check if API key is configured
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({
+        error: 'AI parsing is not configured. Please set ANTHROPIC_API_KEY in your .env.local file.',
+        details: 'Missing API key'
+      }, { status: 503 });
+    }
+
     // Use Claude to intelligently extract SOAP fields from text
     const extractionPrompt = `You are a veterinary AI assistant helping to fill out a SOAP note based on dictated/transcribed notes.
 
