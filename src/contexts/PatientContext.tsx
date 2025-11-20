@@ -324,19 +324,29 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
       try {
         const rawPatients = await apiClient.getPatients();
 
-        // If API returns UnifiedPatient format (from our new /api/patients endpoint)
-        if (rawPatients.length > 0 && rawPatients[0].demographics) {
-          setPatients(rawPatients);
-          setIsLoading(false);
-          return;
+        console.log('[PatientContext] API returned patients:', rawPatients.length, rawPatients);
+
+        // If API returns data (even if empty array), use it
+        // Check if it's the expected UnifiedPatient format (has demographics field)
+        if (Array.isArray(rawPatients)) {
+          // If we have patients, verify the format
+          if (rawPatients.length === 0 || rawPatients[0].demographics) {
+            console.log('[PatientContext] Using API data:', rawPatients.length, 'patients');
+            setPatients(rawPatients);
+            setIsLoading(false);
+            return;
+          } else {
+            console.warn('[PatientContext] API returned unexpected format:', rawPatients[0]);
+          }
         }
       } catch (apiError) {
-        console.warn('[PatientContext] API call failed, falling back to localStorage:', apiError);
+        console.error('[PatientContext] API call failed, falling back to localStorage:', apiError);
       }
 
-      // Fallback to localStorage if API is unavailable
+      // Fallback to localStorage if API is unavailable or returns invalid format
       const localData = localStorage.getItem('vethub_patients');
       if (localData) {
+        console.log('[PatientContext] Using localStorage data');
         const localPatients = JSON.parse(localData);
         setPatients(localPatients.map((p: any) => ({
           ...p,
@@ -352,10 +362,11 @@ export function PatientProvider({ children }: { children: React.ReactNode }) {
       }
 
       // If no data available, start with empty array
+      console.log('[PatientContext] No data available, starting with empty array');
       setPatients([]);
       setIsLoading(false);
     } catch (err) {
-      console.error('Failed to load patients:', err);
+      console.error('[PatientContext] Failed to load patients:', err);
       setError(err as Error);
     } finally {
       setIsLoading(false);
