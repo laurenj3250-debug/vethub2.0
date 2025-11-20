@@ -17,6 +17,10 @@ interface PatientListItemProps {
   onPrintStickers?: () => void;
   getTaskCategory: (taskName: string) => string;
   hideCompletedTasks: boolean;
+  showQuickAddMenu?: boolean;
+  onAddTask?: (taskName: string) => void;
+  customTaskName?: string;
+  onCustomTaskNameChange?: (name: string) => void;
 }
 
 export function PatientListItem({
@@ -33,6 +37,10 @@ export function PatientListItem({
   onPrintStickers,
   getTaskCategory,
   hideCompletedTasks,
+  showQuickAddMenu = false,
+  onAddTask,
+  customTaskName = '',
+  onCustomTaskNameChange,
 }: PatientListItemProps) {
   const [showEditDemographics, setShowEditDemographics] = useState(false);
   const today = new Date().toISOString().split('T')[0];
@@ -238,6 +246,45 @@ export function PatientListItem({
               ✏️ Edit Info
             </button>
           </div>
+
+          {/* Quick Add Task Menu */}
+          {showQuickAddMenu && onAddTask && (
+            <div className="mb-3 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
+              <h5 className="text-white font-bold text-sm mb-2">Quick Add Common Tasks:</h5>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-2">
+                {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled', 'Consent Form', 'Estimate Approved', 'Referral Letter', 'Lab Results', 'Imaging Review', 'Progress Photos'].map(taskName => (
+                  <button
+                    key={taskName}
+                    onClick={() => onAddTask(taskName)}
+                    className="px-2 py-1.5 bg-slate-800/50 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-500 rounded text-slate-300 hover:text-cyan-300 text-xs transition"
+                  >
+                    {taskName}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customTaskName}
+                  onChange={(e) => onCustomTaskNameChange?.(e.target.value)}
+                  placeholder="Custom task name..."
+                  className="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && customTaskName.trim()) {
+                      onAddTask(customTaskName);
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => customTaskName.trim() && onAddTask(customTaskName)}
+                  disabled={!customTaskName.trim()}
+                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Edit Demographics Form */}
           {showEditDemographics && (
