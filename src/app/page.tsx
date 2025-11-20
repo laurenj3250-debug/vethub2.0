@@ -547,7 +547,7 @@ export default function VetHub() {
           isNewAdmit: true,
           isSurgery: patientType === 'Surgery',
           bigLabelCount: patientType === 'MRI' ? 5 : patientType === 'Surgery' ? 4 : 2,
-          tinySheetCount: (patientType === 'MRI' || patientType === 'Surgery') ? 8 : 0,
+          tinySheetCount: patientType === 'MRI' ? 4 : patientType === 'Surgery' ? 8 : 0,
         },
         mriData: {},
       };
