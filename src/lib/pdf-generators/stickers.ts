@@ -247,16 +247,10 @@ export function generateTinyLabelsHTML(patient: UnifiedPatient, count: number = 
       margin: 0;
       padding: 0;
       background-color: #f0f0f0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 20px;
     }
 
     .label-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.125in;
+      /* No flex - allows page-break-after to work */
     }
 
     .tiny-label {
@@ -792,16 +786,10 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
       margin: 0;
       padding: 0;
       background-color: #f0f0f0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 20px;
     }
 
     .label-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.125in;
+      /* No flex - allows page-break-after to work */
     }
 
     .tiny-label {
