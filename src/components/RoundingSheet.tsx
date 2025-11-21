@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Save, Copy, ExternalLink, Sparkles } from 'lucide-react';
+import { Save, Copy, ExternalLink, Sparkles, RotateCcw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
+import { autoFillRoundingData, generateSignalment, isStaleData } from '@/lib/rounding-auto-fill';
 import { AutoCompleteInput } from '@/components/AutoCompleteInput';
 import { PastePreviewModal } from './PastePreviewModal';
 
@@ -14,6 +15,19 @@ interface Patient {
   status: string;
   rounding_data?: RoundingData;
   patient_info?: any;
+  demographics?: {
+    name?: string;
+    age?: string;
+    sex?: string;
+    breed?: string;
+    species?: string;
+    weight?: string;
+  };
+  currentStay?: {
+    location?: string;
+    codeStatus?: string;
+    icuCriteria?: string;
+  };
 }
 
 interface RoundingData {
@@ -50,6 +64,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const [showPastePreview, setShowPastePreview] = useState(false);
   const [pendingPasteData, setPendingPasteData] = useState<any[]>([]);
   const [pasteStartPatientIndex, setPasteStartPatientIndex] = useState(0);
+  const [autoFilledFields, setAutoFilledFields] = useState<Record<number, Set<string>>>({});
 
   useEffect(() => {
     return () => {
@@ -69,24 +84,47 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     console.log('[RoundingSheet] First patient full structure:', JSON.stringify(activePatients[0], null, 2));
   }
 
-  // AI Carry-Forward: Pre-fill rounding data from yesterday
+  // Auto-Fill & Carry-Forward: Pre-fill rounding data from demographics and yesterday's data
   useEffect(() => {
     const newCarryForwardResults: Record<number, CarryForwardResult> = {};
     const newEditingData: Record<number, RoundingData> = {};
+    const newAutoFilledFields: Record<number, Set<string>> = {};
 
     activePatients.forEach((patient) => {
       const previousData = (patient as any)?.roundingData || patient?.rounding_data;
-      const result = carryForwardRoundingData(previousData);
 
-      newCarryForwardResults[patient.id] = result;
+      // Step 1: Carry forward from yesterday
+      const carryResult = carryForwardRoundingData(previousData);
+      newCarryForwardResults[patient.id] = carryResult;
 
-      // Only pre-fill if data was carried forward
-      if (result.carriedForward) {
-        newEditingData[patient.id] = result.data;
+      // Step 2: Auto-fill from demographics (overrides carry-forward for demographic fields)
+      const autoFillResult = autoFillRoundingData({
+        demographics: patient.demographics,
+        currentStay: patient.currentStay,
+        roundingData: previousData,
+      });
+
+      // Merge carry-forward and auto-fill data
+      const mergedData: RoundingData = {
+        ...carryResult.data,
+        ...autoFillResult, // Auto-fill takes precedence
+      };
+
+      // Track which fields were auto-filled
+      const autoFields = new Set<string>([
+        ...autoFillResult.autoFilledFields,
+        ...autoFillResult.carriedForwardFields,
+      ]);
+      newAutoFilledFields[patient.id] = autoFields;
+
+      // Only pre-fill if data was carried forward or auto-filled
+      if (carryResult.carriedForward || autoFields.size > 0) {
+        newEditingData[patient.id] = mergedData;
       }
     });
 
     setCarryForwardResults(newCarryForwardResults);
+    setAutoFilledFields(newAutoFilledFields);
 
     // Only update editing data if it's empty (first load)
     setEditingData((prev) => {
@@ -137,6 +175,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         [field]: value
       }
     }));
+
+    // Remove field from auto-filled set (user manually edited it)
+    setAutoFilledFields(prev => {
+      const newFields = { ...prev };
+      if (newFields[patientId]) {
+        const updated = new Set(newFields[patientId]);
+        updated.delete(field);
+        newFields[patientId] = updated;
+      }
+      return newFields;
+    });
 
     // Clear existing timer for this patient
     const existingTimer = saveTimers.get(patientId);
@@ -602,61 +651,102 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       <div className="text-xs text-slate-400">
                         {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
                       </div>
-                      {carryForward?.carriedForward && (
+                      {(carryForward?.carriedForward || (autoFilledFields[patient.id]?.size || 0) > 0) && (
                         <div className="flex items-center gap-1 text-xs text-blue-400">
                           <Sparkles size={10} />
-                          Day {data.dayCount || 1} - Pre-filled
+                          {autoFilledFields[patient.id]?.size || 0} auto-filled
+                          {data.dayCount && ` • Day ${data.dayCount}`}
                         </div>
                       )}
                     </Link>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <input
-                      type="text"
-                      value={data.signalment || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'signalment')}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={data.signalment || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
+                        onPaste={(e) => handlePaste(e, patient.id, 'signalment')}
+                        className={`w-full px-2 py-1 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                          autoFilledFields[patient.id]?.has('signalment')
+                            ? 'bg-blue-900/30'
+                            : 'bg-slate-900'
+                        }`}
+                        title={autoFilledFields[patient.id]?.has('signalment') ? 'Auto-filled from patient demographics - click to edit' : ''}
+                      />
+                      {autoFilledFields[patient.id]?.has('signalment') && (
+                        <Sparkles size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none" />
+                      )}
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <select
-                      value={data.location || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'location')}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value=""></option>
-                      <option value="IP">IP</option>
-                      <option value="ICU">ICU</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={data.location || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
+                        onPaste={(e) => handlePaste(e, patient.id, 'location')}
+                        className={`w-full px-2 py-1 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                          autoFilledFields[patient.id]?.has('location')
+                            ? 'bg-blue-900/30'
+                            : 'bg-slate-900'
+                        }`}
+                        title={autoFilledFields[patient.id]?.has('location') ? 'Auto-filled from patient location - click to edit' : ''}
+                      >
+                        <option value=""></option>
+                        <option value="IP">IP</option>
+                        <option value="ICU">ICU</option>
+                      </select>
+                      {autoFilledFields[patient.id]?.has('location') && (
+                        <RotateCcw size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none" />
+                      )}
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <select
-                      value={data.icuCriteria || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'icuCriteria')}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value=""></option>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                      <option value="n/a">n/a</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={data.icuCriteria || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
+                        onPaste={(e) => handlePaste(e, patient.id, 'icuCriteria')}
+                        className={`w-full px-2 py-1 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                          autoFilledFields[patient.id]?.has('icuCriteria')
+                            ? 'bg-blue-900/30'
+                            : 'bg-slate-900'
+                        }`}
+                        title={autoFilledFields[patient.id]?.has('icuCriteria') ? 'Auto-filled - click to edit' : ''}
+                      >
+                        <option value=""></option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="n/a">n/a</option>
+                      </select>
+                      {autoFilledFields[patient.id]?.has('icuCriteria') && (
+                        <RotateCcw size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none" />
+                      )}
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <select
-                      value={data.code || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'code')}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                    >
-                      <option value="">Select...</option>
-                      <option value="Green">Green</option>
-                      <option value="Yellow">Yellow</option>
-                      <option value="Orange">Orange</option>
-                      <option value="Red">Red</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={data.code || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
+                        onPaste={(e) => handlePaste(e, patient.id, 'code')}
+                        className={`w-full px-2 py-1 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 ${
+                          autoFilledFields[patient.id]?.has('code')
+                            ? 'bg-blue-900/30'
+                            : 'bg-slate-900'
+                        }`}
+                        title={autoFilledFields[patient.id]?.has('code') ? 'Auto-filled from code status - click to edit' : ''}
+                      >
+                        <option value="">Select...</option>
+                        <option value="Green">Green</option>
+                        <option value="Yellow">Yellow</option>
+                        <option value="Orange">Orange</option>
+                        <option value="Red">Red</option>
+                      </select>
+                      {autoFilledFields[patient.id]?.has('code') && (
+                        <RotateCcw size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none" />
+                      )}
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <div onPaste={(e) => handlePaste(e, patient.id, 'problems')}>

@@ -93,7 +93,14 @@ export function carryForwardRoundingData(
 
   fieldsToCarry.forEach((field) => {
     if (previousData[field] && previousData[field]?.trim() !== '') {
-      carriedData[field] = previousData[field];
+      let value = previousData[field];
+
+      // Auto-increment day count in problems field
+      if (field === 'problems' && incrementDayCount) {
+        value = incrementDayCountInText(value || '');
+      }
+
+      carriedData[field] = value;
       fieldsCarried.push(field);
     }
   });
@@ -169,4 +176,21 @@ export function formatCarryForwardMessage(result: CarryForwardResult): string {
 
   const dayCount = result.data.dayCount || 1;
   return `📋 Pre-filled from yesterday (Day ${dayCount}). Update what changed today.`;
+}
+
+/**
+ * Increment day count in text
+ * "Day 2 seizures" → "Day 3 seizures"
+ * "Post-op Day 1 IVDD" → "Post-op Day 2 IVDD"
+ */
+function incrementDayCountInText(text: string): string {
+  if (!text) return text;
+
+  // Pattern: "Day X" where X is a number
+  const dayPattern = /Day (\d+)/gi;
+
+  return text.replace(dayPattern, (match, dayNum) => {
+    const newDay = parseInt(dayNum) + 1;
+    return `Day ${newDay}`;
+  });
 }
