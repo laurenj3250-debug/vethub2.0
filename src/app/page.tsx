@@ -9,6 +9,8 @@ import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, 
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
+import { TaskKanbanBoard } from '@/components/TaskKanbanBoard';
+import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels } from '@/lib/pdf-generators/stickers';
 
 export default function VetHub() {
@@ -75,6 +77,9 @@ export default function VetHub() {
 
   // View mode (list vs grid) - persisted to localStorage
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // Task view mode (kanban vs list)
+  const [taskBoardView, setTaskBoardView] = useState<'kanban' | 'list'>('list');
 
   // Active filters for quick filter chips
   const [activeFilters, setActiveFilters] = useState<{
@@ -1619,6 +1624,46 @@ export default function VetHub() {
     }
   }, [hideCompletedTasks, mounted]);
 
+  // One-time task migration to add status fields
+  useEffect(() => {
+    const runTaskMigration = async () => {
+      if (!mounted || !patients || !generalTasks) return;
+
+      // Check if migration has already been run
+      const migrationComplete = localStorage.getItem('taskKanbanMigration_v1');
+      if (migrationComplete === 'true') return;
+
+      try {
+        console.log('Running task migration to add kanban status fields...');
+        const result = await migrateAllTasksOnLoad(
+          patients,
+          generalTasks,
+          apiClient.updateTask.bind(apiClient),
+          apiClient.updateGeneralTask.bind(apiClient)
+        );
+
+        console.log(`Migration complete: ${result.patientTasksMigrated} patient tasks, ${result.generalTasksMigrated} general tasks migrated`);
+
+        // Mark migration as complete
+        localStorage.setItem('taskKanbanMigration_v1', 'true');
+
+        // Refetch to get updated data
+        if (result.patientTasksMigrated > 0 || result.generalTasksMigrated > 0) {
+          refetch();
+          refetchGeneralTasks();
+          toast({
+            title: 'Tasks Updated',
+            description: `Migrated ${result.patientTasksMigrated + result.generalTasksMigrated} tasks to kanban board`,
+          });
+        }
+      } catch (error) {
+        console.error('Task migration failed:', error);
+      }
+    };
+
+    runTaskMigration();
+  }, [mounted, patients, generalTasks]);
+
   // Automatic daily task reset - runs when app loads on a new day
   const hasRunAutoCreation = useRef(false);
 
@@ -2297,7 +2342,32 @@ export default function VetHub() {
                 All Tasks
               </h2>
               <div className="flex gap-2">
-                {taskViewMode === 'general' && (
+                {/* View Toggle */}
+                <div className="flex items-center gap-1 bg-slate-800/60 rounded-lg p-1">
+                  <button
+                    onClick={() => setTaskBoardView('list')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-bold transition flex items-center gap-1.5 ${
+                      taskBoardView === 'list'
+                        ? 'bg-cyan-500 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <ListIcon size={16} />
+                    List
+                  </button>
+                  <button
+                    onClick={() => setTaskBoardView('kanban')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-bold transition flex items-center gap-1.5 ${
+                      taskBoardView === 'kanban'
+                        ? 'bg-violet-500 text-white'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <LayoutGrid size={16} />
+                    Kanban
+                  </button>
+                </div>
+                {taskViewMode === 'general' && taskBoardView === 'list' && (
                   <button
                     onClick={() => setShowAddGeneralTask(true)}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg"
@@ -2309,8 +2379,18 @@ export default function VetHub() {
               </div>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="flex gap-2 mb-6 border-b border-slate-700/50 pb-0">
+            {/* Kanban Board View */}
+            {taskBoardView === 'kanban' ? (
+              <TaskKanbanBoard
+                patients={patients}
+                generalTasks={generalTasks}
+                hideCompletedTasks={hideCompletedTasks}
+                onRefetch={refetch}
+              />
+            ) : (
+              <>
+                {/* Tab Navigation */}
+                <div className="flex gap-2 mb-6 border-b border-slate-700/50 pb-0">
               <button
                 onClick={() => setTaskViewMode('by-patient')}
                 className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
@@ -2564,6 +2644,8 @@ export default function VetHub() {
                   );
                 })()}
               </div>
+            )}
+              </>
             )}
           </div>
         )}

@@ -9,10 +9,16 @@ export type PatientStatus =
   | 'Ready for Discharge'
   | 'Discharged';
 
+export type TaskStatus = 'todo' | 'in-progress' | 'done';
+
 export type Task = {
   id: number;
   name: string;
   completed: boolean;
+  status?: TaskStatus; // Kanban column status
+  priority?: 'low' | 'medium' | 'high'; // Task priority
+  dueDate?: string; // ISO date string
+  title?: string; // Alternative to name for display
 };
 
 export type PatientInfo = {
@@ -79,4 +85,8 @@ export type GeneralTask = {
   id: number;
   name: string;
   completed: boolean;
+  status?: TaskStatus; // Kanban column status
+  priority?: 'low' | 'medium' | 'high'; // Task priority
+  dueDate?: string; // ISO date string
+  title?: string; // Alternative to name for display
 };

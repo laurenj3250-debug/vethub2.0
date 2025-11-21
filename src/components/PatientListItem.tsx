@@ -415,6 +415,22 @@ export function PatientListItem({
           )}
 
           {/* Tasks grouped by category */}
+          {/* Empty state when all tasks complete and hidden */}
+          {hideCompletedTasks && completedTasks === totalTasks && totalTasks > 0 && (
+            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
+              <div className="text-2xl mb-2">✅</div>
+              <p className="text-green-300 text-sm font-medium mb-1">All tasks complete!</p>
+              <p className="text-slate-400 text-xs">{completedTasks} {completedTasks === 1 ? 'task' : 'tasks'} done</p>
+            </div>
+          )}
+
+          {/* Empty state when no active tasks but has tasks total */}
+          {!hideCompletedTasks && totalTasks === 0 && (
+            <div className="bg-slate-700/30 border border-slate-600/30 rounded-lg p-4 text-center">
+              <p className="text-slate-400 text-sm">No tasks yet. Click "📋 Tasks" above to add some.</p>
+            </div>
+          )}
+
           {/* Morning Tasks */}
           {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
             <div className="mb-3">
