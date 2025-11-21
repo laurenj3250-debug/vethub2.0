@@ -67,6 +67,7 @@ export function AppointmentSchedule() {
           medications: apt.medications || null,
           changesSinceLastVisit: apt.changesSinceLastVisit || null,
           otherNotes: apt.otherNotes || null,
+          highlight: apt.highlight || 'none',
           rawText: apt.rawText || undefined,
           lastUpdated: new Date(apt.updatedAt),
         }));
@@ -185,6 +186,7 @@ export function AppointmentSchedule() {
           medications: apt.medications || null,
           changesSinceLastVisit: apt.changesSinceLastVisit || null,
           otherNotes: apt.otherNotes || null,
+          highlight: apt.highlight || 'none',
           rawText: apt.rawText || undefined,
           lastUpdated: new Date(apt.updatedAt),
         }));
@@ -288,6 +290,7 @@ export function AppointmentSchedule() {
           medications: apt.medications || null,
           changesSinceLastVisit: apt.changesSinceLastVisit || null,
           otherNotes: apt.otherNotes || null,
+          highlight: apt.highlight || 'none',
           rawText: apt.rawText || undefined,
           lastUpdated: new Date(apt.updatedAt),
         }));
@@ -434,19 +437,36 @@ export function AppointmentSchedule() {
               : `${patients.length} patient(s) • Sorted by ${sortBy === 'time' ? 'appointment time' : sortBy === 'name' ? 'name' : 'custom order'}`}
           </p>
           {patients.length > 0 && (
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs text-slate-500">Legend:</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-emerald-500/30 border-l-2 border-emerald-500 rounded-sm"></div>
-                <span className="text-xs text-slate-400">New Patient</span>
+            <div className="space-y-2 mt-2">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-500">Status:</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-emerald-500/30 border-l-2 border-emerald-500 rounded-sm"></div>
+                  <span className="text-xs text-slate-400">New Patient</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-blue-500/30 border-l-2 border-blue-500 rounded-sm"></div>
+                  <span className="text-xs text-slate-400">Recheck</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-purple-500/30 border-l-2 border-purple-500 rounded-sm"></div>
+                  <span className="text-xs text-slate-400">MRI Drop Off</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-blue-500/30 border-l-2 border-blue-500 rounded-sm"></div>
-                <span className="text-xs text-slate-400">Recheck</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 bg-purple-500/30 border-l-2 border-purple-500 rounded-sm"></div>
-                <span className="text-xs text-slate-400">MRI Drop Off</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-500">Highlights:</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-yellow-500/30 border-l-2 border-yellow-500 rounded-sm"></div>
+                  <span className="text-xs text-slate-400">Priority</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-red-500/30 border-l-2 border-red-500 rounded-sm"></div>
+                  <span className="text-xs text-slate-400">Urgent</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 bg-green-500/30 border-l-2 border-green-500 rounded-sm"></div>
+                  <span className="text-xs text-slate-400">Completed</span>
+                </div>
               </div>
             </div>
           )}
@@ -531,8 +551,8 @@ export function AppointmentSchedule() {
           </button>
         </div>
       ) : (
-        <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl">
+          <div className="w-full">
             <table className="w-full text-left">
               <thead className="bg-slate-800/50 border-b border-slate-700">
                 <tr>

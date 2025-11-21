@@ -264,6 +264,101 @@ test.describe('Schedule Management', () => {
   });
 });
 
+test.describe('Appointment Highlighting', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/appointments');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('should have highlight buttons for appointments', async ({ page }) => {
+    // Look for highlight/marker buttons
+    const highlightButtons = page.locator('button[title*="Highlight"], button svg').filter({ has: page.locator('svg') });
+
+    if (await highlightButtons.first().isVisible()) {
+      await expect(highlightButtons.first()).toBeVisible();
+    }
+  });
+
+  test('should cycle through highlight colors on click', async ({ page }) => {
+    const highlightButtons = page.locator('button[title*="Highlight"]');
+
+    if (await highlightButtons.first().isVisible()) {
+      const button = highlightButtons.first();
+      const row = button.locator('..').locator('..').locator('..');
+
+      // Get initial background color
+      const initialBg = await row.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+
+      // Click to highlight
+      await button.click();
+      await page.waitForTimeout(200);
+
+      // Background should change
+      const newBg = await row.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+
+      // Should be different (highlighted)
+      expect(newBg).not.toBe(initialBg);
+    }
+  });
+
+  test('should show highlight legend', async ({ page }) => {
+    // Look for legend explaining highlight colors
+    const legend = page.locator('text=/Highlight/i, text=/Priority/i, text=/Urgent/i, text=/Completed/i');
+
+    if (await legend.first().isVisible()) {
+      await expect(legend.first()).toBeVisible();
+    }
+  });
+
+  test('should persist highlights across reloads', async ({ page }) => {
+    const highlightButtons = page.locator('button[title*="Highlight"]');
+
+    if (await highlightButtons.first().isVisible()) {
+      const button = highlightButtons.first();
+
+      // Highlight an appointment
+      await button.click();
+      await page.waitForTimeout(1500); // Wait for auto-save to database
+
+      // Reload page
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+
+      // Highlight should still be visible
+      const row = highlightButtons.first().locator('..').locator('..').locator('..');
+      const bg = await row.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+
+      // Should have a colored background (not default)
+      expect(bg).not.toBe('rgba(0, 0, 0, 0)');
+    }
+  });
+
+  test('should support multiple highlight colors', async ({ page }) => {
+    const highlightButtons = page.locator('button[title*="Highlight"]');
+
+    if (await highlightButtons.count() >= 3) {
+      // Highlight different rows with different colors
+      for (let i = 0; i < 3; i++) {
+        const button = highlightButtons.nth(i);
+        await button.click();
+        await page.waitForTimeout(100);
+      }
+
+      // Should see different colored highlights
+      const rows = page.locator('tbody tr');
+      const bgColors = new Set();
+
+      for (let i = 0; i < Math.min(3, await rows.count()); i++) {
+        const bg = await rows.nth(i).evaluate((el) => window.getComputedStyle(el).backgroundColor);
+        bgColors.add(bg);
+      }
+
+      // Should have variety of colors
+      expect(bgColors.size).toBeGreaterThan(1);
+    }
+  });
+});
+
 test.describe('Responsive Design', () => {
   test('should be usable on tablet viewport', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });

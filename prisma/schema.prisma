@@ -46,6 +46,7 @@ model Patient {
   soapNotes       SOAPNote[]
   tasks           Task[]
   neuroExams      NeuroExam[]
+  resiliencyEntries ResiliencyEntry[]
 
   @@index([status])
   @@index([createdAt])
@@ -143,6 +144,9 @@ model Appointment {
   changesSinceLastVisit String?
   otherNotes       String?
 
+  // Visual Markers
+  highlight        String?   @default("none") // none | yellow | red | green - whiteboard-style highlighting
+
   // Metadata
   rawText          String?   // Original pasted text
   createdAt        DateTime  @default(now())
@@ -184,4 +188,24 @@ model NeuroExam {
 
   @@index([patientId])
   @@index([createdAt])
+}
+
+// Resiliency Logger - Track patient resilience entries
+model ResiliencyEntry {
+  id          String    @id @default(cuid())
+  patientId   Int
+  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  // Entry content
+  entryText   String    @db.Text
+  category    String?   // behavioral | physical | emotional | social
+
+  // Metadata
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?   // Who logged the entry
+
+  @@index([patientId])
+  @@index([createdAt])
+  @@index([category])
 }

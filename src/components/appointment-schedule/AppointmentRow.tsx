@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { GripVertical, Trash2 } from 'lucide-react';
+import { GripVertical, Trash2, Highlighter } from 'lucide-react';
 import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -192,11 +192,35 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
       ? 'bg-purple-500/5 border-l-4 border-purple-500/50'
       : 'bg-blue-500/5 border-l-4 border-blue-500/50';
 
+  // Highlight colors - like physical highlighter markers
+  const highlightColors =
+    patient.highlight === 'yellow'
+      ? 'bg-yellow-500/20 hover:bg-yellow-500/25 border-l-4 border-yellow-500'
+      : patient.highlight === 'red'
+      ? 'bg-red-500/20 hover:bg-red-500/25 border-l-4 border-red-500'
+      : patient.highlight === 'green'
+      ? 'bg-green-500/20 hover:bg-green-500/25 border-l-4 border-green-500'
+      : statusColors;
+
+  const handleHighlightClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Cycle through highlights: none -> yellow -> red -> green -> none
+    const nextHighlight =
+      !patient.highlight || patient.highlight === 'none'
+        ? 'yellow'
+        : patient.highlight === 'yellow'
+        ? 'red'
+        : patient.highlight === 'red'
+        ? 'green'
+        : 'none';
+    onUpdate(patient.id, 'highlight', nextHighlight);
+  };
+
   return (
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b border-slate-700/30 hover:bg-slate-800/30 transition ${statusColors}`}
+      className={`border-b border-slate-700/30 transition ${highlightColors}`}
     >
       {/* Drag Handle */}
       <td className="px-2 py-3 border-r border-slate-700/30">
@@ -261,7 +285,7 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
       </td>
 
       {/* Age */}
-      {renderEditableCell(patient.demographics?.age || patient.age, 'age', '—')}
+      {renderEditableCell(patient.age, 'age', '—')}
 
       {/* Why Here Today */}
       {renderEditableCell(patient.whyHereToday, 'whyHereToday', '—')}
@@ -286,12 +310,29 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
 
       {/* Actions */}
       <td className="px-2 py-3 border-r border-slate-700/30">
-        <button
-          onClick={() => onDelete(patient.id)}
-          className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleHighlightClick}
+            className={`p-1 rounded transition ${
+              patient.highlight && patient.highlight !== 'none'
+                ? patient.highlight === 'yellow'
+                  ? 'text-yellow-400 bg-yellow-500/20 hover:bg-yellow-500/30'
+                  : patient.highlight === 'red'
+                  ? 'text-red-400 bg-red-500/20 hover:bg-red-500/30'
+                  : 'text-green-400 bg-green-500/20 hover:bg-green-500/30'
+                : 'text-slate-600 hover:text-slate-400 hover:bg-slate-700/30'
+            }`}
+            title="Highlight row (Yellow → Red → Green → None)"
+          >
+            <Highlighter size={14} />
+          </button>
+          <button
+            onClick={() => onDelete(patient.id)}
+            className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </td>
     </tr>
   );
