@@ -1298,6 +1298,35 @@ export default function VetHub() {
     }
   };
 
+  const handleCopySingleMRILine = (patientId: number) => {
+    try {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) {
+        toast({ variant: 'destructive', title: 'Patient not found' });
+        return;
+      }
+
+      // Build single line TSV (no header)
+      const name = patient.demographics?.name || patient.name || '';
+      const patientIdStr = patient.demographics?.patientId || '';
+      const weight = (patient.demographics?.weight || '').replace(/[^\d.]/g, '');
+      const scanType = patient.mriData?.scanType || '';
+
+      const tsvLine = `${name}\t${patientIdStr}\t${weight}\t${scanType}`;
+
+      // Copy to clipboard
+      navigator.clipboard.writeText(tsvLine);
+
+      toast({
+        title: '✅ MRI Line Copied!',
+        description: `${name}'s data ready to paste`
+      });
+    } catch (error) {
+      console.error('MRI line copy error:', error);
+      toast({ variant: 'destructive', title: 'Copy failed', description: 'Could not copy MRI line' });
+    }
+  };
+
   const handleCopySingleRoundingLine = (patientId: number) => {
     try {
       const patient = patients.find(p => p.id === patientId);
@@ -2511,6 +2540,7 @@ export default function VetHub() {
                     <th className="text-left p-2 text-cyan-400 font-bold">Patient ID</th>
                     <th className="text-left p-2 text-emerald-400 font-bold">Weight (kg)</th>
                     <th className="text-left p-2 text-pink-400 font-bold">Scan Type</th>
+                    <th className="text-left p-2 text-slate-400 font-bold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2569,6 +2599,15 @@ export default function VetHub() {
                             className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
                             placeholder="Brain, LS, C-Spine..."
                           />
+                        </td>
+                        <td className="p-2">
+                          <button
+                            onClick={() => handleCopySingleMRILine(patient.id)}
+                            className="p-1.5 rounded hover:bg-slate-700 transition-colors"
+                            title="Copy this patient's MRI line"
+                          >
+                            <Copy className="w-4 h-4 text-slate-400" />
+                          </button>
                         </td>
                       </tr>
                     );
