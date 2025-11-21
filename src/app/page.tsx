@@ -67,8 +67,8 @@ export default function VetHub() {
   const [mriInputValues, setMriInputValues] = useState<Record<string, string>>({});
   const mriTimeoutRefs = useRef<Record<string, NodeJS.Timeout>>({});
 
-  // Hide completed tasks toggle
-  const [hideCompletedTasks, setHideCompletedTasks] = useState(false);
+  // Hide completed tasks toggle - default to TRUE (auto-hide completed)
+  const [hideCompletedTasks, setHideCompletedTasks] = useState(true);
 
   // Mounted state to prevent hydration mismatch
   const [mounted, setMounted] = useState(false);
@@ -437,7 +437,7 @@ export default function VetHub() {
     total += todayGeneralTasks.length;
     completed += todayGeneralTasks.filter((t: any) => t.completed).length;
 
-    return { total, completed, remaining: total - completed };
+    return { total, completed, remaining: total - completed, allComplete: total > 0 && completed === total };
   }, [patients, generalTasks]);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -1588,11 +1588,36 @@ export default function VetHub() {
     if (savedViewMode === 'list' || savedViewMode === 'grid') {
       setViewMode(savedViewMode);
     }
+
+    // Load hideCompletedTasks preference from localStorage (default: true)
+    // Migration: If user has old 'false' value, reset to new default of 'true'
+    const savedHideCompleted = localStorage.getItem('hideCompletedTasks');
+    const migrated = localStorage.getItem('hideCompletedTasks_migrated');
+
+    if (!migrated && savedHideCompleted === 'false') {
+      // One-time migration: reset to new default
+      setHideCompletedTasks(true);
+      localStorage.setItem('hideCompletedTasks', 'true');
+      localStorage.setItem('hideCompletedTasks_migrated', 'true');
+    } else if (savedHideCompleted !== null) {
+      setHideCompletedTasks(savedHideCompleted === 'true');
+    } else {
+      // No saved preference - use default of true (hide completed)
+      setHideCompletedTasks(true);
+      localStorage.setItem('hideCompletedTasks', 'true');
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('dashboardViewMode', viewMode);
   }, [viewMode]);
+
+  // Persist hideCompletedTasks preference to localStorage
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('hideCompletedTasks', String(hideCompletedTasks));
+    }
+  }, [hideCompletedTasks, mounted]);
 
   // Automatic daily task reset - runs when app loads on a new day
   const hasRunAutoCreation = useRef(false);
@@ -2728,19 +2753,42 @@ export default function VetHub() {
             </div>
             <button
               onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
                 hideCompletedTasks
                   ? 'bg-green-600/80 text-white hover:bg-green-600'
                   : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
               }`}
             >
-              {hideCompletedTasks ? '✅ Show Completed' : '👁️ Hide Completed'}
+              {hideCompletedTasks ? (
+                <>
+                  <span>👁️ Show Completed</span>
+                  {taskStats.completed > 0 && (
+                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                      {taskStats.completed}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span>👁️ Hide Completed</span>
+              )}
             </button>
           </div>
         </div>
 
+        {/* All Tasks Complete Celebration */}
+        {taskStats.allComplete && (
+          <div className="bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-green-500/30 p-6 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="text-6xl mb-3">🎉</div>
+            <h3 className="text-white font-bold text-2xl mb-2">All Tasks Complete!</h3>
+            <p className="text-green-300 text-base mb-1">
+              You've completed {taskStats.completed} {taskStats.completed === 1 ? 'task' : 'tasks'} today. Outstanding work!
+            </p>
+            <p className="text-slate-400 text-sm">Take a well-deserved break or add new tasks below.</p>
+          </div>
+        )}
+
         {/* Batch Add Tasks - Above Patient Cards */}
-        {filteredPatients.length > 0 && (
+        {filteredPatients.length > 0 && !taskStats.allComplete && (
           <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
