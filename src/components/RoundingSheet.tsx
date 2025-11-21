@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
 import { AutoCompleteInput } from '@/components/AutoCompleteInput';
+import { PastePreviewModal } from './PastePreviewModal';
 
 interface Patient {
   id: number;
@@ -42,7 +43,20 @@ interface RoundingSheetProps {
 export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
   const [editingData, setEditingData] = useState<Record<number, RoundingData>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [saveTimers, setSaveTimers] = useState<Map<number, NodeJS.Timeout>>(new Map());
+  const [saveStatus, setSaveStatus] = useState<Map<number, 'saving' | 'saved' | 'error'>>(new Map());
+  const autoSaveDelay = 2000; // 2 seconds
   const [carryForwardResults, setCarryForwardResults] = useState<Record<number, CarryForwardResult>>({});
+  const [showPastePreview, setShowPastePreview] = useState(false);
+  const [pendingPasteData, setPendingPasteData] = useState<any[]>([]);
+  const [pasteStartPatientIndex, setPasteStartPatientIndex] = useState(0);
+
+  useEffect(() => {
+    return () => {
+      // Clean up all timers on unmount
+      saveTimers.forEach(timer => clearTimeout(timer));
+    };
+  }, [saveTimers]);
 
   console.log('[RoundingSheet] Received patients:', patients?.length, patients);
 
@@ -83,6 +97,29 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     });
   }, [activePatients.map(p => p.id).join(',')]); // Re-run when patient list changes
 
+  // Navigation Guard: Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Check if there are unsaved changes
+      const hasUnsavedChanges = Object.keys(editingData).length > 0;
+
+      if (hasUnsavedChanges) {
+        // Standard way to trigger browser confirmation dialog
+        e.preventDefault();
+        e.returnValue = '';
+
+        // Some browsers show this message, most show generic message
+        return 'You have unsaved changes in the rounding sheet. Are you sure you want to leave?';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [editingData]);
+
   // Initialize editing data from patient rounding data
   const getPatientData = (patientId: number): RoundingData => {
     if (editingData[patientId]) return editingData[patientId];
@@ -92,6 +129,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
+    // Update editing data immediately
     setEditingData(prev => ({
       ...prev,
       [patientId]: {
@@ -99,6 +137,54 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         [field]: value
       }
     }));
+
+    // Clear existing timer for this patient
+    const existingTimer = saveTimers.get(patientId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Set new timer for auto-save
+    const newTimer = setTimeout(() => {
+      autoSave(patientId);
+      setSaveTimers(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(patientId);
+        return newMap;
+      });
+    }, autoSaveDelay);
+
+    setSaveTimers(prev => new Map(prev).set(patientId, newTimer));
+  };
+
+  const matchDropdownValue = (pastedValue: string, validOptions: string[]): string => {
+    if (!pastedValue || !pastedValue.trim()) return '';
+
+    const normalized = pastedValue.trim().toLowerCase();
+
+    // Exact match (case-insensitive)
+    const exactMatch = validOptions.find(opt => opt.toLowerCase() === normalized);
+    if (exactMatch) return exactMatch;
+
+    // Prefix match (e.g., "ic" matches "ICU")
+    const prefixMatch = validOptions.find(opt => opt.toLowerCase().startsWith(normalized));
+    if (prefixMatch) return prefixMatch;
+
+    // Contains match (e.g., "crit" matches "Critical")
+    const containsMatch = validOptions.find(opt => opt.toLowerCase().includes(normalized));
+    if (containsMatch) return containsMatch;
+
+    // No match - return original value (will show in field, user can edit)
+    return pastedValue;
+  };
+
+  const DROPDOWN_OPTIONS = {
+    location: ['IP', 'ICU'],
+    icuCriteria: ['Yes', 'No', 'n/a'],
+    code: ['Green', 'Yellow', 'Orange', 'Red'],
+    ivc: ['Yes', 'No'],
+    fluids: ['Yes', 'No', 'n/a'],
+    cri: ['Yes', 'No', 'No but...', 'Yet but...'],
   };
 
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
@@ -124,7 +210,25 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       const fieldIndex = startIndex + index;
       if (fieldIndex < fieldOrder.length) {
         const field = fieldOrder[fieldIndex];
-        updates[field] = value.trim();
+        const trimmedValue = value.trim();
+
+        // Handle dropdown fields with smart matching
+        if (field === 'location') {
+          updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.location);
+        } else if (field === 'icuCriteria') {
+          updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.icuCriteria);
+        } else if (field === 'code') {
+          updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.code) as 'Green' | 'Yellow' | 'Orange' | 'Red' | '';
+        } else if (field === 'ivc') {
+          updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.ivc);
+        } else if (field === 'fluids') {
+          updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.fluids);
+        } else if (field === 'cri') {
+          updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.cri);
+        } else {
+          // Text fields (signalment, problems, diagnosticFindings, therapeutics, overnightDx, concerns, comments)
+          updates[field] = trimmedValue;
+        }
       }
     });
 
@@ -136,11 +240,160 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       }
     }));
 
+    const fieldCount = Object.keys(updates).length;
+    const dropdownFields = ['location', 'icuCriteria', 'code', 'ivc', 'fluids', 'cri'];
+    const pastedDropdowns = Object.keys(updates).filter(f => dropdownFields.includes(f)).length;
+
     toast({
       title: 'Pasted',
-      description: `Pasted ${values.length} cells`
+      description: `Pasted ${fieldCount} field${fieldCount > 1 ? 's' : ''}${pastedDropdowns > 0 ? ` (${pastedDropdowns} dropdown${pastedDropdowns > 1 ? 's' : ''} matched)` : ''}`
     });
   }, [toast]);
+
+  const autoSave = useCallback(async (patientId: number) => {
+    try {
+      setIsSaving(true);
+      setSaveStatus(prev => new Map(prev).set(patientId, 'saving'));
+
+      const updates = editingData[patientId];
+      if (!updates) {
+        setSaveStatus(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(patientId);
+          return newMap;
+        });
+        return;
+      }
+
+      const dataWithTimestamp = {
+        ...updates,
+        lastUpdated: new Date().toISOString(),
+      };
+
+      await apiClient.updatePatient(String(patientId), {
+        roundingData: dataWithTimestamp
+      });
+
+      setSaveStatus(prev => new Map(prev).set(patientId, 'saved'));
+
+      // Clear "saved" status after 2 seconds
+      setTimeout(() => {
+        setSaveStatus(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(patientId);
+          return newMap;
+        });
+      }, 2000);
+
+      // Clear editing data after successful save
+      setEditingData(prev => {
+        const newData = { ...prev };
+        delete newData[patientId];
+        return newData;
+      });
+
+      onPatientUpdate?.();
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      setSaveStatus(prev => new Map(prev).set(patientId, 'error'));
+
+      // Keep error status for 5 seconds
+      setTimeout(() => {
+        setSaveStatus(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(patientId);
+          return newMap;
+        });
+      }, 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [editingData, onPatientUpdate]);
+
+  const handleMultiRowPaste = useCallback((
+    pasteData: string,
+    startPatientId: number,
+    startField: keyof RoundingData
+  ) => {
+    const rows = pasteData.split('\n').filter(row => row.trim());
+
+    // If only one row, use existing single-row paste
+    if (rows.length === 1) {
+      return false; // Let single-row paste handle it
+    }
+
+    const fieldOrder: (keyof RoundingData)[] = [
+      'signalment', 'location', 'icuCriteria', 'code', 'problems',
+      'diagnosticFindings', 'therapeutics', 'ivc', 'fluids',
+      'cri', 'overnightDx', 'concerns', 'comments'
+    ];
+
+    const startFieldIndex = fieldOrder.indexOf(startField);
+    if (startFieldIndex === -1) return false;
+
+    // Find the index of the starting patient in active patients list
+    const activePatients = patients.filter(p => p.status !== 'Discharged');
+    const startPatientIdx = activePatients.findIndex(p => p.id === startPatientId);
+    if (startPatientIdx === -1) return false;
+
+    // Parse all rows and create preview data
+    const previewData = rows.map((row, rowIdx) => {
+      const values = row.split('\t');
+      const patientIdx = startPatientIdx + rowIdx;
+      const patient = activePatients[patientIdx];
+
+      const fields: { [key: string]: string } = {};
+
+      values.forEach((value, valueIdx) => {
+        const fieldIdx = startFieldIndex + valueIdx;
+        if (fieldIdx < fieldOrder.length) {
+          const field = fieldOrder[fieldIdx];
+          fields[field] = value.trim();
+        }
+      });
+
+      return {
+        patientId: patient?.id || 0,
+        patientName: patient?.name || '',
+        fields,
+        rowIndex: rowIdx
+      };
+    });
+
+    // Show preview modal
+    setPendingPasteData(previewData);
+    setPasteStartPatientIndex(startPatientIdx);
+    setShowPastePreview(true);
+
+    return true; // Multi-row paste handled
+  }, [patients]);
+
+  const applyMultiRowPaste = useCallback(() => {
+    const updates: { [patientId: number]: Partial<RoundingData> } = {};
+
+    pendingPasteData.forEach(preview => {
+      if (preview.patientId) {
+        updates[preview.patientId] = {
+          ...getPatientData(preview.patientId),
+          ...preview.fields
+        };
+      }
+    });
+
+    setEditingData(prev => ({
+      ...prev,
+      ...updates
+    }));
+
+    const appliedCount = Object.keys(updates).length;
+    toast({
+      title: 'Multi-Row Paste Applied',
+      description: `Pasted data to ${appliedCount} patient${appliedCount > 1 ? 's' : ''}`
+    });
+
+    setShowPastePreview(false);
+    setPendingPasteData([]);
+  }, [pendingPasteData, patients, toast]);
 
   const handleSave = async (patientId: number) => {
     try {
@@ -370,6 +623,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.location || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'location')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value=""></option>
@@ -381,6 +635,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.icuCriteria || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'icuCriteria')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value=""></option>
@@ -393,6 +648,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.code || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'code')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value="">Select...</option>
@@ -403,39 +659,46 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     </select>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <AutoCompleteInput
-                      field="problems"
-                      value={data.problems || ''}
-                      onChange={(value) => handleFieldChange(patient.id, 'problems', value)}
-                      multiline={true}
-                      rows={2}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
-                    />
+                    <div onPaste={(e) => handlePaste(e, patient.id, 'problems')}>
+                      <AutoCompleteInput
+                        field="problems"
+                        value={data.problems || ''}
+                        onChange={(value) => handleFieldChange(patient.id, 'problems', value)}
+                        multiline={true}
+                        rows={2}
+                        className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <AutoCompleteInput
-                      field="diagnostics"
-                      value={data.diagnosticFindings || ''}
-                      onChange={(value) => handleFieldChange(patient.id, 'diagnosticFindings', value)}
-                      multiline={true}
-                      rows={2}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
-                    />
+                    <div onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}>
+                      <AutoCompleteInput
+                        field="diagnostics"
+                        value={data.diagnosticFindings || ''}
+                        onChange={(value) => handleFieldChange(patient.id, 'diagnosticFindings', value)}
+                        multiline={true}
+                        rows={2}
+                        className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <AutoCompleteInput
-                      field="therapeutics"
-                      value={data.therapeutics || ''}
-                      onChange={(value) => handleFieldChange(patient.id, 'therapeutics', value)}
-                      multiline={true}
-                      rows={2}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
-                    />
+                    <div onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}>
+                      <AutoCompleteInput
+                        field="therapeutics"
+                        value={data.therapeutics || ''}
+                        onChange={(value) => handleFieldChange(patient.id, 'therapeutics', value)}
+                        multiline={true}
+                        rows={2}
+                        className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <select
                       value={data.ivc || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'ivc', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'ivc')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value=""></option>
@@ -447,6 +710,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.fluids || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'fluids', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'fluids')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value=""></option>
@@ -459,6 +723,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.cri || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'cri', e.target.value)}
+                      onPaste={(e) => handlePaste(e, patient.id, 'cri')}
                       className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
                     >
                       <option value=""></option>
@@ -478,15 +743,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-1 border border-slate-600">
-                    <AutoCompleteInput
-                      field="concerns"
-                      value={data.concerns || ''}
-                      onChange={(value) => handleFieldChange(patient.id, 'concerns', value)}
-                      multiline={true}
-                      rows={2}
-                      placeholder={carryForward?.carriedForward ? "Enter today's concerns..." : ""}
-                      className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
-                    />
+                    <div onPaste={(e) => handlePaste(e, patient.id, 'concerns')}>
+                      <AutoCompleteInput
+                        field="concerns"
+                        value={data.concerns || ''}
+                        onChange={(value) => handleFieldChange(patient.id, 'concerns', value)}
+                        multiline={true}
+                        rows={2}
+                        placeholder={carryForward?.carriedForward ? "Enter today's concerns..." : ""}
+                        className="w-full px-2 py-1 bg-slate-900 border-none text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-none"
+                      />
+                    </div>
                   </td>
                   <td className="p-1 border border-slate-600">
                     <textarea

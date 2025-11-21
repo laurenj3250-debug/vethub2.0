@@ -32,6 +32,39 @@ export function RoundingPageClient() {
     setMounted(true);
   }, []);
 
+  // Navigation Guard: Client-side routing blocker
+  useEffect(() => {
+    // This handles client-side navigation (Link clicks, router.push, etc.)
+    const handleRouteChange = (e: Event) => {
+      const hasUnsavedChanges = patients?.some(p => {
+        const roundingData = p.roundingData;
+        // Check if any patient has recent edits (within last 5 minutes as safety)
+        const lastUpdated = roundingData?.lastUpdated;
+        if (!lastUpdated) return false;
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+        const updatedAt = new Date(lastUpdated).getTime();
+        return updatedAt > fiveMinutesAgo;
+      });
+
+      if (hasUnsavedChanges) {
+        const confirmed = confirm(
+          'You may have unsaved changes in the rounding sheet. Are you sure you want to leave?'
+        );
+        if (!confirmed) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+
+    // Listen for navigation events
+    window.addEventListener('popstate', handleRouteChange);
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [patients]);
+
   const handleSyncFromVetRadar = async () => {
     // Try to get stored credentials from localStorage
     let email = localStorage.getItem('vetradar_email');
@@ -112,6 +145,28 @@ export function RoundingPageClient() {
             <div className="flex items-center gap-4">
               <Link
                 href="/"
+                onClick={(e) => {
+                  // Check for unsaved changes
+                  const hasUnsavedChanges = patients?.some(p => {
+                    const roundingData = p.roundingData;
+                    const lastUpdated = roundingData?.lastUpdated;
+                    if (!lastUpdated) return false;
+
+                    // Check if edited in last 5 minutes (safety margin)
+                    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                    const updatedAt = new Date(lastUpdated).getTime();
+                    return updatedAt > fiveMinutesAgo;
+                  });
+
+                  if (hasUnsavedChanges) {
+                    const confirmed = confirm(
+                      'You may have unsaved changes. Are you sure you want to leave the rounding sheet?'
+                    );
+                    if (!confirmed) {
+                      e.preventDefault();
+                    }
+                  }
+                }}
                 className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-emerald-400 transition rounded-lg hover:bg-slate-700/50 border border-transparent hover:border-emerald-500/30"
               >
                 <ArrowLeft size={18} />

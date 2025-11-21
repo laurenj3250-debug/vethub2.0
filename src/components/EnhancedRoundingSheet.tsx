@@ -140,6 +140,21 @@ export function EnhancedRoundingSheet({
     }
   }, []);
 
+  // Show Tab navigation hint once per session
+  useEffect(() => {
+    const hasSeenHint = sessionStorage.getItem('rounding-tab-hint-seen');
+    if (!hasSeenHint) {
+      setTimeout(() => {
+        toast({
+          title: 'Tip: Tab Navigation',
+          description: 'Use Tab to move between fields. Press Space or Enter for text expansion shortcuts.',
+          duration: 5000,
+        });
+        sessionStorage.setItem('rounding-tab-hint-seen', 'true');
+      }, 1000);
+    }
+  }, [toast]);
+
   // Save custom templates to localStorage
   const saveCustomTemplates = useCallback((templates: NeuroProtocol[]) => {
     setCustomTemplates(templates);
@@ -443,12 +458,21 @@ export function EnhancedRoundingSheet({
     setShowExportMenu(false);
   }, [patients, toast]);
 
-  // Keyboard navigation
+  /**
+   * Keyboard shortcuts:
+   * - Space/Enter: Trigger text expansion for shortcuts (e.g., "q4t" → "Q4h turns, padded bedding")
+   * - Tab: Natural cell navigation (browser default)
+   * - Shift+Tab: Reverse navigation (browser default)
+   * - Ctrl+Enter: Copy patient row to clipboard
+   * - Ctrl+P: Open protocol quick-fill menu
+   * - Ctrl+D: Duplicate current field to all selected patients
+   */
   const handleKeyDown = useCallback((e: React.KeyboardEvent, patientId: number, field: string) => {
-    // Text expansion on Space, Tab, or Enter
-    if (e.key === ' ' || e.key === 'Tab' || e.key === 'Enter') {
-      const target = e.currentTarget as HTMLTextAreaElement | HTMLInputElement;
-      const currentValue = target.value;
+    const target = e.currentTarget as HTMLTextAreaElement | HTMLInputElement;
+    const currentValue = target.value;
+
+    // Text expansion (Space and Enter only - NOT Tab)
+    if (e.key === ' ' || e.key === 'Enter') {
       const expandedValue = handleTextExpansion(patientId, field, currentValue, e);
 
       if (expandedValue !== currentValue) {
@@ -469,8 +493,9 @@ export function EnhancedRoundingSheet({
       }
     }
 
-    if (e.key === 'Tab' && !e.shiftKey) {
-      // Smart tab navigation will be handled by natural DOM flow
+    // Tab key now handles natural navigation (no preventDefault)
+    if (e.key === 'Tab') {
+      // Let browser handle Tab navigation naturally
       return;
     }
 
