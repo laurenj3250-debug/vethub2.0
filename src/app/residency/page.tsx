@@ -23,6 +23,7 @@ import {
   ActivityType,
   WeeklyActivity,
 } from '@/lib/residency-types';
+import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
 
 const STORAGE_KEYS = {
   CASES: 'residency_cases',
@@ -36,6 +37,8 @@ export default function ResidencyTrackerPage() {
   const [journalClub, setJournalClub] = useState<JournalClubEntry[]>([]);
   const [weeklySchedules, setWeeklySchedules] = useState<WeeklySchedule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [patients, setPatients] = useState<PatientOption[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
 
   // Dialog states
   const [showCaseDialog, setShowCaseDialog] = useState(false);
@@ -51,6 +54,13 @@ export default function ResidencyTrackerPage() {
     role: 'Primary Surgeon' as SurgeryRole,
     hours: 2.0,
     notes: '',
+    patientId: '',
+    patientName: '',
+    patientSpecies: '',
+    patientBreed: '',
+    patientAge: '',
+    patientSex: '',
+    patientWeight: '',
   });
 
   // Form states for Journal Club
@@ -84,6 +94,13 @@ export default function ResidencyTrackerPage() {
     loadData();
   }, []);
 
+  // Fetch patients from API when dialog opens
+  useEffect(() => {
+    if (showCaseDialog && patients.length === 0) {
+      fetchPatients();
+    }
+  }, [showCaseDialog]);
+
   function loadData() {
     try {
       setLoading(true);
@@ -107,6 +124,48 @@ export default function ResidencyTrackerPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Fetch patients from database
+  async function fetchPatients() {
+    try {
+      setLoadingPatients(true);
+      const response = await fetch('/api/patients');
+      if (!response.ok) throw new Error('Failed to fetch patients');
+
+      const data = await response.json();
+
+      // Transform to PatientOption format
+      const patientOptions: PatientOption[] = data.map((p: any) => ({
+        id: p.id,
+        name: p.demographics?.name || 'Unnamed Patient',
+        species: p.demographics?.species,
+        breed: p.demographics?.breed,
+        age: p.demographics?.age,
+        sex: p.demographics?.sex,
+        weight: p.demographics?.weight,
+      }));
+
+      setPatients(patientOptions);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setLoadingPatients(false);
+    }
+  }
+
+  // Handle patient selection from dropdown
+  function handlePatientSelect(patient: PatientOption) {
+    setCaseForm({
+      ...caseForm,
+      patientId: patient.id,
+      patientName: patient.name,
+      patientSpecies: patient.species || '',
+      patientBreed: patient.breed || '',
+      patientAge: patient.age || '',
+      patientSex: patient.sex || '',
+      patientWeight: patient.weight || '',
+    });
   }
 
   // Save to localStorage
@@ -184,6 +243,13 @@ export default function ResidencyTrackerPage() {
       role: 'Primary Surgeon',
       hours: 2.0,
       notes: '',
+      patientId: '',
+      patientName: '',
+      patientSpecies: '',
+      patientBreed: '',
+      patientAge: '',
+      patientSex: '',
+      patientWeight: '',
     });
   }
 
@@ -403,6 +469,11 @@ export default function ResidencyTrackerPage() {
                     <div className="flex items-start justify-between mb-1">
                       <div className="flex-1">
                         <div className="font-semibold text-sm text-gray-900">{c.procedure}</div>
+                        {c.patientName && (
+                          <div className="text-xs text-gray-700 font-medium">
+                            Patient: {c.patientName} ({c.patientAge} {c.patientSex} {c.patientBreed || c.patientSpecies})
+                          </div>
+                        )}
                         <div className="text-xs text-gray-600">
                           {new Date(c.date).toLocaleDateString()} • {c.caseId}
                         </div>
@@ -538,6 +609,52 @@ export default function ResidencyTrackerPage() {
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
               </div>
+
+              {/* Patient Selection Dropdown */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Select Patient (Optional)
+                </label>
+                <PatientCombobox
+                  patients={patients}
+                  value={caseForm.patientId}
+                  onValueChange={(value) => setCaseForm({ ...caseForm, patientId: value })}
+                  onPatientSelect={handlePatientSelect}
+                  placeholder="Search for a patient..."
+                  emptyText={loadingPatients ? "Loading patients..." : "No patients found."}
+                  disabled={loadingPatients}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Auto-fills patient info from VetHub database
+                </p>
+              </div>
+
+              {/* Patient Info Display (read-only if selected from dropdown) */}
+              {caseForm.patientId && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="text-xs font-semibold text-blue-900 mb-1">Patient Information</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                    <div>
+                      <span className="font-medium">Name:</span> {caseForm.patientName}
+                    </div>
+                    <div>
+                      <span className="font-medium">Species:</span> {caseForm.patientSpecies}
+                    </div>
+                    <div>
+                      <span className="font-medium">Breed:</span> {caseForm.patientBreed}
+                    </div>
+                    <div>
+                      <span className="font-medium">Age:</span> {caseForm.patientAge}
+                    </div>
+                    <div>
+                      <span className="font-medium">Sex:</span> {caseForm.patientSex}
+                    </div>
+                    <div>
+                      <span className="font-medium">Weight:</span> {caseForm.patientWeight}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Procedure</label>

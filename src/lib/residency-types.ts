@@ -22,6 +22,14 @@ export interface SurgeryCase {
   hours: number; // In 0.25 increments
   notes?: string;
   createdAt: number;
+  // Patient reference (optional - for linking to VetHub patients)
+  patientId?: string; // VetHub patient database ID
+  patientName?: string; // Patient name for display
+  patientSpecies?: string; // Canine/Feline
+  patientBreed?: string; // Breed
+  patientAge?: string; // Age
+  patientSex?: string; // Sex
+  patientWeight?: string; // Weight
 }
 
 // Journal Club Types
