@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, AlertTriangle, Copy, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, AlertTriangle, Copy, FileText, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { getAllTemplates, applyTemplateToSections } from '@/lib/neuro-exam-templates';
 
 interface SectionData {
   status: 'normal' | 'abnormal' | null;
@@ -21,6 +22,8 @@ export default function NeuroExamMobile() {
   const [currentExamId, setCurrentExamId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [appliedTemplate, setAppliedTemplate] = useState<string | null>(null);
+  const [showTemplates, setShowTemplates] = useState(true);
   const [sections, setSections] = useState<Sections>({
     1: { status: null, expanded: false, data: {} },
     2: { status: null, expanded: false, data: {} },
@@ -174,6 +177,34 @@ export default function NeuroExamMobile() {
     const timeoutId = setTimeout(saveToDatabase, 1000);
     return () => clearTimeout(timeoutId);
   }, [sections, currentExamId, isLoading]);
+
+  const handleApplyTemplate = (templateId: string) => {
+    const newSections = applyTemplateToSections(templateId, sections);
+    setSections(newSections);
+    setAppliedTemplate(templateId);
+    setShowTemplates(false);
+
+    const template = getAllTemplates().find(t => t.id === templateId);
+    toast({
+      title: 'Template applied!',
+      description: `${template?.name} findings pre-filled. You can still customize any section.`,
+      duration: 3000
+    });
+  };
+
+  const handleClearTemplate = () => {
+    const clearedSections: Sections = {};
+    for (let i = 1; i <= 18; i++) {
+      clearedSections[i] = { status: null, expanded: false, data: {} };
+    }
+    setSections(clearedSections);
+    setAppliedTemplate(null);
+    setShowTemplates(true);
+    toast({
+      title: 'Exam cleared',
+      description: 'All sections reset'
+    });
+  };
 
   const handleSaveDraft = async () => {
     if (!currentExamId) {
@@ -786,6 +817,88 @@ export default function NeuroExamMobile() {
           </svg>
         </div>
       </div>
+
+      {/* Quick Templates Section */}
+      <AnimatePresence>
+        {showTemplates && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 border-b border-purple-500/20 bg-slate-900/50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="text-purple-400" size={20} />
+                  <h2 className="text-lg font-semibold text-purple-50">Quick Templates</h2>
+                </div>
+                <button
+                  onClick={() => setShowTemplates(false)}
+                  className="text-sm text-purple-300 hover:text-purple-200"
+                >
+                  Hide
+                </button>
+              </div>
+              <p className="text-xs text-purple-300 mb-4">
+                Pre-fill exam with common findings. You can still customize any section after applying.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {getAllTemplates().map((template) => (
+                  <motion.button
+                    key={template.id}
+                    onClick={() => handleApplyTemplate(template.id)}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-4 bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-purple-500/30 rounded-xl text-left hover:border-purple-400/50 transition-all active:scale-95"
+                    style={{ boxShadow: '0 0 15px rgba(168, 85, 247, 0.1)' }}
+                  >
+                    <div className="text-2xl mb-2">{template.icon}</div>
+                    <div className="text-sm font-semibold text-purple-50 mb-1">
+                      {template.name}
+                    </div>
+                    <div className="text-xs text-purple-300/80 line-clamp-2">
+                      {template.description}
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Applied Template Banner */}
+      {appliedTemplate && (
+        <div className="px-4 pt-4">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Check className="text-emerald-400" size={18} />
+              <span className="text-sm text-emerald-200">
+                {getAllTemplates().find(t => t.id === appliedTemplate)?.name} template applied
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="text-xs text-emerald-300 hover:text-emerald-200 px-2 py-1"
+              >
+                {showTemplates ? 'Hide' : 'Show'} Templates
+              </button>
+              <button
+                onClick={handleClearTemplate}
+                className="text-xs text-emerald-300 hover:text-emerald-200 px-2 py-1"
+              >
+                Clear All
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Sections */}
       <div className="p-4 space-y-3">
