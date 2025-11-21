@@ -1879,6 +1879,13 @@ export default function VetHub() {
               <TableProperties size={18} />
               Schedule
             </Link>
+            <button
+              onClick={() => { setShowAllTasksView(!showAllTasksView); if (!showAllTasksView) { setShowTaskOverview(false); setShowMRISchedule(false); } }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+            >
+              <CheckCircle2 size={18} />
+              Tasks
+            </button>
 
             {/* Print Menu */}
             <div className="relative">
@@ -1921,13 +1928,6 @@ export default function VetHub() {
               </button>
               {showToolsMenu && (
                 <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
-                  <button
-                    onClick={() => { setShowAllTasksView(!showAllTasksView); setShowToolsMenu(false); if (!showAllTasksView) { setShowTaskOverview(false); setShowMRISchedule(false); } }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
-                  >
-                    <CheckCircle2 size={16} />
-                    All Tasks
-                  </button>
                   <button
                     onClick={() => { handleResetAllTasks(); setShowToolsMenu(false); }}
                     className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition border-l-2 border-yellow-500/50"
