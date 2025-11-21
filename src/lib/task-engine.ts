@@ -35,16 +35,8 @@ export interface TaskWithMetadata extends TaskTemplate {
 // ============================================================================
 
 export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
-  // MRI patients - essential pre-procedure tasks
+  // MRI patients - essential pre-procedure tasks (streamlined)
   'MRI': [
-    {
-      id: 'mri-black-book',
-      name: 'Black Book',
-      category: 'Pre-procedure',
-      estimatedMinutes: 5,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
     {
       id: 'mri-blood-work',
       name: 'Blood Work',
@@ -86,18 +78,10 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
       timeOfDay: 'morning',
     },
     {
-      id: 'mri-stickers-large',
-      name: 'Print 5 Stickers',
+      id: 'mri-stickers',
+      name: 'Print Stickers',
       category: 'Pre-procedure',
-      estimatedMinutes: 2,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'mri-stickers-sheet',
-      name: 'Print 1 Sheet Small Stickers',
-      category: 'Pre-procedure',
-      estimatedMinutes: 2,
+      estimatedMinutes: 4,
       priority: 'high',
       timeOfDay: 'morning',
     },
