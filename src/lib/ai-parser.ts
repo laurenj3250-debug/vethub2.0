@@ -47,26 +47,8 @@ export interface ParsedPatientData {
 
 export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientData> {
   if (!anthropic) {
-    console.warn('Anthropic API not available - returning minimal patient data');
-    // Return minimal data structure when API key is not configured
-    return {
-      patientName: '',
-      ownerName: '',
-      ownerPhone: '',
-      species: '',
-      breed: '',
-      age: '',
-      sex: '',
-      weight: '',
-      dateOfBirth: '',
-      colorMarkings: '',
-      patientId: '',
-      clientId: '',
-      problem: '',
-      bloodwork: '',
-      medications: [],
-      plan: '',
-    };
+    // ✅ Throw error instead of silently returning empty data
+    throw new Error('Anthropic API key not configured. Add NEXT_PUBLIC_ANTHROPIC_API_KEY to environment variables.');
   }
 
   try {
@@ -135,7 +117,19 @@ Return ONLY the JSON object, no other text:`
     return parsed;
   } catch (error) {
     console.error('AI parsing error:', error);
-    throw error;
+    // ✅ Throw detailed error messages for different failure types
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        throw new Error('AI parsing unavailable: API key not configured');
+      } else if (error.message.includes('rate limit')) {
+        throw new Error('AI parsing failed: Rate limit exceeded. Try again in a moment.');
+      } else if (error.message.includes('JSON')) {
+        throw new Error('AI parsing failed: Could not parse response. The text format may be unusual.');
+      } else {
+        throw new Error(`AI parsing failed: ${error.message}`);
+      }
+    }
+    throw new Error('AI parsing failed: Unknown error occurred');
   }
 }
 

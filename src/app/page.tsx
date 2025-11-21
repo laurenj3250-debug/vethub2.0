@@ -498,13 +498,14 @@ export default function VetHub() {
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked', 'Discharge Instructions'];
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
-      // Get type-specific tasks from task engine
-      const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
-      const typeTemplates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType] || [];
-      const typeTasks = typeTemplates.map(t => t.name);
+      const typeTasks = patientType === 'MRI'
+        ? ['Black Book', 'Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'MRI Meds Sheet', 'NPO', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers']
+        : patientType === 'Surgery'
+        ? ['Surgery Slip', 'Written on Board', 'Print 4 Large Stickers', 'Print 2 Sheets Small Stickers', 'Print Surgery Sheet', 'Clear Daily']
+        : ['Admission SOAP', 'Treatment Sheet Created'];
 
       // MRI patients don't get morning tasks
       const allTasks = patientType === 'MRI'
@@ -808,7 +809,7 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked', 'Discharge Instructions'];
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
@@ -847,7 +848,7 @@ export default function VetHub() {
   const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked', 'Discharge Instructions'];
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       const today = new Date().toISOString().split('T')[0];
@@ -1257,12 +1258,17 @@ export default function VetHub() {
       console.log('[MRI Export] All patients:', patients.map(p => ({ name: p.demographics?.name || p.name, type: p.type, status: p.status })));
 
       // Filter MRI patients (exclude discharged)
-      const mriPatients = patients.filter(p => p.type === 'MRI' && p.status !== 'Discharged');
+      const allMRIPatients = patients.filter(p => p.type === 'MRI' && p.status !== 'Discharged');
+
+      // ✅ Use selected patients if any are selected, otherwise use all MRI patients
+      const mriPatients = selectedPatientIds.size > 0
+        ? allMRIPatients.filter(p => selectedPatientIds.has(p.id))
+        : allMRIPatients;
 
       console.log('[MRI Export] Filtered MRI patients:', mriPatients.map(p => ({ name: p.demographics?.name || p.name, type: p.type, status: p.status })));
 
       if (mriPatients.length === 0) {
-        toast({ variant: 'destructive', title: 'No MRI patients', description: 'No active MRI patients found. Check that patient type is set to "MRI"' });
+        toast({ variant: 'destructive', title: 'No MRI patients', description: selectedPatientIds.size > 0 ? 'No selected MRI patients found' : 'No active MRI patients found. Check that patient type is set to "MRI"' });
         return;
       }
 
@@ -1403,8 +1409,18 @@ export default function VetHub() {
         return;
       }
 
+      // ✅ Use selected patients if any are selected, otherwise use all active patients
+      const patientsToProcess = selectedPatientIds.size > 0
+        ? activePatients.filter(p => selectedPatientIds.has(p.id))
+        : activePatients;
+
+      if (patientsToProcess.length === 0) {
+        toast({ title: 'No patients selected', description: 'Select patients or clear selection to print all' });
+        return;
+      }
+
       // Check which patients have big label sticker data
-      const patientsWithBigLabels = activePatients.filter(p => (p.stickerData?.bigLabelCount ?? 0) > 0);
+      const patientsWithBigLabels = patientsToProcess.filter(p => (p.stickerData?.bigLabelCount ?? 0) > 0);
 
       if (patientsWithBigLabels.length === 0) {
         toast({
@@ -1433,23 +1449,33 @@ export default function VetHub() {
 
   const handlePrintTinyLabels = async () => {
     try {
-      const activePatients = patients.filter(p => p.status !== 'Discharged' && (p.type === 'Surgery' || p.type === 'MRI'));
+      const activePatients = patients.filter(p => p.status !== 'Discharged');
 
       if (activePatients.length === 0) {
-        toast({ title: 'No Surgery/MRI patients', description: 'Tiny labels are only for Surgery and MRI patients' });
+        toast({ title: 'No active patients', description: 'Add patients to print tiny labels' });
+        return;
+      }
+
+      // ✅ Use selected patients if any are selected, otherwise use all active patients
+      const patientsToProcess = selectedPatientIds.size > 0
+        ? activePatients.filter(p => selectedPatientIds.has(p.id))
+        : activePatients;
+
+      if (patientsToProcess.length === 0) {
+        toast({ title: 'No patients selected', description: 'Select patients or clear selection to print all' });
         return;
       }
 
       toast({
         title: 'Generating tiny labels...',
-        description: `Creating 4 labels per patient for ${activePatients.length} Surgery/MRI patients`
+        description: `Creating 4 labels per patient for ${patientsToProcess.length} patients`
       });
 
-      await printConsolidatedTinyLabels(activePatients as any);
+      await printConsolidatedTinyLabels(patientsToProcess as any);
 
       toast({
         title: '🏷️ Tiny Labels Ready',
-        description: `Print dialog opened for ${activePatients.length} Surgery/MRI patients (4 labels each)`
+        description: `Print dialog opened for ${patientsToProcess.length} patients (4 labels each)`
       });
     } catch (error) {
       console.error('Tiny label generation error:', error);
@@ -1531,7 +1557,7 @@ export default function VetHub() {
       }
 
       const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked', 'Discharge Instructions'];
+      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
       const allDailyTasks = [...morningTasks, ...eveningTasks];
 
@@ -1645,7 +1671,7 @@ export default function VetHub() {
   };
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
-    const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked', 'Discharge Instructions'];
+    const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
     const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
     if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
@@ -2708,16 +2734,12 @@ export default function VetHub() {
                 onQuickAction={(action) => {
                   if (action === 'morning') handleCompleteAllCategory(patient.id, 'morning');
                   else if (action === 'evening') handleCompleteAllCategory(patient.id, 'evening');
-                  else if (action === 'tasks') setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id);
+                  else if (action === 'tasks') setQuickAddMenuPatient(patient.id);
                   else if (action === 'rounds') setRoundingSheetPatient(patient.id);
                 }}
                 onPrintStickers={() => handlePrintPatientStickers(patient.id)}
                 getTaskCategory={getTaskCategory}
                 hideCompletedTasks={hideCompletedTasks}
-                showQuickAddMenu={quickAddMenuPatient === patient.id}
-                onAddTask={(taskName) => handleQuickAddTask(patient.id, taskName)}
-                customTaskName={customTaskName}
-                onCustomTaskNameChange={setCustomTaskName}
               />
             ))}
           </div>
