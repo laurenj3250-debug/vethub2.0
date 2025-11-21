@@ -18,6 +18,7 @@ interface AutoCompleteInputProps {
   className?: string;
   multiline?: boolean;
   rows?: number;
+  onFocus?: () => void;
 }
 
 export function AutoCompleteInput({
@@ -28,6 +29,7 @@ export function AutoCompleteInput({
   className,
   multiline = false,
   rows = 3,
+  onFocus,
 }: AutoCompleteInputProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -145,6 +147,7 @@ export function AutoCompleteInput({
           if (suggestions.length > 0) {
             setShowSuggestions(true);
           }
+          onFocus?.();
         }}
         placeholder={placeholder}
         className={className}
