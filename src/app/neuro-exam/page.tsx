@@ -131,6 +131,73 @@ export default function NeuroExamMobile() {
     }));
   };
 
+  // Bulk action handlers
+  const markAllCranialNervesNormal = () => {
+    setSections(prev => {
+      const updated = { ...prev };
+      // Mark sections 4-11 (all cranial nerve sections) as normal
+      for (let i = 4; i <= 11; i++) {
+        updated[i] = { ...updated[i], status: 'normal', data: {} };
+      }
+      return updated;
+    });
+    toast({
+      title: 'All cranial nerves marked normal',
+      description: 'Sections 4-11 set to normal status',
+      duration: 2000
+    });
+  };
+
+  const markAllPosturalReactionsNormal = () => {
+    setSections(prev => ({
+      ...prev,
+      12: { ...prev[12], status: 'normal', data: {} }
+    }));
+    toast({
+      title: 'All postural reactions marked normal',
+      description: 'Section 12 set to normal status',
+      duration: 2000
+    });
+  };
+
+  const markAllReflexesNormal = () => {
+    setSections(prev => ({
+      ...prev,
+      13: { ...prev[13], status: 'normal', data: {} },
+      14: { ...prev[14], status: 'normal', data: {} }
+    }));
+    toast({
+      title: 'All reflexes marked normal',
+      description: 'Sections 13-14 set to normal status',
+      duration: 2000
+    });
+  };
+
+  const markAllToneNormal = () => {
+    setSections(prev => ({
+      ...prev,
+      15: { ...prev[15], status: 'normal', data: {} },
+      16: { ...prev[16], status: 'normal', data: {} }
+    }));
+    toast({
+      title: 'All muscle tone marked normal',
+      description: 'Sections 15-16 set to normal status',
+      duration: 2000
+    });
+  };
+
+  const markAllMassNormal = () => {
+    setSections(prev => ({
+      ...prev,
+      17: { ...prev[17], status: 'normal', data: {} }
+    }));
+    toast({
+      title: 'All muscle mass marked normal',
+      description: 'Section 17 set to normal status',
+      duration: 2000
+    });
+  };
+
   const getStatusIcon = (status: 'normal' | 'abnormal' | null) => {
     if (status === 'normal') {
       return (
@@ -1223,6 +1290,10 @@ export default function NeuroExamMobile() {
           toggleSection={() => toggleSection(4)}
           setStatus={(status) => setStatus(4, status)}
           getStatusIcon={getStatusIcon}
+          bulkNormalButton={{
+            label: 'All CN Normal',
+            onClick: markAllCranialNervesNormal
+          }}
         >
           <div className="space-y-3">
             <div>
@@ -1633,6 +1704,10 @@ export default function NeuroExamMobile() {
           toggleSection={() => toggleSection(12)}
           setStatus={(status) => setStatus(12, status)}
           getStatusIcon={getStatusIcon}
+          bulkNormalButton={{
+            label: 'All PR Normal',
+            onClick: markAllPosturalReactionsNormal
+          }}
         >
           <div className="space-y-3">
             <div>
@@ -1704,6 +1779,10 @@ export default function NeuroExamMobile() {
           toggleSection={() => toggleSection(13)}
           setStatus={(status) => setStatus(13, status)}
           getStatusIcon={getStatusIcon}
+          bulkNormalButton={{
+            label: 'All Reflexes Normal',
+            onClick: markAllReflexesNormal
+          }}
         >
           <div className="space-y-3">
             <div>
@@ -1834,6 +1913,10 @@ export default function NeuroExamMobile() {
           toggleSection={() => toggleSection(15)}
           setStatus={(status) => setStatus(15, status)}
           getStatusIcon={getStatusIcon}
+          bulkNormalButton={{
+            label: 'All Tone Normal',
+            onClick: markAllToneNormal
+          }}
         >
           <div className="space-y-3">
             <div>
@@ -1934,6 +2017,10 @@ export default function NeuroExamMobile() {
           toggleSection={() => toggleSection(17)}
           setStatus={(status) => setStatus(17, status)}
           getStatusIcon={getStatusIcon}
+          bulkNormalButton={{
+            label: 'All Mass Normal',
+            onClick: markAllMassNormal
+          }}
         >
           <div className="space-y-3">
             <div>
@@ -2146,6 +2233,10 @@ interface ExamSectionProps {
   setStatus: (status: 'normal' | 'abnormal') => void;
   getStatusIcon: (status: 'normal' | 'abnormal' | null) => JSX.Element;
   children?: React.ReactNode;
+  bulkNormalButton?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 function ExamSection({
@@ -2155,7 +2246,8 @@ function ExamSection({
   toggleSection,
   setStatus,
   getStatusIcon,
-  children
+  children,
+  bulkNormalButton
 }: ExamSectionProps) {
   const borderColor = section.status === 'normal' ? 'border-l-emerald-400' :
                       section.status === 'abnormal' ? 'border-l-fuchsia-400' :
@@ -2173,12 +2265,12 @@ function ExamSection({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <motion.button
-        onClick={toggleSection}
-        className="w-full p-4 flex items-center justify-between hover:bg-purple-900/20 transition-colors"
-        whileTap={{ scale: 0.98 }}
-      >
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between p-4 hover:bg-purple-900/20 transition-colors">
+        <motion.button
+          onClick={toggleSection}
+          className="flex items-center gap-3 flex-1"
+          whileTap={{ scale: 0.98 }}
+        >
           <motion.div
             animate={{ rotate: section.expanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
@@ -2191,9 +2283,24 @@ function ExamSection({
           <span className="font-medium text-left text-purple-50" style={{ textShadow: '0 0 10px rgba(168, 85, 247, 0.3)' }}>
             {id}. {title}
           </span>
+        </motion.button>
+
+        <div className="flex items-center gap-2">
+          {bulkNormalButton && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                bulkNormalButton.onClick();
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-900/30 border border-emerald-500/30 rounded-md hover:bg-emerald-900/50 hover:border-emerald-500/50 transition-colors active:scale-95"
+            >
+              <Check size={14} className="inline mr-1" />
+              {bulkNormalButton.label}
+            </button>
+          )}
+          {getStatusIcon(section.status)}
         </div>
-        {getStatusIcon(section.status)}
-      </motion.button>
+      </div>
 
       <div className="px-4 pb-4">
         {/* Pill-shaped toggle */}
