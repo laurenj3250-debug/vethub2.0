@@ -577,8 +577,21 @@ export default function VetHub() {
     try {
       await apiClient.updateTask(String(patientId), String(taskId), { completed: !currentStatus });
       refetch();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
+    } catch (error: any) {
+      // Find patient and task for detailed error message
+      const patient = patients.find(p => p.id === patientId);
+      const task = patient?.tasks?.find((t: any) => t.id === taskId);
+
+      const patientName = patient?.demographics?.name || patient?.name || `Patient ${patientId}`;
+      const taskTitle = task?.title || `Task ${taskId}`;
+
+      console.error(`Task toggle error for ${patientName} - ${taskTitle}:`, error);
+
+      toast({
+        variant: 'destructive',
+        title: 'Failed to update task',
+        description: `Could not toggle "${taskTitle}" for ${patientName}. ${error.message || 'Check console for details.'}`
+      });
     }
   };
 
@@ -586,8 +599,21 @@ export default function VetHub() {
     try {
       await apiClient.deleteTask(String(patientId), String(taskId));
       refetch();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
+    } catch (error: any) {
+      // Find patient and task for detailed error message
+      const patient = patients.find(p => p.id === patientId);
+      const task = patient?.tasks?.find((t: any) => t.id === taskId);
+
+      const patientName = patient?.demographics?.name || patient?.name || `Patient ${patientId}`;
+      const taskTitle = task?.title || `Task ${taskId}`;
+
+      console.error(`Task delete error for ${patientName} - ${taskTitle}:`, error);
+
+      toast({
+        variant: 'destructive',
+        title: 'Failed to delete task',
+        description: `Could not delete "${taskTitle}" for ${patientName}. ${error.message || 'Check console for details.'}`
+      });
     }
   };
 
