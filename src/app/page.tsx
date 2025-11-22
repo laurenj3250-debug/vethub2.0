@@ -8,8 +8,7 @@ import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
-import { DashboardStats } from '@/components/DashboardStats';
-import { TaskKanbanBoard } from '@/components/TaskKanbanBoard';
+import { TaskChecklist } from '@/components/TaskChecklist';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
 
@@ -982,6 +981,24 @@ export default function VetHub() {
       refetchGeneralTasks();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to add general task' });
+    }
+  };
+
+  // Unified add task handler for TaskChecklist component
+  const handleAddTaskFromChecklist = async (patientId: number | null, taskName: string) => {
+    try {
+      if (patientId === null) {
+        // Add as general task
+        await apiClient.createGeneralTask({ title: taskName, completed: false });
+        refetchGeneralTasks();
+      } else {
+        // Add as patient task
+        await apiClient.createTask(patientId, { title: taskName, completed: false });
+        refetch();
+      }
+      toast({ title: `✅ Added: ${taskName}` });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to add task' });
     }
   };
 
@@ -2103,8 +2120,19 @@ export default function VetHub() {
       </header>
 
       <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
-        {/* Task Overview */}
+        {/* Task Checklist - Simple View */}
         {showTaskOverview && (
+          <TaskChecklist
+            patients={filteredPatients}
+            generalTasks={generalTasks}
+            onToggleTask={handleToggleTask}
+            onToggleGeneralTask={handleToggleGeneralTask}
+            onAddTask={handleAddTaskFromChecklist}
+          />
+        )}
+
+        {/* OLD Task Overview - DISABLED */}
+        {false && showTaskOverview && (
           <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -2367,8 +2395,8 @@ export default function VetHub() {
           </div>
         )}
 
-        {/* All Tasks View - With Tabs */}
-        {showAllTasksView && (
+        {/* OLD All Tasks View - DISABLED */}
+        {false && showAllTasksView && (
           <div className="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-cyan-700/50 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -2413,14 +2441,9 @@ export default function VetHub() {
               </div>
             </div>
 
-            {/* Kanban Board View */}
+            {/* Kanban Board View - REMOVED */}
             {taskBoardView === 'kanban' ? (
-              <TaskKanbanBoard
-                patients={patients}
-                generalTasks={generalTasks}
-                hideCompletedTasks={hideCompletedTasks}
-                onRefetch={refetch}
-              />
+              <div className="text-slate-400 text-center p-8">Kanban removed</div>
             ) : (
               <>
                 {/* Tab Navigation */}
@@ -2799,8 +2822,7 @@ export default function VetHub() {
           <span>Add Patient</span>
         </button>
 
-        {/* Dashboard Stats Overview */}
-        <DashboardStats patients={filteredPatients} onFilterClick={handleFilterClick} />
+        {/* Dashboard Stats removed */}
 
         {/* Search & Sort */}
         <div className="flex gap-3">
