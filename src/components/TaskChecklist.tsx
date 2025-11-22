@@ -42,7 +42,7 @@ export function TaskChecklist({
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
-  const [hideCompleted, setHideCompleted] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(true);
 
   const getPatientName = (patient: Patient) =>
     patient.demographics?.name || patient.name || 'Unnamed';
@@ -84,21 +84,43 @@ export function TaskChecklist({
     };
   }, [patients, generalTasks]);
 
-  // Filter task names if hideCompleted
+  // Helper to get completion stats for a task
+  const getTaskStats = (taskName: string) => {
+    const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
+    if (generalTask) {
+      return { done: generalTask.completed ? 1 : 0, total: 1 };
+    }
+    const taskPatients = patients.filter(p => patientTaskMap[taskName]?.[p.id]);
+    const done = taskPatients.filter(p => patientTaskMap[taskName][p.id]?.completed).length;
+    return { done, total: taskPatients.length };
+  };
+
+  // Filter and sort task names (worst completion % first)
   const visibleTaskNames = useMemo(() => {
-    if (!hideCompleted) return taskNames;
+    let filtered = taskNames;
 
-    return taskNames.filter(taskName => {
-      // Check if any patient has this task incomplete
-      const hasIncomplete = patients.some(patient => {
-        const task = patientTaskMap[taskName]?.[patient.id];
-        return task && !task.completed;
+    if (hideCompleted) {
+      filtered = taskNames.filter(taskName => {
+        // Check if any patient has this task incomplete
+        const hasIncomplete = patients.some(patient => {
+          const task = patientTaskMap[taskName]?.[patient.id];
+          return task && !task.completed;
+        });
+        // Check general tasks
+        const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
+        const generalIncomplete = generalTask && !generalTask.completed;
+
+        return hasIncomplete || generalIncomplete;
       });
-      // Check general tasks
-      const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
-      const generalIncomplete = generalTask && !generalTask.completed;
+    }
 
-      return hasIncomplete || generalIncomplete;
+    // Sort by completion % (lowest first = most urgent)
+    return filtered.sort((a, b) => {
+      const statsA = getTaskStats(a);
+      const statsB = getTaskStats(b);
+      const pctA = statsA.total > 0 ? statsA.done / statsA.total : 1;
+      const pctB = statsB.total > 0 ? statsB.done / statsB.total : 1;
+      return pctA - pctB;
     });
   }, [taskNames, hideCompleted, patients, patientTaskMap, generalTasks]);
 
@@ -146,10 +168,17 @@ export function TaskChecklist({
               : taskPatients.filter(p => patientTaskMap[taskName][p.id]?.completed).length;
             const totalCount = isGeneral ? 1 : taskPatients.length;
 
+            // Visual urgency: red border for 0%, amber for partial
+            const urgencyClass = doneCount === 0
+              ? 'border-l-2 border-l-red-500'
+              : doneCount < totalCount
+                ? 'border-l-2 border-l-amber-500/50'
+                : '';
+
             return (
               <div
                 key={taskName}
-                className="bg-slate-900/60 rounded-lg p-2 border border-slate-700/30"
+                className={`bg-slate-900/60 rounded-lg p-2 border border-slate-700/30 ${urgencyClass}`}
               >
                 {/* Task Header */}
                 <div className="flex items-center justify-between mb-1.5">
