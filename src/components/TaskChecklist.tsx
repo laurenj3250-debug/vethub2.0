@@ -168,17 +168,10 @@ export function TaskChecklist({
               : taskPatients.filter(p => patientTaskMap[taskName][p.id]?.completed).length;
             const totalCount = isGeneral ? 1 : taskPatients.length;
 
-            // Visual urgency: red border for 0%, amber for partial
-            const urgencyClass = doneCount === 0
-              ? 'border-l-2 border-l-red-500'
-              : doneCount < totalCount
-                ? 'border-l-2 border-l-amber-500/50'
-                : '';
-
             return (
               <div
                 key={taskName}
-                className={`bg-slate-900/60 rounded-lg p-2 border border-slate-700/30 ${urgencyClass}`}
+                className="bg-slate-900/60 rounded-lg p-2 border border-slate-700/30"
               >
                 {/* Task Header */}
                 <div className="flex items-center justify-between mb-1.5">
