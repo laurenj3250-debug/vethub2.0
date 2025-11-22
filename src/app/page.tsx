@@ -32,7 +32,7 @@ export default function VetHub() {
   const [searchQuery, setSearchQuery] = useState('');
   const [patientSortBy, setPatientSortBy] = useState<'name' | 'status' | 'type'>('name');
   const [expandedPatient, setExpandedPatient] = useState<number | null>(null);
-  const [showTaskOverview, setShowTaskOverview] = useState(false);
+  const [showTaskOverview, setShowTaskOverview] = useState(true); // Tasks visible by default
   const [taskViewMode, setTaskViewMode] = useState<'by-patient' | 'by-task' | 'general'>('by-patient');
   const [taskTimeFilter, setTaskTimeFilter] = useState<'day' | 'night' | 'all'>('all');
   const [quickTaskInput, setQuickTaskInput] = useState('');
