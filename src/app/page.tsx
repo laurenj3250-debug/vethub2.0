@@ -2980,17 +2980,10 @@ export default function VetHub() {
                   // Handle patient updates
                   apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
                 }}
-                onToggleTask={(taskId, completed) => handleToggleTask(patient.id, Number(taskId), completed)}
-                onDeleteTask={(taskId) => handleDeleteTask(patient.id, Number(taskId))}
                 onQuickAction={(action) => {
-                  if (action === 'morning') handleCompleteAllCategory(patient.id, 'morning');
-                  else if (action === 'evening') handleCompleteAllCategory(patient.id, 'evening');
-                  else if (action === 'tasks') setQuickAddMenuPatient(patient.id);
-                  else if (action === 'rounds') setRoundingSheetPatient(patient.id);
+                  if (action === 'rounds') setRoundingSheetPatient(patient.id);
                 }}
                 onPrintStickers={() => handlePrintPatientStickers(patient.id)}
-                getTaskCategory={getTaskCategory}
-                hideCompletedTasks={hideCompletedTasks}
               />
             ))}
           </div>

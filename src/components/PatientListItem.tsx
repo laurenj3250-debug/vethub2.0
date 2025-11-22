@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Trash2, Circle, CheckCircle2, Tag } from 'lucide-react';
+import { ChevronDown, ChevronRight, Trash2, Tag } from 'lucide-react';
 
 interface PatientListItemProps {
   patient: any;
@@ -11,16 +11,8 @@ interface PatientListItemProps {
   onToggleSelect: () => void;
   onDelete: () => void;
   onUpdatePatient: (field: string, value: any) => void;
-  onToggleTask: (taskId: string, completed: boolean) => void;
-  onDeleteTask: (taskId: string) => void;
   onQuickAction: (action: string) => void;
   onPrintStickers?: () => void;
-  getTaskCategory: (taskName: string) => string;
-  hideCompletedTasks: boolean;
-  showQuickAddMenu?: boolean;
-  onAddTask?: (taskName: string) => void;
-  customTaskName?: string;
-  onCustomTaskNameChange?: (name: string) => void;
 }
 
 export function PatientListItem({
@@ -31,31 +23,15 @@ export function PatientListItem({
   onToggleSelect,
   onDelete,
   onUpdatePatient,
-  onToggleTask,
-  onDeleteTask,
   onQuickAction,
   onPrintStickers,
-  getTaskCategory,
-  hideCompletedTasks,
-  showQuickAddMenu = false,
-  onAddTask,
-  customTaskName = '',
-  onCustomTaskNameChange,
 }: PatientListItemProps) {
   const [showEditDemographics, setShowEditDemographics] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
-  const allTasks = patient.tasks || [];
-  // Show all tasks (don't filter by date - tasks don't have a date field, they have createdAt)
-  const tasks = allTasks;
-  const completedTasks = tasks.filter((t: any) => t.completed).length;
-  const totalTasks = tasks.length;
-  const completionPercentage = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
-  // Priority indicator based on completion percentage
+  // Priority indicator based on patient type
   const getPriorityColor = () => {
     if (patient.type === 'Surgery') return 'text-red-500';
-    if (completionPercentage < 25) return 'text-red-500';
-    if (completionPercentage < 75) return 'text-yellow-500';
+    if (patient.type === 'MRI') return 'text-yellow-500';
     return 'text-green-500';
   };
 
@@ -152,13 +128,8 @@ export function PatientListItem({
           </span>
         )}
 
-        {/* Task completion */}
-        <div className="flex items-center gap-2 ml-auto">
-          <span className={`text-xs font-medium ${completionPercentage === 100 ? 'text-green-400' : completionPercentage >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
-            {completedTasks}/{totalTasks} tasks
-          </span>
-          {completionPercentage === 100 && <span className="text-green-400">✓</span>}
-        </div>
+        {/* Spacer for right alignment */}
+        <div className="ml-auto" />
 
         {/* Expand/collapse icon */}
         <button
@@ -217,24 +188,6 @@ export function PatientListItem({
           {/* Quick action buttons */}
           <div className="flex gap-2 mb-3 flex-wrap">
             <button
-              onClick={() => onQuickAction('morning')}
-              className="px-3 py-1.5 bg-yellow-500/20 text-yellow-400 rounded text-xs font-medium hover:bg-yellow-500/30 transition border border-yellow-500/30"
-            >
-              ✅ Morning
-            </button>
-            <button
-              onClick={() => onQuickAction('evening')}
-              className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded text-xs font-medium hover:bg-indigo-500/30 transition border border-indigo-500/30"
-            >
-              ✅ Evening
-            </button>
-            <button
-              onClick={() => onQuickAction('tasks')}
-              className="px-3 py-1.5 bg-cyan-500/20 text-cyan-400 rounded text-xs font-medium hover:bg-cyan-500/30 transition border border-cyan-500/30"
-            >
-              📋 Tasks
-            </button>
-            <button
               onClick={() => onQuickAction('rounds')}
               className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded text-xs font-medium hover:bg-emerald-500/30 transition border border-emerald-500/30"
             >
@@ -247,45 +200,6 @@ export function PatientListItem({
               ✏️ Edit Info
             </button>
           </div>
-
-          {/* Quick Add Task Menu */}
-          {showQuickAddMenu && onAddTask && (
-            <div className="mb-3 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
-              <h5 className="text-white font-bold text-sm mb-2">Quick Add Common Tasks:</h5>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-2">
-                {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled', 'Consent Form', 'Estimate Approved', 'Referral Letter', 'Lab Results', 'Imaging Review', 'Progress Photos'].map(taskName => (
-                  <button
-                    key={taskName}
-                    onClick={() => onAddTask(taskName)}
-                    className="px-2 py-1.5 bg-slate-800/50 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-500 rounded text-slate-300 hover:text-cyan-300 text-xs transition"
-                  >
-                    {taskName}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={customTaskName}
-                  onChange={(e) => onCustomTaskNameChange?.(e.target.value)}
-                  placeholder="Custom task name..."
-                  className="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-500"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && customTaskName.trim()) {
-                      onAddTask(customTaskName);
-                    }
-                  }}
-                />
-                <button
-                  onClick={() => customTaskName.trim() && onAddTask(customTaskName)}
-                  disabled={!customTaskName.trim()}
-                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Edit Demographics Form */}
           {showEditDemographics && (
@@ -415,136 +329,6 @@ export function PatientListItem({
             </div>
           )}
 
-          {/* Tasks grouped by category */}
-          {/* Empty state when all tasks complete and hidden */}
-          {hideCompletedTasks && completedTasks === totalTasks && totalTasks > 0 && (
-            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center">
-              <div className="text-2xl mb-2">✅</div>
-              <p className="text-green-300 text-sm font-medium mb-1">All tasks complete!</p>
-              <p className="text-slate-400 text-xs">{completedTasks} {completedTasks === 1 ? 'task' : 'tasks'} done</p>
-            </div>
-          )}
-
-          {/* Empty state when no active tasks but has tasks total */}
-          {!hideCompletedTasks && totalTasks === 0 && (
-            <div className="bg-slate-700/30 border border-slate-600/30 rounded-lg p-4 text-center">
-              <p className="text-slate-400 text-sm">No tasks yet. Click "📋 Tasks" above to add some.</p>
-            </div>
-          )}
-
-          {/* Morning Tasks */}
-          {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
-            <div className="mb-3">
-              <h5 className="text-xs font-bold text-yellow-400 mb-1.5">🌅 Morning Tasks</h5>
-              <div className="space-y-1">
-                {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
-                  >
-                    <button
-                      onClick={() => onToggleTask(task.id, task.completed)}
-                      className="flex-shrink-0"
-                    >
-                      {task.completed ? (
-                        <CheckCircle2 className="text-green-400" size={14} />
-                      ) : (
-                        <Circle className="text-slate-600 group-hover:text-yellow-400" size={14} />
-                      )}
-                    </button>
-                    <span
-                      className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
-                      onClick={() => onToggleTask(task.id, task.completed)}
-                    >
-                      {task.title || task.name}
-                    </span>
-                    <button
-                      onClick={() => onDeleteTask(task.id)}
-                      className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Evening Tasks */}
-          {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
-            <div className="mb-3">
-              <h5 className="text-xs font-bold text-indigo-400 mb-1.5">🌙 Evening Tasks</h5>
-              <div className="space-y-1">
-                {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
-                  >
-                    <button
-                      onClick={() => onToggleTask(task.id, task.completed)}
-                      className="flex-shrink-0"
-                    >
-                      {task.completed ? (
-                        <CheckCircle2 className="text-green-400" size={14} />
-                      ) : (
-                        <Circle className="text-slate-600 group-hover:text-indigo-400" size={14} />
-                      )}
-                    </button>
-                    <span
-                      className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
-                      onClick={() => onToggleTask(task.id, task.completed)}
-                    >
-                      {task.title || task.name}
-                    </span>
-                    <button
-                      onClick={() => onDeleteTask(task.id)}
-                      className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* General Tasks */}
-          {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
-            <div>
-              <h5 className="text-xs font-bold text-cyan-400 mb-1.5">📋 {patient.type} Tasks & Other</h5>
-              <div className="space-y-1">
-                {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
-                  >
-                    <button
-                      onClick={() => onToggleTask(task.id, task.completed)}
-                      className="flex-shrink-0"
-                    >
-                      {task.completed ? (
-                        <CheckCircle2 className="text-green-400" size={14} />
-                      ) : (
-                        <Circle className="text-slate-600 group-hover:text-cyan-400" size={14} />
-                      )}
-                    </button>
-                    <span
-                      className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
-                      onClick={() => onToggleTask(task.id, task.completed)}
-                    >
-                      {task.title || task.name}
-                    </span>
-                    <button
-                      onClick={() => onDeleteTask(task.id)}
-                      className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

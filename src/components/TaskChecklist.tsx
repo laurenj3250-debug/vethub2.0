@@ -41,6 +41,7 @@ export function TaskChecklist({
 }: TaskChecklistProps) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
 
   // Group all tasks by task name
   const taskGroups = useMemo(() => {
@@ -95,8 +96,9 @@ export function TaskChecklist({
 
   const handleAddTask = () => {
     if (newTaskName.trim()) {
-      onAddTask(null, newTaskName.trim());
+      onAddTask(selectedPatientId, newTaskName.trim());
       setNewTaskName('');
+      setSelectedPatientId(null);
       setShowAddTask(false);
     }
   };
@@ -191,29 +193,49 @@ export function TaskChecklist({
       {/* Quick Add */}
       <div className="p-3 border-t border-slate-700/50 bg-slate-900/30">
         {showAddTask ? (
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newTaskName}
-              onChange={(e) => setNewTaskName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-              placeholder="Task name..."
-              className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-              autoFocus
-            />
-            <button
-              onClick={handleAddTask}
-              disabled={!newTaskName.trim()}
-              className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white rounded-lg text-sm font-medium transition"
-            >
-              Add
-            </button>
-            <button
-              onClick={() => { setShowAddTask(false); setNewTaskName(''); }}
-              className="px-2 py-1.5 text-slate-400 hover:text-white transition"
-            >
-              <X size={18} />
-            </button>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <select
+                value={selectedPatientId ?? ''}
+                onChange={(e) => setSelectedPatientId(e.target.value ? Number(e.target.value) : null)}
+                className="px-2 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500"
+              >
+                <option value="">All Patients</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {getPatientName(p)}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={newTaskName}
+                onChange={(e) => setNewTaskName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
+                placeholder="Task name..."
+                className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+                autoFocus
+              />
+              <button
+                onClick={handleAddTask}
+                disabled={!newTaskName.trim()}
+                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white rounded-lg text-sm font-medium transition"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setShowAddTask(false); setNewTaskName(''); setSelectedPatientId(null); }}
+                className="px-2 py-1.5 text-slate-400 hover:text-white transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
+              {selectedPatientId
+                ? `Task will be added to ${getPatientName(patients.find(p => p.id === selectedPatientId)!)}`
+                : 'Select a patient or add as general task'
+              }
+            </p>
           </div>
         ) : (
           <button
