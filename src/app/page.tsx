@@ -2001,7 +2001,7 @@ export default function VetHub() {
               Schedule
             </Link>
             <button
-              onClick={() => { setShowAllTasksView(!showAllTasksView); if (!showAllTasksView) { setShowTaskOverview(false); setShowMRISchedule(false); } }}
+              onClick={() => { setShowTaskOverview(!showTaskOverview); setShowMRISchedule(false); }}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
             >
               <CheckCircle2 size={18} />
