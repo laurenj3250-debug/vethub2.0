@@ -67,24 +67,24 @@ export function PatientListItem({
     return '🐾';
   };
 
-  // Type badge color
+  // Type badge color - subtle outline style to not compete with action buttons
   const getTypeBadgeColor = () => {
     switch (patient.type) {
-      case 'Surgery': return 'bg-red-500/20 text-red-400 border-red-500/30';
-      case 'MRI': return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
-      case 'Medical': return 'bg-pink-500/20 text-pink-400 border-pink-500/30';
-      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+      case 'Surgery': return 'bg-transparent text-red-400 border-red-500/40';
+      case 'MRI': return 'bg-transparent text-teal-400 border-teal-500/40';
+      case 'Medical': return 'bg-transparent text-pink-400 border-pink-500/40';
+      default: return 'bg-transparent text-slate-400 border-slate-500/40';
     }
   };
 
-  // Status badge color
+  // Status badge color - subtle outline style
   const getStatusBadgeColor = () => {
     switch (patient.status) {
-      case 'New Admit': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'Hospitalized': return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
-      case 'Discharging': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'Discharged': return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
-      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
+      case 'New Admit': return 'bg-transparent text-blue-400 border-blue-500/40';
+      case 'Hospitalized': return 'bg-transparent text-cyan-400 border-cyan-500/40';
+      case 'Discharging': return 'bg-transparent text-green-400 border-green-500/40';
+      case 'Discharged': return 'bg-transparent text-slate-500 border-slate-600/40';
+      default: return 'bg-transparent text-slate-400 border-slate-500/40';
     }
   };
 
@@ -92,25 +92,26 @@ export function PatientListItem({
     <div className={`border rounded-lg transition-all ${isSelected ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-700/50 bg-slate-800/30'} ${patient.status === 'Discharged' ? 'opacity-60' : ''}`}>
       {/* Compact one-line view */}
       <div
-        className="px-4 py-2 flex items-center gap-3 hover:bg-slate-700/20 transition cursor-pointer"
+        className="pl-3 pr-4 py-2 flex items-center gap-2 hover:bg-slate-700/20 transition cursor-pointer"
         onClick={onToggleExpand}
       >
-        {/* Checkbox */}
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={onToggleSelect}
-          onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 bg-slate-700"
-        />
-
-        {/* Priority indicator dot */}
-        <div className={`w-2 h-2 rounded-full ${getPriorityColor()}`} />
+        {/* Checkbox + Priority grouped together */}
+        <div className="flex items-center gap-2 border-r border-slate-700/30 pr-2">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={onToggleSelect}
+            onClick={(e) => e.stopPropagation()}
+            className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 bg-slate-700"
+          />
+          {/* Priority indicator dot */}
+          <div className={`w-2 h-2 rounded-full ${getPriorityColor()}`} />
+        </div>
 
         {/* Species + Name */}
         <div className="flex items-center gap-2 min-w-[180px]">
           <span className="text-xl">{getSpeciesEmoji()}</span>
-          <span className="font-semibold text-slate-100 truncate">{patient.demographics?.name || patient.name || 'Unnamed'}</span>
+          <span className="font-bold text-white truncate">{patient.demographics?.name || patient.name || 'Unnamed'}</span>
         </div>
 
         {/* Type dropdown */}
@@ -146,7 +147,7 @@ export function PatientListItem({
 
         {/* Weight - support both UnifiedPatient (demographics.weight) and legacy (patient_info.weight) */}
         {(patient.demographics?.weight || patient.patient_info?.weight) && (
-          <span className="text-xs text-slate-400 min-w-[60px]">
+          <span className="text-xs text-slate-500 min-w-[60px]">
             {patient.demographics?.weight || patient.patient_info?.weight}
           </span>
         )}

@@ -2905,7 +2905,7 @@ export default function VetHub() {
 
         {/* Batch Add Tasks - Above Patient Cards */}
         {filteredPatients.length > 0 && !taskStats.allComplete && (
-          <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
+          <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <span className="text-lg">⚡</span>

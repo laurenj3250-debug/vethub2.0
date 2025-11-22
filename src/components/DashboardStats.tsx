@@ -56,7 +56,7 @@ export function DashboardStats({ patients, onFilterClick }: DashboardStatsProps)
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-100">{totalPatients}</div>
-            <div className="text-xs text-slate-400">Total Patients</div>
+            <div className="text-xs text-slate-300">Total Patients</div>
           </div>
         </div>
 
@@ -67,8 +67,8 @@ export function DashboardStats({ patients, onFilterClick }: DashboardStatsProps)
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-100">{overallCompletionRate}%</div>
-            <div className="text-xs text-slate-400">
-              {completedTasks}/{totalTasks} tasks done
+            <div className="text-xs text-slate-300">
+              {totalTasks > 0 ? `${completedTasks}/${totalTasks} tasks done` : 'No tasks yet'}
             </div>
           </div>
         </div>
@@ -80,7 +80,7 @@ export function DashboardStats({ patients, onFilterClick }: DashboardStatsProps)
           </div>
           <div>
             <div className="text-2xl font-bold text-slate-100">{patientsNeedingAttention}</div>
-            <div className="text-xs text-slate-400">Need Attention</div>
+            <div className="text-xs text-slate-300">Need Attention</div>
           </div>
         </div>
 
@@ -93,7 +93,7 @@ export function DashboardStats({ patients, onFilterClick }: DashboardStatsProps)
             <div className="text-2xl font-bold text-slate-100">
               {(byStatus['New Admit'] || 0) + (byStatus['Hospitalized'] || 0)}
             </div>
-            <div className="text-xs text-slate-400">Active Cases</div>
+            <div className="text-xs text-slate-300">Active Cases</div>
           </div>
         </div>
       </div>
