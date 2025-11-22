@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Check, Plus, X, ChevronDown, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Check, Plus, X, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Task {
   id: number;
@@ -131,33 +131,24 @@ export function TaskChecklist({
     <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden flex flex-col max-h-[70vh]">
       {/* Progress Header */}
       <div className="p-4 border-b border-slate-700/50 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-white font-bold text-lg">Tasks</span>
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setHideCompleted(!hideCompleted)}
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition ${
-                hideCompleted
-                  ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                  : 'bg-emerald-500/20 text-emerald-400'
-              }`}
-              title={hideCompleted ? 'Show completed' : 'Hide completed'}
-            >
-              {hideCompleted ? <EyeOff size={12} /> : <Eye size={12} />}
-              {hideCompleted ? 'Hidden' : 'Showing'}
-            </button>
-            <span className="text-slate-400 text-sm font-medium">
-              {stats.completed}/{stats.total}
-            </span>
+            <span className="text-white font-bold text-lg">Tasks</span>
+            <span className="text-sm text-slate-400">{stats.completed} of {stats.total} done</span>
           </div>
+          <button
+            onClick={() => setHideCompleted(!hideCompleted)}
+            className="text-xs text-slate-400 hover:text-white transition"
+          >
+            {hideCompleted ? 'Show done' : 'Hide done'}
+          </button>
         </div>
-        <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-500 ease-out"
+            className="h-full bg-emerald-500 transition-all duration-300"
             style={{ width: `${stats.percent}%` }}
           />
         </div>
-        <p className="text-xs text-slate-500 mt-1 text-center">{stats.percent}% complete</p>
       </div>
 
       {/* Scrollable Task List */}
@@ -165,21 +156,17 @@ export function TaskChecklist({
         {/* Pending Tasks - Always visible */}
         {pendingCount > 0 && (
           <div className="p-2">
-            <div className="px-2 py-1 text-xs font-bold text-amber-400 uppercase tracking-wide flex items-center gap-2">
-              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-              To Do ({pendingCount})
-            </div>
-            <div className="space-y-1 mt-1">
+            <div className="space-y-1.5">
               {Object.entries(pendingGroups).map(([taskName, group]) => {
                 const doneInGroup = group.patients.filter(p => p.task.completed).length;
                 const totalInGroup = group.patients.length;
 
                 return (
-                  <div key={taskName} className="p-2 rounded-lg bg-slate-900/50 border border-slate-700/50">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="font-medium text-white text-sm">{taskName}</span>
+                  <div key={taskName} className="p-3 rounded-lg bg-slate-900/40 border border-slate-700/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-white">{taskName}</span>
                       {!group.isGeneral && totalInGroup > 0 && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-slate-700 text-slate-400">
+                        <span className="text-xs text-slate-500">
                           {doneInGroup}/{totalInGroup}
                         </span>
                       )}
@@ -266,17 +253,15 @@ export function TaskChecklist({
         {/* All done state */}
         {pendingCount === 0 && completedCount > 0 && (
           <div className="p-8 text-center">
-            <div className="text-4xl mb-2">🎉</div>
-            <p className="text-emerald-400 font-bold">All tasks complete!</p>
-            <p className="text-slate-500 text-sm">{completedCount} tasks done today</p>
+            <Check className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+            <p className="text-emerald-400 font-medium">All done</p>
           </div>
         )}
 
         {/* Empty state */}
         {pendingCount === 0 && completedCount === 0 && (
           <div className="p-8 text-center text-slate-500">
-            <div className="text-3xl mb-2">📋</div>
-            <p>No tasks yet</p>
+            <p>No tasks</p>
           </div>
         )}
       </div>
