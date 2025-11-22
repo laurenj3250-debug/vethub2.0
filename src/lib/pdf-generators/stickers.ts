@@ -726,6 +726,207 @@ ${allLabels.join('\n')}
 }
 
 /**
+ * Print single patient big labels (opens print dialog)
+ * Uses same format as printConsolidatedBigLabels for consistency
+ */
+export async function printSinglePatientBigLabels(patient: UnifiedPatient, count?: number) {
+  const data = formatPatientForBigLabel(patient);
+  const labelCount = count ?? patient.stickerData?.bigLabelCount ?? 2;
+
+  const labels = Array(labelCount).fill(null).map(() => `
+  <div class="page">
+    <p class="line top">
+      <span class="bold">${escapeHtml(data.patientName)}</span>
+      &nbsp;${escapeHtml(data.clientId || '')}&nbsp;<span class="bold">${escapeHtml(data.patientId || '')}</span>
+    </p>
+    <p class="line">
+      <span class="bold">${escapeHtml(data.ownerName)}</span>
+      &nbsp;${escapeHtml(data.ownerPhone)}
+    </p>
+    <p class="line">
+      <span class="bold">Species:</span> (${escapeHtml(data.species)})
+    </p>
+    <p class="line">
+      <span class="bold">Breed:</span> ${escapeHtml(data.breed)}
+      &nbsp;&nbsp;<span class="bold">Color:</span> ${escapeHtml(data.colorMarkings || '')}
+    </p>
+    <p class="line">
+      <span class="bold">Sex:</span> ${escapeHtml(data.sex)}
+      &nbsp;&nbsp;<span class="bold">Weight:</span> ${escapeHtml(data.weight)}
+    </p>
+    <p class="line">
+      <span class="bold">DOB:</span> ${escapeHtml(data.dateOfBirth || '')}
+      &nbsp;&nbsp;<span class="bold">Age:</span> ${escapeHtml(data.age || '')}
+    </p>
+  </div>`);
+
+  const combinedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Big Labels - ${escapeHtml(data.patientName)}</title>
+  <style>
+    @page {
+      size: 70mm 45mm;
+      margin: 0;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .page {
+      width: 70mm;
+      height: 45mm;
+      padding: 3mm 4mm;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9pt;
+      line-height: 1.3;
+      page-break-after: always;
+      display: block;
+    }
+    .page:last-child {
+      page-break-after: auto;
+    }
+    .line {
+      margin: 0;
+      padding: 0;
+      margin-bottom: 0.3mm;
+    }
+    .line.top {
+      margin-bottom: 0.3mm;
+    }
+    .bold {
+      font-weight: bold;
+    }
+    @media print {
+      body { margin: 0; padding: 0; }
+      .page { page-break-after: always; }
+      .page:last-child { page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+${labels.join('\n')}
+</body>
+</html>
+  `.trim();
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(combinedHTML);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  }
+}
+
+/**
+ * Print single patient tiny labels (opens print dialog)
+ * Uses same format as printConsolidatedTinyLabels for consistency
+ */
+export async function printSinglePatientTinyLabels(patient: UnifiedPatient, count?: number) {
+  const data = formatPatientForTinyLabel(patient);
+  const labelCount = count ?? patient.stickerData?.tinySheetCount ?? 1;
+
+  const labels = Array(labelCount).fill(null).map(() => `
+    <div class="tiny-label">
+      <p class="line date-line"><span class="bold">Date:</span> ${escapeHtml(data.date)}</p>
+      <p class="line name-line bold">${escapeHtml(data.patientName)}, TF_${escapeHtml(data.clientId || '')}</p>
+      <p class="line owner-line extrabold">${escapeHtml(data.ownerName)}</p>
+      <p class="line breed-line">${escapeHtml(data.species)}, ${escapeHtml(data.breed)}</p>
+      <p class="line sex-age-line"><span class="bold">Sex:</span> ${escapeHtml(data.sex)} <span class="bold">Age:</span> ${escapeHtml(data.age || '')}</p>
+      <p class="line id-line">Diagnostic ID:</p>
+    </div>
+  `);
+
+  const combinedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Tiny Labels - ${escapeHtml(data.patientName)}</title>
+  <style>
+    @page {
+      size: 50mm 35mm;
+      margin: 0;
+    }
+
+    body {
+      font-family: Georgia, serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f0f0f0;
+    }
+
+    .label-container {
+    }
+
+    .tiny-label {
+      width: 50mm;
+      height: 35mm;
+      border: 1px solid black;
+      padding: 0.1mm;
+      box-sizing: border-box;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      page-break-after: always;
+    }
+
+    .tiny-label:last-child {
+      page-break-after: auto;
+    }
+
+    .line {
+      text-align: center;
+      font-size: 10px;
+      line-height: 1.1;
+    }
+
+    .date-line { margin-bottom: 0; }
+    .name-line { margin-bottom: 0; }
+    .owner-line { margin-bottom: 1px; }
+    .breed-line { margin-bottom: 0; }
+    .sex-age-line { margin-bottom: 1px; }
+    .id-line { margin-bottom: 0; }
+
+    .bold { font-weight: bold; }
+    .extrabold { font-weight: 800; }
+
+    @media print {
+      body { margin: 0; background: white; }
+    }
+  </style>
+</head>
+<body>
+  <div class="label-container">
+    ${labels.join('\n')}
+  </div>
+</body>
+</html>
+  `.trim();
+
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(combinedHTML);
+    printWindow.document.close();
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+  }
+}
+
+/**
  * Print consolidated tiny labels (opens print dialog)
  */
 export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {

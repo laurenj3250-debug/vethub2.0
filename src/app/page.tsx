@@ -11,7 +11,7 @@ import { PatientListItem } from '@/components/PatientListItem';
 import { DashboardStats } from '@/components/DashboardStats';
 import { TaskKanbanBoard } from '@/components/TaskKanbanBoard';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
-import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels } from '@/lib/pdf-generators/stickers';
+import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -55,6 +55,9 @@ export default function VetHub() {
   const [showQuickReference, setShowQuickReference] = useState(false);
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
+
+  // Individual sticker picker state (for choosing big vs tiny when clicking sticker button)
+  const [stickerPickerPatientId, setStickerPickerPatientId] = useState<number | null>(null);
 
   // Discharge instructions modal state
   const [showDischargeInstructions, setShowDischargeInstructions] = useState(false);
@@ -1543,23 +1546,52 @@ export default function VetHub() {
     }
   };
 
-  const handlePrintPatientStickers = async (patientId: number) => {
+  const handlePrintPatientStickers = (patientId: number) => {
+    // Open sticker picker modal instead of directly printing
+    setStickerPickerPatientId(patientId);
+  };
+
+  // Handlers for the sticker picker modal
+  const handlePrintBigStickersSingle = async () => {
+    if (!stickerPickerPatientId) return;
     try {
-      const patient = patients.find(p => p.id === patientId);
+      const patient = patients.find(p => p.id === stickerPickerPatientId);
       if (!patient) return;
 
-      toast({ title: 'Generating stickers...', description: `Creating stickers for ${patient.demographics?.name || patient.name || 'Unnamed'}` });
+      toast({ title: 'Generating big labels...', description: `Creating big labels for ${patient.demographics?.name || patient.name || 'Unnamed'}` });
 
-      await downloadAllStickersPDF(patient as any);
+      await printSinglePatientBigLabels(patient as any);
 
       toast({
-        title: '✅ Stickers Generated!',
-        description: `Downloaded stickers for ${patient.demographics?.name || patient.name || 'Unnamed'}`
+        title: '🏷️ Big Labels Ready',
+        description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
       });
     } catch (error) {
-      console.error('Sticker generation error:', error);
-      toast({ variant: 'destructive', title: 'Failed to generate stickers', description: String(error) });
+      console.error('Big label generation error:', error);
+      toast({ variant: 'destructive', title: 'Failed to generate big labels', description: String(error) });
     }
+    setStickerPickerPatientId(null);
+  };
+
+  const handlePrintTinyStickersSingle = async () => {
+    if (!stickerPickerPatientId) return;
+    try {
+      const patient = patients.find(p => p.id === stickerPickerPatientId);
+      if (!patient) return;
+
+      toast({ title: 'Generating tiny labels...', description: `Creating tiny labels for ${patient.demographics?.name || patient.name || 'Unnamed'}` });
+
+      await printSinglePatientTinyLabels(patient as any);
+
+      toast({
+        title: '🏷️ Tiny Labels Ready',
+        description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
+      });
+    } catch (error) {
+      console.error('Tiny label generation error:', error);
+      toast({ variant: 'destructive', title: 'Failed to generate tiny labels', description: String(error) });
+    }
+    setStickerPickerPatientId(null);
   };
 
   // Load rounding data when modal opens
@@ -3628,6 +3660,53 @@ export default function VetHub() {
                       Add Patient with Claude AI
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sticker Size Picker Modal */}
+        {stickerPickerPatientId !== null && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
+              <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-t-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Tag className="text-white" size={24} />
+                    <span className="text-white font-bold text-lg">Print Stickers</span>
+                  </div>
+                  <button
+                    onClick={() => setStickerPickerPatientId(null)}
+                    className="text-white/80 hover:text-white transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-orange-100 text-sm mt-1">
+                  {patients.find(p => p.id === stickerPickerPatientId)?.demographics?.name || 'Patient'}
+                </p>
+              </div>
+              <div className="p-4 space-y-3">
+                <button
+                  onClick={handlePrintBigStickersSingle}
+                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3"
+                >
+                  <Tag size={24} />
+                  <div className="text-left">
+                    <div>Big Stickers</div>
+                    <div className="text-xs font-normal opacity-80">70mm × 45mm - Patient files & cages</div>
+                  </div>
+                </button>
+                <button
+                  onClick={handlePrintTinyStickersSingle}
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3"
+                >
+                  <Tag size={18} />
+                  <div className="text-left">
+                    <div>Little Stickers</div>
+                    <div className="text-xs font-normal opacity-80">50mm × 35mm - Lab samples & diagnostics</div>
+                  </div>
                 </button>
               </div>
             </div>
