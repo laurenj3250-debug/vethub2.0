@@ -729,7 +729,7 @@ ${allLabels.join('\n')}
  * Print single patient big labels (opens print dialog)
  * Uses same format as printConsolidatedBigLabels for consistency
  */
-export async function printSinglePatientBigLabels(patient: UnifiedPatient, count?: number) {
+export function printSinglePatientBigLabels(patient: UnifiedPatient, count?: number) {
   const data = formatPatientForBigLabel(patient);
   const labelCount = count ?? patient.stickerData?.bigLabelCount ?? 2;
 
@@ -821,9 +821,10 @@ ${labels.join('\n')}
   if (printWindow) {
     printWindow.document.write(combinedHTML);
     printWindow.document.close();
-    printWindow.onload = () => {
+    // Use setTimeout to prevent blocking the main thread
+    setTimeout(() => {
       printWindow.print();
-    };
+    }, 100);
   }
 }
 
@@ -831,7 +832,7 @@ ${labels.join('\n')}
  * Print single patient tiny labels (opens print dialog)
  * Uses same format as printConsolidatedTinyLabels for consistency
  */
-export async function printSinglePatientTinyLabels(patient: UnifiedPatient, count?: number) {
+export function printSinglePatientTinyLabels(patient: UnifiedPatient, count?: number) {
   const data = formatPatientForTinyLabel(patient);
   const labelCount = count ?? patient.stickerData?.tinySheetCount ?? 1;
 
@@ -920,9 +921,10 @@ export async function printSinglePatientTinyLabels(patient: UnifiedPatient, coun
   if (printWindow) {
     printWindow.document.write(combinedHTML);
     printWindow.document.close();
-    printWindow.onload = () => {
+    // Use setTimeout to prevent blocking the main thread
+    setTimeout(() => {
       printWindow.print();
-    };
+    }, 100);
   }
 }
 

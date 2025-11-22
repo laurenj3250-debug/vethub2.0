@@ -1552,46 +1552,48 @@ export default function VetHub() {
   };
 
   // Handlers for the sticker picker modal
-  const handlePrintBigStickersSingle = async () => {
+  const handlePrintBigStickersSingle = () => {
     if (!stickerPickerPatientId) return;
-    try {
-      const patient = patients.find(p => p.id === stickerPickerPatientId);
-      if (!patient) return;
+    const patient = patients.find(p => p.id === stickerPickerPatientId);
+    if (!patient) return;
 
-      toast({ title: 'Generating big labels...', description: `Creating big labels for ${patient.demographics?.name || patient.name || 'Unnamed'}` });
-
-      await printSinglePatientBigLabels(patient as any);
-
-      toast({
-        title: '🏷️ Big Labels Ready',
-        description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
-      });
-    } catch (error) {
-      console.error('Big label generation error:', error);
-      toast({ variant: 'destructive', title: 'Failed to generate big labels', description: String(error) });
-    }
+    // Close modal first, then print after a brief delay to let UI update
     setStickerPickerPatientId(null);
+
+    setTimeout(() => {
+      try {
+        printSinglePatientBigLabels(patient as any);
+        toast({
+          title: '🏷️ Big Labels Ready',
+          description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
+        });
+      } catch (error) {
+        console.error('Big label generation error:', error);
+        toast({ variant: 'destructive', title: 'Failed to generate big labels', description: String(error) });
+      }
+    }, 100);
   };
 
-  const handlePrintTinyStickersSingle = async () => {
+  const handlePrintTinyStickersSingle = () => {
     if (!stickerPickerPatientId) return;
-    try {
-      const patient = patients.find(p => p.id === stickerPickerPatientId);
-      if (!patient) return;
+    const patient = patients.find(p => p.id === stickerPickerPatientId);
+    if (!patient) return;
 
-      toast({ title: 'Generating tiny labels...', description: `Creating tiny labels for ${patient.demographics?.name || patient.name || 'Unnamed'}` });
-
-      await printSinglePatientTinyLabels(patient as any);
-
-      toast({
-        title: '🏷️ Tiny Labels Ready',
-        description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
-      });
-    } catch (error) {
-      console.error('Tiny label generation error:', error);
-      toast({ variant: 'destructive', title: 'Failed to generate tiny labels', description: String(error) });
-    }
+    // Close modal first, then print after a brief delay to let UI update
     setStickerPickerPatientId(null);
+
+    setTimeout(() => {
+      try {
+        printSinglePatientTinyLabels(patient as any);
+        toast({
+          title: '🏷️ Tiny Labels Ready',
+          description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
+        });
+      } catch (error) {
+        console.error('Tiny label generation error:', error);
+        toast({ variant: 'destructive', title: 'Failed to generate tiny labels', description: String(error) });
+      }
+    }, 100);
   };
 
   // Load rounding data when modal opens
