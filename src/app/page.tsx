@@ -2976,8 +2976,15 @@ export default function VetHub() {
                 onToggleSelect={() => togglePatientSelection(patient.id)}
                 onDelete={() => handleDeletePatient(patient.id)}
                 onUpdatePatient={(field, value) => {
-                  // Handle patient updates
-                  apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
+                  // Use handleStatusChange for status updates (includes discharge task creation)
+                  if (field === 'status') {
+                    handleStatusChange(patient.id, value);
+                  } else if (field === 'type') {
+                    handleTypeChange(patient.id, value);
+                  } else {
+                    // Handle other patient updates
+                    apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
+                  }
                 }}
                 onQuickAction={(action) => {
                   if (action === 'rounds') setRoundingSheetPatient(patient.id);
