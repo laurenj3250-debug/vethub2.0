@@ -542,20 +542,25 @@ export function EnhancedRoundingSheet({
   }, [showProtocolSelector, copyRoundingSheetLine, textExpansions, handleTextExpansion, updateFieldDebounced, selectedPatients, toast]);
 
   // Field order for paste operations - only textarea fields that support multi-cell paste
-  // Skip select fields (ivc, fluids, cri) as they need specific values
-  const TEXTAREA_FIELD_ORDER = [
+  // Full column order matching the spreadsheet layout (includes select fields)
+  // This is the order columns appear in the UI: Problems → Diagnostics → Therapeutics → IVC → Fluids → CRI → O/N Dx → Concerns → Comments
+  const ALL_FIELD_ORDER = [
     'problems', 'diagnosticFindings', 'therapeutics',
+    'ivc', 'fluids', 'cri',
     'overnightDx', 'concerns', 'comments'
   ];
+
+  // Select fields that only accept specific values
+  const SELECT_FIELDS = new Set(['ivc', 'fluids', 'cri']);
 
   // Handle paste from spreadsheet (tab-separated values)
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, currentField: string) => {
     const pastedText = e.clipboardData.getData('text');
 
-    // Only handle if pasting into a supported textarea field
-    const currentFieldIndex = TEXTAREA_FIELD_ORDER.indexOf(currentField);
+    // Only handle if pasting into a supported field
+    const currentFieldIndex = ALL_FIELD_ORDER.indexOf(currentField);
     if (currentFieldIndex === -1) {
-      return; // Let default paste happen for non-textarea fields
+      return; // Let default paste happen for fields not in our list
     }
 
     // Check if pasted content contains tabs (multi-cell paste from spreadsheet)
@@ -566,15 +571,21 @@ export function EnhancedRoundingSheet({
       const firstRow = pastedText.split('\n')[0];
       const values = firstRow.split('\t');
 
-      // Apply values starting from current field
+      // Apply values starting from current field, following the actual column order
       const updates: { field: string; value: string }[] = [];
 
       for (let i = 0; i < values.length; i++) {
         const targetFieldIndex = currentFieldIndex + i;
-        if (targetFieldIndex < TEXTAREA_FIELD_ORDER.length) {
-          const targetField = TEXTAREA_FIELD_ORDER[targetFieldIndex];
+        if (targetFieldIndex < ALL_FIELD_ORDER.length) {
+          const targetField = ALL_FIELD_ORDER[targetFieldIndex];
           const value = values[i].trim();
-          // Include even empty values to maintain alignment
+
+          // Skip select fields - they need specific dropdown values
+          if (SELECT_FIELDS.has(targetField)) {
+            continue;
+          }
+
+          // Include even empty values for textarea fields to maintain alignment
           updates.push({ field: targetField, value });
         }
       }
