@@ -2929,96 +2929,10 @@ export default function VetHub() {
           <span>Add Patient</span>
         </button>
 
-        {/* Sort & View Controls */}
-        <div className="flex gap-3 justify-end">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 text-sm font-bold whitespace-nowrap">Sort:</span>
-            <select
-              value={patientSortBy}
-              onChange={(e) => setPatientSortBy(e.target.value as 'name' | 'status' | 'type')}
-              className="px-4 py-3 rounded-2xl bg-white text-gray-900 focus:outline-none cursor-pointer font-bold"
-              style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-            >
-              <option value="name">Name</option>
-              <option value="status">Status</option>
-              <option value="type">Type</option>
-            </select>
-          </div>
-          {/* View Mode Toggle */}
-          <div
-            className="flex items-center gap-1 bg-white rounded-2xl p-1"
-            style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-          >
-            <button
-              onClick={() => setViewMode('list')}
-              disabled={!mounted}
-              className={`px-3 py-2 rounded-xl transition font-bold ${
-                mounted && viewMode === 'list'
-                  ? 'text-gray-900'
-                  : 'text-gray-400 hover:text-gray-900'
-              }`}
-              style={mounted && viewMode === 'list' ? { backgroundColor: '#DCC4F5' } : undefined}
-              title="List View"
-            >
-              <ListIcon size={20} />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              disabled={!mounted}
-              className={`px-3 py-2 rounded-xl transition font-bold ${
-                mounted && viewMode === 'grid'
-                  ? 'text-gray-900'
-                  : 'text-gray-400 hover:text-gray-900'
-              }`}
-              style={mounted && viewMode === 'grid' ? { backgroundColor: '#DCC4F5' } : undefined}
-              title="Grid View"
-            >
-              <LayoutGrid size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* Today's Date Banner */}
-        <div
-          className="rounded-2xl p-4"
-          style={{ backgroundColor: '#DCC4F5', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-        >
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📅</span>
-              <div>
-                <h3 className="text-gray-900 font-black text-lg">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                </h3>
-                <p className="text-gray-600 text-xs font-medium">Showing today's tasks only</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
-              className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 hover:-translate-y-0.5"
-              style={{
-                backgroundColor: hideCompletedTasks ? '#B8E6D4' : 'white',
-                border: '2px solid #000',
-              }}
-            >
-              {hideCompletedTasks ? (
-                <>
-                  <span>Show Completed</span>
-                  {taskStats.completed > 0 && (
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs font-black"
-                      style={{ backgroundColor: 'white', border: '1px solid #000' }}
-                    >
-                      {taskStats.completed}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span>Hide Completed</span>
-              )}
-            </button>
-          </div>
-        </div>
+        {/* Simple Date Line */}
+        <p className="text-gray-500 text-sm font-medium">
+          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        </p>
 
         {/* All Tasks Complete Celebration */}
         {taskStats.allComplete && (
