@@ -98,11 +98,16 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   }
 
   // Auto-Fill & Carry-Forward: Pre-fill rounding data from demographics and yesterday's data
-  // RUNS ONLY ONCE on initial mount to prevent flickering
+  // Runs once when patients are actually loaded (not when empty)
   useEffect(() => {
-    // Only run once on initial mount
+    // Only run once when we have actual patients loaded
     if (autoFillInitialized.current) return;
+    if (activePatients.length === 0) {
+      console.log('[RoundingSheet] Auto-fill waiting for patients to load...');
+      return;  // Wait until patients are loaded
+    }
     autoFillInitialized.current = true;
+    console.log('[RoundingSheet] Running auto-fill for', activePatients.length, 'patients');
 
     const newCarryForwardResults: Record<number, CarryForwardResult> = {};
     const newEditingData: Record<number, RoundingData> = {};
@@ -144,7 +149,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     setCarryForwardResults(newCarryForwardResults);
     setAutoFilledFields(newAutoFilledFields);
     setEditingData(newEditingData);
-  }, []); // Empty dependency - runs only once on mount
+  }, [activePatients.length]); // Re-run when patients load (but ref prevents re-running after that)
 
   // Navigation Guard: Warn before leaving with unsaved changes
   useEffect(() => {
