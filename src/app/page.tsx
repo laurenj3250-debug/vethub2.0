@@ -2096,7 +2096,7 @@ export default function VetHub() {
               </button>
               {showPrintMenu && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-2xl overflow-hidden z-50"
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-2xl overflow-hidden z-[100]"
                   style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
                 >
                   <button
@@ -2130,7 +2130,7 @@ export default function VetHub() {
               </button>
               {showToolsMenu && (
                 <div
-                  className="absolute right-0 mt-2 w-56 bg-white rounded-2xl overflow-hidden z-50"
+                  className="absolute right-0 mt-2 w-56 bg-white rounded-2xl overflow-hidden z-[100]"
                   style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
                 >
                   <button

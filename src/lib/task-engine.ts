@@ -162,38 +162,12 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
   // Discharge patients
   'Discharge': [
     {
-      id: 'discharge-exam',
-      name: 'Final Discharge Exam',
+      id: 'discharge-instructions',
+      name: 'Discharge Instructions',
       category: 'Discharge',
       estimatedMinutes: 15,
       priority: 'high',
       timeOfDay: 'anytime',
-    },
-    {
-      id: 'discharge-meds',
-      name: 'Prepare Discharge Medications',
-      category: 'Discharge',
-      estimatedMinutes: 10,
-      priority: 'high',
-      timeOfDay: 'anytime',
-    },
-    {
-      id: 'discharge-instructions',
-      name: 'Review Home Care Instructions with Owner',
-      category: 'Discharge',
-      estimatedMinutes: 20,
-      priority: 'high',
-      timeOfDay: 'anytime',
-      dependencies: ['discharge-exam', 'discharge-meds'],
-    },
-    {
-      id: 'discharge-followup',
-      name: 'Schedule Follow-up Appointment',
-      category: 'Discharge',
-      estimatedMinutes: 5,
-      priority: 'medium',
-      timeOfDay: 'anytime',
-      dependencies: ['discharge-instructions'],
     },
   ],
 };

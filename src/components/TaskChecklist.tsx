@@ -291,7 +291,11 @@ export function TaskChecklist({
                         </button>
                       ) : (
                         taskPatients.map(patient => {
-                          const task = patientTaskMap[taskName][patient.id];
+                          // Get fresh task data from patient.tasks to ensure consistency
+                          const task = (patient.tasks || []).find(
+                            t => (t.title || t.name) === taskName
+                          ) || patientTaskMap[taskName][patient.id];
+                          if (!task) return null;
                           return (
                             <button
                               key={patient.id}
