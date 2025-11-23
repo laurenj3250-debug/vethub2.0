@@ -81,15 +81,20 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     };
   }, [saveTimers]);
 
-  console.log('[RoundingSheet] Received patients:', patients?.length, patients);
+  console.log('[RoundingSheet] Received patients:', patients?.length);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
-  console.log('[RoundingSheet] Active patients:', activePatients.length, activePatients);
+  console.log('[RoundingSheet] Active patients:', activePatients.length);
 
-  // Log the full structure of the first patient to see what fields are available
+  // Log roundingData for each patient to debug vanishing data issue
   if (activePatients.length > 0) {
-    console.log('[RoundingSheet] First patient full structure:', JSON.stringify(activePatients[0], null, 2));
+    console.log('[RoundingSheet] Patient roundingData summary:');
+    activePatients.forEach(p => {
+      const rd = (p as any)?.roundingData || p?.rounding_data;
+      console.log(`  - ${(p as any)?.demographics?.name || p.name}: roundingData=${rd ? 'EXISTS' : 'MISSING'}`,
+        rd ? `code=${rd.code}, problems=${rd.problems?.slice(0,30)}...` : '');
+    });
   }
 
   // Auto-Fill & Carry-Forward: Pre-fill rounding data from demographics and yesterday's data
@@ -166,10 +171,23 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   // Initialize editing data from patient rounding data
   const getPatientData = (patientId: number): RoundingData => {
-    if (editingData[patientId]) return editingData[patientId];
+    // Debug: Log what's happening
+    const hasEditingData = !!editingData[patientId];
     const patient = patients.find(p => p.id === patientId);
+    const patientRoundingData = (patient as any)?.roundingData || patient?.rounding_data;
+
+    // Only log first time or when something is wrong
+    if (!patientRoundingData && patient) {
+      console.warn(`[getPatientData] Patient ${patientId} missing roundingData!`, {
+        hasEditingData,
+        patientKeys: patient ? Object.keys(patient) : [],
+        patientRoundingData
+      });
+    }
+
+    if (hasEditingData) return editingData[patientId];
     // API returns roundingData (camelCase), not rounding_data (snake_case)
-    return (patient as any)?.roundingData || patient?.rounding_data || {};
+    return patientRoundingData || {};
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
