@@ -601,11 +601,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         className="flex items-center justify-between rounded-2xl p-4"
         style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
       >
-        <div>
-          <h2 className="text-xl font-black text-gray-900">Rounding Sheet</h2>
-          <p className="text-sm font-medium text-gray-500">{activePatients.length} active patients</p>
-        </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={exportToTSV}
             className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2"
@@ -614,16 +610,20 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
             <Copy size={16} />
             Copy to Clipboard
           </button>
-          <button
-            onClick={handleSaveAll}
-            disabled={isSaving || Object.keys(editingData).length === 0}
-            className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
-          >
-            <Save size={16} />
-            Save All {Object.keys(editingData).length > 0 && `(${Object.keys(editingData).length})`}
-          </button>
+          <div>
+            <h2 className="text-xl font-black text-gray-900">Rounding Sheet</h2>
+            <p className="text-sm font-medium text-gray-500">{activePatients.length} active patients</p>
+          </div>
         </div>
+        <button
+          onClick={handleSaveAll}
+          disabled={isSaving || Object.keys(editingData).length === 0}
+          className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
+        >
+          <Save size={16} />
+          Save All {Object.keys(editingData).length > 0 && `(${Object.keys(editingData).length})`}
+        </button>
       </div>
 
       {/* Rounding Sheet Table */}

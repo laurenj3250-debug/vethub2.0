@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePatientContext } from '@/contexts/PatientContext';
@@ -21,7 +21,6 @@ const GlobalKeyboardHandler = dynamic(() => import('@/components/GlobalKeyboardH
 
 export function RoundingPageClient() {
   const [mounted, setMounted] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const { patients, loadPatients } = usePatientContext();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
@@ -64,69 +63,6 @@ export function RoundingPageClient() {
       window.removeEventListener('popstate', handleRouteChange);
     };
   }, [patients]);
-
-  const handleSyncFromVetRadar = async () => {
-    // Try to get stored credentials from localStorage
-    let email = localStorage.getItem('vetradar_email');
-    let password = localStorage.getItem('vetradar_password');
-
-    // If not stored, prompt user and save for next time
-    if (!email) {
-      email = prompt('Enter your VetRadar email:');
-      if (!email) return;
-      localStorage.setItem('vetradar_email', email);
-    }
-
-    if (!password) {
-      password = prompt('Enter your VetRadar password:');
-      if (!password) return;
-      localStorage.setItem('vetradar_password', password);
-    }
-
-    setSyncing(true);
-    try {
-      console.log('[VetRadar Sync] Starting sync...');
-      const response = await fetch('/api/integrations/vetradar/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const result = await response.json();
-      console.log('[VetRadar Sync] Result:', result);
-
-      if (result.success) {
-        toast({
-          title: "✅ Synced from VetRadar",
-          description: `Synced ${result.savedCount || result.patients.length} patient(s). ${result.patients.length} total from VetRadar.`,
-        });
-        await loadPatients(); // Refresh patient list
-      } else {
-        // If credentials are wrong, clear them so user can re-enter
-        if (result.error?.includes('login') || result.error?.includes('credentials')) {
-          localStorage.removeItem('vetradar_email');
-          localStorage.removeItem('vetradar_password');
-        }
-        toast({
-          title: "❌ Sync Failed",
-          description: result.errors?.join(', ') || result.error || 'Could not sync from VetRadar',
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('[VetRadar Sync] Error:', error);
-      toast({
-        title: "❌ Sync Error",
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: "destructive",
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   // Neo-pop styling constants
   const NEO_BORDER = '2px solid #000';
@@ -195,16 +131,8 @@ export function RoundingPageClient() {
               Rounding Sheet
             </h1>
 
-            <button
-              onClick={handleSyncFromVetRadar}
-              disabled={syncing}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
-              title="Sync medications and treatments from VetRadar"
-            >
-              <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-              {syncing ? 'Syncing...' : 'Sync VetRadar'}
-            </button>
+            {/* Spacer to balance header */}
+            <div className="w-[88px]"></div>
           </div>
         </header>
 

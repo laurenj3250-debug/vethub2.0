@@ -2083,15 +2083,6 @@ export default function VetHub() {
               <TableProperties size={18} />
               Schedule
             </Link>
-            <button
-              onClick={() => { setShowTaskOverview(!showTaskOverview); setShowMRISchedule(false); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform"
-              style={{ backgroundColor: NEO_COLORS.pink, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
-            >
-              <CheckCircle2 size={18} />
-              Tasks
-            </button>
-
             {/* Print Menu */}
             <div className="relative">
               <button
@@ -2159,14 +2150,6 @@ export default function VetHub() {
                     MRI Schedule
                   </button>
                   <Link
-                    href="/patient-import"
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
-                    style={{ borderTop: '1px solid #e5e7eb' }}
-                  >
-                    <Download size={16} />
-                    Import from VetRadar
-                  </Link>
-                  <Link
                     href="/soap"
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
                     style={{ borderTop: '1px solid #e5e7eb' }}
@@ -2222,16 +2205,14 @@ export default function VetHub() {
       </header>
 
       <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6 z-10">
-        {/* Task Checklist - Simple View */}
-        {showTaskOverview && (
-          <TaskChecklist
-            patients={filteredPatients}
-            generalTasks={generalTasks}
-            onToggleTask={handleToggleTask}
-            onToggleGeneralTask={handleToggleGeneralTask}
-            onAddTask={handleAddTaskFromChecklist}
-          />
-        )}
+        {/* Task Checklist - Always Visible */}
+        <TaskChecklist
+          patients={filteredPatients}
+          generalTasks={generalTasks}
+          onToggleTask={handleToggleTask}
+          onToggleGeneralTask={handleToggleGeneralTask}
+          onAddTask={handleAddTaskFromChecklist}
+        />
 
         {/* OLD Task Overview - DISABLED */}
         {false && showTaskOverview && (
