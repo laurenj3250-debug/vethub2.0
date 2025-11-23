@@ -505,19 +505,13 @@ export default function VetHub() {
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      // Get type-specific tasks from task-engine (single source of truth)
+      const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
+      const typeTemplates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical'] || [];
+      const typeTasks = typeTemplates.map(t => t.name);
 
-      const typeTasks = patientType === 'MRI'
-        ? ['Black Book', 'Blood Work', 'Chest X-rays', 'MRI Anesthesia Sheet', 'MRI Meds Sheet', 'NPO', 'Print 5 Stickers', 'Print 1 Sheet Small Stickers']
-        : patientType === 'Surgery'
-        ? ['Surgery Slip', 'Written on Board', 'Print 4 Large Stickers', 'Print 2 Sheets Small Stickers', 'Print Surgery Sheet', 'Clear Daily']
-        : ['Admission SOAP', 'Treatment Sheet Created'];
-
-      // MRI patients don't get morning tasks
-      const allTasks = patientType === 'MRI'
-        ? [...eveningTasks, ...typeTasks]
-        : [...morningTasks, ...eveningTasks, ...typeTasks];
+      // All tasks = type-specific tasks only (no more hardcoded morning/evening tasks)
+      const allTasks = typeTasks;
 
       const patientData = {
         name: fullName,
