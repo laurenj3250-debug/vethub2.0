@@ -3,6 +3,18 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Trash2, Tag } from 'lucide-react';
 
+// Neo-pop styling constants
+const NEO_SHADOW = '6px 6px 0 #000';
+const NEO_SHADOW_SM = '4px 4px 0 #000';
+const NEO_BORDER = '2px solid #000';
+
+const COLORS = {
+  lavender: '#DCC4F5',
+  mint: '#B8E6D4',
+  pink: '#FFBDBD',
+  cream: '#FFF8F0',
+};
+
 interface PatientListItemProps {
   patient: any;
   isExpanded: boolean;
@@ -30,9 +42,9 @@ export function PatientListItem({
 
   // Priority indicator based on patient type
   const getPriorityColor = () => {
-    if (patient.type === 'Surgery') return 'text-red-500';
-    if (patient.type === 'MRI') return 'text-yellow-500';
-    return 'text-green-500';
+    if (patient.type === 'Surgery') return COLORS.pink;
+    if (patient.type === 'MRI') return COLORS.lavender;
+    return COLORS.mint;
   };
 
   // Species emoji - support both UnifiedPatient (demographics.species) and legacy (patient_info.species)
@@ -43,51 +55,63 @@ export function PatientListItem({
     return '🐾';
   };
 
-  // Type badge color - subtle outline style to not compete with action buttons
-  const getTypeBadgeColor = () => {
+  // Type badge color - neo-pop style
+  const getTypeBadgeStyle = () => {
     switch (patient.type) {
-      case 'Surgery': return 'bg-transparent text-red-400 border-red-500/40';
-      case 'MRI': return 'bg-transparent text-teal-400 border-teal-500/40';
-      case 'Medical': return 'bg-transparent text-pink-400 border-pink-500/40';
-      default: return 'bg-transparent text-slate-400 border-slate-500/40';
+      case 'Surgery': return { backgroundColor: COLORS.pink, color: '#000' };
+      case 'MRI': return { backgroundColor: COLORS.lavender, color: '#000' };
+      case 'Medical': return { backgroundColor: COLORS.mint, color: '#000' };
+      default: return { backgroundColor: '#E5E7EB', color: '#000' };
     }
   };
 
-  // Status badge color - subtle outline style
-  const getStatusBadgeColor = () => {
+  // Status badge color - neo-pop style
+  const getStatusBadgeStyle = () => {
     switch (patient.status) {
-      case 'New Admit': return 'bg-transparent text-blue-400 border-blue-500/40';
-      case 'Hospitalized': return 'bg-transparent text-cyan-400 border-cyan-500/40';
-      case 'Discharging': return 'bg-transparent text-green-400 border-green-500/40';
-      case 'Discharged': return 'bg-transparent text-slate-500 border-slate-600/40';
-      default: return 'bg-transparent text-slate-400 border-slate-500/40';
+      case 'New Admit': return { backgroundColor: COLORS.lavender, color: '#000' };
+      case 'Hospitalized': return { backgroundColor: COLORS.mint, color: '#000' };
+      case 'Discharging': return { backgroundColor: COLORS.pink, color: '#000' };
+      case 'Discharged': return { backgroundColor: '#E5E7EB', color: '#6B7280' };
+      default: return { backgroundColor: '#E5E7EB', color: '#000' };
     }
   };
 
   return (
-    <div className={`border rounded-lg transition-all ${isSelected ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-700/50 bg-slate-800/30'} ${patient.status === 'Discharged' ? 'opacity-60' : ''}`}>
+    <div
+      className={`rounded-2xl transition-all ${patient.status === 'Discharged' ? 'opacity-60' : ''}`}
+      style={{
+        border: NEO_BORDER,
+        boxShadow: isSelected ? `0 0 0 3px ${COLORS.mint}, ${NEO_SHADOW_SM}` : NEO_SHADOW_SM,
+        backgroundColor: 'white',
+      }}
+    >
       {/* Compact one-line view */}
       <div
-        className="pl-3 pr-4 py-2 flex items-center gap-2 hover:bg-slate-700/20 transition cursor-pointer"
+        className="pl-3 pr-4 py-3 flex items-center gap-3 cursor-pointer transition hover:-translate-y-0.5"
         onClick={onToggleExpand}
+        style={{ backgroundColor: isSelected ? `${COLORS.mint}20` : 'white', borderRadius: isExpanded ? '14px 14px 0 0' : '14px' }}
       >
         {/* Checkbox + Priority grouped together */}
-        <div className="flex items-center gap-2 border-r border-slate-700/30 pr-2">
+        <div className="flex items-center gap-2 pr-2" style={{ borderRight: '1.5px solid #E5E7EB' }}>
           <input
             type="checkbox"
             checked={isSelected}
             onChange={onToggleSelect}
             onClick={(e) => e.stopPropagation()}
-            className="w-4 h-4 rounded border-slate-600 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 bg-slate-700"
+            className="w-4 h-4 rounded border-2 border-gray-900 accent-emerald-500"
+            style={{ accentColor: COLORS.mint }}
           />
           {/* Priority indicator dot */}
-          <div className={`w-2 h-2 rounded-full ${getPriorityColor()}`} />
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: getPriorityColor(), border: '1.5px solid #000' }}
+          />
         </div>
 
         {/* Species + Name */}
         <div className="flex items-center gap-2 min-w-[180px]">
           <span className="text-xl">{getSpeciesEmoji()}</span>
-          <span className="font-bold text-white truncate">{patient.demographics?.name || patient.name || 'Unnamed'}</span>
+          <span className="font-black text-gray-900 truncate text-base">{patient.demographics?.name || patient.name || 'Unnamed'}</span>
         </div>
 
         {/* Type dropdown */}
@@ -98,11 +122,12 @@ export function PatientListItem({
             onUpdatePatient('type', e.target.value);
           }}
           onClick={(e) => e.stopPropagation()}
-          className={`px-2 py-0.5 rounded text-xs font-medium border cursor-pointer hover:opacity-80 transition focus:ring-2 focus:ring-cyan-500 focus:outline-none ${getTypeBadgeColor()}`}
+          className="px-2 py-1 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition focus:outline-none"
+          style={{ ...getTypeBadgeStyle(), border: '1.5px solid #000' }}
         >
-          <option value="Surgery" className="bg-slate-800">Surgery</option>
-          <option value="MRI" className="bg-slate-800">MRI</option>
-          <option value="Medical" className="bg-slate-800">Medical</option>
+          <option value="Surgery">Surgery</option>
+          <option value="MRI">MRI</option>
+          <option value="Medical">Medical</option>
         </select>
 
         {/* Status dropdown */}
@@ -113,17 +138,21 @@ export function PatientListItem({
             onUpdatePatient('status', e.target.value);
           }}
           onClick={(e) => e.stopPropagation()}
-          className={`px-2 py-0.5 rounded text-xs font-medium border cursor-pointer hover:opacity-80 transition focus:ring-2 focus:ring-cyan-500 focus:outline-none ${getStatusBadgeColor()}`}
+          className="px-2 py-1 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition focus:outline-none"
+          style={{ ...getStatusBadgeStyle(), border: '1.5px solid #000' }}
         >
-          <option value="New Admit" className="bg-slate-800">New Admit</option>
-          <option value="Hospitalized" className="bg-slate-800">Hospitalized</option>
-          <option value="Discharging" className="bg-slate-800">Discharging</option>
-          <option value="Discharged" className="bg-slate-800">Discharged</option>
+          <option value="New Admit">New Admit</option>
+          <option value="Hospitalized">Hospitalized</option>
+          <option value="Discharging">Discharging</option>
+          <option value="Discharged">Discharged</option>
         </select>
 
         {/* Weight - support both UnifiedPatient (demographics.weight) and legacy (patient_info.weight) */}
         {(patient.demographics?.weight || patient.patient_info?.weight) && (
-          <span className="text-xs text-slate-500 min-w-[60px]">
+          <span
+            className="text-xs font-bold min-w-[60px] px-2 py-1 rounded-lg"
+            style={{ backgroundColor: COLORS.cream, border: '1.5px solid #E5E7EB' }}
+          >
             {patient.demographics?.weight || patient.patient_info?.weight}
           </span>
         )}
@@ -133,7 +162,7 @@ export function PatientListItem({
 
         {/* Expand/collapse icon */}
         <button
-          className="text-slate-400 hover:text-slate-200 transition"
+          className="text-gray-600 hover:text-gray-900 transition p-1 rounded-lg hover:bg-gray-100"
           onClick={(e) => {
             e.stopPropagation();
             onToggleExpand();
@@ -149,10 +178,11 @@ export function PatientListItem({
               e.stopPropagation();
               onPrintStickers();
             }}
-            className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 p-1.5 rounded transition"
+            className="p-1.5 rounded-lg transition hover:-translate-y-0.5"
+            style={{ backgroundColor: COLORS.pink, border: '1.5px solid #000' }}
             title="Print Stickers"
           >
-            <Tag size={16} />
+            <Tag size={16} className="text-gray-900" />
           </button>
         )}
 
@@ -163,39 +193,63 @@ export function PatientListItem({
             const patientName = patient.demographics?.name || patient.name || 'this patient';
             if (confirm(`Delete ${patientName}?`)) onDelete();
           }}
-          className="text-slate-600 hover:text-red-400 hover:bg-red-500/10 p-1 rounded transition opacity-0 group-hover:opacity-100"
+          className="p-1.5 rounded-lg transition hover:-translate-y-0.5 opacity-50 hover:opacity-100"
+          style={{ backgroundColor: '#FEE2E2', border: '1.5px solid #000' }}
         >
-          <Trash2 size={14} />
+          <Trash2 size={14} className="text-gray-900" />
         </button>
       </div>
 
       {/* Expanded content (shows full card content when expanded) */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-slate-700/30">
+        <div
+          className="px-4 pb-4 pt-3"
+          style={{ borderTop: '1.5px solid #E5E7EB', backgroundColor: COLORS.cream }}
+        >
           {/* Patient info - support both UnifiedPatient (demographics) and legacy (patient_info) */}
-          <div className="mb-3 text-xs text-slate-400 space-y-1">
+          <div className="mb-3 text-xs text-gray-600 space-y-1">
             {/* Show signalment if available (from VetRadar imports) */}
-            {patient.roundingData?.signalment && <div className="font-medium text-slate-300">{patient.roundingData.signalment}</div>}
+            {patient.roundingData?.signalment && <div className="font-bold text-gray-900">{patient.roundingData.signalment}</div>}
 
             {/* Show individual fields if available */}
-            {(patient.demographics?.age || patient.patient_info?.age) && <div>Age: {patient.demographics?.age || patient.patient_info?.age}</div>}
-            {(patient.demographics?.breed || patient.patient_info?.breed) && <div>Breed: {patient.demographics?.breed || patient.patient_info?.breed}</div>}
-            {(patient.demographics?.weight || patient.patient_info?.weight) && <div>Weight: {patient.demographics?.weight || patient.patient_info?.weight}</div>}
-            {patient.currentStay?.location && <div>Location: {patient.currentStay.location}</div>}
-            {patient.id && <div>ID: {patient.id}</div>}
+            <div className="flex flex-wrap gap-2">
+              {(patient.demographics?.age || patient.patient_info?.age) && (
+                <span className="px-2 py-0.5 rounded-lg font-medium" style={{ backgroundColor: 'white', border: '1px solid #E5E7EB' }}>
+                  Age: {patient.demographics?.age || patient.patient_info?.age}
+                </span>
+              )}
+              {(patient.demographics?.breed || patient.patient_info?.breed) && (
+                <span className="px-2 py-0.5 rounded-lg font-medium" style={{ backgroundColor: 'white', border: '1px solid #E5E7EB' }}>
+                  {patient.demographics?.breed || patient.patient_info?.breed}
+                </span>
+              )}
+              {(patient.demographics?.weight || patient.patient_info?.weight) && (
+                <span className="px-2 py-0.5 rounded-lg font-medium" style={{ backgroundColor: 'white', border: '1px solid #E5E7EB' }}>
+                  {patient.demographics?.weight || patient.patient_info?.weight}
+                </span>
+              )}
+              {patient.currentStay?.location && (
+                <span className="px-2 py-0.5 rounded-lg font-medium" style={{ backgroundColor: COLORS.lavender, border: '1px solid #9B7FCF' }}>
+                  📍 {patient.currentStay.location}
+                </span>
+              )}
+            </div>
+            {patient.id && <div className="text-gray-400 text-[10px] mt-1">ID: {patient.id}</div>}
           </div>
 
           {/* Quick action buttons */}
           <div className="flex gap-2 mb-3 flex-wrap">
             <button
               onClick={() => onQuickAction('rounds')}
-              className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded text-xs font-medium hover:bg-emerald-500/30 transition border border-emerald-500/30"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition hover:-translate-y-0.5"
+              style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
             >
               📊 Rounds
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); setShowEditDemographics(!showEditDemographics); }}
-              className="px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded text-xs font-medium hover:bg-purple-500/30 transition border border-purple-500/30"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition hover:-translate-y-0.5"
+              style={{ backgroundColor: COLORS.lavender, border: NEO_BORDER }}
             >
               ✏️ Edit Info
             </button>
@@ -203,125 +257,141 @@ export function PatientListItem({
 
           {/* Edit Demographics Form */}
           {showEditDemographics && (
-            <div className="bg-slate-900/50 border border-purple-500/30 rounded-lg p-4 mb-3">
-              <h4 className="text-sm font-bold text-purple-400 mb-3">Edit Patient Demographics</h4>
+            <div
+              className="rounded-2xl p-4 mb-3"
+              style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
+            >
+              <h4 className="text-sm font-black text-gray-900 mb-3">Edit Patient Demographics</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400">Patient Name</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Patient Name</label>
                   <input
                     type="text"
                     value={patient.demographics?.name || ''}
                     onChange={(e) => onUpdatePatient('demographics.name', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Owner Name</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Owner Name</label>
                   <input
                     type="text"
                     value={patient.demographics?.ownerName || ''}
                     onChange={(e) => onUpdatePatient('demographics.ownerName', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Owner Phone</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Owner Phone</label>
                   <input
                     type="text"
                     value={patient.demographics?.ownerPhone || ''}
                     onChange={(e) => onUpdatePatient('demographics.ownerPhone', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Patient ID</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Patient ID</label>
                   <input
                     type="text"
                     value={patient.demographics?.patientId || ''}
                     onChange={(e) => onUpdatePatient('demographics.patientId', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Client ID / Consult #</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Client ID / Consult #</label>
                   <input
                     type="text"
                     value={patient.demographics?.clientId || ''}
                     onChange={(e) => onUpdatePatient('demographics.clientId', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Date of Birth</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Date of Birth</label>
                   <input
                     type="text"
                     value={patient.demographics?.dateOfBirth || ''}
                     onChange={(e) => onUpdatePatient('demographics.dateOfBirth', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                     placeholder="MM-DD-YYYY"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Species</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Species</label>
                   <input
                     type="text"
                     value={patient.demographics?.species || ''}
                     onChange={(e) => onUpdatePatient('demographics.species', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Breed</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Breed</label>
                   <input
                     type="text"
                     value={patient.demographics?.breed || ''}
                     onChange={(e) => onUpdatePatient('demographics.breed', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Age</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Age</label>
                   <input
                     type="text"
                     value={patient.demographics?.age || ''}
                     onChange={(e) => onUpdatePatient('demographics.age', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Sex</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Sex</label>
                   <input
                     type="text"
                     value={patient.demographics?.sex || ''}
                     onChange={(e) => onUpdatePatient('demographics.sex', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                     placeholder="MN, FS, etc"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Weight</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Weight</label>
                   <input
                     type="text"
                     value={patient.demographics?.weight || ''}
                     onChange={(e) => onUpdatePatient('demographics.weight', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                     placeholder="21.8kg"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400">Color/Markings</label>
+                  <label className="text-xs font-bold text-gray-600 mb-1 block">Color/Markings</label>
                   <input
                     type="text"
                     value={patient.demographics?.colorMarkings || ''}
                     onChange={(e) => onUpdatePatient('demographics.colorMarkings', e.target.value)}
-                    className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white"
+                    className="w-full px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white focus:outline-none"
+                    style={{ border: NEO_BORDER }}
                   />
                 </div>
               </div>
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => setShowEditDemographics(false)}
-                  className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded text-xs hover:bg-slate-600 transition"
+                  className="px-4 py-2 rounded-xl text-sm font-bold transition hover:-translate-y-0.5"
+                  style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
                 >
                   Done
                 </button>

@@ -3,6 +3,24 @@
 import React, { useState, useMemo } from 'react';
 import { Check, Plus, X } from 'lucide-react';
 
+// Neo-pop styling constants
+const NEO_SHADOW = '6px 6px 0 #000';
+const NEO_SHADOW_SM = '4px 4px 0 #000';
+const NEO_BORDER = '2px solid #000';
+
+const COLORS = {
+  lavender: '#DCC4F5',
+  mint: '#B8E6D4',
+  pink: '#FFBDBD',
+  cream: '#FFF8F0',
+};
+
+const CARD_BORDERS = {
+  lavender: '#9B7FCF',
+  mint: '#6BB89D',
+  pink: '#E89999',
+};
+
 interface Task {
   id: number;
   title?: string;
@@ -137,20 +155,45 @@ export function TaskChecklist({
   const getGeneralTask = (taskName: string) =>
     generalTasks.find(t => (t.title || t.name) === taskName);
 
+  // Cycle through colors for task cards
+  const cardColors = [COLORS.lavender, COLORS.mint, COLORS.pink];
+  const colorNames = ['lavender', 'mint', 'pink'] as const;
+
   return (
-    <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 overflow-hidden">
-      {/* Compact Header */}
-      <div className="px-3 py-2 border-b border-slate-700/50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-white font-semibold">Tasks</span>
-          <div className="h-1.5 w-20 bg-slate-700 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${stats.percent}%` }} />
+    <div
+      className="rounded-3xl overflow-hidden bg-white"
+      style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+    >
+      {/* Header */}
+      <div
+        className="px-4 py-3 flex items-center justify-between"
+        style={{ borderBottom: NEO_BORDER, backgroundColor: COLORS.cream }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-gray-900 font-black text-lg">Tasks</span>
+          <div
+            className="h-3 w-24 rounded-full overflow-hidden bg-white"
+            style={{ border: '2px solid #2D3436' }}
+          >
+            <div
+              className="h-full transition-all"
+              style={{ width: `${stats.percent}%`, backgroundColor: COLORS.mint }}
+            />
           </div>
-          <span className="text-xs text-slate-400">{stats.completed}/{stats.total}</span>
+          <span
+            className="px-3 py-1 rounded-full text-xs font-black bg-white text-gray-800"
+            style={{ border: '2px solid #2D3436' }}
+          >
+            {stats.completed}/{stats.total}
+          </span>
         </div>
         <button
           onClick={() => setHideCompleted(!hideCompleted)}
-          className="text-xs text-slate-500 hover:text-white transition"
+          className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5"
+          style={{
+            backgroundColor: hideCompleted ? COLORS.lavender : 'white',
+            border: '2px solid #2D3436',
+          }}
         >
           {hideCompleted ? 'show done' : 'hide done'}
         </button>
@@ -158,8 +201,8 @@ export function TaskChecklist({
 
       {/* 3-Column Card Grid */}
       {visibleTaskNames.length > 0 ? (
-        <div className="p-2 grid grid-cols-3 gap-2">
-          {visibleTaskNames.map(taskName => {
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-white">
+          {visibleTaskNames.map((taskName, index) => {
             const generalTask = getGeneralTask(taskName);
             const isGeneral = !!generalTask;
             const taskPatients = patients.filter(p => patientTaskMap[taskName]?.[p.id]);
@@ -168,76 +211,117 @@ export function TaskChecklist({
               : taskPatients.filter(p => patientTaskMap[taskName][p.id]?.completed).length;
             const totalCount = isGeneral ? 1 : taskPatients.length;
 
+            const colorIndex = index % 3;
+            const cardBg = cardColors[colorIndex];
+            const borderColor = CARD_BORDERS[colorNames[colorIndex]];
+
             return (
               <div
                 key={taskName}
-                className="bg-slate-900/60 rounded-lg p-2 border border-slate-700/30"
+                className="p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 cursor-pointer relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(180deg, ${cardBg} 0%, ${cardBg}E6 100%)`,
+                  border: NEO_BORDER,
+                  boxShadow: NEO_SHADOW_SM,
+                }}
               >
-                {/* Task Header */}
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-white truncate">{taskName}</span>
-                  {totalCount > 0 && (
-                    <span className="text-[10px] text-slate-500 ml-1">{doneCount}/{totalCount}</span>
-                  )}
-                </div>
+                {/* Subtle noise texture */}
+                <div
+                  className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                  }}
+                />
 
-                {/* Patient Chips */}
-                <div className="flex flex-wrap gap-1">
-                  {isGeneral ? (
-                    <button
-                      onClick={() => onToggleGeneralTask(generalTask!.id, generalTask!.completed)}
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition ${
-                        generalTask!.completed
-                          ? 'bg-emerald-500/30 text-emerald-400'
-                          : 'bg-slate-600 hover:bg-emerald-500 text-white'
-                      }`}
-                    >
-                      {generalTask!.completed ? '✓' : '○'}
-                    </button>
-                  ) : (
-                    taskPatients.map(patient => {
-                      const task = patientTaskMap[taskName][patient.id];
-                      return (
-                        <button
-                          key={patient.id}
-                          onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition ${
-                            task.completed
-                              ? 'bg-emerald-500/30 text-emerald-400'
-                              : 'bg-slate-600 hover:bg-emerald-500 text-white'
-                          }`}
-                        >
-                          {task.completed && '✓ '}{getFirstName(patient)}
-                        </button>
-                      );
-                    })
-                  )}
+                <div className="relative z-10">
+                  {/* Task Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm font-bold text-gray-900 truncate">{taskName}</span>
+                    {totalCount > 0 && (
+                      <span
+                        className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
+                        style={{ border: '1.5px solid #2D3436' }}
+                      >
+                        {doneCount}/{totalCount}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Patient Chips */}
+                  <div className="flex flex-wrap gap-2">
+                    {isGeneral ? (
+                      <button
+                        onClick={() => onToggleGeneralTask(generalTask!.id, generalTask!.completed)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                          generalTask!.completed
+                            ? 'opacity-60'
+                            : ''
+                        }`}
+                        style={{
+                          backgroundColor: 'white',
+                          border: '1.5px solid #2D3436',
+                        }}
+                      >
+                        {generalTask!.completed ? '✓' : '○ General'}
+                      </button>
+                    ) : (
+                      taskPatients.map(patient => {
+                        const task = patientTaskMap[taskName][patient.id];
+                        return (
+                          <button
+                            key={patient.id}
+                            onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                            className={`${
+                              task.completed
+                                ? 'w-8 h-8 rounded-full p-0 flex items-center justify-center opacity-60'
+                                : 'px-3 py-1.5 rounded-lg'
+                            } text-xs font-bold transition hover:-translate-y-0.5`}
+                            style={{
+                              backgroundColor: 'white',
+                              border: '1.5px solid #2D3436',
+                            }}
+                          >
+                            {task.completed ? '✓' : getFirstName(patient)}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="p-6 text-center">
+        <div className="p-8 text-center bg-white">
           {stats.total > 0 && stats.completed === stats.total ? (
             <>
-              <Check className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <p className="text-emerald-400 font-medium">All done!</p>
+              <div
+                className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl"
+                style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
+              >
+                ✓
+              </div>
+              <p className="font-bold text-gray-900">All done!</p>
             </>
           ) : (
-            <p className="text-slate-500">No tasks yet</p>
+            <p className="text-gray-500 font-medium">No tasks yet</p>
           )}
         </div>
       )}
 
       {/* Quick Add */}
-      <div className="p-2 border-t border-slate-700/50 bg-slate-900/50">
+      <div
+        className="p-3"
+        style={{ borderTop: NEO_BORDER, backgroundColor: COLORS.cream }}
+      >
         {showAddTask ? (
           <div className="flex gap-2">
             <select
               value={selectedPatientId ?? ''}
               onChange={(e) => setSelectedPatientId(e.target.value ? Number(e.target.value) : null)}
-              className="px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white focus:outline-none focus:border-cyan-500"
+              className="px-3 py-2 rounded-xl text-sm font-bold text-gray-900 bg-white focus:outline-none"
+              style={{ border: NEO_BORDER }}
             >
               <option value="">All</option>
               {patients.map(p => (
@@ -249,30 +333,37 @@ export function TaskChecklist({
               value={newTaskName}
               onChange={(e) => setNewTaskName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddTask()}
-              placeholder="Task..."
-              className="flex-1 px-2 py-1 bg-slate-800 border border-slate-600 rounded text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              placeholder="Task name..."
+              className="flex-1 px-3 py-2 rounded-xl text-sm font-medium text-gray-900 bg-white placeholder-gray-400 focus:outline-none"
+              style={{ border: NEO_BORDER }}
               autoFocus
             />
             <button
               onClick={handleAddTask}
               disabled={!newTaskName.trim()}
-              className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 text-white rounded text-xs font-medium transition"
+              className="px-4 py-2 rounded-xl text-sm font-black text-gray-900 transition hover:-translate-y-0.5 disabled:opacity-50"
+              style={{
+                backgroundColor: COLORS.mint,
+                border: NEO_BORDER,
+              }}
             >
               Add
             </button>
             <button
               onClick={() => { setShowAddTask(false); setNewTaskName(''); setSelectedPatientId(null); }}
-              className="p-1 text-slate-400 hover:text-white transition"
+              className="p-2 rounded-xl transition hover:bg-white"
+              style={{ border: NEO_BORDER, backgroundColor: 'white' }}
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           </div>
         ) : (
           <button
             onClick={() => setShowAddTask(true)}
-            className="w-full px-2 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded text-xs font-medium transition flex items-center justify-center gap-1"
+            className="w-full px-4 py-2.5 rounded-xl text-sm font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center justify-center gap-2 bg-white"
+            style={{ border: NEO_BORDER }}
           >
-            <Plus size={14} />
+            <Plus size={16} />
             Add Task
           </button>
         )}

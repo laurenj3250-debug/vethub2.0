@@ -38,13 +38,18 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
   const getSearchResults = useCallback((): SearchResult[] => {
     const results: SearchResult[] = [];
 
+    // Neo-pop icon colors
+    const ICON_LAVENDER = '#9B7FCF';
+    const ICON_MINT = '#6BB89D';
+    const ICON_PINK = '#E89999';
+
     // Pages
     const pages: SearchResult[] = [
       {
         id: 'home',
         title: 'Dashboard',
         subtitle: 'View all patients and tasks',
-        icon: <ListTodo size={18} className="text-cyan-400" />,
+        icon: <ListTodo size={18} style={{ color: ICON_LAVENDER }} />,
         action: () => {
           router.push('/');
           onClose();
@@ -55,7 +60,7 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
         id: 'soap',
         title: 'SOAP Builder',
         subtitle: 'Create SOAP notes',
-        icon: <FileText size={18} className="text-purple-400" />,
+        icon: <FileText size={18} style={{ color: ICON_PINK }} />,
         action: () => {
           router.push('/soap');
           onClose();
@@ -66,7 +71,7 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
         id: 'rounding',
         title: 'Rounding Sheet',
         subtitle: 'Daily rounds',
-        icon: <TableProperties size={18} className="text-emerald-400" />,
+        icon: <TableProperties size={18} style={{ color: ICON_MINT }} />,
         action: () => {
           router.push('/rounding');
           onClose();
@@ -77,7 +82,7 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
         id: 'appointments',
         title: 'Appointment Schedule',
         subtitle: 'Today\'s appointments',
-        icon: <TableProperties size={18} className="text-teal-400" />,
+        icon: <TableProperties size={18} style={{ color: ICON_LAVENDER }} />,
         action: () => {
           router.push('/appointments');
           onClose();
@@ -93,7 +98,7 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
         id: `patient-${p.id}`,
         title: p.demographics?.name || p.name || 'Unnamed',
         subtitle: `${p.demographics?.age || p.patient_info?.age || 'Unknown age'} ${p.demographics?.breed || p.patient_info?.breed || ''}${(p.demographics?.breed || p.patient_info?.breed) ? ' ' + (p.demographics?.species || p.patient_info?.species || 'canine') : ''}`,
-        icon: <User size={18} className="text-blue-400" />,
+        icon: <User size={18} style={{ color: ICON_MINT }} />,
         action: () => {
           // For now, go to dashboard and highlight patient
           // In future: go to patient detail page
@@ -155,18 +160,31 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
 
   if (!isOpen) return null;
 
+  // Neo-pop colors
+  const NEO_LAVENDER = '#DCC4F5';
+  const NEO_MINT = '#B8E6D4';
+  const NEO_PINK = '#FFBDBD';
+  const NEO_CREAM = '#FFF8F0';
+
   return (
     <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-start justify-center pt-[10vh]"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-start justify-center pt-[10vh]"
       onClick={onClose}
     >
       <div
-        className="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+        className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden"
+        style={{
+          border: '2px solid #2D3436',
+          boxShadow: '6px 6px 0px #2D3436',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
-        <div className="flex items-center gap-3 p-4 border-b border-slate-700">
-          <Search size={20} className="text-slate-400" />
+        <div
+          className="flex items-center gap-3 p-4"
+          style={{ borderBottom: '2px solid #2D3436', backgroundColor: NEO_CREAM }}
+        >
+          <Search size={20} className="text-gray-600" />
           <input
             ref={inputRef}
             type="text"
@@ -177,22 +195,22 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
             }}
             onKeyDown={handleKeyDown}
             placeholder="Search patients, pages, or actions..."
-            className="flex-1 bg-transparent border-none outline-none text-white text-lg placeholder-slate-500"
+            className="flex-1 bg-transparent border-none outline-none text-gray-900 text-lg font-medium placeholder-gray-400"
           />
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition"
+            className="text-gray-500 hover:text-gray-900 transition w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Results */}
-        <div className="max-h-[60vh] overflow-y-auto">
+        <div className="max-h-[60vh] overflow-y-auto bg-white">
           {results.length === 0 ? (
-            <div className="p-8 text-center text-slate-400">
+            <div className="p-8 text-center text-gray-500">
               <Search size={48} className="mx-auto mb-4 opacity-30" />
-              <p>No results found for "{query}"</p>
+              <p className="font-medium">No results found for "{query}"</p>
             </div>
           ) : (
             <div>
@@ -203,7 +221,10 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
 
                 return (
                   <div key={category}>
-                    <div className="px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wide bg-slate-900/50">
+                    <div
+                      className="px-4 py-2 text-xs font-bold text-gray-600 uppercase tracking-wide"
+                      style={{ backgroundColor: NEO_CREAM }}
+                    >
                       {category === 'page' ? 'Pages' : 'Patients'}
                     </div>
                     {categoryResults.map((result, idx) => {
@@ -215,25 +236,32 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
                           key={result.id}
                           id={`result-${globalIndex}`}
                           onClick={result.action}
-                          className={`w-full flex items-center gap-3 px-4 py-3 transition-colors ${
+                          className={`w-full flex items-center gap-3 px-4 py-3 transition-colors border-l-4 ${
                             isSelected
-                              ? 'bg-cyan-500/20 border-l-4 border-cyan-500'
-                              : 'hover:bg-slate-700/50 border-l-4 border-transparent'
+                              ? 'border-l-4'
+                              : 'hover:bg-gray-50 border-transparent'
                           }`}
+                          style={isSelected ? {
+                            backgroundColor: NEO_LAVENDER + '40',
+                            borderLeftColor: NEO_LAVENDER,
+                          } : undefined}
                           onMouseEnter={() => setSelectedIndex(globalIndex)}
                         >
                           <div className="flex-shrink-0">
                             {result.icon}
                           </div>
                           <div className="flex-1 text-left">
-                            <div className="text-white font-medium">{result.title}</div>
+                            <div className="text-gray-900 font-bold">{result.title}</div>
                             {result.subtitle && (
-                              <div className="text-slate-400 text-sm">{result.subtitle}</div>
+                              <div className="text-gray-500 text-sm">{result.subtitle}</div>
                             )}
                           </div>
                           {isSelected && (
-                            <div className="text-xs text-cyan-400 font-bold flex items-center gap-1">
-                              <kbd className="px-1.5 py-0.5 bg-slate-700 rounded text-[10px]">↵</kbd>
+                            <div className="text-xs text-gray-600 font-bold flex items-center gap-1">
+                              <kbd
+                                className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                style={{ backgroundColor: NEO_MINT, border: '1px solid #2D3436' }}
+                              >↵</kbd>
                             </div>
                           )}
                         </button>
@@ -247,22 +275,34 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-slate-700 bg-slate-900/50 flex items-center justify-between text-xs text-slate-400">
+        <div
+          className="px-4 py-2 flex items-center justify-between text-xs text-gray-600"
+          style={{ borderTop: '2px solid #2D3436', backgroundColor: NEO_CREAM }}
+        >
           <div className="flex gap-4">
             <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-slate-700 rounded">↑↓</kbd>
-              <span>Navigate</span>
+              <kbd
+                className="px-1.5 py-0.5 rounded font-bold"
+                style={{ backgroundColor: NEO_MINT, border: '1px solid #2D3436' }}
+              >↑↓</kbd>
+              <span className="font-medium">Navigate</span>
             </div>
             <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-slate-700 rounded">↵</kbd>
-              <span>Select</span>
+              <kbd
+                className="px-1.5 py-0.5 rounded font-bold"
+                style={{ backgroundColor: NEO_MINT, border: '1px solid #2D3436' }}
+              >↵</kbd>
+              <span className="font-medium">Select</span>
             </div>
             <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 bg-slate-700 rounded">Esc</kbd>
-              <span>Close</span>
+              <kbd
+                className="px-1.5 py-0.5 rounded font-bold"
+                style={{ backgroundColor: NEO_PINK, border: '1px solid #2D3436' }}
+              >Esc</kbd>
+              <span className="font-medium">Close</span>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-slate-500">
+          <div className="flex items-center gap-1 text-gray-500 font-medium">
             <Zap size={12} />
             <span>{results.length} results</span>
           </div>

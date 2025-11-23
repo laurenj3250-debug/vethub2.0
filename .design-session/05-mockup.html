@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VetHub Neo-Pop Mockup</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', -apple-system, sans-serif;
+      background: #FFF8F0;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #957FEF 0%, #B8B5FF 100%);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -20px;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #FFF8F0;
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    }
+
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      z-index: 1;
+    }
+
+    .nav-btn {
+      padding: 10px 20px;
+      border-radius: 50px;
+      border: none;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-btn.active {
+      background: white;
+      color: #957FEF;
+    }
+
+    .nav-btn:not(.active) {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+
+    .nav-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Main Content */
+    .main {
+      padding: 40px 32px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Tasks Section */
+    .section-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #2D3436;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .progress-pill {
+      background: #6BCB77;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 40px;
+    }
+
+    .task-card {
+      padding: 20px;
+      border-radius: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      transition: all 0.2s;
+    }
+
+    .task-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    }
+
+    .task-card.coral { background: #FFB4A2; }
+    .task-card.lavender { background: #B8B5FF; }
+    .task-card.mint { background: #A8E6CF; }
+    .task-card.yellow { background: #FFE66D; }
+    .task-card.pink { background: #FFD6E0; }
+    .task-card.blue { background: #C9F0FF; }
+
+    .task-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .task-name {
+      font-weight: 800;
+      font-size: 16px;
+      color: #2D3436;
+    }
+
+    .task-count {
+      background: rgba(255,255,255,0.6);
+      padding: 4px 12px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 13px;
+      color: #2D3436;
+    }
+
+    .patient-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: rgba(255,255,255,0.7);
+      padding: 8px 14px;
+      border-radius: 50px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2D3436;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip:hover {
+      background: white;
+      transform: scale(1.05);
+    }
+
+    .chip.done {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+
+    /* Patients Section */
+    .patients-section {
+      background: white;
+      border-radius: 32px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+
+    .patients-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #F5F5F5;
+      padding: 12px 20px;
+      border-radius: 50px;
+      width: 300px;
+    }
+
+    .search-bar input {
+      border: none;
+      background: none;
+      outline: none;
+      font-size: 14px;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    .add-btn {
+      background: #FF7F50;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .add-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(255,127,80,0.4);
+    }
+
+    .patient-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .patient-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      background: #FFFBF5;
+      border-radius: 20px;
+      gap: 16px;
+      transition: all 0.2s;
+    }
+
+    .patient-row:hover {
+      background: #FFF8F0;
+      transform: translateX(4px);
+    }
+
+    .patient-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .patient-avatar.dog { background: #FFE66D; }
+    .patient-avatar.cat { background: #FFD6E0; }
+
+    .patient-info {
+      flex: 1;
+    }
+
+    .patient-name {
+      font-weight: 700;
+      font-size: 16px;
+      color: #2D3436;
+    }
+
+    .patient-meta {
+      font-size: 13px;
+      color: #636E72;
+    }
+
+    .status-badge {
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .status-badge.critical { background: #FF6B6B; color: white; }
+    .status-badge.monitoring { background: #FFD93D; color: #2D3436; }
+    .status-badge.stable { background: #6BCB77; color: white; }
+    .status-badge.new { background: #B8B5FF; color: white; }
+
+    .type-badge {
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #F0F0F0;
+      color: #636E72;
+    }
+
+    .weight {
+      font-size: 13px;
+      color: #636E72;
+      font-weight: 600;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: none;
+      background: #F0F0F0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: #957FEF;
+      color: white;
+    }
+
+    /* Fun decorative elements */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      opacity: 0.3;
+      z-index: -1;
+    }
+    .blob-1 {
+      width: 300px;
+      height: 300px;
+      background: #FFB4A2;
+      top: 100px;
+      right: -100px;
+    }
+    .blob-2 {
+      width: 200px;
+      height: 200px;
+      background: #A8E6CF;
+      bottom: 100px;
+      left: -50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      🐾 VetHub
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active">Tasks</button>
+      <button class="nav-btn">Rounds</button>
+      <button class="nav-btn">Schedule</button>
+      <button class="nav-btn">🖨️ Print</button>
+      <button class="nav-btn">⚙️ Tools</button>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Tasks Section -->
+    <div class="section-title">
+      Tasks
+      <span class="progress-pill">31/74 done</span>
+    </div>
+
+    <div class="task-grid">
+      <div class="task-card coral">
+        <div class="task-header">
+          <span class="task-name">Daily SOAP Done</span>
+          <span class="task-count">0/7</span>
+        </div>
+        <div class="patient-chips">
+          <span class="chip">🐕 Clara</span>
+          <span class="chip">🐕 Donut</span>
+          <span class="chip">🐕 Guava</span>
+          <span class="chip">🐕 Lucy</span>
+        </div>
+      </div>
+
+      <div class="task-card lavender">
+        <div class="task-header">
+          <span class="task-name">Overnight Notes</span>
+          <span class="task-count">2/7</span>
+        </div>
+        <div class="patient-chips">
+          <span class="chip done">✓ Clara</span>
+          <span class="chip done">✓ Donut</span>
+          <span class="chip">🐕 Guava</span>
+          <span class="chip">🐕 Lucy</span>
+        </div>
+      </div>
+
+      <div class="task-card mint">
+        <div class="task-header">
+          <span class="task-name">Owner Called</span>
+          <span class="task-count">3/7</span>
+        </div>
+        <div class="patient-chips">
+          <span class="chip done">✓ Clara</span>
+          <span class="chip done">✓ Donut</span>
+          <span class="chip done">✓ Guava</span>
+          <span class="chip">🐕 Lucy</span>
+        </div>
+      </div>
+
+      <div class="task-card yellow">
+        <div class="task-header">
+          <span class="task-name">Rounding Sheet</span>
+          <span class="task-count">1/7</span>
+        </div>
+        <div class="patient-chips">
+          <span class="chip done">✓ Clara</span>
+          <span class="chip">🐕 Donut</span>
+          <span class="chip">🐕 Guava</span>
+          <span class="chip">🐕 Lucy</span>
+        </div>
+      </div>
+
+      <div class="task-card pink">
+        <div class="task-header">
+          <span class="task-name">Sticker Done</span>
+          <span class="task-count">0/7</span>
+        </div>
+        <div class="patient-chips">
+          <span class="chip">🐕 Clara</span>
+          <span class="chip">🐕 Donut</span>
+          <span class="chip">🐕 Guava</span>
+          <span class="chip">🐕 Lucy</span>
+        </div>
+      </div>
+
+      <div class="task-card blue">
+        <div class="task-header">
+          <span class="task-name">Vet Radar Done</span>
+          <span class="task-count">5/7</span>
+        </div>
+        <div class="patient-chips">
+          <span class="chip done">✓ Clara</span>
+          <span class="chip done">✓ Donut</span>
+          <span class="chip done">✓ Guava</span>
+          <span class="chip done">✓ Lucy</span>
+          <span class="chip done">✓ Sadie</span>
+          <span class="chip">🐕 Sammy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patients Section -->
+    <section class="patients-section">
+      <div class="patients-header">
+        <div class="section-title" style="margin-bottom: 0;">
+          Patients
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" placeholder="Search patients...">
+          </div>
+          <button class="add-btn">
+            <span>+</span> Add Patient
+          </button>
+        </div>
+      </div>
+
+      <div class="patient-list">
+        <div class="patient-row">
+          <div class="patient-avatar dog">🐕</div>
+          <div class="patient-info">
+            <div class="patient-name">Clara Iovino</div>
+            <div class="patient-meta">Labrador • 5 years</div>
+          </div>
+          <span class="type-badge">Medical</span>
+          <span class="status-badge new">New Admit</span>
+          <span class="weight">21.80kg</span>
+          <div class="actions">
+            <button class="action-btn">🏷️</button>
+            <button class="action-btn">→</button>
+          </div>
+        </div>
+
+        <div class="patient-row">
+          <div class="patient-avatar dog">🐕</div>
+          <div class="patient-info">
+            <div class="patient-name">Donut Rivera</div>
+            <div class="patient-meta">French Bulldog • 3 years</div>
+          </div>
+          <span class="type-badge">Medical</span>
+          <span class="status-badge monitoring">Hospitalized</span>
+          <span class="weight">6.7kg</span>
+          <div class="actions">
+            <button class="action-btn">🏷️</button>
+            <button class="action-btn">→</button>
+          </div>
+        </div>
+
+        <div class="patient-row">
+          <div class="patient-avatar dog">🐕</div>
+          <div class="patient-info">
+            <div class="patient-name">Guava Lin</div>
+            <div class="patient-meta">Golden Retriever • 7 years</div>
+          </div>
+          <span class="type-badge">Medical</span>
+          <span class="status-badge new">New Admit</span>
+          <span class="weight">13.3kg</span>
+          <div class="actions">
+            <button class="action-btn">🏷️</button>
+            <button class="action-btn">→</button>
+          </div>
+        </div>
+
+        <div class="patient-row">
+          <div class="patient-avatar cat">🐱</div>
+          <div class="patient-info">
+            <div class="patient-name">Lucy Pullen</div>
+            <div class="patient-meta">Siamese • 4 years</div>
+          </div>
+          <span class="type-badge">MRI</span>
+          <span class="status-badge new">New Admit</span>
+          <span class="weight">9.6kg</span>
+          <div class="actions">
+            <button class="action-btn">🏷️</button>
+            <button class="action-btn">→</button>
+          </div>
+        </div>
+
+        <div class="patient-row">
+          <div class="patient-avatar dog">🐕</div>
+          <div class="patient-info">
+            <div class="patient-name">Stewie McNair</div>
+            <div class="patient-meta">Beagle • 6 years</div>
+          </div>
+          <span class="type-badge">MRI</span>
+          <span class="status-badge critical">Critical</span>
+          <span class="weight">12.2kg</span>
+          <div class="actions">
+            <button class="action-btn">🏷️</button>
+            <button class="action-btn">→</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

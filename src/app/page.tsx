@@ -1900,27 +1900,59 @@ export default function VetHub() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
-        <Loader2 className="w-12 h-12 animate-spin text-cyan-400" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#FFF8F0' }}>
+        <Loader2 className="w-12 h-12 animate-spin text-gray-600" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-1/2 -left-1/2 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-1/2 -right-1/2 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl animate-pulse"></div>
-        </div>
+      <div className="min-h-screen flex items-center justify-center p-4 relative" style={{ backgroundColor: '#FFF8F0' }}>
+        {/* Paper texture background */}
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
+        />
 
-        <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl p-8 w-full max-w-md border border-slate-700/50">
+        {/* Scattered neuron dots */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid slice"
+          viewBox="0 0 1440 900"
+        >
+          <circle cx="95" cy="85" r="6" fill="#9B7FCF" opacity="0.12" />
+          <circle cx="340" cy="180" r="4" fill="#6BB89D" opacity="0.08" />
+          <circle cx="780" cy="45" r="5" fill="#E89999" opacity="0.1" />
+          <circle cx="1120" cy="160" r="7" fill="#9B7FCF" opacity="0.11" />
+          <circle cx="1380" cy="90" r="4" fill="#6BB89D" opacity="0.07" />
+          <circle cx="55" cy="420" r="5" fill="#E89999" opacity="0.09" />
+          <circle cx="420" cy="380" r="6" fill="#9B7FCF" opacity="0.1" />
+          <circle cx="980" cy="320" r="4" fill="#6BB89D" opacity="0.08" />
+          <circle cx="1300" cy="480" r="5" fill="#E89999" opacity="0.09" />
+          <circle cx="180" cy="720" r="7" fill="#9B7FCF" opacity="0.11" />
+          <circle cx="620" cy="650" r="4" fill="#6BB89D" opacity="0.08" />
+          <circle cx="890" cy="780" r="6" fill="#E89999" opacity="0.1" />
+        </svg>
+
+        <div
+          className="relative bg-white rounded-3xl p-8 w-full max-w-md"
+          style={{ border: '2px solid #000', boxShadow: '8px 8px 0 #000' }}
+        >
           <div className="text-center mb-8">
-            <div className="text-7xl mb-4 animate-bounce">🧠</div>
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-emerald-400 to-pink-400 bg-clip-text text-transparent">
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-4"
+              style={{ backgroundColor: '#DCC4F5', border: '2px solid #000' }}
+            >
+              🧠
+            </div>
+            <h1 className="text-5xl font-black text-gray-900">
               VetHub
             </h1>
-            <p className="text-slate-400 mt-3 text-lg">AI-Powered Neuro Vet Portal 🐾</p>
+            <p className="text-gray-500 mt-3 text-lg font-medium">AI-Powered Neuro Vet Portal</p>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4">
@@ -1930,7 +1962,8 @@ export default function VetHub() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
               required
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+              style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
             />
             <input
               type="password"
@@ -1939,22 +1972,31 @@ export default function VetHub() {
               placeholder="Password"
               required
               minLength={6}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+              style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
             />
 
-            {authError && <p className="text-red-400 text-sm">{authError}</p>}
+            {authError && (
+              <p
+                className="text-sm font-bold px-3 py-2 rounded-xl"
+                style={{ backgroundColor: '#FFBDBD', border: '1.5px solid #000' }}
+              >
+                {authError}
+              </p>
+            )}
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-cyan-500 via-emerald-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-emerald-500/50"
+              className="w-full py-3 rounded-2xl font-black hover:-translate-y-1 transition-transform text-gray-900"
+              style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
             >
-              {isSignUp ? '✨ Create Account' : '🚀 Sign In'}
+              {isSignUp ? 'Create Account' : 'Sign In'}
             </button>
 
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="w-full text-sm text-slate-400 hover:text-cyan-400 transition"
+              className="w-full text-sm text-gray-500 hover:text-gray-900 transition font-medium"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
@@ -1964,23 +2006,65 @@ export default function VetHub() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-1/2 right-1/3 w-72 h-72 bg-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
-      </div>
+  // Neo-pop styling constants
+  const NEO_SHADOW = '6px 6px 0 #000';
+  const NEO_SHADOW_SM = '4px 4px 0 #000';
+  const NEO_BORDER = '2px solid #000';
+  const NEO_COLORS = {
+    lavender: '#DCC4F5',
+    mint: '#B8E6D4',
+    pink: '#FFBDBD',
+    cream: '#FFF8F0',
+  };
 
-      <header className="relative bg-slate-800/40 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-10 shadow-lg">
+  return (
+    <div className="min-h-screen relative" style={{ backgroundColor: NEO_COLORS.cream }}>
+      {/* Paper texture background */}
+      <div
+        className="fixed inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* Scattered neuron dots */}
+      <svg
+        className="fixed inset-0 w-full h-full pointer-events-none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid slice"
+        viewBox="0 0 1440 900"
+      >
+        <circle cx="95" cy="85" r="6" fill="#9B7FCF" opacity="0.12" />
+        <circle cx="340" cy="180" r="4" fill="#6BB89D" opacity="0.08" />
+        <circle cx="780" cy="45" r="5" fill="#E89999" opacity="0.1" />
+        <circle cx="1120" cy="160" r="7" fill="#9B7FCF" opacity="0.11" />
+        <circle cx="1380" cy="90" r="4" fill="#6BB89D" opacity="0.07" />
+        <circle cx="55" cy="420" r="5" fill="#E89999" opacity="0.09" />
+        <circle cx="420" cy="380" r="6" fill="#9B7FCF" opacity="0.1" />
+        <circle cx="980" cy="320" r="4" fill="#6BB89D" opacity="0.08" />
+        <circle cx="1300" cy="480" r="5" fill="#E89999" opacity="0.09" />
+        <circle cx="180" cy="720" r="7" fill="#9B7FCF" opacity="0.11" />
+        <circle cx="620" cy="650" r="4" fill="#6BB89D" opacity="0.08" />
+        <circle cx="890" cy="780" r="6" fill="#E89999" opacity="0.1" />
+      </svg>
+
+      <header
+        className="relative sticky top-0 z-10 bg-white"
+        style={{ borderBottom: NEO_BORDER }}
+      >
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="text-4xl animate-pulse">🧠</div>
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+              style={{ backgroundColor: NEO_COLORS.lavender, border: NEO_BORDER }}
+            >
+              🧠
+            </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-emerald-400 to-pink-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-black text-gray-900">
                 VetHub
               </h1>
-              <p className="text-xs text-slate-400">{user.email}</p>
+              <p className="text-xs text-gray-500 font-medium">{user.email}</p>
             </div>
           </div>
 
@@ -1988,21 +2072,24 @@ export default function VetHub() {
             {/* Primary Actions */}
             <Link
               href="/rounding"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform"
+              style={{ backgroundColor: NEO_COLORS.mint, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
             >
               <FileSpreadsheet size={18} />
               Rounds
             </Link>
             <Link
               href="/appointments"
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform"
+              style={{ backgroundColor: NEO_COLORS.lavender, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
             >
               <TableProperties size={18} />
               Schedule
             </Link>
             <button
               onClick={() => { setShowTaskOverview(!showTaskOverview); setShowMRISchedule(false); }}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform"
+              style={{ backgroundColor: NEO_COLORS.pink, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
             >
               <CheckCircle2 size={18} />
               Tasks
@@ -2012,24 +2099,29 @@ export default function VetHub() {
             <div className="relative">
               <button
                 onClick={() => setShowPrintMenu(!showPrintMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-bold hover:scale-105 transition-transform"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform bg-white"
+                style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
               >
                 <Tag size={18} />
                 Print
                 <ChevronDown size={16} />
               </button>
               {showPrintMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-2xl overflow-hidden z-50"
+                  style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+                >
                   <button
                     onClick={() => { handlePrintBigLabels(); setShowPrintMenu(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
                   >
                     <Tag size={16} />
                     Big Labels
                   </button>
                   <button
                     onClick={() => { handlePrintTinyLabels(); setShowPrintMenu(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition rounded-b-lg"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <Tag size={14} />
                     Tiny Labels
@@ -2042,65 +2134,77 @@ export default function VetHub() {
             <div className="relative">
               <button
                 onClick={() => setShowToolsMenu(!showToolsMenu)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-white rounded-lg font-bold hover:bg-slate-600 transition"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform bg-white"
+                style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
               >
                 <MoreHorizontal size={18} />
                 Tools
               </button>
               {showToolsMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                <div
+                  className="absolute right-0 mt-2 w-56 bg-white rounded-2xl overflow-hidden z-50"
+                  style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+                >
                   <button
                     onClick={() => { handleResetAllTasks(); setShowToolsMenu(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition border-l-2 border-yellow-500/50"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
+                    style={{ borderLeft: `4px solid ${NEO_COLORS.pink}` }}
                   >
-                    <RotateCcw size={16} className="text-yellow-400" />
-                    <span className="text-yellow-300">Reset All Tasks</span>
+                    <RotateCcw size={16} style={{ color: '#E89999' }} />
+                    Reset All Tasks
                   </button>
                   <button
                     onClick={() => { setShowMRISchedule(!showMRISchedule); setShowToolsMenu(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <Brain size={16} />
                     MRI Schedule
                   </button>
                   <Link
                     href="/patient-import"
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <Download size={16} />
                     Import from VetRadar
                   </Link>
                   <Link
                     href="/soap"
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <FileText size={16} />
                     SOAP Builder
                   </Link>
                   <Link
                     href="/mri-builder"
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <Brain size={16} />
                     MRI Builder
                   </Link>
                   <Link
                     href="/neuro-exam"
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition border-l-2 border-purple-500/50"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
+                    style={{ borderTop: '1px solid #e5e7eb', borderLeft: `4px solid ${NEO_COLORS.lavender}` }}
                   >
-                    <Zap size={16} className="text-purple-400" />
-                    <span className="text-purple-200">Neuro Exam</span>
+                    <Zap size={16} style={{ color: '#9B7FCF' }} />
+                    Neuro Exam
                   </Link>
                   <button
                     onClick={() => { setShowQuickReference(!showQuickReference); setShowToolsMenu(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <BookOpen size={16} />
                     Quick Reference
                   </button>
                   <Link
                     href="/residency"
-                    className="w-full text-left px-4 py-3 hover:bg-slate-700 text-white flex items-center gap-2 transition rounded-b-lg"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
+                    style={{ borderTop: '1px solid #e5e7eb' }}
                   >
                     <Award size={16} />
                     Residency Tracker
@@ -2111,7 +2215,8 @@ export default function VetHub() {
 
             <button
               onClick={logout}
-              className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-red-400 transition rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-600 hover:text-red-500 hover:-translate-y-1 transition-all bg-white"
+              style={{ border: NEO_BORDER }}
             >
               <LogOut size={18} />
             </button>
@@ -2119,7 +2224,7 @@ export default function VetHub() {
         </div>
       </header>
 
-      <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6 z-10">
         {/* Task Checklist - Simple View */}
         {showTaskOverview && (
           <TaskChecklist
@@ -2816,7 +2921,12 @@ export default function VetHub() {
         {/* Floating Add Patient Button */}
         <button
           onClick={() => setShowAddPatientModal(true)}
-          className="fixed bottom-8 right-8 z-20 p-4 bg-gradient-to-r from-cyan-500 via-emerald-500 to-pink-500 text-white rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center gap-2 font-bold"
+          className="fixed bottom-8 right-8 z-20 px-5 py-4 text-gray-900 rounded-2xl hover:-translate-y-1 transition-transform flex items-center gap-2 font-black"
+          style={{
+            backgroundColor: '#B8E6D4',
+            border: '2px solid #000',
+            boxShadow: '6px 6px 0 #000',
+          }}
         >
           <Plus size={24} />
           <span>Add Patient</span>
@@ -2827,21 +2937,23 @@ export default function VetHub() {
         {/* Search & Sort */}
         <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="🔍 Search patients..."
-              className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+              placeholder="Search patients..."
+              className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+              style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 text-sm whitespace-nowrap">Sort by:</span>
+            <span className="text-gray-600 text-sm font-bold whitespace-nowrap">Sort:</span>
             <select
               value={patientSortBy}
               onChange={(e) => setPatientSortBy(e.target.value as 'name' | 'status' | 'type')}
-              className="px-4 py-4 rounded-xl bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition cursor-pointer"
+              className="px-4 py-3 rounded-2xl bg-white text-gray-900 focus:outline-none cursor-pointer font-bold"
+              style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
             >
               <option value="name">Name</option>
               <option value="status">Status</option>
@@ -2849,15 +2961,19 @@ export default function VetHub() {
             </select>
           </div>
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-xl p-1">
+          <div
+            className="flex items-center gap-1 bg-white rounded-2xl p-1"
+            style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+          >
             <button
               onClick={() => setViewMode('list')}
               disabled={!mounted}
-              className={`px-3 py-3 rounded-lg transition ${
+              className={`px-3 py-2 rounded-xl transition font-bold ${
                 mounted && viewMode === 'list'
-                  ? 'bg-cyan-500 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'text-gray-900'
+                  : 'text-gray-400 hover:text-gray-900'
               }`}
+              style={mounted && viewMode === 'list' ? { backgroundColor: '#DCC4F5' } : undefined}
               title="List View"
             >
               <ListIcon size={20} />
@@ -2865,11 +2981,12 @@ export default function VetHub() {
             <button
               onClick={() => setViewMode('grid')}
               disabled={!mounted}
-              className={`px-3 py-3 rounded-lg transition ${
+              className={`px-3 py-2 rounded-xl transition font-bold ${
                 mounted && viewMode === 'grid'
-                  ? 'bg-cyan-500 text-white'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'text-gray-900'
+                  : 'text-gray-400 hover:text-gray-900'
               }`}
+              style={mounted && viewMode === 'grid' ? { backgroundColor: '#DCC4F5' } : undefined}
               title="Grid View"
             >
               <LayoutGrid size={20} />
@@ -2878,36 +2995,42 @@ export default function VetHub() {
         </div>
 
         {/* Today's Date Banner */}
-        <div className="bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
+        <div
+          className="rounded-2xl p-4"
+          style={{ backgroundColor: '#DCC4F5', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+        >
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📅</span>
               <div>
-                <h3 className="text-white font-bold text-lg">
+                <h3 className="text-gray-900 font-black text-lg">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                 </h3>
-                <p className="text-slate-400 text-xs">Showing today's tasks only</p>
+                <p className="text-gray-600 text-xs font-medium">Showing today's tasks only</p>
               </div>
             </div>
             <button
               onClick={() => setHideCompletedTasks(!hideCompletedTasks)}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
-                hideCompletedTasks
-                  ? 'bg-green-600/80 text-white hover:bg-green-600'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
+              className="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 hover:-translate-y-0.5"
+              style={{
+                backgroundColor: hideCompletedTasks ? '#B8E6D4' : 'white',
+                border: '2px solid #000',
+              }}
             >
               {hideCompletedTasks ? (
                 <>
-                  <span>👁️ Show Completed</span>
+                  <span>Show Completed</span>
                   {taskStats.completed > 0 && (
-                    <span className="px-2 py-0.5 bg-white/20 rounded-full text-xs">
+                    <span
+                      className="px-2 py-0.5 rounded-full text-xs font-black"
+                      style={{ backgroundColor: 'white', border: '1px solid #000' }}
+                    >
                       {taskStats.completed}
                     </span>
                   )}
                 </>
               ) : (
-                <span>👁️ Hide Completed</span>
+                <span>Hide Completed</span>
               )}
             </button>
           </div>
@@ -2915,39 +3038,47 @@ export default function VetHub() {
 
         {/* All Tasks Complete Celebration */}
         {taskStats.allComplete && (
-          <div className="bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-teal-500/20 backdrop-blur-xl rounded-2xl shadow-xl border border-green-500/30 p-6 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+          <div
+            className="rounded-2xl p-6 text-center animate-in fade-in slide-in-from-top-4 duration-500"
+            style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}
+          >
             <div className="text-6xl mb-3">🎉</div>
-            <h3 className="text-white font-bold text-2xl mb-2">All Tasks Complete!</h3>
-            <p className="text-green-300 text-base mb-1">
+            <h3 className="text-gray-900 font-black text-2xl mb-2">All Tasks Complete!</h3>
+            <p className="text-gray-700 text-base mb-1 font-medium">
               You've completed {taskStats.completed} {taskStats.completed === 1 ? 'task' : 'tasks'} today. Outstanding work!
             </p>
-            <p className="text-slate-400 text-sm">Take a well-deserved break or add new tasks below.</p>
+            <p className="text-gray-500 text-sm font-medium">Take a well-deserved break or add new tasks below.</p>
           </div>
         )}
 
         {/* Batch Add Tasks - Above Patient Cards */}
         {filteredPatients.length > 0 && !taskStats.allComplete && (
-          <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 p-3">
+          <div
+            className="rounded-2xl p-3"
+            style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+          >
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
                 <span className="text-lg">⚡</span>
                 <div>
-                  <h3 className="text-white font-bold text-sm">Batch Add Daily Tasks</h3>
-                  <p className="text-slate-400 text-xs">Add tasks to all active patients at once</p>
+                  <h3 className="text-gray-900 font-bold text-sm">Batch Add Daily Tasks</h3>
+                  <p className="text-gray-500 text-xs font-medium">Add tasks to all active patients at once</p>
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <button
                   onClick={() => handleBatchAddAllCategoryTasks('morning')}
-                  className="px-3 py-1.5 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform shadow-lg"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold hover:-translate-y-0.5 transition-transform text-gray-900"
+                  style={{ backgroundColor: '#FFBDBD', border: '2px solid #000' }}
                 >
-                  ➕ Add Morning Tasks to All
+                  + Morning Tasks
                 </button>
                 <button
                   onClick={() => handleBatchAddAllCategoryTasks('evening')}
-                  className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform shadow-lg"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold hover:-translate-y-0.5 transition-transform text-gray-900"
+                  style={{ backgroundColor: '#DCC4F5', border: '2px solid #000' }}
                 >
-                  ➕ Add Evening Tasks to All
+                  + Evening Tasks
                 </button>
               </div>
             </div>
@@ -2957,12 +3088,15 @@ export default function VetHub() {
         {/* Patients */}
         {!mounted || patientsLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+            <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
           </div>
         ) : filteredPatients.length === 0 ? (
-          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-12 text-center">
+          <div
+            className="rounded-3xl p-12 text-center"
+            style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}
+          >
             <div className="text-6xl mb-4">🐾</div>
-            <p className="text-slate-400 text-lg">No patients yet. Add your first furry friend above!</p>
+            <p className="text-gray-600 text-lg font-medium">No patients yet. Add your first furry friend above!</p>
           </div>
         ) : viewMode === 'list' ? (
           /* LIST VIEW */
@@ -3608,40 +3742,57 @@ export default function VetHub() {
 
         {/* Add Patient Modal */}
         {showAddPatientModal && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-2xl">
-              <div className="p-6 border-b border-slate-700/50">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div
+              className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden"
+              style={{ border: '2px solid #000', boxShadow: '8px 8px 0 #000' }}
+            >
+              <div
+                className="p-6"
+                style={{ borderBottom: '2px solid #000', backgroundColor: '#FFF8F0' }}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Brain className="text-cyan-400" size={28} />
-                    <h3 className="text-2xl font-bold text-white">Add Patient</h3>
-                    <Sparkles className="text-yellow-400 animate-pulse" size={20} />
-                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-500 to-emerald-500 text-white">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ backgroundColor: '#DCC4F5', border: '2px solid #000' }}
+                    >
+                      <Brain className="text-gray-900" size={24} />
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900">Add Patient</h3>
+                    <span
+                      className="px-3 py-1 rounded-full text-xs font-black text-gray-900"
+                      style={{ backgroundColor: '#B8E6D4', border: '1.5px solid #000' }}
+                    >
                       AI-POWERED
                     </span>
                   </div>
                   <button
                     onClick={() => setShowAddPatientModal(false)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition font-bold"
                   >
                     ✕
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 bg-white">
                 <div className="flex gap-2">
                   {(['MRI', 'Surgery', 'Medical'] as const).map((type) => {
                     const emojis = { MRI: '🧠', Surgery: '🔪', Medical: '💊' };
+                    const colors = { MRI: '#DCC4F5', Surgery: '#FFBDBD', Medical: '#B8E6D4' };
                     return (
                       <button
                         key={type}
                         onClick={() => setPatientType(type)}
-                        className={`px-4 py-2 rounded-lg font-bold transition-all text-sm ${
-                          patientType === type
-                            ? `bg-gradient-to-r ${getTypeColor(type)} text-white shadow-lg scale-105`
-                            : 'bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600/50'
+                        className={`px-4 py-2 rounded-xl font-bold transition-all text-sm text-gray-900 hover:-translate-y-0.5 ${
+                          patientType === type ? '' : 'opacity-50'
                         }`}
+                        style={{
+                          backgroundColor: colors[type],
+                          border: '2px solid #000',
+                          boxShadow: patientType === type ? '3px 3px 0 #000' : 'none',
+                        }}
                       >
                         {emojis[type]} {type}
                       </button>
@@ -3652,8 +3803,9 @@ export default function VetHub() {
                 <textarea
                   value={patientBlurb}
                   onChange={(e) => setPatientBlurb(e.target.value)}
-                  placeholder="🐾 Paste patient info... Claude AI will extract everything! 🤖"
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition resize-none"
+                  placeholder="Paste patient info... Claude AI will extract everything!"
+                  className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none resize-none font-medium"
+                  style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                   rows={6}
                 />
 
@@ -3664,7 +3816,8 @@ export default function VetHub() {
                     setPatientBlurb('');
                   }}
                   disabled={isAddingPatient || !patientBlurb.trim()}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-500 via-emerald-500 to-pink-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-2xl font-black hover:-translate-y-1 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 text-gray-900"
+                  style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                 >
                   {isAddingPatient ? (
                     <>
@@ -3686,43 +3839,51 @@ export default function VetHub() {
         {/* Sticker Size Picker Modal */}
         {stickerPickerPatientId !== null && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
-              <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-t-2xl p-4">
+            <div
+              className="bg-white rounded-2xl max-w-sm w-full overflow-hidden"
+              style={{ border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}
+            >
+              <div
+                className="p-4"
+                style={{ backgroundColor: '#FFBDBD', borderBottom: '2px solid #000' }}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Tag className="text-white" size={24} />
-                    <span className="text-white font-bold text-lg">Print Stickers</span>
+                    <Tag className="text-gray-900" size={24} />
+                    <span className="text-gray-900 font-black text-lg">Print Stickers</span>
                   </div>
                   <button
                     onClick={() => setStickerPickerPatientId(null)}
-                    className="text-white/80 hover:text-white transition"
+                    className="text-gray-600 hover:text-gray-900 transition font-bold"
                   >
                     ✕
                   </button>
                 </div>
-                <p className="text-orange-100 text-sm mt-1">
+                <p className="text-gray-700 text-sm font-medium mt-1">
                   {patients.find(p => p.id === stickerPickerPatientId)?.demographics?.name || 'Patient'}
                 </p>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-4 space-y-3 bg-white">
                 <button
                   onClick={handlePrintBigStickersSingle}
-                  className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3"
+                  className="w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 text-gray-900 hover:-translate-y-0.5"
+                  style={{ backgroundColor: '#DCC4F5', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
                 >
                   <Tag size={24} />
                   <div className="text-left">
                     <div>Big Stickers</div>
-                    <div className="text-xs font-normal opacity-80">70mm × 45mm - Patient files & cages</div>
+                    <div className="text-xs font-medium text-gray-600">70mm × 45mm - Patient files & cages</div>
                   </div>
                 </button>
                 <button
                   onClick={handlePrintTinyStickersSingle}
-                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white rounded-xl font-bold text-lg transition-all shadow-lg flex items-center justify-center gap-3"
+                  className="w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 text-gray-900 hover:-translate-y-0.5"
+                  style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
                 >
                   <Tag size={18} />
                   <div className="text-left">
                     <div>Little Stickers</div>
-                    <div className="text-xs font-normal opacity-80">50mm × 35mm - Lab samples & diagnostics</div>
+                    <div className="text-xs font-medium text-gray-600">50mm × 35mm - Lab samples & diagnostics</div>
                   </div>
                 </button>
               </div>
@@ -3733,26 +3894,32 @@ export default function VetHub() {
         {/* Add General Task Modal */}
         {showAddGeneralTask && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-md w-full">
-              <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-t-2xl p-4">
+            <div
+              className="bg-white rounded-2xl max-w-md w-full overflow-hidden"
+              style={{ border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}
+            >
+              <div
+                className="p-4"
+                style={{ backgroundColor: '#B8E6D4', borderBottom: '2px solid #000' }}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ListTodo className="text-white" size={24} />
-                    <span className="text-white font-bold text-lg">Add General Task</span>
+                    <ListTodo className="text-gray-900" size={24} />
+                    <span className="text-gray-900 font-black text-lg">Add General Task</span>
                   </div>
                   <button
                     onClick={() => {
                       setShowAddGeneralTask(false);
                       setNewGeneralTaskName('');
                     }}
-                    className="p-2 text-white hover:bg-emerald-700 rounded-lg transition"
+                    className="text-gray-600 hover:text-gray-900 transition font-bold"
                   >
                     ✕
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 bg-white">
                 <input
                   type="text"
                   value={newGeneralTaskName}
@@ -3763,14 +3930,16 @@ export default function VetHub() {
                     }
                   }}
                   placeholder="Enter task name..."
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                  className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                  style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                   autoFocus
                 />
 
                 <button
                   onClick={handleAddGeneralTask}
                   disabled={!newGeneralTaskName.trim()}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-2xl font-black hover:-translate-y-0.5 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 text-gray-900"
+                  style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
                 >
                   <Plus size={20} />
                   Add General Task
@@ -3783,12 +3952,18 @@ export default function VetHub() {
         {/* Add Patient Task from Overview Modal */}
         {showAddPatientTaskFromOverview && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 max-w-md w-full">
-              <div className="bg-gradient-to-r from-cyan-600 to-cyan-500 rounded-t-2xl p-4">
+            <div
+              className="bg-white rounded-2xl max-w-md w-full overflow-hidden"
+              style={{ border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}
+            >
+              <div
+                className="p-4"
+                style={{ backgroundColor: '#DCC4F5', borderBottom: '2px solid #000' }}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ListTodo className="text-white" size={24} />
-                    <span className="text-white font-bold text-lg">Add Patient Task</span>
+                    <ListTodo className="text-gray-900" size={24} />
+                    <span className="text-gray-900 font-black text-lg">Add Patient Task</span>
                   </div>
                   <button
                     onClick={() => {
@@ -3796,20 +3971,21 @@ export default function VetHub() {
                       setNewPatientTaskName('');
                       setSelectedPatientForTask(null);
                     }}
-                    className="p-2 text-white hover:bg-cyan-700 rounded-lg transition"
+                    className="text-gray-600 hover:text-gray-900 transition font-bold"
                   >
                     ✕
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-4 bg-white">
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Select Patient</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Select Patient</label>
                   <select
                     value={selectedPatientForTask || ''}
                     onChange={(e) => setSelectedPatientForTask(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 focus:outline-none font-medium"
+                    style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                   >
                     <option value="">Choose a patient...</option>
                     {filteredPatients.map(patient => (
@@ -3821,7 +3997,7 @@ export default function VetHub() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">Task Name</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Task Name</label>
                   <input
                     type="text"
                     value={newPatientTaskName}
@@ -3832,14 +4008,16 @@ export default function VetHub() {
                       }
                     }}
                     placeholder="Enter task name..."
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition"
+                    className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                    style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                   />
                 </div>
 
                 <button
                   onClick={handleAddPatientTaskFromOverview}
                   disabled={!newPatientTaskName.trim() || !selectedPatientForTask}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white rounded-xl font-bold hover:scale-105 transition-transform shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-2xl font-black hover:-translate-y-0.5 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 text-gray-900"
+                  style={{ backgroundColor: '#DCC4F5', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
                 >
                   <Plus size={20} />
                   Add Task to Patient

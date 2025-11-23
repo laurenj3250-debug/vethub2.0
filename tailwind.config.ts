@@ -29,14 +29,44 @@ export default {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
 
-        // VetHub Brand Colors
+        // Neo-Pop Palette (NEW!)
+        'neo': {
+          'cream': '#FFF8F0',
+          'cream-light': '#FFFBF5',
+          'coral': '#FFB4A2',
+          'lavender': '#B8B5FF',
+          'mint': '#A8E6CF',
+          'yellow': '#FFE66D',
+          'pink': '#FFD6E0',
+          'sky': '#C9F0FF',
+          'purple': '#957FEF',
+          'orange': '#FF7F50',
+          'teal': '#00C9A7',
+        },
+
+        // Neo-Pop Status Colors
+        'status': {
+          'critical': '#FF6B6B',
+          'monitoring': '#FFB07C',  // Soft peach/orange instead of harsh yellow
+          'stable': '#6BCB77',
+          'discharged': '#C4C4C4',
+          'new': '#B8B5FF',
+        },
+
+        // Neo-Pop Text Colors
+        'neo-text': {
+          'dark': '#2D3436',
+          'secondary': '#636E72',
+        },
+
+        // VetHub Brand Colors (legacy)
         'vethub-primary': {
           DEFAULT: '#3B82F6',  // Primary Blue
           hover: '#2563EB',
           active: '#1D4ED8',
         },
 
-        // VetHub Patient Status Colors
+        // VetHub Patient Status Colors (legacy)
         'patient-status': {
           critical: '#DC2626',    // Red-600
           monitoring: '#F59E0B',  // Amber-500
@@ -118,7 +148,13 @@ export default {
         'md': '0.5rem',     // 8px
         'lg': '0.75rem',    // 12px
         'xl': '1rem',       // 16px
+        '2xl': '1.5rem',    // 24px - Neo-pop cards
+        '3xl': '2rem',      // 32px - Neo-pop sections
         'full': '9999px',
+        'neo': '1.5rem',    // 24px - Neo-pop default
+        'neo-sm': '1rem',   // 16px - Neo-pop small
+        'neo-lg': '2rem',   // 32px - Neo-pop large
+        'pill': '9999px',   // Pill shape
       },
       keyframes: {
         'accordion-down': {
