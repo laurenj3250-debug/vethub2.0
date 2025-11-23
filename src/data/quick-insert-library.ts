@@ -149,9 +149,9 @@ export const quickInsertLibrary: QuickInsertItem[] = [
 
   // SURGERY - Concerns
   {
-    id: 'npo-6pm',
-    label: 'NPO 6pm',
-    text: 'NPO from 6pm',
+    id: 'npo-8pm',
+    label: 'NPO 8pm',
+    text: 'NPO from 8pm',
     category: 'surgery',
     field: 'concerns',
   },
@@ -304,9 +304,9 @@ export const quickInsertLibrary: QuickInsertItem[] = [
 
   // OTHER - Concerns
   {
-    id: 'npo-midnight',
-    label: 'NPO Midnight',
-    text: 'NPO after 6pm for MRI',
+    id: 'npo-8pm-mri',
+    label: 'NPO 8pm MRI',
+    text: 'NPO after 8pm for MRI',
     category: 'other',
     field: 'concerns',
   },
