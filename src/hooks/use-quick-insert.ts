@@ -1,11 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { quickInsertLibrary, type QuickInsertItem } from '@/data/quick-insert-library';
 
 const STORAGE_KEY = 'vethub-quick-insert-items';
 const VERSION_KEY = 'vethub-quick-insert-version';
-const CURRENT_VERSION = 2; // Increment when adding new items to library
+
+/**
+ * Simple hash function for generating version from library content
+ * Changes automatically when library items are added/modified
+ */
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
 
 /**
  * Hook for managing editable quick-insert phrases
@@ -15,39 +28,62 @@ export function useQuickInsert() {
   const [items, setItems] = useState<QuickInsertItem[]>(quickInsertLibrary);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Auto-generate version from library content - no manual increment needed
+  const LIBRARY_VERSION = useMemo(() => {
+    return hashCode(JSON.stringify(quickInsertLibrary));
+  }, []);
+
   // Load from localStorage on mount, with version migration
   useEffect(() => {
     try {
       const storedVersion = localStorage.getItem(VERSION_KEY);
-      const currentStoredVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
+      const stored = localStorage.getItem(STORAGE_KEY);
 
-      // If version changed, merge new library items with user's custom items
-      if (currentStoredVersion < CURRENT_VERSION) {
-        const stored = localStorage.getItem(STORAGE_KEY);
+      // If version changed or no version stored, migrate
+      if (storedVersion !== String(LIBRARY_VERSION)) {
+        console.log(`[QuickInsert] Migration needed: stored=${storedVersion}, current=${LIBRARY_VERSION}`);
+
         if (stored) {
-          const parsed = JSON.parse(stored) as QuickInsertItem[];
-          // Keep user's custom items (id starts with 'custom-')
-          const customItems = parsed.filter(item => item.id.startsWith('custom-'));
-          // Use all new library items + user's custom items
-          const mergedItems = [...quickInsertLibrary, ...customItems];
-          setItems(mergedItems);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedItems));
+          try {
+            const parsed = JSON.parse(stored) as QuickInsertItem[];
+            // Keep user's custom items (id starts with 'custom-')
+            const customItems = parsed.filter(item => item.id.startsWith('custom-'));
+            // Use all new library items + user's custom items
+            const mergedItems = [...quickInsertLibrary, ...customItems];
+            setItems(mergedItems);
+
+            // Only save after successful parse and merge
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedItems));
+            localStorage.setItem(VERSION_KEY, String(LIBRARY_VERSION));
+            console.log(`[QuickInsert] Migrated: kept ${customItems.length} custom items, total ${mergedItems.length}`);
+          } catch (parseError) {
+            // Corrupted localStorage - fall back to defaults, don't corrupt further
+            console.error('[QuickInsert] Corrupted data, using defaults:', parseError);
+            setItems(quickInsertLibrary);
+            localStorage.setItem(VERSION_KEY, String(LIBRARY_VERSION));
+            // Don't save STORAGE_KEY - let it be rebuilt on next save
+          }
+        } else {
+          // No stored items, just update version
+          localStorage.setItem(VERSION_KEY, String(LIBRARY_VERSION));
         }
-        // Update version
-        localStorage.setItem(VERSION_KEY, String(CURRENT_VERSION));
-      } else {
+      } else if (stored) {
         // Same version, just load stored items
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
+        try {
           const parsed = JSON.parse(stored);
           setItems(parsed);
+        } catch (parseError) {
+          console.error('[QuickInsert] Failed to parse stored items, using defaults:', parseError);
+          setItems(quickInsertLibrary);
         }
       }
     } catch (e) {
-      console.error('Failed to load quick-insert items:', e);
+      // Complete failure - use defaults, don't touch localStorage
+      console.error('[QuickInsert] Failed to load, using defaults:', e);
+      setItems(quickInsertLibrary);
     }
     setIsLoaded(true);
-  }, []);
+  }, [LIBRARY_VERSION]);
 
   // Save to localStorage whenever items change (after initial load)
   useEffect(() => {

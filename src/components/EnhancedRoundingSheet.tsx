@@ -6,6 +6,7 @@ import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertC
 import type { NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
 import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
+import { analyzeRadiology, parseMedications } from '@/lib/ai-parser';
 
 // Helper to render markdown-style bold text (**text** -> <strong>text</strong>)
 const renderMarkdown = (text: string | null) => {
@@ -554,6 +555,31 @@ export function EnhancedRoundingSheet({
   // Select fields that only accept specific values
   const SELECT_FIELDS = new Set(['ivc', 'fluids', 'cri']);
 
+  // Valid options for select fields (for smart paste matching)
+  const SELECT_OPTIONS: Record<string, string[]> = {
+    ivc: ['Y', 'N', 'Yes but...', 'Not but...'],
+    fluids: ['Y', 'N', 'Yes but...', 'Not but...'],
+    cri: ['Y', 'N', 'Yes but...', 'Not but...'],
+  };
+
+  // Map common variations to valid select values
+  const matchSelectValue = (field: string, value: string): string | null => {
+    const options = SELECT_OPTIONS[field];
+    if (!options) return null;
+
+    const normalized = value.toLowerCase().trim();
+
+    // Exact match (case-insensitive)
+    const exactMatch = options.find(opt => opt.toLowerCase() === normalized);
+    if (exactMatch) return exactMatch;
+
+    // Common variations
+    if (normalized === 'yes' || normalized === 'y' || normalized === 'true' || normalized === '1') return 'Y';
+    if (normalized === 'no' || normalized === 'n' || normalized === 'false' || normalized === '0') return 'N';
+
+    return null; // No match found
+  };
+
   // Update field with API call
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
@@ -643,6 +669,75 @@ export function EnhancedRoundingSheet({
     }
   }, [patients, updateField, toast]);
 
+  // Magic paste: analyze radiology/imaging from clipboard
+  const handleMagicPasteRadiology = useCallback(async (patientId: number) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast({ title: 'Clipboard empty', description: 'Copy radiology report first, then click 📷' });
+        return;
+      }
+
+      toast({ title: '📷 Summarizing imaging...', description: 'Extracting key findings' });
+
+      const summary = await analyzeRadiology(text);
+
+      if (!summary) {
+        toast({ title: 'Could not parse', description: 'No findings extracted - pasting raw text' });
+        // Fall back to raw text
+        const patient = patients.find(p => p.id === patientId);
+        const currentDx = patient?.roundingData?.diagnosticFindings || '';
+        const newDx = currentDx ? `${currentDx}\nCXR/MRI: ${text.slice(0, 200)}...` : `CXR/MRI: ${text.slice(0, 200)}`;
+        await updateField(patientId, 'diagnosticFindings', newDx);
+        return;
+      }
+
+      const patient = patients.find(p => p.id === patientId);
+      const currentDx = patient?.roundingData?.diagnosticFindings || '';
+      const newDx = currentDx ? `${currentDx}\n${summary}` : summary;
+
+      await updateField(patientId, 'diagnosticFindings', newDx);
+      toast({ title: '✅ Imaging summarized!', description: summary.slice(0, 60) + '...' });
+    } catch (error) {
+      console.error('Radiology paste failed:', error);
+      toast({ title: 'Paste failed', description: 'Could not read clipboard', variant: 'destructive' });
+    }
+  }, [patients, updateField, toast]);
+
+  // Magic paste: format medications from clipboard
+  const handleMagicPasteMeds = useCallback(async (patientId: number) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast({ title: 'Clipboard empty', description: 'Copy medication list first, then click 💊' });
+        return;
+      }
+
+      const formatted = await parseMedications(text);
+
+      if (!formatted) {
+        toast({ title: 'Could not parse', description: 'Pasting raw text instead' });
+        const patient = patients.find(p => p.id === patientId);
+        const currentMeds = patient?.roundingData?.therapeutics || '';
+        const newMeds = currentMeds ? `${currentMeds}\n${text}` : text;
+        await updateField(patientId, 'therapeutics', newMeds);
+        return;
+      }
+
+      const patient = patients.find(p => p.id === patientId);
+      const currentMeds = patient?.roundingData?.therapeutics || '';
+      const newMeds = currentMeds ? `${currentMeds}\n${formatted}` : formatted;
+
+      await updateField(patientId, 'therapeutics', newMeds);
+
+      const medCount = formatted.split('\n').length;
+      toast({ title: '✅ Medications formatted!', description: `${medCount} medications added` });
+    } catch (error) {
+      console.error('Meds paste failed:', error);
+      toast({ title: 'Paste failed', description: 'Could not read clipboard', variant: 'destructive' });
+    }
+  }, [patients, updateField, toast]);
+
   // Handle paste from spreadsheet (tab-separated values)
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, currentField: string) => {
     const pastedText = e.clipboardData.getData('text');
@@ -661,8 +756,22 @@ export function EnhancedRoundingSheet({
       const firstRow = pastedText.split('\n')[0];
       const values = firstRow.split('\t');
 
-      // Apply values starting from current field, following the actual column order
+      // Track updates and skipped values
       const updates: { field: string; value: string }[] = [];
+      const skipped: { field: string; value: string; reason: string }[] = [];
+
+      // Field display names for user-friendly messages
+      const fieldNames: Record<string, string> = {
+        problems: 'Problems',
+        diagnosticFindings: 'Diagnostics',
+        therapeutics: 'Therapeutics',
+        ivc: 'IVC',
+        fluids: 'Fluids',
+        cri: 'CRI',
+        overnightDx: 'O/N Dx',
+        concerns: 'Concerns',
+        comments: 'Comments',
+      };
 
       for (let i = 0; i < values.length; i++) {
         const targetFieldIndex = currentFieldIndex + i;
@@ -670,8 +779,20 @@ export function EnhancedRoundingSheet({
           const targetField = ALL_FIELD_ORDER[targetFieldIndex];
           const value = values[i].trim();
 
-          // Skip select fields - they need specific dropdown values
+          // Handle select fields with smart matching
           if (SELECT_FIELDS.has(targetField)) {
+            if (!value) continue; // Skip empty values for select fields
+
+            const matchedValue = matchSelectValue(targetField, value);
+            if (matchedValue) {
+              updates.push({ field: targetField, value: matchedValue });
+            } else {
+              skipped.push({
+                field: targetField,
+                value,
+                reason: `"${value}" not valid (use Y/N)`,
+              });
+            }
             continue;
           }
 
@@ -685,10 +806,23 @@ export function EnhancedRoundingSheet({
         updateField(patientId, field, value);
       });
 
-      if (updates.length > 1) {
+      // Show detailed feedback
+      if (updates.length > 0 || skipped.length > 0) {
+        const appliedCount = updates.length;
+        const skippedCount = skipped.length;
+
+        let description = `Applied ${appliedCount} value${appliedCount !== 1 ? 's' : ''}`;
+        if (skippedCount > 0) {
+          const skippedDetails = skipped
+            .map(s => `${fieldNames[s.field]}: ${s.reason}`)
+            .join(', ');
+          description += ` | Skipped ${skippedCount}: ${skippedDetails}`;
+        }
+
         toast({
-          title: '📋 Pasted across columns',
-          description: `Applied ${updates.length} values from clipboard`,
+          title: skippedCount > 0 ? '📋 Pasted (some skipped)' : '📋 Pasted across columns',
+          description,
+          variant: skippedCount > 0 ? 'default' : undefined,
         });
       }
     }
@@ -1268,30 +1402,51 @@ export function EnhancedRoundingSheet({
                         className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 pr-8 text-white text-xs resize-y min-h-[90px] transition-all"
                         rows={5}
                       />
-                      {/* Magic paste button for bloodwork */}
-                      <button
-                        type="button"
-                        onClick={() => handleMagicPaste(patient.id)}
-                        className="absolute top-1 right-1 p-1 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-all"
-                        title="Paste bloodwork from clipboard - extracts abnormal values (copy lab results first, then click)"
-                      >
-                        🩸
-                      </button>
+                      {/* Magic paste buttons for diagnostics */}
+                      <div className="absolute top-1 right-1 flex gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleMagicPaste(patient.id)}
+                          className="p-1 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-all"
+                          title="🩸 Paste bloodwork - extracts abnormal values"
+                        >
+                          🩸
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMagicPasteRadiology(patient.id)}
+                          className="p-1 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/30 rounded transition-all"
+                          title="📷 Paste imaging report - summarizes findings"
+                        >
+                          📷
+                        </button>
+                      </div>
                     </div>
                   </td>
 
                   {/* Therapeutics */}
                   <td className="p-2">
-                    <textarea
-                      value={getFieldValue(patient.id, 'therapeutics')}
-                      onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
-                      onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
-                      placeholder="Type shortcuts: lev, pheno, gaba, pred..."
-                      className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
-                      rows={5}
-                      title="Shortcuts: lev=Levetiracetam, pheno=Phenobarbital, gaba=Gabapentin, pred=Prednisone, maro=Maropitant, meth=Methocarbamol"
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={getFieldValue(patient.id, 'therapeutics')}
+                        onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
+                        onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
+                        placeholder="Type shortcuts: lev, pheno, gaba, pred..."
+                        className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 pr-8 text-white text-xs resize-y min-h-[90px] transition-all"
+                        rows={5}
+                        title="Shortcuts: lev=Levetiracetam, pheno=Phenobarbital, gaba=Gabapentin, pred=Prednisone, maro=Maropitant, meth=Methocarbamol"
+                      />
+                      {/* Magic paste button for medications */}
+                      <button
+                        type="button"
+                        onClick={() => handleMagicPasteMeds(patient.id)}
+                        className="absolute top-1 right-1 p-1 text-green-400 hover:text-green-300 hover:bg-green-900/30 rounded transition-all"
+                        title="💊 Paste medication list - formats nicely"
+                      >
+                        💊
+                      </button>
+                    </div>
                   </td>
 
                   {/* IVC */}
