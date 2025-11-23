@@ -1,6 +1,18 @@
 'use client';
 
 import React from 'react';
+import { AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
+
+// Neo-pop styling constants
+const NEO_BORDER = '2px solid #000';
+const NEO_SHADOW = '6px 6px 0 #000';
+const NEO_SHADOW_SM = '4px 4px 0 #000';
+const COLORS = {
+  lavender: '#DCC4F5',
+  mint: '#B8E6D4',
+  pink: '#FFBDBD',
+  cream: '#FFF8F0',
+};
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -40,37 +52,71 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       }
 
       return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-900 to-slate-900 flex items-center justify-center p-8">
-          <div className="bg-slate-800 border border-red-500 rounded-xl p-6 max-w-2xl">
-            <h1 className="text-2xl font-bold text-red-400 mb-4">Application Error</h1>
-            <div className="text-white mb-4">
-              <strong>Error:</strong> {this.state.error?.message}
+        <div className="min-h-screen flex items-center justify-center p-8" style={{ backgroundColor: COLORS.cream }}>
+          <div
+            className="rounded-2xl p-6 max-w-2xl"
+            style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div
+                className="p-3 rounded-xl"
+                style={{ backgroundColor: COLORS.pink, border: NEO_BORDER }}
+              >
+                <AlertTriangle size={24} className="text-gray-900" />
+              </div>
+              <h1 className="text-2xl font-black text-gray-900">Application Error</h1>
             </div>
-            <div className="text-white mb-4">
-              <strong>Stack:</strong>
-              <pre className="text-xs bg-black/40 p-3 rounded mt-2 overflow-auto max-h-64">
+
+            {/* Error Message */}
+            <div
+              className="mb-4 p-4 rounded-xl"
+              style={{ backgroundColor: COLORS.cream, border: NEO_BORDER }}
+            >
+              <strong className="text-gray-900 font-bold">Error:</strong>
+              <span className="ml-2 text-gray-700">{this.state.error?.message}</span>
+            </div>
+
+            {/* Stack Trace */}
+            <div className="mb-4">
+              <strong className="text-gray-900 font-bold">Stack:</strong>
+              <pre
+                className="text-xs p-3 rounded-xl mt-2 overflow-auto max-h-64 text-gray-700"
+                style={{ backgroundColor: '#F3F4F6', border: '1px solid #000' }}
+              >
                 {this.state.error?.stack}
               </pre>
             </div>
+
+            {/* Component Stack */}
             {this.state.errorInfo && (
-              <div className="text-white">
-                <strong>Component Stack:</strong>
-                <pre className="text-xs bg-black/40 p-3 rounded mt-2 overflow-auto max-h-64">
+              <div className="mb-4">
+                <strong className="text-gray-900 font-bold">Component Stack:</strong>
+                <pre
+                  className="text-xs p-3 rounded-xl mt-2 overflow-auto max-h-64 text-gray-700"
+                  style={{ backgroundColor: '#F3F4F6', border: '1px solid #000' }}
+                >
                   {this.state.errorInfo.componentStack}
                 </pre>
               </div>
             )}
-            <div className="flex gap-2 mt-4">
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition"
+                className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2"
+                style={{ backgroundColor: COLORS.pink, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
               >
+                <RotateCcw size={16} />
                 Try Again
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded transition"
+                className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2"
+                style={{ backgroundColor: COLORS.lavender, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
               >
+                <RefreshCw size={16} />
                 Reload Page
               </button>
             </div>

@@ -6,6 +6,15 @@ import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// Neo-pop styling constants
+const NEO_BORDER = '2px solid #000';
+const COLORS = {
+  lavender: '#DCC4F5',
+  mint: '#B8E6D4',
+  pink: '#FFBDBD',
+  cream: '#FFF8F0',
+};
+
 interface AppointmentRowProps {
   patient: AppointmentPatient;
   onUpdate: (id: string, field: string, value: any) => void;
@@ -38,41 +47,34 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
     setEditingCell(null);
   };
 
-  // Parse smart time input: "930" -> "9:30 AM", "1345" -> "1:45 PM"
+  // Parse smart time input
   const parseTimeInput = (input: string): string => {
     const cleaned = input.replace(/[^\d]/g, '');
     if (cleaned.length === 0) return '';
 
-    // Handle various formats
     let hours = 0;
     let minutes = 0;
 
     if (cleaned.length <= 2) {
-      // Just hours: "9" -> "9:00 AM"
       hours = parseInt(cleaned);
       minutes = 0;
     } else if (cleaned.length === 3) {
-      // "930" -> "9:30 AM"
       hours = parseInt(cleaned.substring(0, 1));
       minutes = parseInt(cleaned.substring(1, 3));
     } else {
-      // "1345" -> "1:45 PM"
       hours = parseInt(cleaned.substring(0, cleaned.length - 2));
       minutes = parseInt(cleaned.substring(cleaned.length - 2));
     }
 
-    // Validate
     if (hours > 23) hours = 23;
     if (minutes > 59) minutes = 59;
 
-    // Convert to 12-hour format
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
 
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
-  // Generate time options in 15-minute increments
   const generateTimeOptions = (): string[] => {
     const options: string[] = [];
     for (let hour = 7; hour <= 19; hour++) {
@@ -91,9 +93,8 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
 
     return (
       <td
-        className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
-          isEmpty ? 'bg-slate-800/30' : ''
-        } cursor-pointer hover:bg-slate-700/20 relative group`}
+        className={`px-2 py-3 text-xs cursor-pointer hover:bg-gray-50 relative group`}
+        style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}
         onClick={() => !isEditing && handleCellClick(fieldName)}
       >
         {isEditing ? (
@@ -104,7 +105,8 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
               onBlur={handleCellBlur}
               autoFocus
               rows={3}
-              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none resize-none"
+              className="w-full bg-white rounded-lg px-2 py-1 text-gray-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#6BB89D] resize-none"
+              style={{ border: '1px solid #000' }}
             />
           ) : (
             <input
@@ -113,12 +115,13 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
               onChange={(e) => onUpdate(patient.id, fieldName, e.target.value)}
               onBlur={handleCellBlur}
               autoFocus
-              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+              className="w-full bg-white rounded-lg px-2 py-1 text-gray-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+              style={{ border: '1px solid #000' }}
             />
           )
         ) : (
           <div className="flex items-center gap-1">
-            <span className={`flex-1 ${isEmpty ? 'text-slate-600' : 'text-slate-200'} whitespace-pre-wrap`}>
+            <span className={`flex-1 ${isEmpty ? 'text-gray-400' : 'text-gray-900'} whitespace-pre-wrap`}>
               {value || placeholder}
             </span>
           </div>
@@ -127,16 +130,14 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
     );
   };
 
-  // Specialized time picker cell
   const renderTimeCell = () => {
     const isEditing = editingCell === 'appointmentTime';
     const isEmpty = !patient.appointmentTime;
 
     return (
       <td
-        className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
-          isEmpty ? 'bg-slate-800/30' : ''
-        } cursor-pointer hover:bg-slate-700/20 relative group`}
+        className={`px-2 py-3 text-xs cursor-pointer hover:bg-gray-50 relative group`}
+        style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}
         onClick={() => !isEditing && handleCellClick('appointmentTime')}
       >
         {isEditing ? (
@@ -146,7 +147,6 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
               value={patient.appointmentTime || ''}
               onChange={(e) => onUpdate(patient.id, 'appointmentTime', e.target.value)}
               onBlur={(e) => {
-                // Parse smart input on blur
                 const parsed = parseTimeInput(e.target.value);
                 if (parsed) {
                   onUpdate(patient.id, 'appointmentTime', parsed);
@@ -163,8 +163,9 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
                 }
               }}
               autoFocus
-              placeholder="9:30 AM or 930"
-              className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+              placeholder="9:30 AM"
+              className="w-full bg-white rounded-lg px-2 py-1 text-gray-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+              style={{ border: '1px solid #000' }}
               list={`time-options-${patient.id}`}
             />
             <datalist id={`time-options-${patient.id}`}>
@@ -175,7 +176,7 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
           </div>
         ) : (
           <div className="flex items-center gap-1">
-            <span className={`flex-1 ${isEmpty ? 'text-slate-600' : 'text-slate-200 font-medium'}`}>
+            <span className={`flex-1 ${isEmpty ? 'text-gray-400' : 'text-gray-900 font-bold'}`}>
               {patient.appointmentTime || '—'}
             </span>
           </div>
@@ -184,27 +185,22 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
     );
   };
 
-  // Color coding based on status
-  const statusColors =
-    patient.status === 'new'
-      ? 'bg-emerald-500/5 border-l-4 border-emerald-500/50'
-      : patient.status === 'mri-dropoff'
-      ? 'bg-purple-500/5 border-l-4 border-purple-500/50'
-      : 'bg-blue-500/5 border-l-4 border-blue-500/50';
+  // Neo-pop highlight colors
+  const getRowBg = () => {
+    if (patient.highlight === 'yellow') return COLORS.cream;
+    if (patient.highlight === 'red') return COLORS.pink;
+    if (patient.highlight === 'green') return COLORS.mint;
+    return 'white';
+  };
 
-  // Highlight colors - like physical highlighter markers
-  const highlightColors =
-    patient.highlight === 'yellow'
-      ? 'bg-yellow-500/20 hover:bg-yellow-500/25 border-l-4 border-yellow-500'
-      : patient.highlight === 'red'
-      ? 'bg-red-500/20 hover:bg-red-500/25 border-l-4 border-red-500'
-      : patient.highlight === 'green'
-      ? 'bg-green-500/20 hover:bg-green-500/25 border-l-4 border-green-500'
-      : statusColors;
+  const getStatusBadgeStyle = () => {
+    if (patient.status === 'new') return { backgroundColor: COLORS.mint, color: '#000' };
+    if (patient.status === 'mri-dropoff') return { backgroundColor: COLORS.lavender, color: '#000' };
+    return { backgroundColor: '#E5E7EB', color: '#000' };
+  };
 
   const handleHighlightClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Cycle through highlights: none -> yellow -> red -> green -> none
     const nextHighlight =
       !patient.highlight || patient.highlight === 'none'
         ? 'yellow'
@@ -219,15 +215,18 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
   return (
     <tr
       ref={setNodeRef}
-      style={style}
-      className={`border-b border-slate-700/30 transition ${highlightColors}`}
+      style={{ ...style, backgroundColor: getRowBg() }}
+      className="transition"
     >
       {/* Drag Handle */}
-      <td className="px-2 py-3 border-r border-slate-700/30">
+      <td
+        className="px-2 py-3"
+        style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}
+      >
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400"
+          className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600"
         >
           <GripVertical size={16} />
         </div>
@@ -238,9 +237,8 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
 
       {/* Patient Name with Status Badge */}
       <td
-        className={`px-2 py-3 text-xs border-r border-slate-700/30 ${
-          !patient.patientName ? 'bg-slate-800/30' : ''
-        } relative group`}
+        className={`px-2 py-3 text-xs relative group cursor-pointer hover:bg-gray-50`}
+        style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}
         onClick={() => !editingCell && handleCellClick('patientName')}
       >
         {editingCell === 'patientName' ? (
@@ -250,17 +248,17 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
             onChange={(e) => onUpdate(patient.id, 'patientName', e.target.value)}
             onBlur={handleCellBlur}
             autoFocus
-            className="w-full bg-slate-800 border border-cyan-500 rounded px-1 py-0.5 text-white text-xs focus:outline-none"
+            className="w-full bg-white rounded-lg px-2 py-1 text-gray-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+            style={{ border: '1px solid #000' }}
           />
         ) : (
           <div className="flex items-center gap-2">
-            <span className={`flex-1 ${!patient.patientName ? 'text-slate-600' : 'text-slate-200'}`}>
+            <span className={`flex-1 ${!patient.patientName ? 'text-gray-400' : 'text-gray-900 font-bold'}`}>
               {patient.patientName || 'Unknown'}
             </span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                // Cycle through: new -> recheck -> mri-dropoff -> new
                 const nextStatus =
                   patient.status === 'new'
                     ? 'recheck'
@@ -269,13 +267,8 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
                     : 'new';
                 onUpdate(patient.id, 'status', nextStatus);
               }}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide transition-colors ${
-                patient.status === 'new'
-                  ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                  : patient.status === 'mri-dropoff'
-                  ? 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'
-                  : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-              }`}
+              className="px-1.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide transition-colors"
+              style={{ ...getStatusBadgeStyle(), border: '1px solid #000' }}
               title="Click to cycle: New → Recheck → MRI Drop Off"
             >
               {patient.status === 'new' ? 'NEW' : patient.status === 'mri-dropoff' ? 'MRI' : 'RECHECK'}
@@ -309,26 +302,30 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
       {renderEditableCell(patient.otherNotes, 'otherNotes', '—', true)}
 
       {/* Actions */}
-      <td className="px-2 py-3 border-r border-slate-700/30">
+      <td
+        className="px-2 py-3"
+        style={{ borderBottom: '1px solid #ccc' }}
+      >
         <div className="flex items-center gap-1">
           <button
             onClick={handleHighlightClick}
-            className={`p-1 rounded transition ${
-              patient.highlight && patient.highlight !== 'none'
-                ? patient.highlight === 'yellow'
-                  ? 'text-yellow-400 bg-yellow-500/20 hover:bg-yellow-500/30'
-                  : patient.highlight === 'red'
-                  ? 'text-red-400 bg-red-500/20 hover:bg-red-500/30'
-                  : 'text-green-400 bg-green-500/20 hover:bg-green-500/30'
-                : 'text-slate-600 hover:text-slate-400 hover:bg-slate-700/30'
-            }`}
+            className={`p-1.5 rounded-lg transition font-bold`}
+            style={{
+              backgroundColor: patient.highlight && patient.highlight !== 'none'
+                ? patient.highlight === 'yellow' ? '#FEF3C7'
+                : patient.highlight === 'red' ? COLORS.pink
+                : COLORS.mint
+                : 'white',
+              border: '1px solid #000'
+            }}
             title="Highlight row (Yellow → Red → Green → None)"
           >
             <Highlighter size={14} />
           </button>
           <button
             onClick={() => onDelete(patient.id)}
-            className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition"
+            className="p-1.5 rounded-lg transition text-gray-500 hover:text-red-500 hover:bg-red-50"
+            style={{ border: '1px solid #ccc' }}
           >
             <Trash2 size={14} />
           </button>
@@ -338,5 +335,4 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
   );
 };
 
-// Memoize to prevent re-renders when other rows change
 export const AppointmentRow = React.memo(AppointmentRowComponent);

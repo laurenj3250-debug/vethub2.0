@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Download, Printer, Save, Clock, User, ArrowUpDown, Camera } from 'lucide-react';
+import { Plus, Download, Printer, Clock, User, Camera, Trash2 } from 'lucide-react';
 import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { PasteModal } from './PasteModal';
 import { AppointmentRow } from './AppointmentRow';
@@ -21,6 +21,17 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useToast } from '@/hooks/use-toast';
+
+// Neo-pop styling constants
+const NEO_BORDER = '2px solid #000';
+const NEO_SHADOW = '6px 6px 0 #000';
+const NEO_SHADOW_SM = '4px 4px 0 #000';
+const COLORS = {
+  lavender: '#DCC4F5',
+  mint: '#B8E6D4',
+  pink: '#FFBDBD',
+  cream: '#FFF8F0',
+};
 
 export function AppointmentSchedule() {
   const [patients, setPatients] = useState<AppointmentPatient[]>([]);
@@ -50,9 +61,7 @@ export function AppointmentSchedule() {
         }
 
         const appointments = await response.json();
-        console.log('AppointmentSchedule: Loaded appointments from database', { count: appointments.length });
 
-        // Convert database appointments to AppointmentPatient format
         const convertedPatients: AppointmentPatient[] = appointments.map((apt: any) => ({
           id: apt.id,
           sortOrder: apt.sortOrder,
@@ -88,18 +97,14 @@ export function AppointmentSchedule() {
 
   // Auto-save to database whenever patients change (debounced)
   useEffect(() => {
-    // Skip if no patients or initial load
     if (patients.length === 0) return;
 
-    // Clear previous timeout
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Debounce save by 1000ms
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        // Update sort orders for all appointments
         const today = new Date().toISOString().split('T')[0];
         await fetch('/api/appointments', {
           method: 'PUT',
@@ -111,18 +116,11 @@ export function AppointmentSchedule() {
             })),
           }),
         });
-
-        console.log('AppointmentSchedule: Saved to database', {
-          patientsCount: patients.length,
-          date: today,
-          timestamp: new Date().toISOString()
-        });
       } catch (error) {
         console.error('Failed to save appointments:', error);
       }
     }, 1000);
 
-    // Cleanup on unmount
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -144,7 +142,6 @@ export function AppointmentSchedule() {
       const result = await response.json();
 
       if (result.patients && result.patients.length > 0) {
-        // Save each parsed patient to database
         const today = new Date().toISOString().split('T')[0];
         const createdAppointments = await Promise.all(
           result.patients.map(async (patient: AppointmentPatient) => {
@@ -171,7 +168,6 @@ export function AppointmentSchedule() {
           })
         );
 
-        // Convert to AppointmentPatient format and add to state
         const newPatients: AppointmentPatient[] = createdAppointments.map((apt: any) => ({
           id: apt.id,
           sortOrder: apt.sortOrder,
@@ -193,7 +189,7 @@ export function AppointmentSchedule() {
 
         setPatients([...patients, ...newPatients]);
         toast({
-          title: '✅ Patients Parsed',
+          title: 'Patients Parsed',
           description: `Successfully extracted ${result.count} patient(s)`,
         });
         setShowPasteModal(false);
@@ -220,7 +216,6 @@ export function AppointmentSchedule() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         variant: 'destructive',
@@ -248,7 +243,6 @@ export function AppointmentSchedule() {
       const result = await response.json();
 
       if (result.patients && result.patients.length > 0) {
-        // Save each parsed patient to database
         const today = new Date().toISOString().split('T')[0];
         const createdAppointments = await Promise.all(
           result.patients.map(async (patient: AppointmentPatient) => {
@@ -275,7 +269,6 @@ export function AppointmentSchedule() {
           })
         );
 
-        // Convert to AppointmentPatient format and add to state
         const newPatients: AppointmentPatient[] = createdAppointments.map((apt: any) => ({
           id: apt.id,
           sortOrder: apt.sortOrder,
@@ -297,7 +290,7 @@ export function AppointmentSchedule() {
 
         setPatients([...patients, ...newPatients]);
         toast({
-          title: '📷 Screenshot Parsed',
+          title: 'Screenshot Parsed',
           description: `Successfully extracted ${result.count} appointment(s)`,
         });
       } else {
@@ -316,7 +309,6 @@ export function AppointmentSchedule() {
       });
     } finally {
       setIsProcessing(false);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -337,20 +329,14 @@ export function AppointmentSchedule() {
   };
 
   const handleUpdatePatient = useCallback(async (id: string, field: string, value: any) => {
-    // Update local state immediately for responsive UI
     setPatients((prev) =>
       prev.map((p) =>
         p.id === id
-          ? {
-              ...p,
-              [field]: value,
-              lastUpdated: new Date(),
-            }
+          ? { ...p, [field]: value, lastUpdated: new Date() }
           : p
       )
     );
 
-    // Save to database
     try {
       await fetch(`/api/appointments/${id}`, {
         method: 'PATCH',
@@ -368,14 +354,10 @@ export function AppointmentSchedule() {
   }, [toast]);
 
   const handleDeletePatient = useCallback(async (id: string) => {
-    // Remove from local state immediately
     setPatients((prev) => prev.filter((p) => p.id !== id));
 
-    // Delete from database
     try {
-      await fetch(`/api/appointments/${id}`, {
-        method: 'DELETE',
-      });
+      await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
       toast({ title: 'Patient removed' });
     } catch (error) {
       console.error('Failed to delete appointment:', error);
@@ -401,9 +383,7 @@ export function AppointmentSchedule() {
     setSortBy(type);
   };
 
-  const handleExportPrint = () => {
-    window.print();
-  };
+  const handleExportPrint = () => window.print();
 
   const handleExportJSON = () => {
     const dataStr = JSON.stringify(patients, null, 2);
@@ -428,70 +408,40 @@ export function AppointmentSchedule() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div
+        className="flex items-center justify-between flex-wrap gap-4 rounded-2xl p-4"
+        style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+      >
         <div>
-          <h2 className="text-2xl font-bold text-white">Appointment Schedule</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className="text-xl font-black text-gray-900">Today's Schedule</h2>
+          <p className="text-sm text-gray-500 font-medium">
             {patients.length === 0
               ? 'Paste patient data to get started'
-              : `${patients.length} patient(s) • Sorted by ${sortBy === 'time' ? 'appointment time' : sortBy === 'name' ? 'name' : 'custom order'}`}
+              : `${patients.length} patient(s) • Sorted by ${sortBy === 'time' ? 'time' : sortBy === 'name' ? 'name' : 'custom'}`}
           </p>
-          {patients.length > 0 && (
-            <div className="space-y-2 mt-2">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-500">Status:</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-emerald-500/30 border-l-2 border-emerald-500 rounded-sm"></div>
-                  <span className="text-xs text-slate-400">New Patient</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-blue-500/30 border-l-2 border-blue-500 rounded-sm"></div>
-                  <span className="text-xs text-slate-400">Recheck</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-purple-500/30 border-l-2 border-purple-500 rounded-sm"></div>
-                  <span className="text-xs text-slate-400">MRI Drop Off</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-500">Highlights:</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-yellow-500/30 border-l-2 border-yellow-500 rounded-sm"></div>
-                  <span className="text-xs text-slate-400">Priority</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-red-500/30 border-l-2 border-red-500 rounded-sm"></div>
-                  <span className="text-xs text-slate-400">Urgent</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 bg-green-500/30 border-l-2 border-green-500 rounded-sm"></div>
-                  <span className="text-xs text-slate-400">Completed</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => handleSort('time')}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-2"
-            title="Sort by time"
+            className="px-3 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900"
+            style={{ backgroundColor: 'white', border: NEO_BORDER }}
           >
             <Clock size={14} />
-            Sort by Time
+            Time
           </button>
           <button
             onClick={() => handleSort('name')}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-2"
-            title="Sort by name"
+            className="px-3 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900"
+            style={{ backgroundColor: 'white', border: NEO_BORDER }}
           >
             <User size={14} />
-            Sort by Name
+            Name
           </button>
           <button
             onClick={handleExportPrint}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-2"
+            className="px-3 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900 disabled:opacity-50"
+            style={{ backgroundColor: 'white', border: NEO_BORDER }}
             disabled={patients.length === 0}
           >
             <Printer size={14} />
@@ -499,7 +449,8 @@ export function AppointmentSchedule() {
           </button>
           <button
             onClick={handleExportJSON}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-medium transition flex items-center gap-2"
+            className="px-3 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900 disabled:opacity-50"
+            style={{ backgroundColor: 'white', border: NEO_BORDER }}
             disabled={patients.length === 0}
           >
             <Download size={14} />
@@ -508,22 +459,26 @@ export function AppointmentSchedule() {
           {patients.length > 0 && (
             <button
               onClick={handleClearAll}
-              className="px-3 py-1.5 bg-red-900/20 hover:bg-red-900/30 text-red-400 rounded-lg text-xs font-medium transition"
+              className="px-3 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900"
+              style={{ backgroundColor: COLORS.pink, border: NEO_BORDER }}
             >
-              Clear All
+              <Trash2 size={14} />
+              Clear
             </button>
           )}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-2"
+            className="px-4 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900 disabled:opacity-50"
+            style={{ backgroundColor: COLORS.lavender, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
             disabled={isProcessing}
           >
             <Camera size={16} />
-            {isProcessing ? 'Processing...' : 'Parse Screenshot'}
+            {isProcessing ? 'Processing...' : 'Screenshot'}
           </button>
           <button
             onClick={() => setShowPasteModal(true)}
-            className="px-4 py-1.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-2"
+            className="px-4 py-2 rounded-xl text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 text-gray-900"
+            style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
           >
             <Plus size={16} />
             Add Patients
@@ -540,34 +495,46 @@ export function AppointmentSchedule() {
 
       {/* Table */}
       {patients.length === 0 ? (
-        <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-12 text-center">
-          <div className="text-6xl mb-4">📋</div>
-          <p className="text-slate-400 text-lg mb-4">No patients yet</p>
+        <div
+          className="rounded-2xl p-12 text-center"
+          style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+        >
+          <div
+            className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center text-4xl"
+            style={{ backgroundColor: COLORS.lavender, border: NEO_BORDER }}
+          >
+            📋
+          </div>
+          <p className="text-gray-500 text-lg mb-4 font-bold">No patients yet</p>
           <button
             onClick={() => setShowPasteModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg font-bold transition"
+            className="px-6 py-3 rounded-xl font-bold transition hover:-translate-y-0.5 text-gray-900"
+            style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
           >
             Paste Patient Data to Get Started
           </button>
         </div>
       ) : (
-        <div className="bg-slate-900/60 border border-slate-700/50 rounded-2xl">
-          <div className="w-full">
-            <table className="w-full text-left">
-              <thead className="bg-slate-800/50 border-b border-slate-700">
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+        >
+          <div className="w-full overflow-x-auto">
+            <table className="w-full text-left bg-white">
+              <thead style={{ backgroundColor: COLORS.mint }}>
                 <tr>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '30px' }}></th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '90px' }}>Time</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '150px' }}>Patient</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '80px' }}>Age</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Why Here Today</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '150px' }}>Last Visit</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>MRI</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Bloodwork</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '250px' }}>Medications</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Changes</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '200px' }}>Other/Misc</th>
-                  <th className="px-2 py-3 text-xs font-bold text-slate-400 border-r border-slate-700/30" style={{ width: '50px' }}></th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '30px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}></th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '90px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Time</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '150px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Patient</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '80px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Age</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '200px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Why Here Today</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '150px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Last Visit</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '200px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>MRI</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '200px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Bloodwork</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '250px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Medications</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '200px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Changes</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '200px', borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Other/Misc</th>
+                  <th className="px-2 py-3 text-xs font-bold text-gray-900" style={{ width: '50px', borderBottom: NEO_BORDER }}></th>
                 </tr>
               </thead>
               <tbody>

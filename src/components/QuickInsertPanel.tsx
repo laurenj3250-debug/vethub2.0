@@ -5,6 +5,16 @@ import { Pencil, Plus, X, Check, Trash2, RotateCcw } from 'lucide-react';
 import { useQuickInsert } from '@/hooks/use-quick-insert';
 import { quickInsertCategories } from '@/data/quick-insert-library';
 
+// Neo-pop styling constants
+const NEO_BORDER = '2px solid #000';
+const NEO_SHADOW_SM = '4px 4px 0 #000';
+const COLORS = {
+  lavender: '#DCC4F5',
+  mint: '#B8E6D4',
+  pink: '#FFBDBD',
+  cream: '#FFF8F0',
+};
+
 interface QuickInsertPanelProps {
   field: 'therapeutics' | 'diagnostics' | 'concerns';
   onInsert: (text: string) => void;
@@ -81,32 +91,35 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
   };
 
   return (
-    <div className="w-full bg-slate-800/95 backdrop-blur rounded border border-slate-700 p-2 mb-2 shadow-xl">
+    <div
+      className="w-full rounded-xl p-3 mb-2"
+      style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
+    >
       {/* Header with Edit Toggle */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex gap-1">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex gap-2">
           {quickInsertCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
-              className={`
-                px-3 py-1 text-xs font-medium rounded transition-colors
-                ${activeCategory === cat.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                }
-              `}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:-translate-y-0.5`}
+              style={{
+                backgroundColor: activeCategory === cat.id ? COLORS.lavender : '#E5E7EB',
+                border: NEO_BORDER,
+                boxShadow: activeCategory === cat.id ? '2px 2px 0 #000' : 'none',
+              }}
             >
               <span className="mr-1">{cat.icon}</span>
               {cat.label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {editMode && (
             <button
               onClick={handleReset}
-              className="p-1 text-slate-400 hover:text-orange-400 transition"
+              className="p-1.5 rounded-lg text-gray-600 hover:text-orange-600 transition"
+              style={{ border: '1px solid #ccc' }}
               title="Reset to defaults"
             >
               <RotateCcw size={14} />
@@ -118,44 +131,62 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
               setEditingId(null);
               setShowAddForm(false);
             }}
-            className={`p-1 rounded transition ${editMode ? 'text-emerald-400 bg-emerald-900/30' : 'text-slate-400 hover:text-white'}`}
+            className="p-1.5 rounded-lg transition"
+            style={{
+              backgroundColor: editMode ? COLORS.mint : 'white',
+              border: NEO_BORDER,
+            }}
             title={editMode ? 'Done editing' : 'Edit phrases'}
           >
-            <Pencil size={14} />
+            <Pencil size={14} className={editMode ? 'text-gray-900' : 'text-gray-600'} />
           </button>
         </div>
       </div>
 
       {/* Quick-Insert Buttons */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-2">
         {items.length === 0 && !showAddForm ? (
-          <p className="text-xs text-slate-400 italic">
+          <p className="text-xs text-gray-500 italic">
             No phrases for this category. {editMode && 'Click + to add one.'}
           </p>
         ) : (
           items.map((item) => (
             editingId === item.id ? (
               // Edit form for this item
-              <div key={item.id} className="flex items-center gap-1 bg-slate-900 rounded p-1 border border-emerald-500/50">
+              <div
+                key={item.id}
+                className="flex items-center gap-2 rounded-lg p-2"
+                style={{ backgroundColor: COLORS.cream, border: NEO_BORDER }}
+              >
                 <input
                   type="text"
                   value={editLabel}
                   onChange={(e) => setEditLabel(e.target.value)}
                   placeholder="Label"
-                  className="w-20 px-2 py-1 text-xs bg-slate-800 text-white rounded border border-slate-600 focus:outline-none focus:border-emerald-500"
+                  className="w-20 px-2 py-1 text-xs rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+                  style={{ border: '1px solid #000', backgroundColor: 'white' }}
                 />
                 <input
                   type="text"
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
                   placeholder="Text to insert"
-                  className="w-40 px-2 py-1 text-xs bg-slate-800 text-white rounded border border-slate-600 focus:outline-none focus:border-emerald-500"
+                  className="w-40 px-2 py-1 text-xs rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+                  style={{ border: '1px solid #000', backgroundColor: 'white' }}
                 />
-                <button onClick={saveEdit} className="p-1 text-emerald-400 hover:text-emerald-300">
-                  <Check size={14} />
+                <button
+                  onClick={saveEdit}
+                  className="p-1 rounded-lg transition"
+                  style={{ backgroundColor: COLORS.mint, border: '1px solid #000' }}
+                >
+                  <Check size={14} className="text-gray-900" />
                 </button>
-                <button onClick={cancelEdit} className="p-1 text-slate-400 hover:text-white">
-                  <X size={14} />
+                <button
+                  onClick={cancelEdit}
+                  className="p-1 rounded-lg transition"
+                  style={{ backgroundColor: COLORS.pink, border: '1px solid #000' }}
+                >
+                  <X size={14} className="text-gray-900" />
                 </button>
               </div>
             ) : (
@@ -163,29 +194,27 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
               <div key={item.id} className="relative group">
                 <button
                   onClick={() => handleInsert(item.text)}
-                  className={`
-                    px-2 py-1 text-xs font-medium
-                    bg-slate-700 hover:bg-slate-600
-                    text-slate-200 hover:text-white
-                    rounded border border-slate-600
-                    transition-colors whitespace-nowrap
-                    ${editMode ? 'pr-12' : ''}
-                  `}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:-translate-y-0.5 whitespace-nowrap ${editMode ? 'pr-14' : ''}`}
+                  style={{
+                    backgroundColor: '#F3F4F6',
+                    border: '1px solid #000',
+                    boxShadow: '2px 2px 0 #000',
+                  }}
                   title={item.text}
                 >
                   {item.label}
                 </button>
                 {editMode && (
-                  <div className="absolute right-0 top-0 h-full flex items-center gap-0.5 pr-1">
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                       onClick={() => startEdit(item.id, item.label, item.text)}
-                      className="p-0.5 text-slate-400 hover:text-emerald-400"
+                      className="p-0.5 text-gray-500 hover:text-gray-900"
                     >
                       <Pencil size={10} />
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="p-0.5 text-slate-400 hover:text-red-400"
+                      className="p-0.5 text-gray-500 hover:text-red-600"
                     >
                       <Trash2 size={10} />
                     </button>
@@ -200,7 +229,8 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
         {editMode && !showAddForm && (
           <button
             onClick={() => setShowAddForm(true)}
-            className="px-2 py-1 text-xs font-medium bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-400 rounded border border-emerald-500/50 transition flex items-center gap-1"
+            className="px-3 py-1.5 text-xs font-bold rounded-lg transition-all hover:-translate-y-0.5 flex items-center gap-1"
+            style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '2px 2px 0 #000' }}
           >
             <Plus size={12} />
             Add
@@ -209,13 +239,17 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
 
         {/* Add form */}
         {showAddForm && (
-          <div className="flex items-center gap-1 bg-slate-900 rounded p-1 border border-emerald-500/50">
+          <div
+            className="flex items-center gap-2 rounded-lg p-2"
+            style={{ backgroundColor: COLORS.cream, border: NEO_BORDER }}
+          >
             <input
               type="text"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="Label"
-              className="w-20 px-2 py-1 text-xs bg-slate-800 text-white rounded border border-slate-600 focus:outline-none focus:border-emerald-500"
+              className="w-20 px-2 py-1 text-xs rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+              style={{ border: '1px solid #000', backgroundColor: 'white' }}
               autoFocus
             />
             <input
@@ -223,14 +257,16 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
               placeholder="Text to insert"
-              className="w-40 px-2 py-1 text-xs bg-slate-800 text-white rounded border border-slate-600 focus:outline-none focus:border-emerald-500"
+              className="w-40 px-2 py-1 text-xs rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
+              style={{ border: '1px solid #000', backgroundColor: 'white' }}
             />
             <button
               onClick={handleAdd}
               disabled={!newLabel.trim() || !newText.trim()}
-              className="p-1 text-emerald-400 hover:text-emerald-300 disabled:text-slate-600"
+              className="p-1 rounded-lg transition disabled:opacity-50"
+              style={{ backgroundColor: COLORS.mint, border: '1px solid #000' }}
             >
-              <Check size={14} />
+              <Check size={14} className="text-gray-900" />
             </button>
             <button
               onClick={() => {
@@ -238,9 +274,10 @@ export function QuickInsertPanel({ field, onInsert }: QuickInsertPanelProps) {
                 setNewLabel('');
                 setNewText('');
               }}
-              className="p-1 text-slate-400 hover:text-white"
+              className="p-1 rounded-lg transition"
+              style={{ backgroundColor: COLORS.pink, border: '1px solid #000' }}
             >
-              <X size={14} />
+              <X size={14} className="text-gray-900" />
             </button>
           </div>
         )}
