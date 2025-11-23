@@ -167,14 +167,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
-    // Update editing data immediately
-    setEditingData(prev => ({
-      ...prev,
-      [patientId]: {
-        ...getPatientData(patientId),
-        [field]: value
-      }
-    }));
+    // Update editing data immediately - use prev state to avoid stale closure bug
+    setEditingData(prev => {
+      const patient = patients.find(p => p.id === patientId);
+      const savedData = (patient as any)?.roundingData || patient?.rounding_data || {};
+      const existingEdits = prev[patientId] || {};
+
+      return {
+        ...prev,
+        [patientId]: {
+          ...savedData,      // Start with saved data from API
+          ...existingEdits,  // Layer on any existing local edits
+          [field]: value     // Apply the new value on top
+        }
+      };
+    });
 
     // Remove field from auto-filled set (user manually edited it)
     setAutoFilledFields(prev => {
@@ -287,13 +294,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       }
     });
 
-    setEditingData(prev => ({
-      ...prev,
-      [patientId]: {
-        ...getPatientData(patientId),
-        ...updates
-      }
-    }));
+    // Merge with existing data - use prev state to avoid stale closure bug
+    setEditingData(prev => {
+      const patient = patients.find(p => p.id === patientId);
+      const savedData = (patient as any)?.roundingData || patient?.rounding_data || {};
+      const existingEdits = prev[patientId] || {};
+
+      return {
+        ...prev,
+        [patientId]: {
+          ...savedData,      // Start with saved data from API
+          ...existingEdits,  // Layer on any existing local edits
+          ...updates         // Apply the pasted values on top
+        }
+      };
+    });
 
     const fieldCount = Object.keys(updates).length;
     const dropdownFields = ['location', 'icuCriteria', 'code', 'ivc', 'fluids', 'cri'];
