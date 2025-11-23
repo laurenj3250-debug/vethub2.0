@@ -2045,7 +2045,7 @@ export default function VetHub() {
       </svg>
 
       <header
-        className="relative sticky top-0 z-10 bg-white"
+        className="relative sticky top-0 z-50 bg-white"
         style={{ borderBottom: NEO_BORDER }}
       >
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
