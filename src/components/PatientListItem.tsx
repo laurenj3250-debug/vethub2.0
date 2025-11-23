@@ -78,7 +78,7 @@ export function PatientListItem({
 
   return (
     <div
-      className={`rounded-2xl transition-all ${patient.status === 'Discharged' ? 'opacity-60' : ''}`}
+      className={`rounded-2xl transition-all overflow-hidden ${patient.status === 'Discharged' ? 'opacity-60' : ''}`}
       style={{
         border: NEO_BORDER,
         boxShadow: isSelected ? `0 0 0 3px ${COLORS.mint}, ${NEO_SHADOW_SM}` : NEO_SHADOW_SM,
@@ -89,7 +89,7 @@ export function PatientListItem({
       <div
         className="pl-3 pr-4 py-3 flex items-center gap-3 cursor-pointer transition hover:-translate-y-0.5"
         onClick={onToggleExpand}
-        style={{ backgroundColor: isSelected ? `${COLORS.mint}20` : 'white', borderRadius: isExpanded ? '14px 14px 0 0' : '14px' }}
+        style={{ backgroundColor: isSelected ? `${COLORS.mint}20` : 'white' }}
       >
         {/* Checkbox + Priority grouped together */}
         <div className="flex items-center gap-2 pr-2" style={{ borderRight: '1.5px solid #E5E7EB' }}>
