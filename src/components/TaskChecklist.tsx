@@ -118,32 +118,24 @@ export function TaskChecklist({
     return { done, total: taskPatients.length };
   };
 
-  // Filter and sort task names (worst completion % first)
+  // Filter task names - keep stable order (alphabetical), don't re-sort on completion
   const visibleTaskNames = useMemo(() => {
-    let filtered = taskNames;
-
-    if (hideCompleted) {
-      filtered = taskNames.filter(taskName => {
-        // Check if any patient has this task incomplete
-        const hasIncomplete = patients.some(patient => {
-          const task = patientTaskMap[taskName]?.[patient.id];
-          return task && !task.completed;
-        });
-        // Check general tasks
-        const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
-        const generalIncomplete = generalTask && !generalTask.completed;
-
-        return hasIncomplete || generalIncomplete;
-      });
+    if (!hideCompleted) {
+      return taskNames; // Already alphabetically sorted
     }
 
-    // Sort by completion % (lowest first = most urgent)
-    return filtered.sort((a, b) => {
-      const statsA = getTaskStats(a);
-      const statsB = getTaskStats(b);
-      const pctA = statsA.total > 0 ? statsA.done / statsA.total : 1;
-      const pctB = statsB.total > 0 ? statsB.done / statsB.total : 1;
-      return pctA - pctB;
+    // Filter out fully completed tasks, but keep order stable
+    return taskNames.filter(taskName => {
+      // Check if any patient has this task incomplete
+      const hasIncomplete = patients.some(patient => {
+        const task = patientTaskMap[taskName]?.[patient.id];
+        return task && !task.completed;
+      });
+      // Check general tasks
+      const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
+      const generalIncomplete = generalTask && !generalTask.completed;
+
+      return hasIncomplete || generalIncomplete;
     });
   }, [taskNames, hideCompleted, patients, patientTaskMap, generalTasks]);
 
