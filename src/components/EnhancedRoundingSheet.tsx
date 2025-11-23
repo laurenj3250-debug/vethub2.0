@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain, ExternalLink } from 'lucide-react';
+import { Copy, ChevronDown, FileSpreadsheet, FileText, Zap, CheckCircle2, AlertCircle, Sparkles, Plus, Edit2, Trash2, Save, X, Brain, ExternalLink, Droplet } from 'lucide-react';
 // TEMPORARILY COMMENTED OUT TO DEBUG - import { THERAPEUTIC_SNIPPETS, DIAGNOSTIC_SNIPPETS, CONCERN_SNIPPETS, type NeuroProtocol } from '@/lib/neuro-protocols';
 import type { NeuroProtocol } from '@/lib/neuro-protocols';
 import { apiClient } from '@/lib/api-client';
+import { analyzeBloodWorkLocal } from '@/lib/bloodwork';
 
 // Helper to render markdown-style bold text (**text** -> <strong>text</strong>)
 const renderMarkdown = (text: string | null) => {
@@ -553,58 +554,6 @@ export function EnhancedRoundingSheet({
   // Select fields that only accept specific values
   const SELECT_FIELDS = new Set(['ivc', 'fluids', 'cri']);
 
-  // Handle paste from spreadsheet (tab-separated values)
-  const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, currentField: string) => {
-    const pastedText = e.clipboardData.getData('text');
-
-    // Only handle if pasting into a supported field
-    const currentFieldIndex = ALL_FIELD_ORDER.indexOf(currentField);
-    if (currentFieldIndex === -1) {
-      return; // Let default paste happen for fields not in our list
-    }
-
-    // Check if pasted content contains tabs (multi-cell paste from spreadsheet)
-    if (pastedText.includes('\t')) {
-      e.preventDefault();
-
-      // Handle first row only (ignore multi-row pastes for now)
-      const firstRow = pastedText.split('\n')[0];
-      const values = firstRow.split('\t');
-
-      // Apply values starting from current field, following the actual column order
-      const updates: { field: string; value: string }[] = [];
-
-      for (let i = 0; i < values.length; i++) {
-        const targetFieldIndex = currentFieldIndex + i;
-        if (targetFieldIndex < ALL_FIELD_ORDER.length) {
-          const targetField = ALL_FIELD_ORDER[targetFieldIndex];
-          const value = values[i].trim();
-
-          // Skip select fields - they need specific dropdown values
-          if (SELECT_FIELDS.has(targetField)) {
-            continue;
-          }
-
-          // Include even empty values for textarea fields to maintain alignment
-          updates.push({ field: targetField, value });
-        }
-      }
-
-      // Apply all updates using direct updateField to avoid debounce race conditions
-      updates.forEach(({ field, value }) => {
-        updateField(patientId, field, value);
-      });
-
-      if (updates.length > 1) {
-        toast({
-          title: '📋 Pasted across columns',
-          description: `Applied ${updates.length} values from clipboard`,
-        });
-      }
-    }
-    // If no tabs, let default paste behavior happen
-  }, [updateField, toast]);
-
   // Update field with API call
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
@@ -648,6 +597,103 @@ export function EnhancedRoundingSheet({
       });
     }
   }, [patients, onPatientUpdate, toast]);
+
+  // Magic paste: analyze bloodwork from clipboard and extract abnormals
+  const handleMagicPaste = useCallback(async (patientId: number) => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) {
+        toast({
+          title: 'Clipboard empty',
+          description: 'Copy bloodwork data first, then click 🩸',
+        });
+        return;
+      }
+
+      toast({ title: '🔬 Analyzing bloodwork...', description: 'Extracting abnormal values' });
+
+      const result = analyzeBloodWorkLocal({ bloodWorkText: text });
+
+      if (result.abnormalValues.length === 0) {
+        toast({ title: 'No abnormals found', description: 'All values within normal range or format not recognized' });
+        return;
+      }
+
+      // Format as "value1, value2, ..."
+      const abnormalString = result.abnormalValues.join(', ');
+
+      // Get current diagnostics and append
+      const patient = patients.find(p => p.id === patientId);
+      const currentDx = patient?.roundingData?.diagnosticFindings || '';
+      const newDx = currentDx ? `${currentDx}\n${abnormalString}` : abnormalString;
+
+      await updateField(patientId, 'diagnosticFindings', newDx);
+
+      toast({
+        title: '✅ Bloodwork analyzed!',
+        description: `Found ${result.abnormalValues.length} abnormal values`,
+      });
+    } catch (error) {
+      console.error('Magic paste failed:', error);
+      toast({
+        title: 'Paste failed',
+        description: 'Could not read clipboard. Try Ctrl+V in the field instead.',
+        variant: 'destructive',
+      });
+    }
+  }, [patients, updateField, toast]);
+
+  // Handle paste from spreadsheet (tab-separated values)
+  const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, currentField: string) => {
+    const pastedText = e.clipboardData.getData('text');
+
+    // Only handle if pasting into a supported field
+    const currentFieldIndex = ALL_FIELD_ORDER.indexOf(currentField);
+    if (currentFieldIndex === -1) {
+      return; // Let default paste happen for fields not in our list
+    }
+
+    // Check if pasted content contains tabs (multi-cell paste from spreadsheet)
+    if (pastedText.includes('\t')) {
+      e.preventDefault();
+
+      // Handle first row only (ignore multi-row pastes for now)
+      const firstRow = pastedText.split('\n')[0];
+      const values = firstRow.split('\t');
+
+      // Apply values starting from current field, following the actual column order
+      const updates: { field: string; value: string }[] = [];
+
+      for (let i = 0; i < values.length; i++) {
+        const targetFieldIndex = currentFieldIndex + i;
+        if (targetFieldIndex < ALL_FIELD_ORDER.length) {
+          const targetField = ALL_FIELD_ORDER[targetFieldIndex];
+          const value = values[i].trim();
+
+          // Skip select fields - they need specific dropdown values
+          if (SELECT_FIELDS.has(targetField)) {
+            continue;
+          }
+
+          // Include even empty values for textarea fields to maintain alignment
+          updates.push({ field: targetField, value });
+        }
+      }
+
+      // Apply all updates
+      updates.forEach(({ field, value }) => {
+        updateField(patientId, field, value);
+      });
+
+      if (updates.length > 1) {
+        toast({
+          title: '📋 Pasted across columns',
+          description: `Applied ${updates.length} values from clipboard`,
+        });
+      }
+    }
+    // If no tabs, let default paste behavior happen
+  }, [updateField, toast]);
 
   // Handle text expansion
   const handleTextExpansion = useCallback((patientId: number, field: string, value: string, event?: React.KeyboardEvent) => {
@@ -1212,15 +1258,26 @@ export function EnhancedRoundingSheet({
 
                   {/* Diagnostics */}
                   <td className="p-2">
-                    <textarea
-                      value={getFieldValue(patient.id, 'diagnosticFindings')}
-                      onChange={(e) => updateFieldDebounced(patient.id, 'diagnosticFindings', e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, patient.id, 'diagnosticFindings')}
-                      onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
-                      placeholder="Diagnostic findings..."
-                      className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
-                      rows={5}
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={getFieldValue(patient.id, 'diagnosticFindings')}
+                        onChange={(e) => updateFieldDebounced(patient.id, 'diagnosticFindings', e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, patient.id, 'diagnosticFindings')}
+                        onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
+                        placeholder="Diagnostic findings..."
+                        className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 pr-8 text-white text-xs resize-y min-h-[90px] transition-all"
+                        rows={5}
+                      />
+                      {/* Magic paste button for bloodwork */}
+                      <button
+                        type="button"
+                        onClick={() => handleMagicPaste(patient.id)}
+                        className="absolute top-1 right-1 p-1 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded transition-all"
+                        title="Paste bloodwork from clipboard - extracts abnormal values (copy lab results first, then click)"
+                      >
+                        🩸
+                      </button>
+                    </div>
                   </td>
 
                   {/* Therapeutics */}
