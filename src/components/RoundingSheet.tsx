@@ -81,33 +81,15 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     };
   }, [saveTimers]);
 
-  console.log('[RoundingSheet] Received patients:', patients?.length);
-
   const activePatients = patients.filter(p => p.status !== 'Discharged');
-
-  console.log('[RoundingSheet] Active patients:', activePatients.length);
-
-  // Log roundingData for each patient to debug vanishing data issue
-  if (activePatients.length > 0) {
-    console.log('[RoundingSheet] Patient roundingData summary:');
-    activePatients.forEach(p => {
-      const rd = (p as any)?.roundingData || p?.rounding_data;
-      console.log(`  - ${(p as any)?.demographics?.name || p.name}: roundingData=${rd ? 'EXISTS' : 'MISSING'}`,
-        rd ? `code=${rd.code}, problems=${rd.problems?.slice(0,30)}...` : '');
-    });
-  }
 
   // Auto-Fill & Carry-Forward: Pre-fill rounding data from demographics and yesterday's data
   // Runs once when patients are actually loaded (not when empty)
   useEffect(() => {
     // Only run once when we have actual patients loaded
     if (autoFillInitialized.current) return;
-    if (activePatients.length === 0) {
-      console.log('[RoundingSheet] Auto-fill waiting for patients to load...');
-      return;  // Wait until patients are loaded
-    }
+    if (activePatients.length === 0) return;  // Wait until patients are loaded
     autoFillInitialized.current = true;
-    console.log('[RoundingSheet] Running auto-fill for', activePatients.length, 'patients');
 
     const newCarryForwardResults: Record<number, CarryForwardResult> = {};
     const newEditingData: Record<number, RoundingData> = {};
@@ -174,25 +156,14 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     };
   }, [editingData]);
 
-  // Initialize editing data from patient rounding data
+  // Get rounding data for a patient - prioritizes local edits over saved data
   const getPatientData = (patientId: number): RoundingData => {
-    // Debug: Log what's happening
-    const hasEditingData = !!editingData[patientId];
+    // If user has edited this patient locally, use that data
+    if (editingData[patientId]) return editingData[patientId];
+
+    // Otherwise, use the saved data from API (camelCase) or legacy format (snake_case)
     const patient = patients.find(p => p.id === patientId);
-    const patientRoundingData = (patient as any)?.roundingData || patient?.rounding_data;
-
-    // Only log first time or when something is wrong
-    if (!patientRoundingData && patient) {
-      console.warn(`[getPatientData] Patient ${patientId} missing roundingData!`, {
-        hasEditingData,
-        patientKeys: patient ? Object.keys(patient) : [],
-        patientRoundingData
-      });
-    }
-
-    if (hasEditingData) return editingData[patientId];
-    // API returns roundingData (camelCase), not rounding_data (snake_case)
-    return patientRoundingData || {};
+    return (patient as any)?.roundingData || patient?.rounding_data || {};
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
