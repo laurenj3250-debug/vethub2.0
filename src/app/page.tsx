@@ -2060,12 +2060,9 @@ export default function VetHub() {
             >
               🧠
             </div>
-            <div>
-              <h1 className="text-2xl font-black text-gray-900">
-                VetHub
-              </h1>
-              <p className="text-xs text-gray-500 font-medium">{user.email}</p>
-            </div>
+            <h1 className="text-2xl font-black text-gray-900">
+              VetHub
+            </h1>
           </div>
 
           <div className="flex items-center gap-3">
@@ -2932,21 +2929,8 @@ export default function VetHub() {
           <span>Add Patient</span>
         </button>
 
-        {/* Dashboard Stats removed */}
-
-        {/* Search & Sort */}
-        <div className="flex gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search patients..."
-              className="w-full pl-12 pr-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
-              style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-            />
-          </div>
+        {/* Sort & View Controls */}
+        <div className="flex gap-3 justify-end">
           <div className="flex items-center gap-2">
             <span className="text-gray-600 text-sm font-bold whitespace-nowrap">Sort:</span>
             <select
@@ -3053,35 +3037,21 @@ export default function VetHub() {
 
         {/* Batch Add Tasks - Above Patient Cards */}
         {filteredPatients.length > 0 && !taskStats.allComplete && (
-          <div
-            className="rounded-2xl p-3"
-            style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-          >
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <span className="text-lg">⚡</span>
-                <div>
-                  <h3 className="text-gray-900 font-bold text-sm">Batch Add Daily Tasks</h3>
-                  <p className="text-gray-500 text-xs font-medium">Add tasks to all active patients at once</p>
-                </div>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => handleBatchAddAllCategoryTasks('morning')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold hover:-translate-y-0.5 transition-transform text-gray-900"
-                  style={{ backgroundColor: '#FFBDBD', border: '2px solid #000' }}
-                >
-                  + Morning Tasks
-                </button>
-                <button
-                  onClick={() => handleBatchAddAllCategoryTasks('evening')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold hover:-translate-y-0.5 transition-transform text-gray-900"
-                  style={{ backgroundColor: '#DCC4F5', border: '2px solid #000' }}
-                >
-                  + Evening Tasks
-                </button>
-              </div>
-            </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => handleBatchAddAllCategoryTasks('morning')}
+              className="px-4 py-2 rounded-xl text-sm font-bold hover:-translate-y-0.5 transition-transform text-gray-900"
+              style={{ backgroundColor: '#FFBDBD', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
+            >
+              + Morning Tasks
+            </button>
+            <button
+              onClick={() => handleBatchAddAllCategoryTasks('evening')}
+              className="px-4 py-2 rounded-xl text-sm font-bold hover:-translate-y-0.5 transition-transform text-gray-900"
+              style={{ backgroundColor: '#DCC4F5', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
+            >
+              + Evening Tasks
+            </button>
           </div>
         )}
 
