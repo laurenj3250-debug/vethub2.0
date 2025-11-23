@@ -149,13 +149,20 @@ export async function POST(request: Request) {
             // Create new patient
             console.log(`[VetRadar API] Creating new patient: ${patient.demographics.name}`);
 
+            // Set default rounding data with location=IP and icuCriteria=N/A
+            const defaultRoundingData = {
+              location: 'IP',
+              icuCriteria: 'N/A',
+              ...(patient.roundingData as any || {}),
+            };
+
             const created = await prisma.patient.create({
               data: {
                 status: patient.status || 'Active',
                 demographics: patient.demographics,
                 medicalHistory: patient.medicalHistory || {},
                 currentStay: patient.currentStay,
-                roundingData: patient.roundingData as any,
+                roundingData: defaultRoundingData,
                 mriData: patient.mriData as any,
                 stickerData: patient.stickerData as any,
                 appointmentInfo: patient.appointmentInfo,

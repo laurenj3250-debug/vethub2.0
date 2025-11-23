@@ -121,6 +121,12 @@ export async function PATCH(
 
     const body = await request.json();
 
+    // Get existing patient data to merge JSON fields properly
+    const existingPatient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { roundingData: true, mriData: true },
+    });
+
     // Prepare update data
     updateData = {};
 
@@ -129,8 +135,25 @@ export async function PATCH(
     if (body.demographics !== undefined) updateData.demographics = body.demographics;
     if (body.medicalHistory !== undefined) updateData.medicalHistory = body.medicalHistory;
     if (body.currentStay !== undefined) updateData.currentStay = body.currentStay;
-    if (body.roundingData !== undefined) updateData.roundingData = body.roundingData;
-    if (body.mriData !== undefined) updateData.mriData = body.mriData;
+
+    // Deep merge roundingData to preserve existing fields
+    if (body.roundingData !== undefined) {
+      const existingRounding = (existingPatient?.roundingData as any) || {};
+      updateData.roundingData = {
+        ...existingRounding,
+        ...body.roundingData,
+      };
+    }
+
+    // Deep merge mriData to preserve existing fields
+    if (body.mriData !== undefined) {
+      const existingMri = (existingPatient?.mriData as any) || {};
+      updateData.mriData = {
+        ...existingMri,
+        ...body.mriData,
+      };
+    }
+
     if (body.stickerData !== undefined) updateData.stickerData = body.stickerData;
     if (body.appointmentInfo !== undefined) updateData.appointmentInfo = body.appointmentInfo;
     if (body.lastAccessedBy !== undefined) updateData.lastAccessedBy = body.lastAccessedBy;

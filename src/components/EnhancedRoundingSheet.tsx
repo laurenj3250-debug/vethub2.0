@@ -541,6 +541,59 @@ export function EnhancedRoundingSheet({
     }
   }, [showProtocolSelector, copyRoundingSheetLine, textExpansions, handleTextExpansion, updateFieldDebounced, selectedPatients, toast]);
 
+  // Field order for paste operations - only textarea fields that support multi-cell paste
+  // Skip select fields (ivc, fluids, cri) as they need specific values
+  const TEXTAREA_FIELD_ORDER = [
+    'problems', 'diagnosticFindings', 'therapeutics',
+    'overnightDx', 'concerns', 'comments'
+  ];
+
+  // Handle paste from spreadsheet (tab-separated values)
+  const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, currentField: string) => {
+    const pastedText = e.clipboardData.getData('text');
+
+    // Only handle if pasting into a supported textarea field
+    const currentFieldIndex = TEXTAREA_FIELD_ORDER.indexOf(currentField);
+    if (currentFieldIndex === -1) {
+      return; // Let default paste happen for non-textarea fields
+    }
+
+    // Check if pasted content contains tabs (multi-cell paste from spreadsheet)
+    if (pastedText.includes('\t')) {
+      e.preventDefault();
+
+      // Handle first row only (ignore multi-row pastes for now)
+      const firstRow = pastedText.split('\n')[0];
+      const values = firstRow.split('\t');
+
+      // Apply values starting from current field
+      const updates: { field: string; value: string }[] = [];
+
+      for (let i = 0; i < values.length; i++) {
+        const targetFieldIndex = currentFieldIndex + i;
+        if (targetFieldIndex < TEXTAREA_FIELD_ORDER.length) {
+          const targetField = TEXTAREA_FIELD_ORDER[targetFieldIndex];
+          const value = values[i].trim();
+          // Include even empty values to maintain alignment
+          updates.push({ field: targetField, value });
+        }
+      }
+
+      // Apply all updates using direct updateField to avoid debounce race conditions
+      updates.forEach(({ field, value }) => {
+        updateField(patientId, field, value);
+      });
+
+      if (updates.length > 1) {
+        toast({
+          title: '📋 Pasted across columns',
+          description: `Applied ${updates.length} values from clipboard`,
+        });
+      }
+    }
+    // If no tabs, let default paste behavior happen
+  }, [updateField, toast]);
+
   // Update field with API call
   const updateField = useCallback(async (patientId: number, field: string, value: any) => {
     const patient = patients.find(p => p.id === patientId);
@@ -1138,6 +1191,7 @@ export function EnhancedRoundingSheet({
                         value={getFieldValue(patient.id, 'problems')}
                         onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
+                        onPaste={(e) => handlePaste(e, patient.id, 'problems')}
                         placeholder="List of problems..."
                         className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                         rows={3}
@@ -1151,6 +1205,7 @@ export function EnhancedRoundingSheet({
                       value={getFieldValue(patient.id, 'diagnosticFindings')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'diagnosticFindings', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'diagnosticFindings')}
+                      onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
                       placeholder="Diagnostic findings..."
                       className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-emerald-500 focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
                       rows={5}
@@ -1163,6 +1218,7 @@ export function EnhancedRoundingSheet({
                       value={getFieldValue(patient.id, 'therapeutics')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'therapeutics', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'therapeutics')}
+                      onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
                       placeholder="Type shortcuts: lev, pheno, gaba, pred..."
                       className="w-full min-w-[200px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-green-500 focus:border-green-400 focus:ring-1 focus:ring-green-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[90px] transition-all"
                       rows={5}
@@ -1224,6 +1280,7 @@ export function EnhancedRoundingSheet({
                       value={getFieldValue(patient.id, 'overnightDx')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'overnightDx', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'overnightDx')}
+                      onPaste={(e) => handlePaste(e, patient.id, 'overnightDx')}
                       placeholder="Overnight plan..."
                       className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-violet-500 focus:border-violet-400 focus:ring-1 focus:ring-violet-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                       rows={3}
@@ -1236,6 +1293,7 @@ export function EnhancedRoundingSheet({
                       value={getFieldValue(patient.id, 'concerns')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'concerns', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'concerns')}
+                      onPaste={(e) => handlePaste(e, patient.id, 'concerns')}
                       placeholder="Concerns..."
                       className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-rose-500 focus:border-rose-400 focus:ring-1 focus:ring-rose-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                       rows={3}
@@ -1248,6 +1306,7 @@ export function EnhancedRoundingSheet({
                       value={getFieldValue(patient.id, 'comments')}
                       onChange={(e) => updateFieldDebounced(patient.id, 'comments', e.target.value)}
                       onKeyDown={(e) => handleKeyDown(e, patient.id, 'comments')}
+                      onPaste={(e) => handlePaste(e, patient.id, 'comments')}
                       placeholder="Additional comments..."
                       className="w-full min-w-[150px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-amber-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
                       rows={3}
@@ -1262,9 +1321,9 @@ export function EnhancedRoundingSheet({
 
       {/* Keyboard shortcuts help */}
       <div className="mt-3 text-xs text-slate-400 flex gap-4 border-t border-slate-700/50 pt-2 flex-wrap">
+        <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+V</kbd> Paste across columns</div>
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+Enter</kbd> Copy row</div>
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+D</kbd> Duplicate field to selected</div>
-        <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Ctrl+P</kbd> Quick fill menu</div>
         <div><kbd className="px-1 py-0.5 bg-slate-700 rounded">Tab</kbd> Next field</div>
       </div>
 

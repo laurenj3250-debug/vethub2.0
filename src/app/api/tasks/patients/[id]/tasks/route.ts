@@ -136,10 +136,13 @@ export async function PATCH(
     const resolvedParams = await params;
 
     // Extract taskId from the URL path
+    // URL: /api/tasks/patients/[id]/tasks/[taskId]
+    // Segments: ['', 'api', 'tasks', 'patients', '123', 'tasks', 'taskId']
     const url = new URL(request.url);
     const pathSegments = url.pathname.split('/');
-    const taskIdIndex = pathSegments.indexOf('tasks') + 1;
-    const taskId = pathSegments[taskIdIndex];
+    // Find the LAST 'tasks' in the path (not the first one which is the API prefix)
+    const lastTasksIndex = pathSegments.lastIndexOf('tasks');
+    const taskId = pathSegments[lastTasksIndex + 1];
 
     if (!taskId) {
       return NextResponse.json(
@@ -211,10 +214,13 @@ export async function DELETE(
     const resolvedParams = await params;
 
     // Extract taskId from the URL path
+    // URL: /api/tasks/patients/[id]/tasks/[taskId]
+    // Segments: ['', 'api', 'tasks', 'patients', '123', 'tasks', 'taskId']
     const url = new URL(request.url);
     const pathSegments = url.pathname.split('/');
-    const taskIdIndex = pathSegments.indexOf('tasks') + 1;
-    const taskId = pathSegments[taskIdIndex];
+    // Find the LAST 'tasks' in the path (not the first one which is the API prefix)
+    const lastTasksIndex = pathSegments.lastIndexOf('tasks');
+    const taskId = pathSegments[lastTasksIndex + 1];
 
     if (!taskId) {
       return NextResponse.json(

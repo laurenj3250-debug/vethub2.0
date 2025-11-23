@@ -9,7 +9,7 @@ export interface QuickInsertItem {
   label: string; // Button text
   text: string; // Text to insert into field
   category: 'surgery' | 'seizures' | 'other';
-  field: 'therapeutics' | 'diagnostics' | 'concerns'; // Which field this inserts into
+  field: 'therapeutics' | 'diagnostics' | 'concerns' | 'problems'; // Which field this inserts into
   frequency?: number; // Usage tracking (for learning)
 }
 
@@ -46,16 +46,9 @@ export const quickInsertLibrary: QuickInsertItem[] = [
     field: 'therapeutics',
   },
   {
-    id: 'pred-5',
-    label: 'Pred 5mg',
-    text: 'Prednisone 5mg PO',
-    category: 'surgery',
-    field: 'therapeutics',
-  },
-  {
-    id: 'pred-10',
-    label: 'Pred 10mg',
-    text: 'Prednisone 10mg PO',
+    id: 'pred',
+    label: 'Pred',
+    text: 'Prednisone PO',
     category: 'surgery',
     field: 'therapeutics',
   },
@@ -100,6 +93,64 @@ export const quickInsertLibrary: QuickInsertItem[] = [
     text: 'Amantadine 100mg PO',
     category: 'surgery',
     field: 'therapeutics',
+  },
+  {
+    id: 'fentanyl-cri',
+    label: 'Fentanyl CRI',
+    text: 'Fentanyl CRI 2-5mcg/kg/hr',
+    category: 'surgery',
+    field: 'therapeutics',
+  },
+  {
+    id: 'ketamine-cri',
+    label: 'Ketamine CRI',
+    text: 'Ketamine CRI 0.1-0.5mg/kg/hr',
+    category: 'surgery',
+    field: 'therapeutics',
+  },
+
+  // SURGERY - Problems
+  {
+    id: 'cervical-myelopathy',
+    label: 'Cervical Myelopathy',
+    text: 'Cervical myelopathy',
+    category: 'surgery',
+    field: 'problems',
+  },
+  {
+    id: 'tl-pain',
+    label: 'TL Pain',
+    text: 'TL pain',
+    category: 'surgery',
+    field: 'problems',
+  },
+  {
+    id: 'ls-pain',
+    label: 'LS Pain',
+    text: 'LS pain',
+    category: 'surgery',
+    field: 'problems',
+  },
+  {
+    id: 'plegic',
+    label: 'Plegic',
+    text: 'Plegic',
+    category: 'surgery',
+    field: 'problems',
+  },
+  {
+    id: 'vestibular',
+    label: 'Vestibular',
+    text: 'Vestibular',
+    category: 'surgery',
+    field: 'problems',
+  },
+  {
+    id: 'seizures-problem',
+    label: 'Seizures',
+    text: 'Seizures',
+    category: 'surgery',
+    field: 'problems',
   },
 
   // SURGERY - Diagnostics
@@ -325,7 +376,7 @@ export const quickInsertLibrary: QuickInsertItem[] = [
  */
 export function getQuickInsertItems(
   category: 'surgery' | 'seizures' | 'other',
-  field: 'therapeutics' | 'diagnostics' | 'concerns'
+  field: 'therapeutics' | 'diagnostics' | 'concerns' | 'problems'
 ): QuickInsertItem[] {
   return quickInsertLibrary.filter(
     (item) => item.category === category && item.field === field

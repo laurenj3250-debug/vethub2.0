@@ -88,6 +88,13 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const patientType = body.type || 'Medical';
 
+    // Set default rounding data with location=IP and icuCriteria=N/A
+    const defaultRoundingData = {
+      location: 'IP',
+      icuCriteria: 'N/A',
+      ...(body.roundingData || {}),
+    };
+
     const patient = await prisma.patient.create({
       data: {
         status: body.status || 'Active',
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
         demographics: body.demographics || { name: 'Unnamed Patient' },
         medicalHistory: body.medicalHistory || {},
         currentStay: body.currentStay || undefined,
-        roundingData: body.roundingData || undefined,
+        roundingData: defaultRoundingData,
         mriData: body.mriData || undefined,
         stickerData: body.stickerData || undefined,
         appointmentInfo: body.appointmentInfo || undefined,
