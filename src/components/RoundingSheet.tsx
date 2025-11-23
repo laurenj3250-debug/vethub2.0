@@ -54,6 +54,27 @@ interface RoundingSheetProps {
   onPatientUpdate?: () => void;
 }
 
+/**
+ * Pure function to merge rounding data from multiple sources.
+ * Prevents code duplication and ensures consistent merge behavior.
+ *
+ * Merge priority (lowest to highest):
+ * 1. savedData - Data from API (baseline)
+ * 2. existingEdits - User's unsaved edits from this session
+ * 3. updates - New changes being applied
+ */
+function mergePatientRoundingData(
+  savedData: RoundingData,
+  existingEdits: RoundingData,
+  updates: Partial<RoundingData>
+): RoundingData {
+  return {
+    ...savedData,
+    ...existingEdits,
+    ...updates,
+  };
+}
+
 export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
   const [editingData, setEditingData] = useState<Record<number, RoundingData>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -175,11 +196,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
       return {
         ...prev,
-        [patientId]: {
-          ...savedData,      // Start with saved data from API
-          ...existingEdits,  // Layer on any existing local edits
-          [field]: value     // Apply the new value on top
-        }
+        [patientId]: mergePatientRoundingData(savedData, existingEdits, { [field]: value }),
       };
     });
 
@@ -302,11 +319,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
       return {
         ...prev,
-        [patientId]: {
-          ...savedData,      // Start with saved data from API
-          ...existingEdits,  // Layer on any existing local edits
-          ...updates         // Apply the pasted values on top
-        }
+        [patientId]: mergePatientRoundingData(savedData, existingEdits, updates),
       };
     });
 
@@ -318,7 +331,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       title: 'Pasted',
       description: `Pasted ${fieldCount} field${fieldCount > 1 ? 's' : ''}${pastedDropdowns > 0 ? ` (${pastedDropdowns} dropdown${pastedDropdowns > 1 ? 's' : ''} matched)` : ''}`
     });
-  }, [toast]);
+  }, [patients, toast]);
 
   const autoSave = useCallback(async (patientId: number) => {
     try {
@@ -665,8 +678,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               const data = getPatientData(patient.id);
               const hasChanges = editingData[patient.id] !== undefined;
               const carryForward = carryForwardResults[patient.id];
-
-              console.log('[RoundingSheet] Rendering patient:', patient.id, patient.name, patient);
 
               // API returns demographics.name, not patient.name or patient_info.name
               const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;

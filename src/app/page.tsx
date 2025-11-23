@@ -69,6 +69,7 @@ export default function VetHub() {
 
   // Debounced input state for MRI Schedule
   const [mriInputValues, setMriInputValues] = useState<Record<string, string>>({});
+  const [mriSaveStatus, setMriSaveStatus] = useState<Record<string, 'saving' | 'saved' | 'error'>>({});
   const mriTimeoutRefs = useRef<Record<string, NodeJS.Timeout>>({});
 
   // Hide completed tasks toggle - default to TRUE (auto-hide completed)
@@ -927,7 +928,13 @@ export default function VetHub() {
   };
 
   // Debounced update for MRI Schedule inputs (prevents slowness)
-  const debouncedMRIUpdate = useCallback((patientId: number, field: string, value: string, updateFn: () => Promise<void>) => {
+  // Fixed: Looks up fresh patient data inside timeout to avoid stale closures
+  const debouncedMRIUpdate = useCallback((
+    patientId: number,
+    field: string,
+    value: string,
+    dataType: 'demographics' | 'mriData'
+  ) => {
     const key = `${patientId}-${field}`;
 
     // Update local state immediately for responsive UI
@@ -941,12 +948,41 @@ export default function VetHub() {
     // Set new timeout to save after 800ms of no typing
     mriTimeoutRefs.current[key] = setTimeout(async () => {
       try {
-        await updateFn();
+        // Show saving indicator
+        setMriSaveStatus(prev => ({ ...prev, [key]: 'saving' }));
+
+        // Look up FRESH patient data at save time (not stale closure)
+        const freshPatient = patients.find(p => p.id === patientId);
+        const freshData = dataType === 'mriData'
+          ? (freshPatient?.mriData || {})
+          : (freshPatient?.demographics || {});
+
+        const updated = { ...freshData, [field]: value };
+        await apiClient.updatePatient(String(patientId), { [dataType]: updated });
+
+        // Show saved indicator briefly
+        setMriSaveStatus(prev => ({ ...prev, [key]: 'saved' }));
+        setTimeout(() => {
+          setMriSaveStatus(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+        }, 2000);
       } catch (error) {
         console.error('Failed to update:', error);
+        setMriSaveStatus(prev => ({ ...prev, [key]: 'error' }));
+        // Clear error after 3 seconds
+        setTimeout(() => {
+          setMriSaveStatus(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+          });
+        }, 3000);
       }
     }, 800);
-  }, []);
+  }, [patients]); // ← patients in deps to get fresh data
 
   const handleSaveRoundingData = async () => {
     if (!roundingSheetPatient) return;
@@ -2011,6 +2047,7 @@ export default function VetHub() {
     mint: '#B8E6D4',
     pink: '#FFBDBD',
     cream: '#FFF8F0',
+    teal: '#6BB89D', // Used for focus rings and accents
   };
 
   return (
@@ -2788,96 +2825,120 @@ export default function VetHub() {
           </div>
         )}
 
-        {/* MRI Schedule View */}
+        {/* MRI Schedule View - Neo-pop styled */}
         {showMRISchedule && (
-          <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Brain className="text-emerald-400" />
+          <div
+            className="rounded-2xl p-4"
+            style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                <Brain style={{ color: NEO_COLORS.teal }} />
                 MRI Schedule
               </h2>
               <button
                 onClick={handleExportMRISchedule}
-                className="px-3 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white rounded-lg font-bold hover:scale-105 transition-transform text-sm"
+                className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2"
+                style={{ backgroundColor: NEO_COLORS.lavender, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
               >
-                📋 Copy to Clipboard
+                <Copy size={16} />
+                Copy to Clipboard
               </button>
             </div>
-            <div className="overflow-x-auto max-h-[70vh]">
+            <div className="overflow-x-auto max-h-[70vh] rounded-xl" style={{ border: NEO_BORDER }}>
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-slate-800 z-10">
-                  <tr className="border-b-2 border-emerald-500">
-                    <th className="text-left p-2 text-emerald-400 font-bold">Name</th>
-                    <th className="text-left p-2 text-cyan-400 font-bold">Patient ID</th>
-                    <th className="text-left p-2 text-emerald-400 font-bold">Weight (kg)</th>
-                    <th className="text-left p-2 text-pink-400 font-bold">Scan Type</th>
-                    <th className="text-left p-2 text-slate-400 font-bold">Actions</th>
+                <thead className="sticky top-0 z-10" style={{ backgroundColor: NEO_COLORS.mint }}>
+                  <tr style={{ borderBottom: NEO_BORDER }}>
+                    <th className="text-left p-3 text-gray-900 font-bold">Name</th>
+                    <th className="text-left p-3 text-gray-900 font-bold">Patient ID</th>
+                    <th className="text-left p-3 text-gray-900 font-bold">Weight (kg)</th>
+                    <th className="text-left p-3 text-gray-900 font-bold">Scan Type</th>
+                    <th className="text-left p-3 text-gray-900 font-bold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').map((patient, idx) => {
-                    const mriData = patient.mriData || {};
+                    // Helper to render save status indicator
+                    const renderSaveStatus = (field: string) => {
+                      const status = mriSaveStatus[`${patient.id}-${field}`];
+                      if (!status) return null;
+                      return (
+                        <span className={`ml-2 text-xs font-bold ${
+                          status === 'saving' ? 'text-amber-500' :
+                          status === 'saved' ? 'text-green-600' :
+                          'text-red-500'
+                        }`}>
+                          {status === 'saving' ? '...' : status === 'saved' ? '✓' : '✗'}
+                        </span>
+                      );
+                    };
+
                     return (
-                      <tr key={patient.id} className={`border-b border-slate-700/30 hover:bg-slate-700/50 ${idx % 2 === 0 ? 'bg-slate-900/30' : 'bg-slate-800/30'}`}>
-                        <td className="p-2">
+                      <tr
+                        key={patient.id}
+                        className={`hover:bg-[${NEO_COLORS.mint}]/30 transition`}
+                        style={{
+                          backgroundColor: idx % 2 === 0 ? 'white' : NEO_COLORS.cream,
+                          borderBottom: '1px solid #e5e7eb'
+                        }}
+                      >
+                        <td className="p-3">
                           <button
-                            onClick={() => {
-                              setRoundingSheetPatient(patient.id);
-                            }}
-                            className="text-white font-medium hover:text-cyan-400 transition cursor-pointer underline decoration-dotted"
+                            onClick={() => setRoundingSheetPatient(patient.id)}
+                            className="text-gray-900 font-bold transition cursor-pointer"
+                            style={{ color: 'inherit' }}
+                            onMouseOver={(e) => e.currentTarget.style.color = NEO_COLORS.teal}
+                            onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}
                           >
                             {patient.demographics?.name || patient.name || 'Unnamed'}
                           </button>
                         </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={mriInputValues[`${patient.id}-patientId`] ?? (patient.demographics?.patientId || patient.demographics?.patientId || '')}
-                            onChange={(e) => {
-                              debouncedMRIUpdate(patient.id, 'patientId', e.target.value, async () => {
-                                const updatedInfo = { ...(patient.demographics || patient.demographics || {}), patientId: e.target.value };
-                                await apiClient.updatePatient(String(patient.id), { demographics: updatedInfo });
-                              });
-                            }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
-                          />
+                        <td className="p-3">
+                          <div className="flex items-center">
+                            <input
+                              type="text"
+                              value={mriInputValues[`${patient.id}-patientId`] ?? (patient.demographics?.patientId || '')}
+                              onChange={(e) => debouncedMRIUpdate(patient.id, 'patientId', e.target.value, 'demographics')}
+                              className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2"
+                              style={{ border: '1px solid #000', backgroundColor: 'white', '--tw-ring-color': NEO_COLORS.teal } as any}
+                            />
+                            {renderSaveStatus('patientId')}
+                          </div>
                         </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={mriInputValues[`${patient.id}-weight`] ?? ((patient.demographics?.weight || patient.demographics?.weight || '').toString().replace(/[^\d.]/g, ''))}
-                            onChange={(e) => {
-                              debouncedMRIUpdate(patient.id, 'weight', e.target.value, async () => {
-                                const updatedInfo = { ...(patient.demographics || patient.demographics || {}), weight: e.target.value };
-                                await apiClient.updatePatient(String(patient.id), { demographics: updatedInfo });
-                              });
-                            }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
-                            placeholder="kg"
-                          />
+                        <td className="p-3">
+                          <div className="flex items-center">
+                            <input
+                              type="text"
+                              value={mriInputValues[`${patient.id}-weight`] ?? ((patient.demographics?.weight || '').toString().replace(/[^\d.]/g, ''))}
+                              onChange={(e) => debouncedMRIUpdate(patient.id, 'weight', e.target.value, 'demographics')}
+                              className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2"
+                              style={{ border: '1px solid #000', backgroundColor: 'white', '--tw-ring-color': NEO_COLORS.teal } as any}
+                              placeholder="kg"
+                            />
+                            {renderSaveStatus('weight')}
+                          </div>
                         </td>
-                        <td className="p-2">
-                          <input
-                            type="text"
-                            value={mriInputValues[`${patient.id}-scanType`] ?? (mriData.scanType || '')}
-                            onChange={(e) => {
-                              debouncedMRIUpdate(patient.id, 'scanType', e.target.value, async () => {
-                                const updatedMRI = { ...mriData, scanType: e.target.value };
-                                await apiClient.updatePatient(String(patient.id), { mriData: updatedMRI });
-                                refetch();
-                              });
-                            }}
-                            className="w-full bg-slate-900/50 border border-slate-700 rounded px-2 py-1 text-white text-sm"
-                            placeholder="Brain, LS, C-Spine..."
-                          />
+                        <td className="p-3">
+                          <div className="flex items-center">
+                            <input
+                              type="text"
+                              value={mriInputValues[`${patient.id}-scanType`] ?? (patient.mriData?.scanType || '')}
+                              onChange={(e) => debouncedMRIUpdate(patient.id, 'scanType', e.target.value, 'mriData')}
+                              className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2"
+                              style={{ border: '1px solid #000', backgroundColor: 'white', '--tw-ring-color': NEO_COLORS.teal } as any}
+                              placeholder="Brain, LS, C-Spine..."
+                            />
+                            {renderSaveStatus('scanType')}
+                          </div>
                         </td>
-                        <td className="p-2">
+                        <td className="p-3">
                           <button
                             onClick={() => handleCopySingleMRILine(patient.id)}
-                            className="p-1.5 rounded hover:bg-slate-700 transition-colors"
+                            className="p-2 rounded-lg transition hover:-translate-y-0.5"
+                            style={{ backgroundColor: NEO_COLORS.lavender, border: '1px solid #000' }}
                             title="Copy this patient's MRI line"
                           >
-                            <Copy className="w-4 h-4 text-slate-400" />
+                            <Copy className="w-4 h-4 text-gray-900" />
                           </button>
                         </td>
                       </tr>
@@ -2887,8 +2948,12 @@ export default function VetHub() {
               </table>
             </div>
             {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').length === 0 && (
-              <div className="text-center py-8 text-slate-400">
-                No MRI patients with 'New Admit' status
+              <div
+                className="text-center py-8 mt-4 rounded-xl"
+                style={{ backgroundColor: NEO_COLORS.cream, border: NEO_BORDER }}
+              >
+                <div className="text-4xl mb-2">🧠</div>
+                <p className="text-gray-500 font-bold">No MRI patients with 'New Admit' status</p>
               </div>
             )}
           </div>
