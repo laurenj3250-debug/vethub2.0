@@ -2200,7 +2200,7 @@ export default function VetHub() {
         </div>
       </header>
 
-      <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6 z-10">
+      <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
         {/* Task Checklist - Always Visible */}
         <TaskChecklist
           patients={filteredPatients}
