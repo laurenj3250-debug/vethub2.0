@@ -125,6 +125,20 @@ export const quickInsertLibrary: QuickInsertItem[] = [
     field: 'diagnostics',
   },
   {
+    id: 'cxr-normal',
+    label: 'CXR: NORMAL',
+    text: 'CXR: NORMAL',
+    category: 'surgery',
+    field: 'diagnostics',
+  },
+  {
+    id: 'cxr-pending',
+    label: 'CXR: PENDING',
+    text: 'CXR: PENDING',
+    category: 'surgery',
+    field: 'diagnostics',
+  },
+  {
     id: 'bladder-palp',
     label: 'Bladder Palp',
     text: 'Bladder palpation q6-8h',
