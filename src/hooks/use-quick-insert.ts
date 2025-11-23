@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { quickInsertLibrary, type QuickInsertItem } from '@/data/quick-insert-library';
 
 const STORAGE_KEY = 'vethub-quick-insert-items';
+const VERSION_KEY = 'vethub-quick-insert-version';
+const CURRENT_VERSION = 2; // Increment when adding new items to library
 
 /**
  * Hook for managing editable quick-insert phrases
@@ -13,13 +15,33 @@ export function useQuickInsert() {
   const [items, setItems] = useState<QuickInsertItem[]>(quickInsertLibrary);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount, with version migration
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setItems(parsed);
+      const storedVersion = localStorage.getItem(VERSION_KEY);
+      const currentStoredVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
+
+      // If version changed, merge new library items with user's custom items
+      if (currentStoredVersion < CURRENT_VERSION) {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as QuickInsertItem[];
+          // Keep user's custom items (id starts with 'custom-')
+          const customItems = parsed.filter(item => item.id.startsWith('custom-'));
+          // Use all new library items + user's custom items
+          const mergedItems = [...quickInsertLibrary, ...customItems];
+          setItems(mergedItems);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedItems));
+        }
+        // Update version
+        localStorage.setItem(VERSION_KEY, String(CURRENT_VERSION));
+      } else {
+        // Same version, just load stored items
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setItems(parsed);
+        }
       }
     } catch (e) {
       console.error('Failed to load quick-insert items:', e);
@@ -41,7 +63,7 @@ export function useQuickInsert() {
   // Get items by category and field
   const getItems = useCallback((
     category: 'surgery' | 'seizures' | 'other',
-    field: 'therapeutics' | 'diagnostics' | 'concerns'
+    field: 'therapeutics' | 'diagnostics' | 'concerns' | 'problems'
   ) => {
     return items.filter(item => item.category === category && item.field === field);
   }, [items]);

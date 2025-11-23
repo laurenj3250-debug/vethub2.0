@@ -16,7 +16,7 @@ const COLORS = {
 };
 
 interface QuickInsertPanelProps {
-  field: 'therapeutics' | 'diagnostics' | 'concerns';
+  field: 'therapeutics' | 'diagnostics' | 'concerns' | 'problems';
   onInsert: (text: string) => void;
 }
 
