@@ -61,6 +61,7 @@ export function TaskChecklist({
   const [newTaskName, setNewTaskName] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [hideCompleted, setHideCompleted] = useState(true);
+  const [viewMode, setViewMode] = useState<'task' | 'patient'>('task');
 
   const getPatientName = (patient: Patient) =>
     patient.demographics?.name || patient.name || 'Unnamed';
@@ -187,127 +188,310 @@ export function TaskChecklist({
             {stats.completed}/{stats.total}
           </span>
         </div>
-        <button
-          onClick={() => setHideCompleted(!hideCompleted)}
-          className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5"
-          style={{
-            backgroundColor: hideCompleted ? COLORS.lavender : 'white',
-            border: '2px solid #2D3436',
-          }}
-        >
-          {hideCompleted ? 'show done' : 'hide done'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex rounded-full overflow-hidden" style={{ border: '2px solid #2D3436' }}>
+            <button
+              onClick={() => setViewMode('task')}
+              className="px-3 py-1.5 text-xs font-bold transition"
+              style={{
+                backgroundColor: viewMode === 'task' ? COLORS.lavender : 'white',
+              }}
+            >
+              By Task
+            </button>
+            <button
+              onClick={() => setViewMode('patient')}
+              className="px-3 py-1.5 text-xs font-bold transition"
+              style={{
+                backgroundColor: viewMode === 'patient' ? COLORS.lavender : 'white',
+                borderLeft: '2px solid #2D3436',
+              }}
+            >
+              By Patient
+            </button>
+          </div>
+          <button
+            onClick={() => setHideCompleted(!hideCompleted)}
+            className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5"
+            style={{
+              backgroundColor: hideCompleted ? COLORS.lavender : 'white',
+              border: '2px solid #2D3436',
+            }}
+          >
+            {hideCompleted ? 'show done' : 'hide done'}
+          </button>
+        </div>
       </div>
 
-      {/* 3-Column Card Grid */}
-      {visibleTaskNames.length > 0 ? (
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-white">
-          {visibleTaskNames.map((taskName, index) => {
-            const generalTask = getGeneralTask(taskName);
-            const isGeneral = !!generalTask;
-            const taskPatients = patients.filter(p => patientTaskMap[taskName]?.[p.id]);
-            const doneCount = isGeneral
-              ? (generalTask?.completed ? 1 : 0)
-              : taskPatients.filter(p => patientTaskMap[taskName][p.id]?.completed).length;
-            const totalCount = isGeneral ? 1 : taskPatients.length;
+      {/* Task View - Group by Task */}
+      {viewMode === 'task' && (
+        visibleTaskNames.length > 0 ? (
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-white">
+            {visibleTaskNames.map((taskName, index) => {
+              const generalTask = getGeneralTask(taskName);
+              const isGeneral = !!generalTask;
+              const taskPatients = patients.filter(p => patientTaskMap[taskName]?.[p.id]);
+              const doneCount = isGeneral
+                ? (generalTask?.completed ? 1 : 0)
+                : taskPatients.filter(p => patientTaskMap[taskName][p.id]?.completed).length;
+              const totalCount = isGeneral ? 1 : taskPatients.length;
 
-            const colorIndex = index % 3;
-            const cardBg = cardColors[colorIndex];
-            const borderColor = CARD_BORDERS[colorNames[colorIndex]];
+              const colorIndex = index % 3;
+              const cardBg = cardColors[colorIndex];
 
-            return (
-              <div
-                key={taskName}
-                className="p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 cursor-pointer relative overflow-hidden"
-                style={{
-                  background: `linear-gradient(180deg, ${cardBg} 0%, ${cardBg}E6 100%)`,
-                  border: NEO_BORDER,
-                  boxShadow: NEO_SHADOW_SM,
-                }}
-              >
-                {/* Subtle noise texture */}
+              return (
                 <div
-                  className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                  key={taskName}
+                  className="p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 cursor-pointer relative overflow-hidden"
                   style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                    background: `linear-gradient(180deg, ${cardBg} 0%, ${cardBg}E6 100%)`,
+                    border: NEO_BORDER,
+                    boxShadow: NEO_SHADOW_SM,
                   }}
-                />
+                >
+                  {/* Subtle noise texture */}
+                  <div
+                    className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                    }}
+                  />
 
-                <div className="relative z-10">
-                  {/* Task Header */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-bold text-gray-900 truncate">{taskName}</span>
-                    {totalCount > 0 && (
+                  <div className="relative z-10">
+                    {/* Task Header */}
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-gray-900 truncate">{taskName}</span>
+                      {totalCount > 0 && (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
+                          style={{ border: '1.5px solid #2D3436' }}
+                        >
+                          {doneCount}/{totalCount}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Patient Chips */}
+                    <div className="flex flex-wrap gap-2">
+                      {isGeneral ? (
+                        <button
+                          onClick={() => onToggleGeneralTask(generalTask!.id, generalTask!.completed)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                            generalTask!.completed
+                              ? 'opacity-60'
+                              : ''
+                          }`}
+                          style={{
+                            backgroundColor: 'white',
+                            border: '1.5px solid #2D3436',
+                          }}
+                        >
+                          {generalTask!.completed ? '✓' : '○ General'}
+                        </button>
+                      ) : (
+                        taskPatients.map(patient => {
+                          const task = patientTaskMap[taskName][patient.id];
+                          return (
+                            <button
+                              key={patient.id}
+                              onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                              className={`${
+                                task.completed
+                                  ? 'w-8 h-8 rounded-full p-0 flex items-center justify-center opacity-60'
+                                  : 'px-3 py-1.5 rounded-lg'
+                              } text-xs font-bold transition hover:-translate-y-0.5`}
+                              style={{
+                                backgroundColor: 'white',
+                                border: '1.5px solid #2D3436',
+                              }}
+                            >
+                              {task.completed ? '✓' : getFirstName(patient)}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-8 text-center bg-white">
+            {stats.total > 0 && stats.completed === stats.total ? (
+              <>
+                <div
+                  className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl"
+                  style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
+                >
+                  ✓
+                </div>
+                <p className="font-bold text-gray-900">All done!</p>
+              </>
+            ) : (
+              <p className="text-gray-500 font-medium">No tasks yet</p>
+            )}
+          </div>
+        )
+      )}
+
+      {/* Patient View - Group by Patient */}
+      {viewMode === 'patient' && (
+        (() => {
+          // Get patients with tasks (filtered if hideCompleted)
+          const patientsWithTasks = patients.filter(patient => {
+            const patientTasks = patient.tasks || [];
+            if (hideCompleted) {
+              return patientTasks.some(t => !t.completed);
+            }
+            return patientTasks.length > 0;
+          });
+
+          // Also include general tasks section if any exist
+          const visibleGeneralTasks = hideCompleted
+            ? generalTasks.filter(t => !t.completed)
+            : generalTasks;
+
+          const hasContent = patientsWithTasks.length > 0 || visibleGeneralTasks.length > 0;
+
+          if (!hasContent) {
+            return (
+              <div className="p-8 text-center bg-white">
+                {stats.total > 0 && stats.completed === stats.total ? (
+                  <>
+                    <div
+                      className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl"
+                      style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
+                    >
+                      ✓
+                    </div>
+                    <p className="font-bold text-gray-900">All done!</p>
+                  </>
+                ) : (
+                  <p className="text-gray-500 font-medium">No tasks yet</p>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-white">
+              {/* General Tasks Card */}
+              {visibleGeneralTasks.length > 0 && (
+                <div
+                  className="p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 relative overflow-hidden"
+                  style={{
+                    background: `linear-gradient(180deg, ${COLORS.cream} 0%, ${COLORS.cream}E6 100%)`,
+                    border: NEO_BORDER,
+                    boxShadow: NEO_SHADOW_SM,
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                    }}
+                  />
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-bold text-gray-900">General</span>
                       <span
                         className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
                         style={{ border: '1.5px solid #2D3436' }}
                       >
-                        {doneCount}/{totalCount}
+                        {generalTasks.filter(t => t.completed).length}/{generalTasks.length}
                       </span>
-                    )}
+                    </div>
+                    <div className="space-y-2">
+                      {(hideCompleted ? visibleGeneralTasks : generalTasks).map(task => (
+                        <button
+                          key={task.id}
+                          onClick={() => onToggleGeneralTask(task.id, task.completed)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 ${
+                            task.completed ? 'opacity-60' : ''
+                          }`}
+                          style={{
+                            backgroundColor: 'white',
+                            border: '1.5px solid #2D3436',
+                          }}
+                        >
+                          <span className={task.completed ? 'line-through' : ''}>
+                            {task.completed ? '✓' : '○'} {task.title || task.name}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                </div>
+              )}
 
-                  {/* Patient Chips */}
-                  <div className="flex flex-wrap gap-2">
-                    {isGeneral ? (
-                      <button
-                        onClick={() => onToggleGeneralTask(generalTask!.id, generalTask!.completed)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                          generalTask!.completed
-                            ? 'opacity-60'
-                            : ''
-                        }`}
-                        style={{
-                          backgroundColor: 'white',
-                          border: '1.5px solid #2D3436',
-                        }}
-                      >
-                        {generalTask!.completed ? '✓' : '○ General'}
-                      </button>
-                    ) : (
-                      taskPatients.map(patient => {
-                        const task = patientTaskMap[taskName][patient.id];
-                        return (
+              {/* Patient Cards */}
+              {patientsWithTasks.map((patient, index) => {
+                const patientTasks = patient.tasks || [];
+                const visibleTasks = hideCompleted
+                  ? patientTasks.filter(t => !t.completed)
+                  : patientTasks;
+                const doneCount = patientTasks.filter(t => t.completed).length;
+
+                const colorIndex = (visibleGeneralTasks.length > 0 ? index + 1 : index) % 3;
+                const cardBg = cardColors[colorIndex];
+
+                return (
+                  <div
+                    key={patient.id}
+                    className="p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(180deg, ${cardBg} 0%, ${cardBg}E6 100%)`,
+                      border: NEO_BORDER,
+                      boxShadow: NEO_SHADOW_SM,
+                    }}
+                  >
+                    <div
+                      className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+                      }}
+                    />
+                    <div className="relative z-10">
+                      {/* Patient Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-bold text-gray-900 truncate">{getPatientName(patient)}</span>
+                        <span
+                          className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
+                          style={{ border: '1.5px solid #2D3436' }}
+                        >
+                          {doneCount}/{patientTasks.length}
+                        </span>
+                      </div>
+
+                      {/* Task List */}
+                      <div className="space-y-2">
+                        {visibleTasks.map(task => (
                           <button
-                            key={patient.id}
+                            key={task.id}
                             onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                            className={`${
-                              task.completed
-                                ? 'w-8 h-8 rounded-full p-0 flex items-center justify-center opacity-60'
-                                : 'px-3 py-1.5 rounded-lg'
-                            } text-xs font-bold transition hover:-translate-y-0.5`}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 ${
+                              task.completed ? 'opacity-60' : ''
+                            }`}
                             style={{
                               backgroundColor: 'white',
                               border: '1.5px solid #2D3436',
                             }}
                           >
-                            {task.completed ? '✓' : getFirstName(patient)}
+                            <span className={task.completed ? 'line-through' : ''}>
+                              {task.completed ? '✓' : '○'} {task.title || task.name}
+                            </span>
                           </button>
-                        );
-                      })
-                    )}
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="p-8 text-center bg-white">
-          {stats.total > 0 && stats.completed === stats.total ? (
-            <>
-              <div
-                className="w-16 h-16 rounded-full mx-auto mb-3 flex items-center justify-center text-2xl"
-                style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
-              >
-                ✓
-              </div>
-              <p className="font-bold text-gray-900">All done!</p>
-            </>
-          ) : (
-            <p className="text-gray-500 font-medium">No tasks yet</p>
-          )}
-        </div>
+                );
+              })}
+            </div>
+          );
+        })()
       )}
 
       {/* Quick Add */}
