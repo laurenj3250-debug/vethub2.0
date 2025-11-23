@@ -55,48 +55,64 @@ const CANINE_RANGES: Record<string, { min: number; max: number; aliases: string[
  */
 export function analyzeBloodWorkLocal(input: AnalyzeBloodWorkInput): AnalyzeBloodWorkOutput {
   const text = input.bloodWorkText || '';
-  const lines = text.split('\n').map(line => line.trim());
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   const abnormalValues: string[] = [];
 
-  // Regex to identify a line with a test result and its reference range.
-  // It looks for a label, a result, an optional unit, and then the low/high range.
-  // It handles numbers with commas.
-  const tableRowRegex = /^(?:\*\s*)?([\w\s.\-%/]+?)\s+([\d,.]+(?:\s?K\/µL)?)\s+[\w/µLdL%]+\s+([\d,.]*)\s+([\d,.]*)/;
-  // A simpler regex for lines that just have `TEST  VALUE`
-  const simpleValueRegex = /^\s*([a-zA-Z\s]+)\s+([\d,.]+)\s*$/;
+  console.log(`[Bloodwork] Parsing ${lines.length} lines`);
 
-  for (const line of lines) {
-    const match = line.match(tableRowRegex);
-    if (match) {
-      try {
+  // Multiple regex patterns to handle different lab formats
+  // Pattern 1: Standard IDEXX table: "Test  Result  Unit  Low  High"
+  const tableRowRegex = /^(?:\*\s*)?([\w\s.\-%/]+?)\s+([\d,.]+(?:\s?K\/µL)?)\s+[\w/µLdL%]+\s+([\d,.]*)\s+([\d,.]*)/;
+
+  // Pattern 2: Tab-separated: "Test\tResult\tUnit\tLow\tHigh" or "Test\tResult\tLow-High"
+  const tabSeparatedRegex = /^(?:\*\s*)?([\w\s.\-%/]+?)\t+([\d,.]+)\t+[\w/µLdL%]*\t*([\d,.]+)[\s\-–]+([\d,.]+)/;
+
+  // Pattern 3: Result with range in parentheses: "HCT 45.2 % (37.3-61.7)"
+  const parenRangeRegex = /^(?:\*\s*)?([\w\s.\-%/]+?)\s+([\d,.]+)\s*[\w/µLdL%]*\s*\(([\d,.]+)\s*[-–]\s*([\d,.]+)\)/;
+  // Helper to try parsing a line with multiple patterns
+  const tryParseLine = (line: string): { testName: string; result: number; low: number; high: number } | null => {
+    // Try each pattern
+    const patterns = [tableRowRegex, tabSeparatedRegex, parenRangeRegex];
+
+    for (const pattern of patterns) {
+      const match = line.match(pattern);
+      if (match) {
         const testName = match[1].trim().replace(/\*/g, '').trim();
         const resultStr = match[2].split(' ')[0].replace(/,/g, '');
         const lowStr = match[3].replace(/,/g, '');
         const highStr = match[4].replace(/,/g, '');
 
-        // Skip if we don't have a valid result and range
-        if (!resultStr || !lowStr || !highStr) {
-          continue;
-        }
+        if (!resultStr || !lowStr || !highStr) continue;
 
         const result = parseFloat(resultStr);
         const low = parseFloat(lowStr);
         const high = parseFloat(highStr);
 
-        if (isNaN(result) || isNaN(low) || isNaN(high)) {
-          continue;
-        }
+        if (isNaN(result) || isNaN(low) || isNaN(high)) continue;
+
+        return { testName, result, low, high };
+      }
+    }
+    return null;
+  };
+
+  for (const line of lines) {
+    try {
+      const parsed = tryParseLine(line);
+      if (parsed) {
+        const { testName, result, low, high } = parsed;
 
         if (result < low || result > high) {
           const direction = result < low ? '↓' : '↑';
           // Use a concise name, up to the first two words
           const conciseName = testName.split(/\s+/).slice(0, 2).join(' ');
           abnormalValues.push(`${conciseName} ${result} ${direction}`);
+          console.log(`[Bloodwork] Found abnormal: ${conciseName} ${result} (range: ${low}-${high})`);
         }
-      } catch (e) {
-        // Ignore parsing errors on a line and continue
-        console.warn(`Could not parse bloodwork line: "${line}"`, e);
       }
+    } catch (e) {
+      // Ignore parsing errors on a line and continue
+      console.warn(`Could not parse bloodwork line: "${line}"`, e);
     }
   }
 
