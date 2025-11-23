@@ -700,8 +700,9 @@ export default function VetHub() {
 
       // Auto-create discharge tasks when status changes to "Discharging" using task engine templates
       if (newStatus === 'Discharging') {
-        const patient = patients.find(p => p.id === patientId);
-        const existingTasks = patient?.tasks || [];
+        // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
+        const freshPatient = await apiClient.getPatient(String(patientId));
+        const existingTasks = freshPatient?.tasks || [];
 
         // Get discharge task templates from task engine
         const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
@@ -758,9 +759,10 @@ export default function VetHub() {
 
       // Auto-create tasks based on patient type using task engine templates
       if (['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
-        const patient = patients.find(p => p.id === patientId);
-        const patientName = patient?.demographics?.name || 'Unknown Patient';
-        const existingTasks = patient?.tasks || [];
+        // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
+        const freshPatient = await apiClient.getPatient(String(patientId));
+        const patientName = freshPatient?.demographics?.name || 'Unknown Patient';
+        const existingTasks = freshPatient?.tasks || [];
 
         // Get task templates for this patient type
         const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
