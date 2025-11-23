@@ -38,6 +38,14 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
   // MRI patients - essential pre-procedure tasks (streamlined)
   'MRI': [
     {
+      id: 'mri-finalize-record',
+      name: 'Finalize Record',
+      category: 'Admission',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
       id: 'mri-blood-work',
       name: 'Blood Work',
       category: 'Pre-procedure',
@@ -90,6 +98,14 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
   // Surgery patients - essential pre-procedure tasks
   'Surgery': [
     {
+      id: 'surgery-finalize-record',
+      name: 'Finalize Record',
+      category: 'Admission',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
       id: 'surgery-slip',
       name: 'Surgery Slip',
       category: 'Pre-procedure',
@@ -141,6 +157,14 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
 
   // Medical patients - essential admission tasks
   'Medical': [
+    {
+      id: 'medical-finalize-record',
+      name: 'Finalize Record',
+      category: 'Admission',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
     {
       id: 'medical-admission-soap',
       name: 'Admission SOAP',
