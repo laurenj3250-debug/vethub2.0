@@ -128,10 +128,26 @@ export function RoundingPageClient() {
     }
   };
 
+  // Neo-pop styling constants
+  const NEO_BORDER = '2px solid #000';
+  const NEO_SHADOW = '6px 6px 0 #000';
+  const NEO_SHADOW_SM = '4px 4px 0 #000';
+  const COLORS = {
+    lavender: '#DCC4F5',
+    mint: '#B8E6D4',
+    pink: '#FFBDBD',
+    cream: '#FFF8F0',
+  };
+
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
-        <div className="text-emerald-400 text-xl">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: COLORS.cream }}>
+        <div
+          className="px-6 py-3 rounded-xl font-bold text-gray-900"
+          style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
+        >
+          Loading...
+        </div>
       </div>
     );
   }
@@ -139,59 +155,60 @@ export function RoundingPageClient() {
   return (
     <>
       <GlobalKeyboardHandler />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
-        <header className="bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50 sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                onClick={(e) => {
-                  // Check for unsaved changes
-                  const hasUnsavedChanges = patients?.some(p => {
-                    const roundingData = p.roundingData;
-                    const lastUpdated = roundingData?.lastUpdated;
-                    if (!lastUpdated) return false;
+      <div className="min-h-screen" style={{ backgroundColor: COLORS.cream }}>
+        {/* Neo-pop Header */}
+        <header
+          className="sticky top-0 z-50"
+          style={{ backgroundColor: 'white', borderBottom: NEO_BORDER }}
+        >
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+            <Link
+              href="/"
+              onClick={(e) => {
+                const hasUnsavedChanges = patients?.some(p => {
+                  const roundingData = p.roundingData;
+                  const lastUpdated = roundingData?.lastUpdated;
+                  if (!lastUpdated) return false;
+                  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+                  const updatedAt = new Date(lastUpdated).getTime();
+                  return updatedAt > fiveMinutesAgo;
+                });
 
-                    // Check if edited in last 5 minutes (safety margin)
-                    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-                    const updatedAt = new Date(lastUpdated).getTime();
-                    return updatedAt > fiveMinutesAgo;
-                  });
-
-                  if (hasUnsavedChanges) {
-                    const confirmed = confirm(
-                      'You may have unsaved changes. Are you sure you want to leave the rounding sheet?'
-                    );
-                    if (!confirmed) {
-                      e.preventDefault();
-                    }
+                if (hasUnsavedChanges) {
+                  const confirmed = confirm(
+                    'You may have unsaved changes. Are you sure you want to leave the rounding sheet?'
+                  );
+                  if (!confirmed) {
+                    e.preventDefault();
                   }
-                }}
-                className="flex items-center gap-2 px-4 py-2 text-slate-300 hover:text-emerald-400 transition rounded-lg hover:bg-slate-700/50 border border-transparent hover:border-emerald-500/30"
-              >
-                <ArrowLeft size={18} />
-                Back to VetHub
-              </Link>
-            </div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent flex items-center gap-2">
-              <FileSpreadsheet size={24} />
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5"
+              style={{ backgroundColor: COLORS.lavender, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
+            >
+              <ArrowLeft size={18} />
+              Back
+            </Link>
+
+            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+              <FileSpreadsheet size={24} style={{ color: '#6BB89D' }} />
               Rounding Sheet
             </h1>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSyncFromVetRadar}
-                disabled={syncing}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-800 text-white rounded-lg transition border border-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Sync medications and treatments from VetRadar"
-              >
-                <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
-                {syncing ? 'Syncing...' : 'Sync VetRadar'}
-              </button>
-            </div>
+
+            <button
+              onClick={handleSyncFromVetRadar}
+              disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
+              title="Sync medications and treatments from VetRadar"
+            >
+              <RefreshCw size={18} className={syncing ? 'animate-spin' : ''} />
+              {syncing ? 'Syncing...' : 'Sync VetRadar'}
+            </button>
           </div>
         </header>
 
-        <main className="max-w-[98%] mx-auto px-4 py-8">
+        <main className="max-w-[98%] mx-auto px-4 py-6">
           <ErrorBoundary fallback={<RoundingErrorFallback />}>
             <RoundingSheet
               patients={patients}
@@ -207,14 +224,18 @@ export function RoundingPageClient() {
 
 function RoundingErrorFallback() {
   return (
-    <div className="bg-red-900/20 border border-red-500 rounded-lg p-6 text-center max-w-2xl mx-auto mt-8">
-      <h3 className="text-red-400 font-bold text-xl mb-2">Rounding Sheet Error</h3>
-      <p className="text-slate-300 mb-4">
+    <div
+      className="rounded-2xl p-6 text-center max-w-2xl mx-auto mt-8"
+      style={{ backgroundColor: '#FFBDBD', border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}
+    >
+      <h3 className="text-gray-900 font-black text-xl mb-2">Rounding Sheet Error</h3>
+      <p className="text-gray-700 mb-4">
         Unable to load rounding sheet. This may be due to corrupt patient data or a temporary issue.
       </p>
       <button
         onClick={() => window.location.reload()}
-        className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+        className="px-6 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5"
+        style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '3px 3px 0 #000' }}
       >
         Refresh Page
       </button>

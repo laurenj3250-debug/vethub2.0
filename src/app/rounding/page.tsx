@@ -13,8 +13,13 @@ export default function RoundingPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 flex items-center justify-center">
-        <div className="text-emerald-400 text-xl">Loading...</div>
+      <div className="min-h-screen bg-[#FFF8F0] flex items-center justify-center">
+        <div
+          className="px-6 py-3 rounded-xl font-bold text-gray-900"
+          style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+        >
+          Loading...
+        </div>
       </div>
     );
   }
