@@ -2212,6 +2212,8 @@ export default function VetHub() {
           onToggleTask={handleToggleTask}
           onToggleGeneralTask={handleToggleGeneralTask}
           onAddTask={handleAddTaskFromChecklist}
+          onDeleteTask={handleDeleteTask}
+          onDeleteGeneralTask={handleDeleteGeneralTask}
         />
 
         {/* OLD Task Overview - DISABLED */}

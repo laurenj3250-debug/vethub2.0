@@ -48,6 +48,8 @@ interface TaskChecklistProps {
   onToggleTask: (patientId: number, taskId: number, currentStatus: boolean) => void;
   onToggleGeneralTask: (taskId: number, currentStatus: boolean) => void;
   onAddTask: (patientId: number | null, taskName: string) => void;
+  onDeleteTask?: (patientId: number, taskId: number) => void;
+  onDeleteGeneralTask?: (taskId: number) => void;
 }
 
 export function TaskChecklist({
@@ -56,6 +58,8 @@ export function TaskChecklist({
   onToggleTask,
   onToggleGeneralTask,
   onAddTask,
+  onDeleteTask,
+  onDeleteGeneralTask,
 }: TaskChecklistProps) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
@@ -409,10 +413,9 @@ export function TaskChecklist({
                     </div>
                     <div className="space-y-2">
                       {(hideCompleted ? visibleGeneralTasks : generalTasks).map(task => (
-                        <button
+                        <div
                           key={task.id}
-                          onClick={() => onToggleGeneralTask(task.id, task.completed)}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 ${
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
                             task.completed ? 'opacity-60' : ''
                           }`}
                           style={{
@@ -420,10 +423,23 @@ export function TaskChecklist({
                             border: '1.5px solid #2D3436',
                           }}
                         >
-                          <span className={task.completed ? 'line-through' : ''}>
-                            {task.completed ? '✓' : '○'} {task.title || task.name}
-                          </span>
-                        </button>
+                          <button
+                            onClick={() => onToggleGeneralTask(task.id, task.completed)}
+                            className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
+                          >
+                            <span className={task.completed ? 'line-through' : ''}>
+                              {task.completed ? '✓' : '○'} {task.title || task.name}
+                            </span>
+                          </button>
+                          {onDeleteGeneralTask && (
+                            <button
+                              onClick={() => onDeleteGeneralTask(task.id)}
+                              className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -472,10 +488,9 @@ export function TaskChecklist({
                       {/* Task List */}
                       <div className="space-y-2">
                         {visibleTasks.map(task => (
-                          <button
+                          <div
                             key={task.id}
-                            onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-2 ${
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
                               task.completed ? 'opacity-60' : ''
                             }`}
                             style={{
@@ -483,10 +498,23 @@ export function TaskChecklist({
                               border: '1.5px solid #2D3436',
                             }}
                           >
-                            <span className={task.completed ? 'line-through' : ''}>
-                              {task.completed ? '✓' : '○'} {task.title || task.name}
-                            </span>
-                          </button>
+                            <button
+                              onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                              className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
+                            >
+                              <span className={task.completed ? 'line-through' : ''}>
+                                {task.completed ? '✓' : '○'} {task.title || task.name}
+                              </span>
+                            </button>
+                            {onDeleteTask && (
+                              <button
+                                onClick={() => onDeleteTask(patient.id, task.id)}
+                                className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
