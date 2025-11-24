@@ -12,6 +12,15 @@ export async function PATCH(
   try {
     const resolvedParams = await params;
     const appointmentId = resolvedParams.id;
+
+    // Guard against undefined/invalid IDs
+    if (!appointmentId || appointmentId === 'undefined' || appointmentId === 'null') {
+      return NextResponse.json(
+        { error: 'Invalid appointment ID' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
 
     const appointment = await prisma.appointment.update({
@@ -53,6 +62,14 @@ export async function DELETE(
   try {
     const resolvedParams = await params;
     const appointmentId = resolvedParams.id;
+
+    // Guard against undefined/invalid IDs
+    if (!appointmentId || appointmentId === 'undefined' || appointmentId === 'null') {
+      return NextResponse.json(
+        { error: 'Invalid appointment ID' },
+        { status: 400 }
+      );
+    }
 
     await prisma.appointment.delete({
       where: { id: appointmentId },

@@ -97,7 +97,11 @@ export function AppointmentSchedule() {
 
   // Auto-save to database whenever patients change (debounced)
   useEffect(() => {
-    if (patients.length === 0) return;
+    // Only save patients with valid database IDs (not temporary 'patient-' prefixed IDs)
+    const validPatients = patients.filter(
+      (p) => p.id && p.id !== 'undefined' && !p.id.startsWith('patient-')
+    );
+    if (validPatients.length === 0) return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -105,12 +109,11 @@ export function AppointmentSchedule() {
 
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
         await fetch('/api/appointments', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            appointments: patients.map((p, index) => ({
+            appointments: validPatients.map((p, index) => ({
               id: p.id,
               sortOrder: index,
             })),
@@ -143,56 +146,89 @@ export function AppointmentSchedule() {
 
       if (result.patients && result.patients.length > 0) {
         const today = new Date().toISOString().split('T')[0];
-        const createdAppointments = await Promise.all(
+
+        // Try to save each patient to the database
+        const saveResults = await Promise.all(
           result.patients.map(async (patient: AppointmentPatient) => {
-            const response = await fetch('/api/appointments', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                date: today,
-                patientName: patient.patientName,
-                appointmentTime: patient.appointmentTime,
-                age: patient.age,
-                status: patient.status,
-                whyHereToday: patient.whyHereToday,
-                lastVisit: patient.lastVisit,
-                mri: patient.mri,
-                bloodwork: patient.bloodwork,
-                medications: patient.medications,
-                changesSinceLastVisit: patient.changesSinceLastVisit,
-                otherNotes: patient.otherNotes,
-                rawText: patient.rawText,
-              }),
-            });
-            return response.json();
+            try {
+              const response = await fetch('/api/appointments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  date: today,
+                  patientName: patient.patientName,
+                  appointmentTime: patient.appointmentTime,
+                  age: patient.age,
+                  status: patient.status,
+                  whyHereToday: patient.whyHereToday,
+                  lastVisit: patient.lastVisit,
+                  mri: patient.mri,
+                  bloodwork: patient.bloodwork,
+                  medications: patient.medications,
+                  changesSinceLastVisit: patient.changesSinceLastVisit,
+                  otherNotes: patient.otherNotes,
+                  rawText: patient.rawText,
+                }),
+              });
+              const data = await response.json();
+              if (!response.ok) {
+                console.error('Failed to save appointment:', data);
+                return { success: false, error: data.details || data.error, patient };
+              }
+              return { success: true, data };
+            } catch (err) {
+              console.error('Error saving appointment:', err);
+              return { success: false, error: 'Network error', patient };
+            }
           })
         );
 
-        const newPatients: AppointmentPatient[] = createdAppointments.map((apt: any) => ({
-          id: apt.id,
-          sortOrder: apt.sortOrder,
-          patientName: apt.patientName,
-          appointmentTime: apt.appointmentTime || undefined,
-          age: apt.age || null,
-          status: apt.status || 'recheck',
-          whyHereToday: apt.whyHereToday || null,
-          lastVisit: apt.lastVisit || null,
-          mri: apt.mri || null,
-          bloodwork: apt.bloodwork || null,
-          medications: apt.medications || null,
-          changesSinceLastVisit: apt.changesSinceLastVisit || null,
-          otherNotes: apt.otherNotes || null,
-          highlight: apt.highlight || 'none',
-          rawText: apt.rawText || undefined,
-          lastUpdated: new Date(apt.updatedAt),
-        }));
+        // Filter successful saves
+        const successfulSaves = saveResults.filter((r) => r.success);
+        const failedSaves = saveResults.filter((r) => !r.success);
 
-        setPatients([...patients, ...newPatients]);
-        toast({
-          title: 'Patients Parsed',
-          description: `Successfully extracted ${result.count} patient(s)`,
-        });
-        setShowPasteModal(false);
+        if (failedSaves.length > 0) {
+          const firstError = failedSaves[0];
+          toast({
+            variant: 'destructive',
+            title: 'Database Error',
+            description: firstError.error || 'Failed to save appointments to database',
+          });
+        }
+
+        if (successfulSaves.length > 0) {
+          const newPatients: AppointmentPatient[] = successfulSaves.map((result: any) => {
+            const apt = result.data;
+            return {
+              id: apt.id,
+              sortOrder: apt.sortOrder,
+              patientName: apt.patientName,
+              appointmentTime: apt.appointmentTime || undefined,
+              age: apt.age || null,
+              status: apt.status || 'recheck',
+              whyHereToday: apt.whyHereToday || null,
+              lastVisit: apt.lastVisit || null,
+              mri: apt.mri || null,
+              bloodwork: apt.bloodwork || null,
+              medications: apt.medications || null,
+              changesSinceLastVisit: apt.changesSinceLastVisit || null,
+              otherNotes: apt.otherNotes || null,
+              highlight: apt.highlight || 'none',
+              rawText: apt.rawText || undefined,
+              lastUpdated: new Date(apt.updatedAt),
+            };
+          });
+
+          setPatients([...patients, ...newPatients]);
+          toast({
+            title: 'Patients Parsed',
+            description: `Successfully saved ${successfulSaves.length} of ${result.count} patient(s)`,
+          });
+          setShowPasteModal(false);
+        } else if (failedSaves.length > 0) {
+          // All saves failed - don't close modal, let user try again
+          console.error('All appointment saves failed');
+        }
       } else {
         toast({
           variant: 'destructive',
@@ -329,6 +365,12 @@ export function AppointmentSchedule() {
   };
 
   const handleUpdatePatient = useCallback(async (id: string, field: string, value: any) => {
+    // Guard against undefined/invalid IDs
+    if (!id || id === 'undefined' || id.startsWith('patient-')) {
+      console.warn('Skipping update for invalid ID:', id);
+      return;
+    }
+
     setPatients((prev) =>
       prev.map((p) =>
         p.id === id
@@ -354,6 +396,13 @@ export function AppointmentSchedule() {
   }, [toast]);
 
   const handleDeletePatient = useCallback(async (id: string) => {
+    // Guard against undefined/invalid IDs
+    if (!id || id === 'undefined' || id.startsWith('patient-')) {
+      console.warn('Skipping delete for invalid ID:', id);
+      setPatients((prev) => prev.filter((p) => p.id !== id));
+      return;
+    }
+
     setPatients((prev) => prev.filter((p) => p.id !== id));
 
     try {
