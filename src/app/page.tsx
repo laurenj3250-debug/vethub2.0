@@ -3075,7 +3075,8 @@ export default function VetHub() {
                 <div
                   key={patient.id}
                   id={`patient-${patient.id}`}
-                  className="bg-slate-800/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden hover:shadow-cyan-500/20 hover:border-slate-600/50 transition-all"
+                  className="rounded-2xl overflow-hidden transition-all hover:-translate-y-1"
+                  style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: '4px 4px 0 #000' }}
                 >
                   <div className="p-3">
                     {/* Header */}
@@ -3087,12 +3088,12 @@ export default function VetHub() {
                             type="checkbox"
                             checked={selectedPatientIds.has(patient.id)}
                             onChange={() => togglePatientSelection(patient.id)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500 focus:ring-2 cursor-pointer"
+                            className="w-4 h-4 rounded border-gray-400 bg-white text-emerald-500 focus:ring-emerald-500 focus:ring-2 cursor-pointer"
                           />
                           <span className="text-2xl">{emoji}</span>
                           <button
                             onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                            className="text-lg font-bold text-white hover:text-cyan-400 transition cursor-pointer"
+                            className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition cursor-pointer"
                           >
                             {patient.demographics?.name || patient.name || 'Unnamed'}
                           </button>
@@ -3107,11 +3108,11 @@ export default function VetHub() {
                           </select>
                         </div>
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-xs text-slate-500">Status:</span>
+                          <span className="text-xs text-gray-500">Status:</span>
                           <select
                             value={patient.status || 'New Admit'}
                             onChange={(e) => handleStatusChange(patient.id, e.target.value)}
-                            className="px-2 py-0.5 rounded text-xs font-bold bg-slate-700/50 border border-slate-600 text-white hover:bg-slate-700 transition cursor-pointer"
+                            className="px-2 py-0.5 rounded text-xs font-bold bg-gray-100 border border-gray-300 text-gray-800 hover:bg-gray-200 transition cursor-pointer"
                           >
                             <option value="New Admit">New Admit</option>
                             <option value="Hospitalized">Hospitalized</option>
@@ -3119,24 +3120,24 @@ export default function VetHub() {
                             <option value="Discharged">Discharged</option>
                           </select>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
                           {info.patientId && (
                             <span className="flex items-center gap-1">
-                              <span className="text-slate-500">ID:</span>
-                              <span className="text-slate-300 font-medium">{info.patientId}</span>
+                              <span className="text-gray-400">ID:</span>
+                              <span className="text-gray-700 font-medium">{info.patientId}</span>
                             </span>
                           )}
                           {info.weight && (
                             <span className="flex items-center gap-1">
-                              <span className="text-slate-500">Weight:</span>
-                              <span className="text-slate-300 font-medium">{info.weight}</span>
+                              <span className="text-gray-400">Weight:</span>
+                              <span className="text-gray-700 font-medium">{info.weight}</span>
                             </span>
                           )}
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeletePatient(patient.id)}
-                        className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                        className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-100 rounded-lg transition"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -3145,10 +3146,10 @@ export default function VetHub() {
                     {/* Progress */}
                     <div className="mb-2">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-400">Tasks: {completedTasks}/{totalTasks}</span>
-                        <span className="text-cyan-400 font-bold">{Math.round(progress)}%</span>
+                        <span className="text-gray-500">Tasks: {completedTasks}/{totalTasks}</span>
+                        <span className="text-emerald-600 font-bold">{Math.round(progress)}%</span>
                       </div>
-                      <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden border border-slate-600/50">
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
                         <div
                           className={`h-full bg-gradient-to-r ${getTypeColor(patient.type)} transition-all duration-500`}
                           style={{ width: `${progress}%` }}
@@ -3178,7 +3179,7 @@ export default function VetHub() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                        className="text-cyan-400 text-xs font-bold hover:text-cyan-300 transition"
+                        className="text-emerald-600 text-xs font-bold hover:text-emerald-500 transition"
                       >
                         {isExpanded ? '🔼 Hide' : '🔽 Tasks'}
                       </button>
