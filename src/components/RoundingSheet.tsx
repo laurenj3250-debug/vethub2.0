@@ -363,6 +363,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
     e.preventDefault();
+    e.stopPropagation(); // Stop event from bubbling
     const pasteData = e.clipboardData.getData('text');
 
     // DEBUG - see what's being pasted
@@ -374,6 +375,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     // Parse first row properly (handles quoted fields with embedded newlines)
     const values = parseTSVRow(pasteData);
     console.log('Parsed values (count=' + values.length + '):', values);
+
+    // TEMP DEBUG ALERT
+    const patient = patients.find(p => p.id === patientId);
+    const pName = (patient as any)?.demographics?.name || patient?.name || 'Unknown';
+    alert(`Paste fired!\nPatient: ${pName} (ID: ${patientId})\nField: ${startField}\nValues: ${values.length} columns\nFirst value: "${values[0]?.substring(0, 30)}..."`);
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
