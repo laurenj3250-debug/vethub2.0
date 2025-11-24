@@ -365,8 +365,15 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     e.preventDefault();
     const pasteData = e.clipboardData.getData('text');
 
+    // DEBUG - see what's being pasted
+    console.log('=== PASTE DEBUG ===');
+    console.log('Raw clipboard:', JSON.stringify(pasteData));
+    console.log('Start field:', startField);
+    console.log('Patient ID:', patientId);
+
     // Parse first row properly (handles quoted fields with embedded newlines)
     const values = parseTSVRow(pasteData);
+    console.log('Parsed values (count=' + values.length + '):', values);
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
@@ -430,15 +437,23 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       }
     });
 
+    // DEBUG - show what updates will be applied
+    console.log('Final updates to apply:', updates);
+    console.log('Fields being updated:', Object.keys(updates));
+    console.log('===================');
+
     // Merge with existing data - use prev state to avoid stale closure bug
     setEditingData(prev => {
       const patient = patients.find(p => p.id === patientId);
       const savedData = (patient as any)?.roundingData || patient?.rounding_data || {};
       const existingEdits = prev[patientId] || {};
 
+      const merged = mergePatientRoundingData(savedData, existingEdits, updates);
+      console.log('Merged result:', merged);
+
       return {
         ...prev,
-        [patientId]: mergePatientRoundingData(savedData, existingEdits, updates),
+        [patientId]: merged,
       };
     });
 
