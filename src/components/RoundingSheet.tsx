@@ -75,8 +75,27 @@ function mergePatientRoundingData(
   };
 }
 
+const ROUNDING_BACKUP_KEY = 'vethub-rounding-backup';
+
 export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
-  const [editingData, setEditingData] = useState<Record<number, RoundingData>>({});
+  const [editingData, setEditingData] = useState<Record<number, RoundingData>>(() => {
+    // Restore from localStorage on mount if available
+    if (typeof window !== 'undefined') {
+      try {
+        const backup = localStorage.getItem(ROUNDING_BACKUP_KEY);
+        if (backup) {
+          const parsed = JSON.parse(backup);
+          if (Object.keys(parsed).length > 0) {
+            console.log('[Rounding] Restored backup with', Object.keys(parsed).length, 'patients');
+            return parsed;
+          }
+        }
+      } catch (e) {
+        console.error('[Rounding] Failed to restore backup:', e);
+      }
+    }
+    return {};
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [saveTimers, setSaveTimers] = useState<Map<number, NodeJS.Timeout>>(new Map());
   const [saveStatus, setSaveStatus] = useState<Map<number, 'saving' | 'saved' | 'error'>>(new Map());
@@ -101,6 +120,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       saveTimers.forEach(timer => clearTimeout(timer));
     };
   }, [saveTimers]);
+
+  // Backup editingData to localStorage on every change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if (Object.keys(editingData).length > 0) {
+          localStorage.setItem(ROUNDING_BACKUP_KEY, JSON.stringify(editingData));
+        } else {
+          localStorage.removeItem(ROUNDING_BACKUP_KEY);
+        }
+      } catch (e) {
+        console.error('[Rounding] Failed to backup:', e);
+      }
+    }
+  }, [editingData]);
 
   const activePatients = patients.filter(p => p.status !== 'Discharged');
 
@@ -151,7 +185,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     setCarryForwardResults(newCarryForwardResults);
     setAutoFilledFields(newAutoFilledFields);
-    setEditingData(newEditingData);
+    // CRITICAL: Merge with existing edits instead of replacing
+    // This prevents data loss when auto-fill re-runs
+    setEditingData(prev => ({ ...prev, ...newEditingData }));
   }, [activePatients.length]); // Re-run when patients load (but ref prevents re-running after that)
 
   // Navigation Guard: Warn before leaving with unsaved changes
@@ -494,6 +530,13 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         description: `Rounding data saved (Day ${dayCount})`
       });
 
+      // Clear this patient from editingData since it's saved
+      setEditingData(prev => {
+        const updated = { ...prev };
+        delete updated[patientId];
+        return updated;
+      });
+
       // DON'T refetch - prevents flickering
     } catch (error) {
       console.error('Failed to save:', error);
@@ -524,8 +567,10 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         description: `Saved ${promises.length} patients`
       });
 
+      // Clear editingData since all are saved (backup will auto-clear via effect)
+      setEditingData({});
+
       // DON'T refetch - prevents flickering
-      // Keep editing data visible - user might want to continue editing
     } catch (error) {
       console.error('Failed to save all:', error);
       toast({
