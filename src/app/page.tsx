@@ -3075,7 +3075,8 @@ export default function VetHub() {
                 <div
                   key={patient.id}
                   id={`patient-${patient.id}`}
-                  className="bg-slate-800/40 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-700/50 overflow-hidden hover:shadow-cyan-500/20 hover:border-slate-600/50 transition-all"
+                  className="rounded-2xl overflow-hidden transition-all hover:-translate-y-1"
+                  style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                 >
                   <div className="p-3">
                     {/* Header */}
@@ -3087,12 +3088,12 @@ export default function VetHub() {
                             type="checkbox"
                             checked={selectedPatientIds.has(patient.id)}
                             onChange={() => togglePatientSelection(patient.id)}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500 focus:ring-2 cursor-pointer"
+                            className="w-4 h-4 rounded border-gray-400 bg-white text-emerald-500 focus:ring-emerald-500 focus:ring-2 cursor-pointer"
                           />
                           <span className="text-2xl">{emoji}</span>
                           <button
                             onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                            className="text-lg font-bold text-white hover:text-cyan-400 transition cursor-pointer"
+                            className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition cursor-pointer"
                           >
                             {patient.demographics?.name || patient.name || 'Unnamed'}
                           </button>
@@ -3107,11 +3108,12 @@ export default function VetHub() {
                           </select>
                         </div>
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-xs text-slate-500">Status:</span>
+                          <span className="text-xs text-gray-500">Status:</span>
                           <select
                             value={patient.status || 'New Admit'}
                             onChange={(e) => handleStatusChange(patient.id, e.target.value)}
-                            className="px-2 py-0.5 rounded text-xs font-bold bg-slate-700/50 border border-slate-600 text-white hover:bg-slate-700 transition cursor-pointer"
+                            className="px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-800 hover:bg-gray-200 transition cursor-pointer"
+                            style={{ border: '1px solid #000' }}
                           >
                             <option value="New Admit">New Admit</option>
                             <option value="Hospitalized">Hospitalized</option>
@@ -3119,24 +3121,25 @@ export default function VetHub() {
                             <option value="Discharged">Discharged</option>
                           </select>
                         </div>
-                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
                           {info.patientId && (
                             <span className="flex items-center gap-1">
-                              <span className="text-slate-500">ID:</span>
-                              <span className="text-slate-300 font-medium">{info.patientId}</span>
+                              <span className="text-gray-400">ID:</span>
+                              <span className="text-gray-700 font-medium">{info.patientId}</span>
                             </span>
                           )}
                           {info.weight && (
                             <span className="flex items-center gap-1">
-                              <span className="text-slate-500">Weight:</span>
-                              <span className="text-slate-300 font-medium">{info.weight}</span>
+                              <span className="text-gray-400">Weight:</span>
+                              <span className="text-gray-700 font-medium">{info.weight}</span>
                             </span>
                           )}
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeletePatient(patient.id)}
-                        className="p-1 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition"
+                        style={{ border: '1px solid #ccc' }}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -3145,13 +3148,13 @@ export default function VetHub() {
                     {/* Progress */}
                     <div className="mb-2">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-slate-400">Tasks: {completedTasks}/{totalTasks}</span>
-                        <span className="text-cyan-400 font-bold">{Math.round(progress)}%</span>
+                        <span className="text-gray-500">Tasks: {completedTasks}/{totalTasks}</span>
+                        <span className="text-emerald-600 font-bold">{Math.round(progress)}%</span>
                       </div>
-                      <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden border border-slate-600/50">
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden" style={{ border: '1px solid #000' }}>
                         <div
-                          className={`h-full bg-gradient-to-r ${getTypeColor(patient.type)} transition-all duration-500`}
-                          style={{ width: `${progress}%` }}
+                          className="h-full transition-all duration-500"
+                          style={{ width: `${progress}%`, backgroundColor: '#6BB89D' }}
                         />
                       </div>
                     </div>
@@ -3160,14 +3163,16 @@ export default function VetHub() {
                     <div className="mb-2 flex gap-1.5 flex-wrap">
                       <button
                         onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
-                        className="px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
+                        style={{ backgroundColor: '#FFF3B8', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                         title="Complete all morning tasks"
                       >
                         ✅ Morning
                       </button>
                       <button
                         onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
-                        className="px-2 py-1 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
+                        style={{ backgroundColor: '#DCC4F5', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                         title="Complete all evening tasks"
                       >
                         ✅ Evening
@@ -3178,19 +3183,22 @@ export default function VetHub() {
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <button
                         onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                        className="text-cyan-400 text-xs font-bold hover:text-cyan-300 transition"
+                        className="px-2 py-1 text-gray-900 text-xs font-bold rounded hover:-translate-y-0.5 transition-transform"
+                        style={{ backgroundColor: '#E5E7EB', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                       >
                         {isExpanded ? '🔼 Hide' : '🔽 Tasks'}
                       </button>
                       <button
                         onClick={() => setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id)}
-                        className="px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-pink-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
+                        style={{ backgroundColor: '#B8E6D4', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                       >
                         ➕ Task
                       </button>
                       <button
                         onClick={() => setRoundingSheetPatient(patient.id)}
-                        className="px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded text-xs font-bold hover:scale-105 transition-transform"
+                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
+                        style={{ backgroundColor: '#6BB89D', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                       >
                         📋 Rounds
                       </button>
@@ -3198,14 +3206,15 @@ export default function VetHub() {
 
                     {/* Quick Add Task Menu */}
                     {quickAddMenuPatient === patient.id && (
-                      <div className="mt-2 p-3 bg-slate-900/50 rounded-xl border border-slate-700/50">
-                        <h5 className="text-white font-bold text-sm mb-2">Quick Add Common Tasks:</h5>
+                      <div className="mt-2 p-3 rounded-xl" style={{ backgroundColor: '#FFF8F0', border: '2px solid #000' }}>
+                        <h5 className="text-gray-900 font-bold text-sm mb-2">Quick Add Common Tasks:</h5>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-2">
                           {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled', 'Consent Form', 'Estimate Approved', 'Referral Letter', 'Lab Results', 'Imaging Review', 'Progress Photos'].map(taskName => (
                             <button
                               key={taskName}
                               onClick={() => handleQuickAddTask(patient.id, taskName)}
-                              className="px-2 py-1.5 bg-slate-800/50 hover:bg-cyan-500/20 border border-slate-700 hover:border-cyan-500 rounded text-slate-300 hover:text-cyan-300 text-xs transition"
+                              className="px-2 py-1.5 bg-white hover:bg-gray-100 text-gray-700 hover:text-gray-900 text-xs transition rounded font-medium"
+                              style={{ border: '1px solid #000' }}
                             >
                               {taskName}
                             </button>
@@ -3217,7 +3226,8 @@ export default function VetHub() {
                             value={customTaskName}
                             onChange={(e) => setCustomTaskName(e.target.value)}
                             placeholder="Custom task name..."
-                            className="flex-1 px-2 py-1.5 bg-slate-800/50 border border-slate-700 rounded text-white placeholder-slate-500 text-xs focus:ring-2 focus:ring-cyan-500"
+                            className="flex-1 px-2 py-1.5 bg-white text-gray-900 placeholder-gray-400 text-xs rounded focus:ring-2 focus:ring-emerald-500"
+                            style={{ border: '1px solid #000' }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter' && customTaskName.trim()) {
                                 handleQuickAddTask(patient.id, customTaskName);
@@ -3227,7 +3237,8 @@ export default function VetHub() {
                           <button
                             onClick={() => customTaskName.trim() && handleQuickAddTask(patient.id, customTaskName)}
                             disabled={!customTaskName.trim()}
-                            className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-white rounded font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed transition"
+                            className="px-3 py-1.5 text-gray-900 rounded font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed transition hover:-translate-y-0.5"
+                            style={{ backgroundColor: '#B8E6D4', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                           >
                             Add
                           </button>
@@ -3238,23 +3249,25 @@ export default function VetHub() {
 
                   {/* Tasks - Grouped by Category */}
                   {isExpanded && (
-                    <div className="border-t border-slate-700/50 p-3 bg-slate-900/30">
+                    <div className="p-3" style={{ borderTop: '2px solid #000', backgroundColor: '#F9FAFB' }}>
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-white font-bold text-sm flex items-center gap-2">
-                          <ListTodo size={16} className="text-cyan-400" />
+                        <h4 className="text-gray-900 font-bold text-sm flex items-center gap-2">
+                          <ListTodo size={16} className="text-emerald-600" />
                           Tasks ({completedTasks}/{totalTasks})
                         </h4>
                         <div className="flex gap-2 flex-wrap">
                           <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
-                            className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            className="px-3 py-1 text-gray-900 rounded-lg text-xs font-bold hover:-translate-y-0.5 transition-transform"
+                            style={{ backgroundColor: '#FFF3B8', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                             title="Complete all morning tasks"
                           >
                             ✅ Morning
                           </button>
                           <button
                             onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
-                            className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-emerald-500 text-white rounded-lg text-xs font-bold hover:scale-105 transition-transform"
+                            className="px-3 py-1 text-gray-900 rounded-lg text-xs font-bold hover:-translate-y-0.5 transition-transform"
+                            style={{ backgroundColor: '#DCC4F5', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                             title="Complete all evening tasks"
                           >
                             ✅ Evening
@@ -3265,34 +3278,35 @@ export default function VetHub() {
                       {/* Morning Tasks */}
                       {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div className="mb-3">
-                          <h5 className="text-xs font-bold text-yellow-400 mb-1.5 flex items-center gap-2">
+                          <h5 className="text-xs font-bold text-amber-600 mb-1.5 flex items-center gap-2">
                             🌅 Morning Tasks
                           </h5>
                           <div className="space-y-1">
                             {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-yellow-500/50 transition group"
+                                className="flex items-center gap-2 px-2 py-1 rounded bg-white transition group"
+                                style={{ border: '1px solid #000' }}
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={16} />
+                                    <CheckCircle2 className="text-emerald-500" size={16} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-yellow-400" size={16} />
+                                    <Circle className="text-gray-400 group-hover:text-amber-500" size={16} />
                                   )}
                                 </button>
                                 <span
-                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
                                   {task.title || task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 rounded transition opacity-0 group-hover:opacity-100"
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -3305,34 +3319,35 @@ export default function VetHub() {
                       {/* Evening Tasks */}
                       {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div className="mb-3">
-                          <h5 className="text-xs font-bold text-indigo-400 mb-1.5 flex items-center gap-2">
+                          <h5 className="text-xs font-bold text-purple-600 mb-1.5 flex items-center gap-2">
                             🌙 Evening Tasks
                           </h5>
                           <div className="space-y-1">
                             {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 transition group"
+                                className="flex items-center gap-2 px-2 py-1 rounded bg-white transition group"
+                                style={{ border: '1px solid #000' }}
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={16} />
+                                    <CheckCircle2 className="text-emerald-500" size={16} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-indigo-400" size={16} />
+                                    <Circle className="text-gray-400 group-hover:text-purple-500" size={16} />
                                   )}
                                 </button>
                                 <span
-                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
                                   {task.title || task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 rounded transition opacity-0 group-hover:opacity-100"
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -3345,34 +3360,35 @@ export default function VetHub() {
                       {/* General Tasks (MRI/Surgery/Conditional) */}
                       {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
                         <div>
-                          <h5 className="text-xs font-bold text-cyan-400 mb-1.5 flex items-center gap-2">
+                          <h5 className="text-xs font-bold text-emerald-600 mb-1.5 flex items-center gap-2">
                             📋 {patient.type} Tasks & Other
                           </h5>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                             {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
                               <div
                                 key={task.id}
-                                className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/50 transition group"
+                                className="flex items-center gap-2 px-2 py-1 rounded bg-white transition group"
+                                style={{ border: '1px solid #000' }}
                               >
                                 <button
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                   className="flex-shrink-0"
                                 >
                                   {task.completed ? (
-                                    <CheckCircle2 className="text-green-400" size={16} />
+                                    <CheckCircle2 className="text-emerald-500" size={16} />
                                   ) : (
-                                    <Circle className="text-slate-600 group-hover:text-cyan-400" size={16} />
+                                    <Circle className="text-gray-400 group-hover:text-emerald-500" size={16} />
                                   )}
                                 </button>
                                 <span
-                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-slate-500' : 'text-slate-200'}`}
+                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
                                   onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
                                 >
                                   {task.title || task.name}
                                 </span>
                                 <button
                                   onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-0.5 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 rounded transition opacity-0 group-hover:opacity-100"
                                 >
                                   <Trash2 size={12} />
                                 </button>
@@ -3391,18 +3407,19 @@ export default function VetHub() {
 
         {/* Rounding Sheet Modal */}
         {roundingSheetPatient !== null && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-7xl my-8">
-              <div className="p-6 border-b border-slate-700/50">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="w-full max-w-7xl my-8 rounded-3xl" style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '6px 6px 0 #000' }}>
+              <div className="p-6" style={{ borderBottom: '2px solid #000' }}>
                 <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     📋 Rounding Sheet
-                    <span className="text-cyan-400">
+                    <span className="text-emerald-600">
                       {patients.find(p => p.id === roundingSheetPatient)?.name}
                     </span>
                     <button
                       onClick={() => handleCopySingleRoundingLine(roundingSheetPatient)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-1"
+                      className="px-3 py-1.5 text-gray-900 rounded-lg text-sm font-bold transition flex items-center gap-1 hover:-translate-y-0.5"
+                      style={{ backgroundColor: '#B8E6D4', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
                       title="Copy this patient's rounding line"
                     >
                       📋 Copy Line
@@ -3410,7 +3427,8 @@ export default function VetHub() {
                   </h3>
                   <button
                     onClick={() => setRoundingSheetPatient(null)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
+                    className="p-2 text-gray-600 hover:text-gray-900 rounded-lg transition"
+                    style={{ border: '1px solid #ccc' }}
                   >
                     ✕
                   </button>
