@@ -25,53 +25,50 @@ export async function POST(request: Request) {
     }
 
     // Use Claude to parse patient data for rounding table
-    const parsingPrompt = `You are parsing veterinary patient data for morning rounds preparation.
+    const parsingPrompt = `You are parsing veterinary appointment data. The input can be in ANY format - spreadsheet data, EMR exports, handwritten notes, tab-separated values, or free text.
 
-Extract patient information from the following text and return a JSON array of patients.
+Your job is to identify EACH SEPARATE PATIENT/APPOINTMENT and extract what information is available.
 
-For EACH patient found, extract these fields (use null if not mentioned):
-- patientName: Full patient name (pet name + owner last name if available)
-- age: Age with units (e.g., "5y 3m", "2 years", "6mo")
-- status: "new", "recheck", or "mri-dropoff" - Detect from keywords:
-  * "mri-dropoff" for: "MRI drop off", "MRI drop-off", "dropping off for MRI", "MRI scheduled", "MRI today"
-  * "new" for: "new patient", "first visit", "initial consult"
-  * "recheck" for: "recheck", "follow-up", "re-eval", "reexam"
-  If whyHereToday mentions MRI, use "mri-dropoff". If lastVisit has a date, likely "recheck". If no visit history, likely "new". Default to "recheck" if unclear.
-- whyHereToday: Presenting complaint or reason for visit
-- lastVisit: Simple text - include date and reason together (e.g., "11/01/2025 - Recheck MRI")
-- mri: Simple text - include date and findings together (e.g., "10/15/2025 - T13-L1 IVDD with spinal cord compression")
-- bloodwork: Simple text - include date and ALL values/abnormalities (e.g., "11/01/2025 - WBC 18.3 (H), Neutrophils 15.2 (H), BUN 45 (H)")
-- medications: Simple text - list all meds with details (e.g., "Gabapentin 10mg/kg q8h PO, Carprofen 2.2mg/kg q12h PO")
-- changesSinceLastVisit: Any progression or status changes
-- otherNotes: Miscellaneous important information
+CRITICAL PARSING RULES:
+1. Each line or row typically represents ONE patient - DO NOT combine multiple patients into one
+2. Look for patterns: time slots, patient names (often "PetName OwnerLastName" format), reasons for visit
+3. Tab-separated or comma-separated data: each column contains different info
+4. If you see multiple times listed, each time is likely a different appointment
+
+For EACH patient/appointment found, extract:
+- appointmentTime: Time of appointment (e.g., "9:00 AM", "10:30", "1400") - convert to "H:MM AM/PM" format
+- patientName: Patient/pet name. Look for names like "Max Johnson", "Bella (Smith)", "FLUFFY JONES". MUST extract this - it's the most important field!
+- age: Age if mentioned (e.g., "5y", "3 years", "8mo")
+- status: "new", "recheck", or "mri-dropoff"
+  * "mri-dropoff": MRI scheduled, dropping off for MRI
+  * "new": new patient, first visit, initial consult
+  * "recheck": follow-up, re-eval, reexam (DEFAULT if unclear)
+- whyHereToday: Reason for visit, presenting complaint, or appointment type
+- lastVisit: Previous visit date/info if mentioned
+- mri: MRI date/findings if mentioned
+- bloodwork: Bloodwork values if mentioned
+- medications: Current medications if mentioned
+- changesSinceLastVisit: Status changes if mentioned
+- otherNotes: Any other relevant information
+
+COMMON INPUT FORMATS TO RECOGNIZE:
+1. Tab-separated: "9:00 AM\\tMax Johnson\\t5y\\tSeizure recheck\\tGabapentin 100mg"
+2. Time-based list: "9:00 - Max Johnson - seizures\\n9:30 - Bella Smith - back pain"
+3. EMR format: "Patient: Max Johnson | Age: 5y | Chief Complaint: Seizures"
+4. Simple list: "Max Johnson seizure recheck\\nBella Smith new patient weakness"
 
 IMPORTANT:
-- Return ONLY valid JSON, no other text
-- ALL fields are simple text strings (except status which is "new"|"recheck"|"mri-dropoff")
-- Extract ALL bloodwork values mentioned, don't skip any
-- If multiple patients are in the text, return an array with all of them
-- Use null for missing data, don't guess
+- Return ONLY valid JSON array, no markdown code blocks, no explanations
+- If you find multiple patients, return an array with ALL of them
+- EVERY patient needs at least a patientName - if you can't determine a name, use the most identifying text available
+- Use null for fields that aren't mentioned
+- DO NOT put multiple patients' data into one patient object
 
-Patient Data:
+Patient Data to Parse:
 ${text}
 
-Return format:
-[
-  {
-    "patientName": "Buddy Smith",
-    "age": "5y 2m",
-    "status": "recheck",
-    "whyHereToday": "Acute hind limb paresis",
-    "lastVisit": "11/01/2025 - Recheck MRI",
-    "mri": "10/15/2025 - T13-L1 IVDD with severe spinal cord compression",
-    "bloodwork": "11/01/2025 - WBC 18.3 (H), Neutrophils 15.2 (H), PCV 48%, TP 6.8",
-    "medications": "Gabapentin 10mg/kg q8h PO, Carprofen 2.2mg/kg q12h PO",
-    "changesSinceLastVisit": "Ambulatory paraparesis improved to non-ambulatory tetraparesis",
-    "otherNotes": "Owner reports decreased appetite"
-  }
-]
-
-Return ONLY the JSON array, no markdown, no explanations:`;
+Return ONLY a JSON array like this (no markdown, no \`\`\`json, just raw JSON):
+[{"appointmentTime":"9:00 AM","patientName":"Max Johnson","age":"5y","status":"recheck","whyHereToday":"Seizure recheck","lastVisit":null,"mri":null,"bloodwork":null,"medications":"Gabapentin 100mg","changesSinceLastVisit":null,"otherNotes":null}]`;
 
     const claudeResponse = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
@@ -87,18 +84,32 @@ Return ONLY the JSON array, no markdown, no explanations:`;
       ? claudeResponse.content[0].text
       : '';
 
-    // Extract JSON from response
-    let parsedPatients = [];
+    console.log('Claude raw response:', responseText.substring(0, 500));
+
+    // Extract JSON from response - handle various formats
+    let parsedPatients: any[] = [];
     try {
-      // Try to find JSON array in the response
-      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        parsedPatients = JSON.parse(jsonMatch[0]);
-      } else {
-        // Try parsing as single object and wrap in array
-        const objMatch = responseText.match(/\{[\s\S]*\}/);
-        if (objMatch) {
-          parsedPatients = [JSON.parse(objMatch[0])];
+      // First, clean the response - remove markdown code blocks if present
+      let cleanedResponse = responseText
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
+      // Try direct parse first (if it's clean JSON)
+      try {
+        const directParse = JSON.parse(cleanedResponse);
+        parsedPatients = Array.isArray(directParse) ? directParse : [directParse];
+      } catch {
+        // Try to find JSON array in the response
+        const jsonMatch = cleanedResponse.match(/\[[\s\S]*?\](?=\s*$|\s*[^,\]\}])/);
+        if (jsonMatch) {
+          parsedPatients = JSON.parse(jsonMatch[0]);
+        } else {
+          // Try parsing as single object and wrap in array
+          const objMatch = cleanedResponse.match(/\{[\s\S]*?\}(?=\s*$|\s*[^,\]\}])/);
+          if (objMatch) {
+            parsedPatients = [JSON.parse(objMatch[0])];
+          }
         }
       }
     } catch (parseError) {
@@ -110,8 +121,30 @@ Return ONLY the JSON array, no markdown, no explanations:`;
       );
     }
 
+    // Validate and clean up parsed patients
+    const validPatients = parsedPatients
+      .filter((patient: any) => patient && typeof patient === 'object')
+      .map((patient: any) => {
+        // Ensure patientName exists and is not just whitespace
+        let name = patient.patientName || patient.name || patient.patient || '';
+        if (typeof name === 'string') {
+          name = name.trim();
+        }
+        // If still no name, try to extract from other fields
+        if (!name && patient.whyHereToday) {
+          // Sometimes the name might be in the reason field
+          name = 'Patient ' + (parsedPatients.indexOf(patient) + 1);
+        }
+        return {
+          ...patient,
+          patientName: name || 'Unknown Patient',
+        };
+      });
+
+    console.log(`Parsed ${validPatients.length} patients from input`);
+
     // Add unique IDs and timestamps to each patient
-    const patientsWithMetadata = parsedPatients.map((patient: any, index: number) => ({
+    const patientsWithMetadata = validPatients.map((patient: any, index: number) => ({
       id: `patient-${Date.now()}-${index}`,
       sortOrder: index,
       ...patient,
