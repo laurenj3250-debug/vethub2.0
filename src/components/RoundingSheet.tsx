@@ -365,15 +365,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     e.preventDefault();
     const pasteData = e.clipboardData.getData('text');
 
-    // DEBUG: Log paste data to understand what's being pasted
-    console.log('=== PASTE DEBUG ===');
-    console.log('Raw paste data:', JSON.stringify(pasteData));
-    console.log('Start field:', startField);
-
     // Parse first row properly (handles quoted fields with embedded newlines)
     const values = parseTSVRow(pasteData);
-    console.log('Parsed values:', values);
-    console.log('===================');
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
@@ -436,12 +429,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         }
       }
     });
-
-    // DEBUG: Log final updates
-    console.log('=== PASTE RESULT ===');
-    console.log('Updates object:', updates);
-    console.log('Fields updated:', Object.keys(updates));
-    console.log('====================');
 
     // Merge with existing data - use prev state to avoid stale closure bug
     setEditingData(prev => {
