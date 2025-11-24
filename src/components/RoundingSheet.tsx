@@ -319,12 +319,64 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     cri: ['Yes', 'No', 'No but...', 'Yet but...'],
   };
 
+  // Helper to parse TSV row properly (handles quoted fields with embedded newlines/tabs)
+  const parseTSVRow = (text: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+
+    while (i < text.length) {
+      const char = text[i];
+
+      if (char === '"') {
+        if (inQuotes && text[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = !inQuotes;
+        i++;
+        continue;
+      }
+
+      if (char === '\t' && !inQuotes) {
+        result.push(current);
+        current = '';
+        i++;
+        continue;
+      }
+
+      // When not in quotes, newline ends the row
+      if ((char === '\n' || char === '\r') && !inQuotes) {
+        break;
+      }
+
+      current += char;
+      i++;
+    }
+
+    result.push(current); // Push last field
+    return result;
+  };
+
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
     e.preventDefault();
     const pasteData = e.clipboardData.getData('text');
-    const rows = pasteData.split('\n');
 
-    // Field order matching Google Sheets columns
+    // DEBUG: Log paste data to understand what's being pasted
+    console.log('=== PASTE DEBUG ===');
+    console.log('Raw paste data:', JSON.stringify(pasteData));
+    console.log('Start field:', startField);
+
+    // Parse first row properly (handles quoted fields with embedded newlines)
+    const values = parseTSVRow(pasteData);
+    console.log('Parsed values:', values);
+    console.log('===================');
+
+    // Field order matching Google Sheets columns (EXCLUDING patient name column)
+    // When pasting from Google Sheets export, first column is Patient name which we skip
     const fieldOrder: (keyof RoundingData)[] = [
       'signalment', 'location', 'icuCriteria', 'code', 'problems',
       'diagnosticFindings', 'therapeutics', 'ivc', 'fluids',
@@ -334,11 +386,32 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const startIndex = fieldOrder.indexOf(startField);
     if (startIndex === -1) return;
 
-    // Parse first row (tab-separated values)
-    const values = rows[0].split('\t');
+    // Values already parsed by parseTSVRow - now check if we need to skip patient name column
+    let finalValues = values;
+
+    // Smart detection: if pasting a full row into signalment field,
+    // check if we need to skip the patient name column
+    // Export format has 14 cols (Patient + 13 data fields), paste expects 13 data fields
+    if (startField === 'signalment' && finalValues.length >= fieldOrder.length) {
+      // If we have 14+ values and pasting to signalment, first col is likely patient name
+      // Also check: if first value doesn't look like a signalment (no breed/age/sex patterns),
+      // and second value does look like signalment or is short, skip first
+      const firstVal = finalValues[0]?.trim().toLowerCase() || '';
+      const secondVal = finalValues[1]?.trim().toLowerCase() || '';
+
+      // Common signalment patterns: "8y MN DSH", "4yo FS Lab", "5 M/N Pit mix"
+      const signalmentPattern = /\d+\s*(y|yo|yr|m|mo)?\s*(m|f|fs|mn|cm|sf|intact)/i;
+      const firstLooksLikeSignalment = signalmentPattern.test(firstVal);
+      const secondLooksLikeSignalment = signalmentPattern.test(secondVal);
+
+      // If first doesn't look like signalment but second does (or we just have too many cols), skip first
+      if (finalValues.length > fieldOrder.length || (!firstLooksLikeSignalment && secondLooksLikeSignalment)) {
+        finalValues = finalValues.slice(1); // Skip patient name column
+      }
+    }
     const updates: Partial<RoundingData> = {};
 
-    values.forEach((value, index) => {
+    finalValues.forEach((value, index) => {
       const fieldIndex = startIndex + index;
       if (fieldIndex < fieldOrder.length) {
         const field = fieldOrder[fieldIndex];
@@ -359,10 +432,16 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.cri);
         } else {
           // Text fields (signalment, problems, diagnosticFindings, therapeutics, overnightDx, concerns, comments)
-          updates[field] = trimmedValue;
+          (updates as Record<string, string>)[field] = trimmedValue;
         }
       }
     });
+
+    // DEBUG: Log final updates
+    console.log('=== PASTE RESULT ===');
+    console.log('Updates object:', updates);
+    console.log('Fields updated:', Object.keys(updates));
+    console.log('====================');
 
     // Merge with existing data - use prev state to avoid stale closure bug
     setEditingData(prev => {
