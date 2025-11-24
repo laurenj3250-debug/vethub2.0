@@ -143,19 +143,16 @@ Return ONLY a JSON array like this (no markdown, no \`\`\`json, just raw JSON):
 
     console.log(`Parsed ${validPatients.length} patients from input`);
 
-    // Add unique IDs and timestamps to each patient
-    const patientsWithMetadata = validPatients.map((patient: any, index: number) => ({
-      id: `patient-${Date.now()}-${index}`,
-      sortOrder: index,
+    // Return parsed data - NO fake IDs, the database will generate real ones
+    const patientsWithDefaults = validPatients.map((patient: any, index: number) => ({
       ...patient,
-      status: patient.status || 'recheck', // Default to recheck if not specified
-      lastUpdated: new Date().toISOString(),
-      rawText: text, // Store original text for reference
+      sortOrder: index,
+      status: patient.status || 'recheck',
     }));
 
     return NextResponse.json({
-      patients: patientsWithMetadata,
-      count: patientsWithMetadata.length,
+      patients: patientsWithDefaults,
+      count: patientsWithDefaults.length,
     });
 
   } catch (error: any) {

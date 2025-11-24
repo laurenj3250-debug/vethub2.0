@@ -97,10 +97,8 @@ export function AppointmentSchedule() {
 
   // Auto-save to database whenever patients change (debounced)
   useEffect(() => {
-    // Only save patients with valid database IDs (not temporary 'patient-' prefixed IDs)
-    const validPatients = patients.filter(
-      (p) => p.id && p.id !== 'undefined' && !p.id.startsWith('patient-')
-    );
+    // Only save patients with valid database IDs
+    const validPatients = patients.filter((p) => p.id && p.id !== 'undefined');
     if (validPatients.length === 0) return;
 
     if (saveTimeoutRef.current) {
@@ -366,7 +364,7 @@ export function AppointmentSchedule() {
 
   const handleUpdatePatient = useCallback(async (id: string, field: string, value: any) => {
     // Guard against undefined/invalid IDs
-    if (!id || id === 'undefined' || id.startsWith('patient-')) {
+    if (!id || id === 'undefined') {
       console.warn('Skipping update for invalid ID:', id);
       return;
     }
@@ -397,9 +395,8 @@ export function AppointmentSchedule() {
 
   const handleDeletePatient = useCallback(async (id: string) => {
     // Guard against undefined/invalid IDs
-    if (!id || id === 'undefined' || id.startsWith('patient-')) {
+    if (!id || id === 'undefined') {
       console.warn('Skipping delete for invalid ID:', id);
-      setPatients((prev) => prev.filter((p) => p.id !== id));
       return;
     }
 
