@@ -271,10 +271,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   // Quick-insert: Insert text into currently focused field
   const handleQuickInsert = (text: string) => {
     if (!focusedField) {
+      console.log('Quick insert: No focused field!');
+      alert('Quick insert failed: No focused field');
       return;
     }
 
     const { patientId, field } = focusedField;
+
+    // DEBUG
+    const patient = patients.find(p => p.id === patientId);
+    const pName = (patient as any)?.demographics?.name || patient?.name || 'Unknown';
+    console.log(`Quick insert: Patient ${pName} (ID: ${patientId}), Field: ${field}, Text: "${text.substring(0, 30)}..."`);
 
     // Get current value
     const currentData = getPatientData(patientId);
