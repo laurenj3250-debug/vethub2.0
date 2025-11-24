@@ -78,8 +78,7 @@ export default function VetHub() {
   // Mounted state to prevent hydration mismatch
   const [mounted, setMounted] = useState(false);
 
-  // View mode (list vs grid) - persisted to localStorage
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  // Grid view removed - always use list view
 
   // Task view mode (kanban vs list)
   const [taskBoardView, setTaskBoardView] = useState<'kanban' | 'list'>('list');
@@ -1669,13 +1668,9 @@ export default function VetHub() {
     }
   }, [showSOAPBuilder]);
 
-  // Load and persist view mode from localStorage
+  // Initialize mounted and load hideCompletedTasks from localStorage
   useEffect(() => {
     setMounted(true);
-    const savedViewMode = localStorage.getItem('dashboardViewMode');
-    if (savedViewMode === 'list' || savedViewMode === 'grid') {
-      setViewMode(savedViewMode);
-    }
 
     // Load hideCompletedTasks preference from localStorage (default: true)
     // Migration: If user has old 'false' value, reset to new default of 'true'
@@ -1695,10 +1690,6 @@ export default function VetHub() {
       localStorage.setItem('hideCompletedTasks', 'true');
     }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('dashboardViewMode', viewMode);
-  }, [viewMode]);
 
   // Persist hideCompletedTasks preference to localStorage
   useEffect(() => {
@@ -3026,8 +3017,8 @@ export default function VetHub() {
             <div className="text-6xl mb-4">🐾</div>
             <p className="text-gray-600 text-lg font-medium">No patients yet. Add your first furry friend above!</p>
           </div>
-        ) : viewMode === 'list' ? (
-          /* LIST VIEW */
+        ) : (
+          /* PATIENT LIST VIEW */
           <div className="space-y-2">
             {filteredPatients.map((patient) => (
               <PatientListItem
@@ -3055,353 +3046,6 @@ export default function VetHub() {
                 onPrintStickers={() => handlePrintPatientStickers(patient.id)}
               />
             ))}
-          </div>
-        ) : (
-          /* GRID VIEW */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredPatients.map((patient) => {
-              const today = new Date().toISOString().split('T')[0];
-              const allTasks = patient.tasks || [];
-              const tasks = allTasks; // No date filtering - tasks don't have date field
-              const completedTasks = tasks.filter((t: any) => t.completed).length;
-              const totalTasks = tasks.length;
-              const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-              const isExpanded = expandedPatient === patient.id;
-              const info = patient.demographics || patient.demographics || {};
-              const rounding = patient.roundingData || {};
-              const emoji = getSpeciesEmoji(info.species);
-
-              return (
-                <div
-                  key={patient.id}
-                  id={`patient-${patient.id}`}
-                  className="rounded-2xl overflow-hidden transition-all hover:-translate-y-1"
-                  style={{ backgroundColor: 'white', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-                >
-                  <div className="p-3">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          {/* Selection Checkbox */}
-                          <input
-                            type="checkbox"
-                            checked={selectedPatientIds.has(patient.id)}
-                            onChange={() => togglePatientSelection(patient.id)}
-                            className="w-4 h-4 rounded border-gray-400 bg-white text-emerald-500 focus:ring-emerald-500 focus:ring-2 cursor-pointer"
-                          />
-                          <span className="text-2xl">{emoji}</span>
-                          <button
-                            onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                            className="text-lg font-bold text-gray-900 hover:text-emerald-600 transition cursor-pointer"
-                          >
-                            {patient.demographics?.name || patient.name || 'Unnamed'}
-                          </button>
-                          <select
-                            value={patient.type || 'Medical'}
-                            onChange={(e) => handleTypeChange(patient.id, e.target.value)}
-                            className={`px-2 py-0.5 rounded-full text-xs font-bold bg-gradient-to-r ${getTypeColor(patient.type)} text-white shadow-lg border-0 cursor-pointer hover:opacity-90 transition`}
-                          >
-                            <option value="Medical">Medical</option>
-                            <option value="MRI">MRI</option>
-                            <option value="Surgery">Surgery</option>
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-xs text-gray-500">Status:</span>
-                          <select
-                            value={patient.status || 'New Admit'}
-                            onChange={(e) => handleStatusChange(patient.id, e.target.value)}
-                            className="px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-800 hover:bg-gray-200 transition cursor-pointer"
-                            style={{ border: '1px solid #000' }}
-                          >
-                            <option value="New Admit">New Admit</option>
-                            <option value="Hospitalized">Hospitalized</option>
-                            <option value="Discharging">Discharging</option>
-                            <option value="Discharged">Discharged</option>
-                          </select>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          {info.patientId && (
-                            <span className="flex items-center gap-1">
-                              <span className="text-gray-400">ID:</span>
-                              <span className="text-gray-700 font-medium">{info.patientId}</span>
-                            </span>
-                          )}
-                          {info.weight && (
-                            <span className="flex items-center gap-1">
-                              <span className="text-gray-400">Weight:</span>
-                              <span className="text-gray-700 font-medium">{info.weight}</span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeletePatient(patient.id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition"
-                        style={{ border: '1px solid #ccc' }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-
-                    {/* Progress */}
-                    <div className="mb-2">
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-gray-500">Tasks: {completedTasks}/{totalTasks}</span>
-                        <span className="text-emerald-600 font-bold">{Math.round(progress)}%</span>
-                      </div>
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden" style={{ border: '1px solid #000' }}>
-                        <div
-                          className="h-full transition-all duration-500"
-                          style={{ width: `${progress}%`, backgroundColor: '#6BB89D' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Quick Complete Morning/Evening Tasks */}
-                    <div className="mb-2 flex gap-1.5 flex-wrap">
-                      <button
-                        onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
-                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
-                        style={{ backgroundColor: '#FFF3B8', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                        title="Complete all morning tasks"
-                      >
-                        ✅ Morning
-                      </button>
-                      <button
-                        onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
-                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
-                        style={{ backgroundColor: '#DCC4F5', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                        title="Complete all evening tasks"
-                      >
-                        ✅ Evening
-                      </button>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <button
-                        onClick={() => setExpandedPatient(isExpanded ? null : patient.id)}
-                        className="px-2 py-1 text-gray-900 text-xs font-bold rounded hover:-translate-y-0.5 transition-transform"
-                        style={{ backgroundColor: '#E5E7EB', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                      >
-                        {isExpanded ? '🔼 Hide' : '🔽 Tasks'}
-                      </button>
-                      <button
-                        onClick={() => setQuickAddMenuPatient(quickAddMenuPatient === patient.id ? null : patient.id)}
-                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
-                        style={{ backgroundColor: '#B8E6D4', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                      >
-                        ➕ Task
-                      </button>
-                      <button
-                        onClick={() => setRoundingSheetPatient(patient.id)}
-                        className="px-2 py-1 text-gray-900 rounded text-xs font-bold hover:-translate-y-0.5 transition-transform"
-                        style={{ backgroundColor: '#6BB89D', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                      >
-                        📋 Rounds
-                      </button>
-                    </div>
-
-                    {/* Quick Add Task Menu */}
-                    {quickAddMenuPatient === patient.id && (
-                      <div className="mt-2 p-3 rounded-xl" style={{ backgroundColor: '#FFF8F0', border: '2px solid #000' }}>
-                        <h5 className="text-gray-900 font-bold text-sm mb-2">Quick Add Common Tasks:</h5>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-1.5 mb-2">
-                          {['Discharge Instructions', 'MRI Findings Inputted', 'Pre-op Bloodwork', 'Owner Update Call', 'Treatment Plan Updated', 'Recheck Scheduled', 'Consent Form', 'Estimate Approved', 'Referral Letter', 'Lab Results', 'Imaging Review', 'Progress Photos'].map(taskName => (
-                            <button
-                              key={taskName}
-                              onClick={() => handleQuickAddTask(patient.id, taskName)}
-                              className="px-2 py-1.5 bg-white hover:bg-gray-100 text-gray-700 hover:text-gray-900 text-xs transition rounded font-medium"
-                              style={{ border: '1px solid #000' }}
-                            >
-                              {taskName}
-                            </button>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={customTaskName}
-                            onChange={(e) => setCustomTaskName(e.target.value)}
-                            placeholder="Custom task name..."
-                            className="flex-1 px-2 py-1.5 bg-white text-gray-900 placeholder-gray-400 text-xs rounded focus:ring-2 focus:ring-emerald-500"
-                            style={{ border: '1px solid #000' }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && customTaskName.trim()) {
-                                handleQuickAddTask(patient.id, customTaskName);
-                              }
-                            }}
-                          />
-                          <button
-                            onClick={() => customTaskName.trim() && handleQuickAddTask(patient.id, customTaskName)}
-                            disabled={!customTaskName.trim()}
-                            className="px-3 py-1.5 text-gray-900 rounded font-bold text-xs disabled:opacity-50 disabled:cursor-not-allowed transition hover:-translate-y-0.5"
-                            style={{ backgroundColor: '#B8E6D4', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Tasks - Grouped by Category */}
-                  {isExpanded && (
-                    <div className="p-3" style={{ borderTop: '2px solid #000', backgroundColor: '#F9FAFB' }}>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-gray-900 font-bold text-sm flex items-center gap-2">
-                          <ListTodo size={16} className="text-emerald-600" />
-                          Tasks ({completedTasks}/{totalTasks})
-                        </h4>
-                        <div className="flex gap-2 flex-wrap">
-                          <button
-                            onClick={() => handleCompleteAllCategory(patient.id, 'morning')}
-                            className="px-3 py-1 text-gray-900 rounded-lg text-xs font-bold hover:-translate-y-0.5 transition-transform"
-                            style={{ backgroundColor: '#FFF3B8', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                            title="Complete all morning tasks"
-                          >
-                            ✅ Morning
-                          </button>
-                          <button
-                            onClick={() => handleCompleteAllCategory(patient.id, 'evening')}
-                            className="px-3 py-1 text-gray-900 rounded-lg text-xs font-bold hover:-translate-y-0.5 transition-transform"
-                            style={{ backgroundColor: '#DCC4F5', border: '1px solid #000', boxShadow: '2px 2px 0 #000' }}
-                            title="Complete all evening tasks"
-                          >
-                            ✅ Evening
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Morning Tasks */}
-                      {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
-                        <div className="mb-3">
-                          <h5 className="text-xs font-bold text-amber-600 mb-1.5 flex items-center gap-2">
-                            🌅 Morning Tasks
-                          </h5>
-                          <div className="space-y-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'morning').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
-                              <div
-                                key={task.id}
-                                className="flex items-center gap-2 px-2 py-1 rounded bg-white transition group"
-                                style={{ border: '1px solid #000' }}
-                              >
-                                <button
-                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                  className="flex-shrink-0"
-                                >
-                                  {task.completed ? (
-                                    <CheckCircle2 className="text-emerald-500" size={16} />
-                                  ) : (
-                                    <Circle className="text-gray-400 group-hover:text-amber-500" size={16} />
-                                  )}
-                                </button>
-                                <span
-                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
-                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                >
-                                  {task.title || task.name}
-                                </span>
-                                <button
-                                  onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 rounded transition opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Evening Tasks */}
-                      {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
-                        <div className="mb-3">
-                          <h5 className="text-xs font-bold text-purple-600 mb-1.5 flex items-center gap-2">
-                            🌙 Evening Tasks
-                          </h5>
-                          <div className="space-y-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'evening').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
-                              <div
-                                key={task.id}
-                                className="flex items-center gap-2 px-2 py-1 rounded bg-white transition group"
-                                style={{ border: '1px solid #000' }}
-                              >
-                                <button
-                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                  className="flex-shrink-0"
-                                >
-                                  {task.completed ? (
-                                    <CheckCircle2 className="text-emerald-500" size={16} />
-                                  ) : (
-                                    <Circle className="text-gray-400 group-hover:text-purple-500" size={16} />
-                                  )}
-                                </button>
-                                <span
-                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
-                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                >
-                                  {task.title || task.name}
-                                </span>
-                                <button
-                                  onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 rounded transition opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* General Tasks (MRI/Surgery/Conditional) */}
-                      {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).length > 0 && (
-                        <div>
-                          <h5 className="text-xs font-bold text-emerald-600 mb-1.5 flex items-center gap-2">
-                            📋 {patient.type} Tasks & Other
-                          </h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                            {tasks.filter((t: any) => getTaskCategory(t.title || t.name) === 'general').filter((t: any) => !hideCompletedTasks || !t.completed).sort((a: any, b: any) => (a.title || a.name).localeCompare(b.title || b.name)).map((task: any) => (
-                              <div
-                                key={task.id}
-                                className="flex items-center gap-2 px-2 py-1 rounded bg-white transition group"
-                                style={{ border: '1px solid #000' }}
-                              >
-                                <button
-                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                  className="flex-shrink-0"
-                                >
-                                  {task.completed ? (
-                                    <CheckCircle2 className="text-emerald-500" size={16} />
-                                  ) : (
-                                    <Circle className="text-gray-400 group-hover:text-emerald-500" size={16} />
-                                  )}
-                                </button>
-                                <span
-                                  className={`flex-1 cursor-pointer text-xs ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}
-                                  onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
-                                >
-                                  {task.title || task.name}
-                                </span>
-                                <button
-                                  onClick={() => handleDeleteTask(patient.id, task.id)}
-                                  className="flex-shrink-0 p-0.5 text-gray-400 hover:text-red-500 rounded transition opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         )}
 
