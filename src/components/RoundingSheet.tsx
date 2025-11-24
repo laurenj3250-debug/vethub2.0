@@ -114,6 +114,12 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   } | null>(null);
   const [showQuickInsert, setShowQuickInsert] = useState(false);
 
+  // Ref to always get fresh editingData in async callbacks (avoids stale closure)
+  const editingDataRef = useRef(editingData);
+  useEffect(() => {
+    editingDataRef.current = editingData;
+  }, [editingData]);
+
   useEffect(() => {
     return () => {
       // Clean up all timers on unmount
@@ -247,8 +253,19 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       return newFields;
     });
 
-    // AUTO-SAVE DISABLED - Use manual Save/Save All buttons instead
-    // This prevents flickering and gives users explicit control
+    // Auto-save after 2 second delay (debounced)
+    // Clear any existing timer for this patient
+    const existingTimer = saveTimers.get(patientId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Set new timer for auto-save
+    const newTimer = setTimeout(() => {
+      autoSave(patientId);
+    }, autoSaveDelay);
+
+    setSaveTimers(prev => new Map(prev).set(patientId, newTimer));
   };
 
   // Quick-insert: Insert text into currently focused field
@@ -371,10 +388,10 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   const autoSave = useCallback(async (patientId: number) => {
     try {
-      setIsSaving(true);
       setSaveStatus(prev => new Map(prev).set(patientId, 'saving'));
 
-      const updates = editingData[patientId];
+      // Use ref to get fresh data (avoids stale closure from setTimeout)
+      const updates = editingDataRef.current[patientId];
       if (!updates) {
         setSaveStatus(prev => {
           const newMap = new Map(prev);
@@ -404,8 +421,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         });
       }, 2000);
 
-      // DON'T clear editing data - keep user's changes visible
-      // DON'T refetch patients - prevents flickering and cascading re-renders
+      // DON'T clear editing data - keep user's changes visible for continued editing
+      // DON'T refetch patients - prevents flickering
     } catch (error) {
       console.error('Auto-save failed:', error);
       setSaveStatus(prev => new Map(prev).set(patientId, 'error'));
@@ -418,10 +435,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           return newMap;
         });
       }, 5000);
-    } finally {
-      setIsSaving(false);
     }
-  }, [editingData]);
+  }, []);
 
   const handleMultiRowPaste = useCallback((
     pasteData: string,
