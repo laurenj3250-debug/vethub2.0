@@ -270,29 +270,13 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   // Quick-insert: Insert text into currently focused field
   const handleQuickInsert = (text: string) => {
-    if (!focusedField) {
-      console.log('Quick insert: No focused field!');
-      alert('Quick insert failed: No focused field');
-      return;
-    }
+    if (!focusedField) return;
 
     const { patientId, field } = focusedField;
-
-    // DEBUG
-    const patient = patients.find(p => p.id === patientId);
-    const pName = (patient as any)?.demographics?.name || patient?.name || 'Unknown';
-    console.log(`Quick insert: Patient ${pName} (ID: ${patientId}), Field: ${field}, Text: "${text.substring(0, 30)}..."`);
-
-    // Get current value
     const currentData = getPatientData(patientId);
     const currentValue = currentData[field] || '';
 
-    // Append text (with newline if field already has content)
-    const newValue = currentValue
-      ? `${currentValue}\n${text}`
-      : text;
-
-    // Update field
+    const newValue = currentValue ? `${currentValue}\n${text}` : text;
     handleFieldChange(patientId, field as keyof RoundingData, newValue);
   };
 
@@ -348,23 +332,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
     e.preventDefault();
-    e.stopPropagation(); // Stop event from bubbling
+    e.stopPropagation();
     const pasteData = e.clipboardData.getData('text');
 
-    // DEBUG - see what's being pasted
-    console.log('=== PASTE DEBUG ===');
-    console.log('Raw clipboard:', JSON.stringify(pasteData));
-    console.log('Start field:', startField);
-    console.log('Patient ID:', patientId);
-
-    // Parse first row properly (handles quoted fields with embedded newlines)
+    // Parse TSV row (converts newlines to spaces, splits by tab)
     const values = parseTSVRow(pasteData);
-    console.log('Parsed values (count=' + values.length + '):', values);
-
-    // TEMP DEBUG ALERT
-    const patient = patients.find(p => p.id === patientId);
-    const pName = (patient as any)?.demographics?.name || patient?.name || 'Unknown';
-    alert(`Paste fired!\nPatient: ${pName} (ID: ${patientId})\nField: ${startField}\nValues: ${values.length} columns\nFirst value: "${values[0]?.substring(0, 30)}..."`);
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
