@@ -21,10 +21,18 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(appointments);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API] Error fetching appointments:', error);
+    // Surface the actual error for debugging
+    const errorMessage = error?.message || 'Unknown error';
+    const isTableMissing = errorMessage.includes('does not exist') || errorMessage.includes('relation');
     return NextResponse.json(
-      { error: 'Failed to fetch appointments' },
+      {
+        error: 'Failed to fetch appointments',
+        details: isTableMissing
+          ? 'Appointment table does not exist. Run database migrations.'
+          : errorMessage
+      },
       { status: 500 }
     );
   }
@@ -66,10 +74,17 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(appointment, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API] Error creating appointment:', error);
+    const errorMessage = error?.message || 'Unknown error';
+    const isTableMissing = errorMessage.includes('does not exist') || errorMessage.includes('relation');
     return NextResponse.json(
-      { error: 'Failed to create appointment' },
+      {
+        error: 'Failed to create appointment',
+        details: isTableMissing
+          ? 'Appointment table does not exist. Run database migrations.'
+          : errorMessage
+      },
       { status: 500 }
     );
   }
