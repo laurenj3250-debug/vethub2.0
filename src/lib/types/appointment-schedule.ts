@@ -17,9 +17,6 @@ export interface AppointmentPatient {
   changesSinceLastVisit: string | null;
   otherNotes: string | null;
 
-  // Visual Markers
-  highlight?: 'none' | 'yellow' | 'red' | 'green'; // Whiteboard-style highlighting
-
   // Metadata
   rawText?: string; // Original pasted text for reference
   lastUpdated: Date;

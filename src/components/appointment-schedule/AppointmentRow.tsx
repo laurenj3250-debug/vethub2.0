@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { GripVertical, Trash2, Highlighter } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 import { AppointmentPatient } from '@/lib/types/appointment-schedule';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -185,37 +185,16 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
     );
   };
 
-  // Neo-pop highlight colors
-  const getRowBg = () => {
-    if (patient.highlight === 'yellow') return COLORS.cream;
-    if (patient.highlight === 'red') return COLORS.pink;
-    if (patient.highlight === 'green') return COLORS.mint;
-    return 'white';
-  };
-
   const getStatusBadgeStyle = () => {
     if (patient.status === 'new') return { backgroundColor: COLORS.mint, color: '#000' };
     if (patient.status === 'mri-dropoff') return { backgroundColor: COLORS.lavender, color: '#000' };
     return { backgroundColor: '#E5E7EB', color: '#000' };
   };
 
-  const handleHighlightClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const nextHighlight =
-      !patient.highlight || patient.highlight === 'none'
-        ? 'yellow'
-        : patient.highlight === 'yellow'
-        ? 'red'
-        : patient.highlight === 'red'
-        ? 'green'
-        : 'none';
-    onUpdate(patient.id, 'highlight', nextHighlight);
-  };
-
   return (
     <tr
       ref={setNodeRef}
-      style={{ ...style, backgroundColor: getRowBg() }}
+      style={{ ...style, backgroundColor: 'white' }}
       className="transition"
     >
       {/* Drag Handle */}
@@ -307,21 +286,6 @@ const AppointmentRowComponent = ({ patient, onUpdate, onDelete }: AppointmentRow
         style={{ borderBottom: '1px solid #ccc' }}
       >
         <div className="flex items-center gap-1">
-          <button
-            onClick={handleHighlightClick}
-            className={`p-1.5 rounded-lg transition font-bold`}
-            style={{
-              backgroundColor: patient.highlight && patient.highlight !== 'none'
-                ? patient.highlight === 'yellow' ? '#FEF3C7'
-                : patient.highlight === 'red' ? COLORS.pink
-                : COLORS.mint
-                : 'white',
-              border: '1px solid #000'
-            }}
-            title="Highlight row (Yellow → Red → Green → None)"
-          >
-            <Highlighter size={14} />
-          </button>
           <button
             onClick={() => onDelete(patient.id)}
             className="p-1.5 rounded-lg transition text-gray-500 hover:text-red-500 hover:bg-red-50"

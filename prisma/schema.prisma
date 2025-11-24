@@ -144,9 +144,6 @@ model Appointment {
   changesSinceLastVisit String?
   otherNotes       String?
 
-  // Visual Markers
-  highlight        String?   @default("none") // none | yellow | red | green - whiteboard-style highlighting
-
   // Metadata
   rawText          String?   // Original pasted text
   createdAt        DateTime  @default(now())

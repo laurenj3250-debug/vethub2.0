@@ -76,7 +76,6 @@ export function AppointmentSchedule() {
           medications: apt.medications || null,
           changesSinceLastVisit: apt.changesSinceLastVisit || null,
           otherNotes: apt.otherNotes || null,
-          highlight: apt.highlight || 'none',
           rawText: apt.rawText || undefined,
           lastUpdated: new Date(apt.updatedAt),
         }));
@@ -317,7 +316,6 @@ export function AppointmentSchedule() {
           medications: apt.medications || null,
           changesSinceLastVisit: apt.changesSinceLastVisit || null,
           otherNotes: apt.otherNotes || null,
-          highlight: apt.highlight || 'none',
           rawText: apt.rawText || undefined,
           lastUpdated: new Date(apt.updatedAt),
         }));
