@@ -738,10 +738,6 @@ export default function VetHub() {
             description: taskList
           });
         }
-
-        // Show discharge instructions modal
-        setDischargingPatientId(patientId);
-        setShowDischargeInstructions(true);
       }
 
       refetch();
