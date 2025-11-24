@@ -326,46 +326,24 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     cri: ['Yes', 'No', 'No but...', 'Yet but...'],
   };
 
-  // Helper to parse TSV row properly (handles quoted fields with embedded newlines/tabs)
+  // Helper to parse TSV - splits by tab, converts newlines within cells to spaces
   const parseTSVRow = (text: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    let i = 0;
+    // First, normalize all newlines within the data to spaces
+    // This handles cases where cell content has line breaks
+    const normalized = text.replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ');
 
-    while (i < text.length) {
-      const char = text[i];
+    // Split by tab
+    const values = normalized.split('\t');
 
-      if (char === '"') {
-        if (inQuotes && text[i + 1] === '"') {
-          // Escaped quote
-          current += '"';
-          i += 2;
-          continue;
-        }
-        inQuotes = !inQuotes;
-        i++;
-        continue;
+    // Trim each value and remove quotes if present
+    return values.map(v => {
+      let trimmed = v.trim();
+      // Remove surrounding quotes if present
+      if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+        trimmed = trimmed.slice(1, -1).replace(/""/g, '"');
       }
-
-      if (char === '\t' && !inQuotes) {
-        result.push(current);
-        current = '';
-        i++;
-        continue;
-      }
-
-      // When not in quotes, newline ends the row
-      if ((char === '\n' || char === '\r') && !inQuotes) {
-        break;
-      }
-
-      current += char;
-      i++;
-    }
-
-    result.push(current); // Push last field
-    return result;
+      return trimmed;
+    });
   };
 
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
