@@ -185,6 +185,19 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Daily Task Reset
+  async resetDailyTasks() {
+    return this.request<{ message: string; resetCount: number; tasks?: any[] }>('/api/tasks/reset-daily', {
+      method: 'POST',
+    });
+  }
+
+  async checkDailyTasksNeedReset() {
+    return this.request<{ tasksToReset: number; message: string }>('/api/tasks/reset-daily', {
+      method: 'GET',
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

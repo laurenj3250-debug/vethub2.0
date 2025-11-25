@@ -99,9 +99,19 @@ model Task {
   createdAt   DateTime  @default(now())
   dueDate     DateTime?
 
+  // Recurring task flag - only recurring tasks reset daily
+  isRecurring Boolean   @default(false)
+
+  // Subtask support - parent-child relationship
+  parentTaskId String?
+  parentTask   Task?     @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks     Task[]    @relation("TaskSubtasks")
+
   @@index([patientId])
   @@index([completed])
   @@index([createdAt])
+  @@index([parentTaskId])
+  @@index([isRecurring])
 }
 
 // Common items for auto-complete

@@ -574,7 +574,7 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleTask = async (patientId: number, taskId: number, currentStatus: boolean) => {
+  const handleToggleTask = async (patientId: number, taskId: number | string, currentStatus: boolean) => {
     try {
       await apiClient.updateTask(String(patientId), String(taskId), { completed: !currentStatus });
       refetch();
@@ -632,7 +632,7 @@ export default function VetHub() {
     }
   };
 
-  const handleDeleteTask = async (patientId: number, taskId: number) => {
+  const handleDeleteTask = async (patientId: number, taskId: number | string) => {
     try {
       await apiClient.deleteTask(String(patientId), String(taskId));
       refetch();
@@ -660,7 +660,7 @@ export default function VetHub() {
       let taskCount = 0;
 
       for (const patient of activePatients) {
-        const completedTasks = patient.tasks.filter(t => t.completed);
+        const completedTasks = patient.tasks.filter((t: any) => t.completed);
         for (const task of completedTasks) {
           await apiClient.updateTask(String(patient.id), String(task.id), { completed: false });
           taskCount++;
@@ -734,8 +734,8 @@ export default function VetHub() {
       await apiClient.updatePatient(String(patientId), { status: newStatus });
       toast({ title: `✅ Status updated to ${newStatus}` });
 
-      // Auto-create discharge tasks when status changes to "Discharging" using task engine templates
-      if (newStatus === 'Discharging') {
+      // Auto-create discharge tasks when status changes to "Discharging" or "Discharged" using task engine templates
+      if (newStatus === 'Discharging' || newStatus === 'Discharged') {
         // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
         const freshPatient = await apiClient.getPatient(String(patientId));
         const existingTasks = freshPatient?.tasks || [];
@@ -871,26 +871,61 @@ export default function VetHub() {
       if (!patient) return;
 
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      // VetRadar subtasks will be created under a parent task
+      const eveningSimpleTasks = ['Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      const vetRadarSubtasks = ['Check med dosages', 'Check med frequency', 'Check food'];
 
-      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
-      const today = new Date().toISOString().split('T')[0];
       const existingTasks = patient.tasks || [];
-
       let addedCount = 0;
-      for (const taskName of tasksToAdd) {
-        // Check if task already exists for today
-        const hasTask = existingTasks.some((t: any) =>
-          (t.title || t.name) === taskName // No date check - tasks don't have date field
-        );
 
-        if (!hasTask) {
-          await apiClient.createTask(String(patientId), {
-            title: taskName,
+      if (category === 'morning') {
+        for (const taskName of morningTasks) {
+          const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+          if (!hasTask) {
+            await apiClient.createTask(String(patientId), {
+              title: taskName,
+              completed: false,
+              isRecurring: true, // Mark as recurring for daily reset
+            });
+            addedCount++;
+          }
+        }
+      } else {
+        // Evening tasks - create VetRadar parent with subtasks
+        const hasVetRadar = existingTasks.some((t: any) => (t.title || t.name) === 'VetRadar');
+        if (!hasVetRadar) {
+          // Create parent VetRadar task
+          const parentTask = await apiClient.createTask(String(patientId), {
+            title: 'VetRadar',
             completed: false,
-            date: today,
+            isRecurring: true,
+            category: 'evening',
           });
           addedCount++;
+
+          // Create subtasks under the parent
+          for (const subtaskName of vetRadarSubtasks) {
+            await apiClient.createTask(String(patientId), {
+              title: subtaskName,
+              completed: false,
+              isRecurring: true,
+              parentTaskId: parentTask.id,
+            });
+            addedCount++;
+          }
+        }
+
+        // Add other evening tasks
+        for (const taskName of eveningSimpleTasks) {
+          const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+          if (!hasTask) {
+            await apiClient.createTask(String(patientId), {
+              title: taskName,
+              completed: false,
+              isRecurring: true,
+            });
+            addedCount++;
+          }
         }
       }
 
@@ -910,9 +945,8 @@ export default function VetHub() {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
-      const today = new Date().toISOString().split('T')[0];
+      const eveningSimpleTasks = ['Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      const vetRadarSubtasks = ['Check med dosages', 'Check med frequency', 'Check food'];
 
       let totalAdded = 0;
       let totalSkipped = 0;
@@ -920,21 +954,57 @@ export default function VetHub() {
       for (const patient of activePatients) {
         const existingTasks = patient.tasks || [];
 
-        for (const taskName of tasksToAdd) {
-          // Check for existing task (including completed ones to avoid duplicates)
-          const hasTask = existingTasks.some((t: any) =>
-            (t.title || t.name) === taskName
-          );
-
-          if (!hasTask) {
-            await apiClient.createTask(String(patient.id), {
-              title: taskName,
+        if (category === 'morning') {
+          for (const taskName of morningTasks) {
+            const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+            if (!hasTask) {
+              await apiClient.createTask(String(patient.id), {
+                title: taskName,
+                completed: false,
+                isRecurring: true,
+              });
+              totalAdded++;
+            } else {
+              totalSkipped++;
+            }
+          }
+        } else {
+          // Evening tasks - create VetRadar parent with subtasks
+          const hasVetRadar = existingTasks.some((t: any) => (t.title || t.name) === 'VetRadar');
+          if (!hasVetRadar) {
+            const parentTask = await apiClient.createTask(String(patient.id), {
+              title: 'VetRadar',
               completed: false,
-              date: today,
+              isRecurring: true,
+              category: 'evening',
             });
             totalAdded++;
+
+            for (const subtaskName of vetRadarSubtasks) {
+              await apiClient.createTask(String(patient.id), {
+                title: subtaskName,
+                completed: false,
+                isRecurring: true,
+                parentTaskId: parentTask.id,
+              });
+              totalAdded++;
+            }
           } else {
-            totalSkipped++;
+            totalSkipped += 4; // VetRadar + 3 subtasks
+          }
+
+          for (const taskName of eveningSimpleTasks) {
+            const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+            if (!hasTask) {
+              await apiClient.createTask(String(patient.id), {
+                title: taskName,
+                completed: false,
+                isRecurring: true,
+              });
+              totalAdded++;
+            } else {
+              totalSkipped++;
+            }
           }
         }
       }
@@ -1056,7 +1126,7 @@ export default function VetHub() {
         refetchGeneralTasks();
       } else {
         // Add as patient task
-        await apiClient.createTask(patientId, { title: taskName, completed: false });
+        await apiClient.createTask(String(patientId), { title: taskName, completed: false });
         refetch();
       }
       toast({ title: `✅ Added: ${taskName}` });
@@ -1185,7 +1255,7 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleGeneralTask = async (taskId: number, currentStatus: boolean) => {
+  const handleToggleGeneralTask = async (taskId: number | string, currentStatus: boolean) => {
     try {
       await apiClient.updateGeneralTask(String(taskId), { completed: !currentStatus });
       refetchGeneralTasks();
@@ -1194,7 +1264,7 @@ export default function VetHub() {
     }
   };
 
-  const handleDeleteGeneralTask = async (taskId: number) => {
+  const handleDeleteGeneralTask = async (taskId: number | string) => {
     try {
       await apiClient.deleteGeneralTask(String(taskId));
       toast({ title: '🗑️ General task deleted' });
@@ -1771,85 +1841,51 @@ export default function VetHub() {
   }, [mounted, patients, generalTasks]);
 
   // Automatic daily task reset - runs when app loads on a new day
-  const hasRunAutoCreation = useRef(false);
+  // Resets ALL completed tasks from previous days (not just a hardcoded list)
+  const hasRunDailyReset = useRef(false);
 
   useEffect(() => {
     const autoResetDailyTasks = async () => {
-      if (!patients || patients.length === 0) return;
-      if (hasRunAutoCreation.current) return; // Prevent duplicate runs
+      // Wait for patients to load and mounted state
+      if (!mounted || !patients || patientsLoading) return;
+      if (hasRunDailyReset.current) return; // Prevent duplicate runs
 
       const today = new Date().toISOString().split('T')[0];
-      const lastCheck = localStorage.getItem('lastDailyTaskCheck');
+      const lastResetDate = localStorage.getItem('lastDailyTaskReset');
 
       // Only run if it's a new day
-      if (lastCheck === today) {
-        hasRunAutoCreation.current = true;
+      if (lastResetDate === today) {
+        hasRunDailyReset.current = true;
         return;
       }
 
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const allDailyTasks = [...morningTasks, ...eveningTasks];
+      try {
+        // Call API to reset ALL completed tasks from previous days
+        // This is more robust than maintaining a hardcoded task list
+        const result = await apiClient.resetDailyTasks();
 
-      let totalReset = 0;
-      let totalAdded = 0;
+        // Mark today as reset complete
+        localStorage.setItem('lastDailyTaskReset', today);
+        hasRunDailyReset.current = true;
 
-      for (const patient of activePatients) {
-        const existingTasks = patient.tasks || [];
+        if (result.resetCount > 0) {
+          // Refetch to show updated task states
+          refetch();
 
-        for (const taskName of allDailyTasks) {
-          const existingTask = existingTasks.find((t: any) =>
-            (t.title || t.name) === taskName
-          );
-
-          if (existingTask) {
-            // Task exists - reset it to uncompleted if it was completed
-            if (existingTask.completed) {
-              try {
-                await apiClient.updateTask(String(patient.id), String(existingTask.id), {
-                  completed: false,
-                });
-                totalReset++;
-              } catch (error) {
-                console.error('Failed to reset task:', error);
-              }
-            }
-          } else {
-            // Task doesn't exist - create it
-            try {
-              await apiClient.createTask(String(patient.id), {
-                name: taskName,
-                completed: false,
-                date: today,
-              });
-              totalAdded++;
-            } catch (error) {
-              console.error('Failed to create task:', error);
-            }
-          }
+          toast({
+            title: '🌅 New Day!',
+            description: `Reset ${result.resetCount} task${result.resetCount === 1 ? '' : 's'} for the new day`
+          });
         }
-      }
-
-      // Mark today as checked
-      localStorage.setItem('lastDailyTaskCheck', today);
-      hasRunAutoCreation.current = true;
-
-      if (totalReset > 0 || totalAdded > 0) {
-        refetch();
-        const messages = [];
-        if (totalReset > 0) messages.push(`Reset ${totalReset} tasks`);
-        if (totalAdded > 0) messages.push(`Added ${totalAdded} tasks`);
-
-        toast({
-          title: `🌅 New Day!`,
-          description: messages.join(' • ') + ` for ${activePatients.length} patients`
-        });
+      } catch (error) {
+        console.error('Failed to reset daily tasks:', error);
+        // Mark as attempted to prevent infinite retries
+        hasRunDailyReset.current = true;
       }
     };
 
     autoResetDailyTasks();
-  }, [patients.length]); // Run when patients are loaded
+  }, [mounted, patients, patientsLoading]); // Run when mounted and patients are loaded
 
   const filteredPatients = patients
     .filter(p => {
@@ -1903,7 +1939,7 @@ export default function VetHub() {
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
     const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-    const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+    const eveningTasks = ['VetRadar', 'Check med dosages', 'Check med frequency', 'Check food', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
     if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
     if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
