@@ -88,10 +88,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const patientType = body.type || 'Medical';
 
-    // Set default rounding data with location=IP and icuCriteria=N/A
+    // Set default rounding data with location=IP, icuCriteria=N, code=Yellow
     const defaultRoundingData = {
       location: 'IP',
-      icuCriteria: 'N/A',
+      icuCriteria: 'N',
+      code: 'Yellow',
       ...(body.roundingData || {}),
     };
 
