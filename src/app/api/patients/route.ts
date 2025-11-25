@@ -123,27 +123,50 @@ export async function POST(request: NextRequest) {
         const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical' | 'Discharge'] || [];
 
         for (const template of templates) {
-          const task = await prisma.task.create({
-            data: {
+          // Check if this task already exists for the patient
+          const existingTask = await prisma.task.findFirst({
+            where: {
               patientId: patient.id,
               title: template.name,
-              description: template.category,
-              category: template.category,
-              timeOfDay: template.timeOfDay || null,
-              priority: template.priority || null,
-              completed: false,
             },
           });
-          createdTasks.push({
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            category: task.category,
-            timeOfDay: task.timeOfDay,
-            priority: task.priority,
-            completed: task.completed,
-            createdAt: task.createdAt,
-          });
+
+          if (existingTask) {
+            // Task already exists, add to list but don't create duplicate
+            createdTasks.push({
+              id: existingTask.id,
+              title: existingTask.title,
+              description: existingTask.description,
+              category: existingTask.category,
+              timeOfDay: existingTask.timeOfDay,
+              priority: existingTask.priority,
+              completed: existingTask.completed,
+              createdAt: existingTask.createdAt,
+            });
+          } else {
+            // Create new task
+            const task = await prisma.task.create({
+              data: {
+                patientId: patient.id,
+                title: template.name,
+                description: template.category,
+                category: template.category,
+                timeOfDay: template.timeOfDay || null,
+                priority: template.priority || null,
+                completed: false,
+              },
+            });
+            createdTasks.push({
+              id: task.id,
+              title: task.title,
+              description: task.description,
+              category: task.category,
+              timeOfDay: task.timeOfDay,
+              priority: task.priority,
+              completed: task.completed,
+              createdAt: task.createdAt,
+            });
+          }
         }
 
         console.log(`[API] Auto-created ${createdTasks.length} tasks for ${patientType} patient ${patient.id}`);
