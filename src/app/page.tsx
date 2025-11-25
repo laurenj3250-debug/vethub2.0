@@ -596,6 +596,42 @@ export default function VetHub() {
     }
   };
 
+  const handleBulkCompleteTask = async (taskName: string, items: Array<{ patient: any; task: any }>) => {
+    try {
+      // Filter to only incomplete tasks
+      const incompleteTasks = items.filter(({ task }) => !task.completed);
+
+      if (incompleteTasks.length === 0) {
+        toast({
+          title: 'All tasks already completed',
+          description: `"${taskName}" is already completed for all patients.`
+        });
+        return;
+      }
+
+      // Update all incomplete tasks in parallel
+      await Promise.all(
+        incompleteTasks.map(({ patient, task }) =>
+          apiClient.updateTask(String(patient.id), String(task.id), { completed: true })
+        )
+      );
+
+      toast({
+        title: 'Tasks completed',
+        description: `Marked "${taskName}" as complete for ${incompleteTasks.length} patient(s).`
+      });
+
+      refetch();
+    } catch (error: any) {
+      console.error(`Bulk complete error for ${taskName}:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to complete tasks',
+        description: `Could not complete "${taskName}" for all patients. ${error.message || 'Try again.'}`
+      });
+    }
+  };
+
   const handleDeleteTask = async (patientId: number, taskId: number) => {
     try {
       await apiClient.deleteTask(String(patientId), String(taskId));
@@ -2458,6 +2494,7 @@ export default function VetHub() {
                     const category = getTaskCategory(taskName);
                     const icon = getTaskIcon(category);
                     const allCompleted = items.every(item => item.task.completed);
+                    const incompleteCount = items.filter(i => !i.task.completed).length;
 
                     return (
                       <div key={taskName} className="bg-slate-900/50 rounded-lg p-2 border border-slate-700/50">
@@ -2467,6 +2504,16 @@ export default function VetHub() {
                           <span className={`text-xs ${allCompleted ? 'text-green-400' : 'text-slate-400'}`}>
                             {items.filter(i => i.task.completed).length}/{items.length}
                           </span>
+                          {!allCompleted && (
+                            <button
+                              onClick={() => handleBulkCompleteTask(taskName, items)}
+                              className="px-2 py-0.5 text-xs font-bold rounded bg-green-500/20 text-green-300 hover:bg-green-500/30 border border-green-500/50 transition-colors flex items-center gap-1"
+                              title={`Mark "${taskName}" as complete for all ${incompleteCount} patient(s)`}
+                            >
+                              <CheckCircle2 size={12} />
+                              Complete All
+                            </button>
+                          )}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {items.map(({ patient, task }) => {
