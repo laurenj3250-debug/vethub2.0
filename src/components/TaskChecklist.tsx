@@ -22,13 +22,10 @@ const CARD_BORDERS = {
 };
 
 interface Task {
-  id: number | string;
+  id: number;
   title?: string;
   name?: string;
   completed: boolean;
-  parentTaskId?: string | null;
-  subtasks?: Task[];
-  isRecurring?: boolean;
 }
 
 interface Patient {
@@ -39,22 +36,20 @@ interface Patient {
 }
 
 interface GeneralTask {
-  id: number | string;
+  id: number;
   title?: string;
   name?: string;
   completed: boolean;
-  parentTaskId?: string | null;
-  subtasks?: Task[];
 }
 
 interface TaskChecklistProps {
   patients: Patient[];
   generalTasks: GeneralTask[];
-  onToggleTask: (patientId: number, taskId: number | string, currentStatus: boolean) => void;
-  onToggleGeneralTask: (taskId: number | string, currentStatus: boolean) => void;
+  onToggleTask: (patientId: number, taskId: number, currentStatus: boolean) => void;
+  onToggleGeneralTask: (taskId: number, currentStatus: boolean) => void;
   onAddTask: (patientId: number | null, taskName: string) => void;
-  onDeleteTask?: (patientId: number, taskId: number | string) => void;
-  onDeleteGeneralTask?: (taskId: number | string) => void;
+  onDeleteTask?: (patientId: number, taskId: number) => void;
+  onDeleteGeneralTask?: (taskId: number) => void;
 }
 
 export function TaskChecklist({
@@ -482,76 +477,37 @@ export function TaskChecklist({
                         </span>
                       </div>
 
-                      {/* Task List - with visual grouping for VetRadar tasks */}
+                      {/* Task List */}
                       <div className="space-y-2">
-                        {(() => {
-                          // Group VetRadar tasks together visually
-                          const vetRadarTasks = visibleTasks.filter(t => (t.title || t.name || '').startsWith('VetRadar:'));
-                          const otherTasks = visibleTasks.filter(t => !(t.title || t.name || '').startsWith('VetRadar:'));
-                          const vetRadarDone = vetRadarTasks.filter(t => t.completed).length;
-
-                          return (
-                            <>
-                              {/* VetRadar Group */}
-                              {vetRadarTasks.length > 0 && (
-                                <div className="rounded-lg overflow-hidden" style={{ border: '1.5px solid #2D3436' }}>
-                                  <div className="px-3 py-1.5 bg-blue-50 text-xs font-bold text-blue-800 flex justify-between">
-                                    <span>VetRadar</span>
-                                    <span>{vetRadarDone}/{vetRadarTasks.length}</span>
-                                  </div>
-                                  <div className="bg-white divide-y divide-gray-100">
-                                    {vetRadarTasks.map(task => (
-                                      <div
-                                        key={task.id}
-                                        className={`px-3 py-2 text-xs font-medium flex items-center gap-2 ${task.completed ? 'opacity-60' : ''}`}
-                                      >
-                                        <button
-                                          onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                                          className="flex-1 text-left transition hover:-translate-y-0.5"
-                                        >
-                                          <span className={task.completed ? 'line-through' : ''}>
-                                            {task.completed ? '✓' : '○'} {(task.title || task.name || '').replace('VetRadar: ', '')}
-                                          </span>
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Other Tasks */}
-                              {otherTasks.map(task => (
-                                <div
-                                  key={task.id}
-                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
-                                    task.completed ? 'opacity-60' : ''
-                                  }`}
-                                  style={{
-                                    backgroundColor: 'white',
-                                    border: '1.5px solid #2D3436',
-                                  }}
-                                >
-                                  <button
-                                    onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                                    className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
-                                  >
-                                    <span className={task.completed ? 'line-through' : ''}>
-                                      {task.completed ? '✓' : '○'} {task.title || task.name}
-                                    </span>
-                                  </button>
-                                  {onDeleteTask && (
-                                    <button
-                                      onClick={() => onDeleteTask(patient.id, task.id)}
-                                      className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
-                                    >
-                                      <X size={14} />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                            </>
-                          );
-                        })()}
+                        {visibleTasks.map(task => (
+                          <div
+                            key={task.id}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
+                              task.completed ? 'opacity-60' : ''
+                            }`}
+                            style={{
+                              backgroundColor: 'white',
+                              border: '1.5px solid #2D3436',
+                            }}
+                          >
+                            <button
+                              onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                              className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
+                            >
+                              <span className={task.completed ? 'line-through' : ''}>
+                                {task.completed ? '✓' : '○'} {task.title || task.name}
+                              </span>
+                            </button>
+                            {onDeleteTask && (
+                              <button
+                                onClick={() => onDeleteTask(patient.id, task.id)}
+                                className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>

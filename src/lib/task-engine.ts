@@ -193,14 +193,6 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
       priority: 'high',
       timeOfDay: 'anytime',
     },
-    {
-      id: 'discharge-finalize-record',
-      name: 'Finalize Record',
-      category: 'Discharge',
-      estimatedMinutes: 10,
-      priority: 'high',
-      timeOfDay: 'anytime',
-    },
   ],
 };
 
