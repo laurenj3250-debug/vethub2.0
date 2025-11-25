@@ -122,54 +122,60 @@ export async function POST(request: NextRequest) {
         const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
         const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical' | 'Discharge'] || [];
 
-        for (const template of templates) {
-          // Check if this task already exists for the patient
-          const existingTask = await prisma.task.findFirst({
-            where: {
+        // Fetch all existing tasks for this patient in a single query
+        const existingTasks = await prisma.task.findMany({
+          where: { patientId: patient.id },
+          select: { id: true, title: true, description: true, category: true, timeOfDay: true, priority: true, completed: true, createdAt: true }
+        });
+
+        // Create a Set of existing task titles for O(1) lookup
+        const existingTaskTitles = new Set(existingTasks.map(t => t.title));
+
+        // Add existing tasks to the response
+        createdTasks.push(...existingTasks.map(task => ({
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          category: task.category,
+          timeOfDay: task.timeOfDay,
+          priority: task.priority,
+          completed: task.completed,
+          createdAt: task.createdAt,
+        })));
+
+        // Filter templates to only new ones (not already existing)
+        const newTemplates = templates.filter(t => !existingTaskTitles.has(t.name));
+
+        // Bulk create only the new tasks
+        if (newTemplates.length > 0) {
+          const newTasks = await prisma.task.createManyAndReturn({
+            data: newTemplates.map(template => ({
               patientId: patient.id,
               title: template.name,
-            },
+              description: template.category,
+              category: template.category,
+              timeOfDay: template.timeOfDay || null,
+              priority: template.priority || null,
+              completed: false,
+            })),
           });
 
-          if (existingTask) {
-            // Task already exists, add to list but don't create duplicate
-            createdTasks.push({
-              id: existingTask.id,
-              title: existingTask.title,
-              description: existingTask.description,
-              category: existingTask.category,
-              timeOfDay: existingTask.timeOfDay,
-              priority: existingTask.priority,
-              completed: existingTask.completed,
-              createdAt: existingTask.createdAt,
-            });
-          } else {
-            // Create new task
-            const task = await prisma.task.create({
-              data: {
-                patientId: patient.id,
-                title: template.name,
-                description: template.category,
-                category: template.category,
-                timeOfDay: template.timeOfDay || null,
-                priority: template.priority || null,
-                completed: false,
-              },
-            });
-            createdTasks.push({
-              id: task.id,
-              title: task.title,
-              description: task.description,
-              category: task.category,
-              timeOfDay: task.timeOfDay,
-              priority: task.priority,
-              completed: task.completed,
-              createdAt: task.createdAt,
-            });
-          }
-        }
+          // Add newly created tasks to the response
+          createdTasks.push(...newTasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            category: task.category,
+            timeOfDay: task.timeOfDay,
+            priority: task.priority,
+            completed: task.completed,
+            createdAt: task.createdAt,
+          })));
 
-        console.log(`[API] Auto-created ${createdTasks.length} tasks for ${patientType} patient ${patient.id}`);
+          console.log(`[API] Created ${newTasks.length} new tasks for ${patientType} patient ${patient.id}`);
+        } else {
+          console.log(`[API] All tasks already exist for ${patientType} patient ${patient.id}`);
+        }
       } catch (taskError) {
         console.error('[API] Error auto-creating tasks:', taskError);
         // Don't fail patient creation if task creation fails
