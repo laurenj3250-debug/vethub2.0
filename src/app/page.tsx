@@ -871,7 +871,7 @@ export default function VetHub() {
       if (!patient) return;
 
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      const eveningTasks = ['VetRadar: Check med dosages', 'VetRadar: Check med frequency', 'VetRadar: Check food', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       const today = new Date().toISOString().split('T')[0];
@@ -910,7 +910,7 @@ export default function VetHub() {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+      const eveningTasks = ['VetRadar: Check med dosages', 'VetRadar: Check med frequency', 'VetRadar: Check food', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       const today = new Date().toISOString().split('T')[0];
 
@@ -1869,7 +1869,7 @@ export default function VetHub() {
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
     const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-    const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+    const eveningTasks = ['VetRadar: Check med dosages', 'VetRadar: Check med frequency', 'VetRadar: Check food', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
     if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
     if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
