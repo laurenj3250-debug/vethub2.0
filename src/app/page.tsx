@@ -734,8 +734,8 @@ export default function VetHub() {
       await apiClient.updatePatient(String(patientId), { status: newStatus });
       toast({ title: `✅ Status updated to ${newStatus}` });
 
-      // Auto-create discharge tasks when status changes to "Discharging" using task engine templates
-      if (newStatus === 'Discharging') {
+      // Auto-create discharge tasks when status changes to "Discharging" or "Discharged" using task engine templates
+      if (newStatus === 'Discharging' || newStatus === 'Discharged') {
         // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
         const freshPatient = await apiClient.getPatient(String(patientId));
         const existingTasks = freshPatient?.tasks || [];
@@ -1771,85 +1771,51 @@ export default function VetHub() {
   }, [mounted, patients, generalTasks]);
 
   // Automatic daily task reset - runs when app loads on a new day
-  const hasRunAutoCreation = useRef(false);
+  // Resets ALL completed tasks from previous days (not just a hardcoded list)
+  const hasRunDailyReset = useRef(false);
 
   useEffect(() => {
     const autoResetDailyTasks = async () => {
-      if (!patients || patients.length === 0) return;
-      if (hasRunAutoCreation.current) return; // Prevent duplicate runs
+      // Wait for patients to load and mounted state
+      if (!mounted || !patients || patientsLoading) return;
+      if (hasRunDailyReset.current) return; // Prevent duplicate runs
 
       const today = new Date().toISOString().split('T')[0];
-      const lastCheck = localStorage.getItem('lastDailyTaskCheck');
+      const lastResetDate = localStorage.getItem('lastDailyTaskReset');
 
       // Only run if it's a new day
-      if (lastCheck === today) {
-        hasRunAutoCreation.current = true;
+      if (lastResetDate === today) {
+        hasRunDailyReset.current = true;
         return;
       }
 
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const allDailyTasks = [...morningTasks, ...eveningTasks];
+      try {
+        // Call API to reset ALL completed tasks from previous days
+        // This is more robust than maintaining a hardcoded task list
+        const result = await apiClient.resetDailyTasks();
 
-      let totalReset = 0;
-      let totalAdded = 0;
+        // Mark today as reset complete
+        localStorage.setItem('lastDailyTaskReset', today);
+        hasRunDailyReset.current = true;
 
-      for (const patient of activePatients) {
-        const existingTasks = patient.tasks || [];
+        if (result.resetCount > 0) {
+          // Refetch to show updated task states
+          refetch();
 
-        for (const taskName of allDailyTasks) {
-          const existingTask = existingTasks.find((t: any) =>
-            (t.title || t.name) === taskName
-          );
-
-          if (existingTask) {
-            // Task exists - reset it to uncompleted if it was completed
-            if (existingTask.completed) {
-              try {
-                await apiClient.updateTask(String(patient.id), String(existingTask.id), {
-                  completed: false,
-                });
-                totalReset++;
-              } catch (error) {
-                console.error('Failed to reset task:', error);
-              }
-            }
-          } else {
-            // Task doesn't exist - create it
-            try {
-              await apiClient.createTask(String(patient.id), {
-                name: taskName,
-                completed: false,
-                date: today,
-              });
-              totalAdded++;
-            } catch (error) {
-              console.error('Failed to create task:', error);
-            }
-          }
+          toast({
+            title: '🌅 New Day!',
+            description: `Reset ${result.resetCount} task${result.resetCount === 1 ? '' : 's'} for the new day`
+          });
         }
-      }
-
-      // Mark today as checked
-      localStorage.setItem('lastDailyTaskCheck', today);
-      hasRunAutoCreation.current = true;
-
-      if (totalReset > 0 || totalAdded > 0) {
-        refetch();
-        const messages = [];
-        if (totalReset > 0) messages.push(`Reset ${totalReset} tasks`);
-        if (totalAdded > 0) messages.push(`Added ${totalAdded} tasks`);
-
-        toast({
-          title: `🌅 New Day!`,
-          description: messages.join(' • ') + ` for ${activePatients.length} patients`
-        });
+      } catch (error) {
+        console.error('Failed to reset daily tasks:', error);
+        // Mark as attempted to prevent infinite retries
+        hasRunDailyReset.current = true;
       }
     };
 
     autoResetDailyTasks();
-  }, [patients.length]); // Run when patients are loaded
+  }, [mounted, patients, patientsLoading]); // Run when mounted and patients are loaded
 
   const filteredPatients = patients
     .filter(p => {
