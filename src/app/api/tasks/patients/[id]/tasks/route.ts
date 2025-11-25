@@ -23,6 +23,15 @@ export async function GET(
     const tasks = await prisma.task.findMany({
       where: {
         patientId: patientId,
+        parentTaskId: null, // Only get top-level tasks (not subtasks)
+      },
+      include: {
+        subtasks: {
+          orderBy: [
+            { completed: 'asc' },
+            { createdAt: 'asc' },
+          ],
+        },
       },
       orderBy: [
         { completed: 'asc' },
@@ -111,6 +120,11 @@ export async function POST(
         completed: body.completed || false,
         completedAt: body.completed ? new Date() : undefined,
         patientId: patientId,
+        isRecurring: body.isRecurring || false,
+        parentTaskId: body.parentTaskId || undefined,
+      },
+      include: {
+        subtasks: true,
       },
     });
 
@@ -189,6 +203,11 @@ export async function PATCH(
         dueDate: body.dueDate !== undefined ? (body.dueDate ? new Date(body.dueDate) : null) : undefined,
         completed: body.completed !== undefined ? body.completed : undefined,
         completedAt: body.completed !== undefined ? (body.completed ? new Date() : null) : undefined,
+        isRecurring: body.isRecurring !== undefined ? body.isRecurring : undefined,
+        parentTaskId: body.parentTaskId !== undefined ? body.parentTaskId : undefined,
+      },
+      include: {
+        subtasks: true,
       },
     });
 

@@ -3,10 +3,13 @@ import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/tasks/reset-daily
- * Reset all completed tasks from previous days to incomplete status
- * This ensures tasks refresh each day for ongoing patient care
+ * Reset ONLY recurring tasks from previous days to incomplete status
+ * This ensures daily tasks refresh each day while preserving one-time task completions
  *
- * Only resets tasks for patients who are NOT discharged (active patients)
+ * Only resets:
+ * - Tasks marked as isRecurring = true
+ * - Tasks for patients who are NOT discharged (active patients)
+ * - Tasks completed before today
  */
 export async function POST(request: NextRequest) {
   try {
@@ -14,11 +17,12 @@ export async function POST(request: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Find all completed tasks that were completed before today
+    // Find all completed RECURRING tasks that were completed before today
     // Only for patients who are NOT discharged (still in active care)
     const tasksToReset = await prisma.task.findMany({
       where: {
         completed: true,
+        isRecurring: true, // Only reset recurring tasks, not one-time tasks
         completedAt: {
           lt: today, // completed before today
         },
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/tasks/reset-daily
- * Check if there are tasks that need resetting (preview mode)
+ * Check if there are recurring tasks that need resetting (preview mode)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -81,10 +85,11 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Count tasks that would be reset
+    // Count recurring tasks that would be reset
     const count = await prisma.task.count({
       where: {
         completed: true,
+        isRecurring: true, // Only count recurring tasks
         completedAt: {
           lt: today,
         },
