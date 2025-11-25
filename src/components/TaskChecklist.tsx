@@ -482,77 +482,76 @@ export function TaskChecklist({
                         </span>
                       </div>
 
-                      {/* Task List */}
+                      {/* Task List - with visual grouping for VetRadar tasks */}
                       <div className="space-y-2">
-                        {visibleTasks.map(task => {
-                          const hasSubtasks = task.subtasks && task.subtasks.length > 0;
-                          const subtasksCompleted = hasSubtasks ? task.subtasks!.filter(st => st.completed).length : 0;
-                          const subtasksTotal = hasSubtasks ? task.subtasks!.length : 0;
+                        {(() => {
+                          // Group VetRadar tasks together visually
+                          const vetRadarTasks = visibleTasks.filter(t => (t.title || t.name || '').startsWith('VetRadar:'));
+                          const otherTasks = visibleTasks.filter(t => !(t.title || t.name || '').startsWith('VetRadar:'));
+                          const vetRadarDone = vetRadarTasks.filter(t => t.completed).length;
 
                           return (
-                            <div key={task.id}>
-                              {/* Parent Task */}
-                              <div
-                                className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
-                                  task.completed ? 'opacity-60' : ''
-                                }`}
-                                style={{
-                                  backgroundColor: 'white',
-                                  border: '1.5px solid #2D3436',
-                                }}
-                              >
-                                <button
-                                  onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                                  className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
-                                >
-                                  <span className={task.completed ? 'line-through' : ''}>
-                                    {task.completed ? '✓' : '○'} {task.title || task.name}
-                                  </span>
-                                  {hasSubtasks && (
-                                    <span className="text-gray-500 text-[10px] ml-1">
-                                      ({subtasksCompleted}/{subtasksTotal})
-                                    </span>
-                                  )}
-                                </button>
-                                {onDeleteTask && (
-                                  <button
-                                    onClick={() => onDeleteTask(patient.id, task.id)}
-                                    className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                )}
-                              </div>
-
-                              {/* Subtasks */}
-                              {hasSubtasks && (
-                                <div className="ml-4 mt-1 space-y-1">
-                                  {task.subtasks!.filter(st => !hideCompleted || !st.completed).map(subtask => (
-                                    <div
-                                      key={subtask.id}
-                                      className={`w-full text-left px-2 py-1.5 rounded-lg text-[11px] font-medium flex items-center gap-2 ${
-                                        subtask.completed ? 'opacity-60' : ''
-                                      }`}
-                                      style={{
-                                        backgroundColor: '#f8f8f8',
-                                        border: '1px solid #ddd',
-                                      }}
-                                    >
-                                      <button
-                                        onClick={() => onToggleTask(patient.id, subtask.id, subtask.completed)}
-                                        className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-1"
+                            <>
+                              {/* VetRadar Group */}
+                              {vetRadarTasks.length > 0 && (
+                                <div className="rounded-lg overflow-hidden" style={{ border: '1.5px solid #2D3436' }}>
+                                  <div className="px-3 py-1.5 bg-blue-50 text-xs font-bold text-blue-800 flex justify-between">
+                                    <span>VetRadar</span>
+                                    <span>{vetRadarDone}/{vetRadarTasks.length}</span>
+                                  </div>
+                                  <div className="bg-white divide-y divide-gray-100">
+                                    {vetRadarTasks.map(task => (
+                                      <div
+                                        key={task.id}
+                                        className={`px-3 py-2 text-xs font-medium flex items-center gap-2 ${task.completed ? 'opacity-60' : ''}`}
                                       >
-                                        <span className={subtask.completed ? 'line-through text-gray-500' : ''}>
-                                          {subtask.completed ? '✓' : '○'} {subtask.title || subtask.name}
-                                        </span>
-                                      </button>
-                                    </div>
-                                  ))}
+                                        <button
+                                          onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                                          className="flex-1 text-left transition hover:-translate-y-0.5"
+                                        >
+                                          <span className={task.completed ? 'line-through' : ''}>
+                                            {task.completed ? '✓' : '○'} {(task.title || task.name || '').replace('VetRadar: ', '')}
+                                          </span>
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
-                            </div>
+
+                              {/* Other Tasks */}
+                              {otherTasks.map(task => (
+                                <div
+                                  key={task.id}
+                                  className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
+                                    task.completed ? 'opacity-60' : ''
+                                  }`}
+                                  style={{
+                                    backgroundColor: 'white',
+                                    border: '1.5px solid #2D3436',
+                                  }}
+                                >
+                                  <button
+                                    onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                                    className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
+                                  >
+                                    <span className={task.completed ? 'line-through' : ''}>
+                                      {task.completed ? '✓' : '○'} {task.title || task.name}
+                                    </span>
+                                  </button>
+                                  {onDeleteTask && (
+                                    <button
+                                      onClick={() => onDeleteTask(patient.id, task.id)}
+                                      className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                                    >
+                                      <X size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                            </>
                           );
-                        })}
+                        })()}
                       </div>
                     </div>
                   </div>

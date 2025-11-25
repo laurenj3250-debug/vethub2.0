@@ -870,62 +870,29 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
+      // Simple flat task names - VetRadar uses prefix for visual grouping
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      // VetRadar subtasks will be created under a parent task
-      const eveningSimpleTasks = ['Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const vetRadarSubtasks = ['Check med dosages', 'Check med frequency', 'Check food'];
+      const eveningTasks = [
+        'VetRadar: Check med dosages',
+        'VetRadar: Check med frequency',
+        'VetRadar: Check food',
+        'Rounding Sheet Done',
+        'Sticker on Daily Sheet'
+      ];
 
+      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       const existingTasks = patient.tasks || [];
       let addedCount = 0;
 
-      if (category === 'morning') {
-        for (const taskName of morningTasks) {
-          const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
-          if (!hasTask) {
-            await apiClient.createTask(String(patientId), {
-              title: taskName,
-              completed: false,
-              isRecurring: true, // Mark as recurring for daily reset
-            });
-            addedCount++;
-          }
-        }
-      } else {
-        // Evening tasks - create VetRadar parent with subtasks
-        const hasVetRadar = existingTasks.some((t: any) => (t.title || t.name) === 'VetRadar');
-        if (!hasVetRadar) {
-          // Create parent VetRadar task
-          const parentTask = await apiClient.createTask(String(patientId), {
-            title: 'VetRadar',
+      for (const taskName of tasksToAdd) {
+        const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+        if (!hasTask) {
+          await apiClient.createTask(String(patientId), {
+            title: taskName,
             completed: false,
             isRecurring: true,
-            category: 'evening',
           });
           addedCount++;
-
-          // Create subtasks under the parent
-          for (const subtaskName of vetRadarSubtasks) {
-            await apiClient.createTask(String(patientId), {
-              title: subtaskName,
-              completed: false,
-              isRecurring: true,
-              parentTaskId: parentTask.id,
-            });
-            addedCount++;
-          }
-        }
-
-        // Add other evening tasks
-        for (const taskName of eveningSimpleTasks) {
-          const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
-          if (!hasTask) {
-            await apiClient.createTask(String(patientId), {
-              title: taskName,
-              completed: false,
-              isRecurring: true,
-            });
-            addedCount++;
-          }
         }
       }
 
@@ -945,66 +912,32 @@ export default function VetHub() {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
       const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningSimpleTasks = ['Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const vetRadarSubtasks = ['Check med dosages', 'Check med frequency', 'Check food'];
+      const eveningTasks = [
+        'VetRadar: Check med dosages',
+        'VetRadar: Check med frequency',
+        'VetRadar: Check food',
+        'Rounding Sheet Done',
+        'Sticker on Daily Sheet'
+      ];
 
+      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       let totalAdded = 0;
       let totalSkipped = 0;
 
       for (const patient of activePatients) {
         const existingTasks = patient.tasks || [];
 
-        if (category === 'morning') {
-          for (const taskName of morningTasks) {
-            const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
-            if (!hasTask) {
-              await apiClient.createTask(String(patient.id), {
-                title: taskName,
-                completed: false,
-                isRecurring: true,
-              });
-              totalAdded++;
-            } else {
-              totalSkipped++;
-            }
-          }
-        } else {
-          // Evening tasks - create VetRadar parent with subtasks
-          const hasVetRadar = existingTasks.some((t: any) => (t.title || t.name) === 'VetRadar');
-          if (!hasVetRadar) {
-            const parentTask = await apiClient.createTask(String(patient.id), {
-              title: 'VetRadar',
+        for (const taskName of tasksToAdd) {
+          const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+          if (!hasTask) {
+            await apiClient.createTask(String(patient.id), {
+              title: taskName,
               completed: false,
               isRecurring: true,
-              category: 'evening',
             });
             totalAdded++;
-
-            for (const subtaskName of vetRadarSubtasks) {
-              await apiClient.createTask(String(patient.id), {
-                title: subtaskName,
-                completed: false,
-                isRecurring: true,
-                parentTaskId: parentTask.id,
-              });
-              totalAdded++;
-            }
           } else {
-            totalSkipped += 4; // VetRadar + 3 subtasks
-          }
-
-          for (const taskName of eveningSimpleTasks) {
-            const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
-            if (!hasTask) {
-              await apiClient.createTask(String(patient.id), {
-                title: taskName,
-                completed: false,
-                isRecurring: true,
-              });
-              totalAdded++;
-            } else {
-              totalSkipped++;
-            }
+            totalSkipped++;
           }
         }
       }
@@ -1939,10 +1872,10 @@ export default function VetHub() {
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
     const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-    const eveningTasks = ['VetRadar', 'Check med dosages', 'Check med frequency', 'Check food', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
+    const eveningTasks = ['VetRadar:', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
-    if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
-    if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
+    if (morningTasks.some(t => taskName.includes(t))) return 'morning';
+    if (eveningTasks.some(t => taskName.includes(t))) return 'evening';
     return 'general';
   };
 

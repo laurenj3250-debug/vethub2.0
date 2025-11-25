@@ -23,15 +23,6 @@ export async function GET(
     const tasks = await prisma.task.findMany({
       where: {
         patientId: patientId,
-        parentTaskId: null, // Only get top-level tasks (not subtasks)
-      },
-      include: {
-        subtasks: {
-          orderBy: [
-            { completed: 'asc' },
-            { createdAt: 'asc' },
-          ],
-        },
       },
       orderBy: [
         { completed: 'asc' },
