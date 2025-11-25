@@ -1377,16 +1377,56 @@ export function EnhancedRoundingSheet({
                         </optgroup>
                       </select>
 
-                      {/* Problems textarea */}
-                      <textarea
+                      {/* Problems dropdown - common neuro localizations */}
+                      <select
                         value={getFieldValue(patient.id, 'problems')}
                         onChange={(e) => updateFieldDebounced(patient.id, 'problems', e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, patient.id, 'problems')}
-                        onPaste={(e) => handlePaste(e, patient.id, 'problems')}
-                        placeholder="List of problems..."
-                        className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs resize-y min-h-[60px] transition-all"
-                        rows={3}
-                      />
+                        className="w-full min-w-[180px] bg-black/40 backdrop-blur-sm border border-slate-600 hover:border-red-500 focus:border-red-400 focus:ring-1 focus:ring-red-400 rounded px-2 py-1.5 text-white text-xs transition-all"
+                      >
+                        <option value="" className="bg-slate-900">Select problem...</option>
+                        <optgroup label="Spinal Cord Localizations" className="bg-slate-900">
+                          <option value="C1-C5 myelopathy" className="bg-slate-900">C1-C5 myelopathy</option>
+                          <option value="C6-T2 myelopathy" className="bg-slate-900">C6-T2 myelopathy</option>
+                          <option value="T3-L3 myelopathy" className="bg-slate-900">T3-L3 myelopathy</option>
+                          <option value="L4-S3 myelopathy" className="bg-slate-900">L4-S3 myelopathy</option>
+                          <option value="Cervical myelopathy" className="bg-slate-900">Cervical myelopathy</option>
+                          <option value="Thoracolumbar myelopathy" className="bg-slate-900">Thoracolumbar myelopathy</option>
+                          <option value="TL myelopathy" className="bg-slate-900">TL myelopathy</option>
+                          <option value="Lumbosacral myelopathy" className="bg-slate-900">Lumbosacral myelopathy</option>
+                        </optgroup>
+                        <optgroup label="Brain Localizations" className="bg-slate-900">
+                          <option value="Forebrain" className="bg-slate-900">Forebrain</option>
+                          <option value="Brainstem" className="bg-slate-900">Brainstem</option>
+                          <option value="Cerebellum" className="bg-slate-900">Cerebellum</option>
+                          <option value="Vestibular - central" className="bg-slate-900">Vestibular - central</option>
+                          <option value="Vestibular - peripheral" className="bg-slate-900">Vestibular - peripheral</option>
+                        </optgroup>
+                        <optgroup label="Common Presentations" className="bg-slate-900">
+                          <option value="Seizures" className="bg-slate-900">Seizures</option>
+                          <option value="Status epilepticus" className="bg-slate-900">Status epilepticus</option>
+                          <option value="Cluster seizures" className="bg-slate-900">Cluster seizures</option>
+                          <option value="Acute vestibular syndrome" className="bg-slate-900">Acute vestibular syndrome</option>
+                          <option value="Altered mentation" className="bg-slate-900">Altered mentation</option>
+                          <option value="Tremors" className="bg-slate-900">Tremors</option>
+                          <option value="Ataxia" className="bg-slate-900">Ataxia</option>
+                        </optgroup>
+                        <optgroup label="Neuromuscular" className="bg-slate-900">
+                          <option value="Peripheral neuropathy" className="bg-slate-900">Peripheral neuropathy</option>
+                          <option value="Myasthenia gravis" className="bg-slate-900">Myasthenia gravis</option>
+                          <option value="Polyradiculoneuritis" className="bg-slate-900">Polyradiculoneuritis</option>
+                          <option value="Myopathy" className="bg-slate-900">Myopathy</option>
+                        </optgroup>
+                        <optgroup label="Pre-procedure" className="bg-slate-900">
+                          <option value="MRI tomorrow" className="bg-slate-900">MRI tomorrow</option>
+                          <option value="Surgery tomorrow" className="bg-slate-900">Surgery tomorrow</option>
+                          <option value="CSF tap scheduled" className="bg-slate-900">CSF tap scheduled</option>
+                        </optgroup>
+                        <optgroup label="Other" className="bg-slate-900">
+                          <option value="Multifocal" className="bg-slate-900">Multifocal</option>
+                          <option value="Unknown localization" className="bg-slate-900">Unknown localization</option>
+                        </optgroup>
+                      </select>
                     </div>
                   </td>
 
