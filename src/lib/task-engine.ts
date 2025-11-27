@@ -31,14 +31,15 @@ export interface TaskWithMetadata extends TaskTemplate {
 }
 
 // ============================================================================
-// TASK TEMPLATES BY PATIENT TYPE
+// TASK TEMPLATES BY PATIENT STATUS (not type!)
+// Status determines what tasks a patient needs TODAY
 // ============================================================================
 
-export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
-  // MRI patients - essential pre-procedure tasks (streamlined)
-  'MRI': [
+export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
+  // NEW ADMIT - just arrived, needs admission tasks
+  'New Admit': [
     {
-      id: 'mri-finalize-record',
+      id: 'admit-finalize-record',
       name: 'Finalize Record',
       category: 'Admission',
       estimatedMinutes: 10,
@@ -46,127 +47,7 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
       timeOfDay: 'morning',
     },
     {
-      id: 'mri-blood-work',
-      name: 'Blood Work',
-      category: 'Pre-procedure',
-      estimatedMinutes: 10,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'mri-chest-xrays',
-      name: 'Chest X-rays',
-      category: 'Pre-procedure',
-      estimatedMinutes: 15,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'mri-anesthesia-sheet',
-      name: 'MRI Anesthesia Sheet',
-      category: 'Pre-procedure',
-      estimatedMinutes: 5,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'mri-meds-sheet',
-      name: 'MRI Meds Sheet',
-      category: 'Pre-procedure',
-      estimatedMinutes: 3,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'mri-npo',
-      name: 'NPO',
-      category: 'Pre-procedure',
-      estimatedMinutes: 1,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'mri-stickers',
-      name: 'Print Stickers',
-      category: 'Pre-procedure',
-      estimatedMinutes: 4,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-  ],
-
-  // Surgery patients - essential pre-procedure tasks
-  'Surgery': [
-    {
-      id: 'surgery-finalize-record',
-      name: 'Finalize Record',
-      category: 'Admission',
-      estimatedMinutes: 10,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'surgery-slip',
-      name: 'Surgery Slip',
-      category: 'Pre-procedure',
-      estimatedMinutes: 5,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'surgery-board',
-      name: 'Written on Board',
-      category: 'Pre-procedure',
-      estimatedMinutes: 2,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'surgery-stickers-large',
-      name: 'Print 4 Large Stickers',
-      category: 'Pre-procedure',
-      estimatedMinutes: 2,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'surgery-stickers-sheets',
-      name: 'Print 2 Sheets Small Stickers',
-      category: 'Pre-procedure',
-      estimatedMinutes: 2,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'surgery-sheet',
-      name: 'Print Surgery Sheet',
-      category: 'Pre-procedure',
-      estimatedMinutes: 3,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'surgery-clear-daily',
-      name: 'Clear Daily',
-      category: 'Pre-procedure',
-      estimatedMinutes: 2,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-  ],
-
-  // Medical patients - essential admission tasks
-  'Medical': [
-    {
-      id: 'medical-finalize-record',
-      name: 'Finalize Record',
-      category: 'Admission',
-      estimatedMinutes: 10,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'medical-admission-soap',
+      id: 'admit-admission-soap',
       name: 'Admission SOAP',
       category: 'Admission',
       estimatedMinutes: 15,
@@ -174,7 +55,7 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
       timeOfDay: 'morning',
     },
     {
-      id: 'medical-treatment-sheet',
+      id: 'admit-treatment-sheet',
       name: 'Treatment Sheet Created',
       category: 'Admission',
       estimatedMinutes: 10,
@@ -183,8 +64,99 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
     },
   ],
 
-  // Discharge patients
-  'Discharge': [
+  // HOSPITALIZED - ongoing care, daily tasks only
+  'Hospitalized': [
+    {
+      id: 'daily-soap',
+      name: 'Daily SOAP',
+      category: 'Daily',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'daily-owner-call',
+      name: 'Owner Called',
+      category: 'Daily',
+      estimatedMinutes: 5,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+  ],
+
+  // PRE-PROCEDURE - needs prep tasks (MRI/Surgery specific)
+  'Pre-procedure': [
+    {
+      id: 'prep-blood-work',
+      name: 'Blood Work',
+      category: 'Pre-procedure',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'prep-chest-xrays',
+      name: 'Chest X-rays',
+      category: 'Pre-procedure',
+      estimatedMinutes: 15,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'prep-npo',
+      name: 'NPO Confirmed',
+      category: 'Pre-procedure',
+      estimatedMinutes: 1,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+  ],
+
+  // IN PROCEDURE - minimal tasks
+  'In Procedure': [],
+
+  // RECOVERY - post-procedure monitoring
+  'Recovery': [
+    {
+      id: 'recovery-vitals',
+      name: 'Post-Op Vitals',
+      category: 'Recovery',
+      estimatedMinutes: 5,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'recovery-owner-update',
+      name: 'Owner Update Call',
+      category: 'Recovery',
+      estimatedMinutes: 5,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+  ],
+
+  // MONITORING - stable patients
+  'Monitoring': [
+    {
+      id: 'monitor-daily-soap',
+      name: 'Daily SOAP',
+      category: 'Daily',
+      estimatedMinutes: 10,
+      priority: 'medium',
+      timeOfDay: 'morning',
+    },
+    {
+      id: 'monitor-owner-call',
+      name: 'Owner Called',
+      category: 'Daily',
+      estimatedMinutes: 5,
+      priority: 'medium',
+      timeOfDay: 'morning',
+    },
+  ],
+
+  // READY FOR DISCHARGE - prep for going home
+  'Ready for Discharge': [
     {
       id: 'discharge-instructions',
       name: 'Discharge Instructions',
@@ -193,7 +165,46 @@ export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
       priority: 'high',
       timeOfDay: 'anytime',
     },
+    {
+      id: 'discharge-meds',
+      name: 'Discharge Meds Ready',
+      category: 'Discharge',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'anytime',
+    },
+    {
+      id: 'discharge-owner-call',
+      name: 'Owner Pickup Call',
+      category: 'Discharge',
+      estimatedMinutes: 5,
+      priority: 'high',
+      timeOfDay: 'anytime',
+    },
   ],
+
+  // DISCHARGING - actively leaving
+  'Discharging': [
+    {
+      id: 'discharge-final-check',
+      name: 'Final Checkout',
+      category: 'Discharge',
+      estimatedMinutes: 10,
+      priority: 'high',
+      timeOfDay: 'anytime',
+    },
+  ],
+
+  // DISCHARGED - no tasks
+  'Discharged': [],
+};
+
+// Legacy: Keep type-based templates for backward compatibility but they're not used for daily tasks
+export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
+  'MRI': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
+  'Surgery': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
+  'Medical': TASK_TEMPLATES_BY_STATUS['Hospitalized'],
+  'Discharge': TASK_TEMPLATES_BY_STATUS['Discharging'],
 };
 
 // ============================================================================
@@ -405,47 +416,30 @@ export interface PatientForTasks {
 }
 
 /**
- * Generate daily tasks for a patient based on their current status and type
- * This is the core function that determines what tasks a patient should have today
+ * Generate daily tasks for a patient based on their current STATUS
+ * STATUS determines what tasks a patient needs - not their type!
+ *
+ * Status → Tasks:
+ * - New Admit → Admission tasks (Finalize Record, Admission SOAP, Treatment Sheet)
+ * - Hospitalized → Daily tasks (Daily SOAP, Owner Called)
+ * - Pre-procedure → Prep tasks (Blood Work, X-rays, NPO)
+ * - Recovery → Recovery tasks (Post-Op Vitals, Owner Update)
+ * - Ready for Discharge → Discharge prep tasks
+ * - Discharging → Final checkout only
+ * - Discharged → No tasks
  */
 export function generateDailyTasksForPatient(
   patient: PatientForTasks
 ): { title: string; category: string; timeOfDay: string; priority: string }[] {
-  const patientName = (patient.demographics as { name?: string })?.name || 'Unknown';
-  const patientType = patient.type || 'Medical';
   const patientStatus = patient.status;
 
-  // Discharged patients get no tasks
-  if (patientStatus === 'Discharged') {
+  // Get tasks based on STATUS (not type!)
+  const templates = TASK_TEMPLATES_BY_STATUS[patientStatus] || [];
+
+  // If no templates for this status, return empty (no auto-generated tasks)
+  if (templates.length === 0) {
     return [];
   }
-
-  // Discharging patients get discharge tasks only
-  if (patientStatus === 'Discharging') {
-    return [
-      {
-        title: 'Discharge Instructions',
-        category: 'Discharge',
-        timeOfDay: 'anytime',
-        priority: 'high',
-      },
-      {
-        title: 'Discharge Medications Ready',
-        category: 'Discharge',
-        timeOfDay: 'anytime',
-        priority: 'high',
-      },
-      {
-        title: 'Owner Communication',
-        category: 'Discharge',
-        timeOfDay: 'anytime',
-        priority: 'high',
-      },
-    ];
-  }
-
-  // Active patients get tasks based on their type
-  const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType] || TASK_TEMPLATES_BY_PATIENT_TYPE['Medical'];
 
   return templates.map(template => ({
     title: template.name,
