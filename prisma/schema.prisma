@@ -96,12 +96,14 @@ model Task {
 
   completed   Boolean   @default(false)
   completedAt DateTime?
+  completedDate String?  // Date string (YYYY-MM-DD) for daily task tracking
   createdAt   DateTime  @default(now())
   dueDate     DateTime?
 
   @@index([patientId])
   @@index([completed])
   @@index([createdAt])
+  @@index([completedDate])
 }
 
 // Common items for auto-complete

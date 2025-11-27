@@ -438,24 +438,42 @@ export function TaskChecklist({
                 </div>
               )}
 
-              {/* Patient Cards */}
-              {patientsWithTasks.map((patient, index) => {
-                const patientTasks = patient.tasks || [];
+              {/* Patient Cards - sorted by completion (incomplete first) */}
+              {patientsWithTasks
+                .map(patient => {
+                  const patientTasks = patient.tasks || [];
+                  const doneCount = patientTasks.filter(t => t.completed).length;
+                  const totalCount = patientTasks.length;
+                  const allDone = totalCount > 0 && doneCount === totalCount;
+                  const percentage = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+                  return { patient, patientTasks, doneCount, totalCount, allDone, percentage };
+                })
+                .sort((a, b) => {
+                  // Sort: incomplete first, then complete
+                  if (a.allDone && !b.allDone) return 1;
+                  if (!a.allDone && b.allDone) return -1;
+                  // Secondary sort by completion percentage (less complete first)
+                  return a.percentage - b.percentage;
+                })
+                .map(({ patient, patientTasks, doneCount, totalCount, allDone, percentage }, index) => {
                 const visibleTasks = hideCompleted
                   ? patientTasks.filter(t => !t.completed)
                   : patientTasks;
-                const doneCount = patientTasks.filter(t => t.completed).length;
 
                 const colorIndex = (visibleGeneralTasks.length > 0 ? index + 1 : index) % 3;
-                const cardBg = cardColors[colorIndex];
+                const cardBg = allDone ? COLORS.mint : cardColors[colorIndex];
 
                 return (
                   <div
                     key={patient.id}
-                    className="p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 relative overflow-hidden"
+                    className={`p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1 relative overflow-hidden ${
+                      allDone ? 'opacity-70' : ''
+                    }`}
                     style={{
-                      background: `linear-gradient(180deg, ${cardBg} 0%, ${cardBg}E6 100%)`,
-                      border: NEO_BORDER,
+                      background: allDone
+                        ? `linear-gradient(180deg, ${COLORS.mint} 0%, ${COLORS.mint}E6 100%)`
+                        : `linear-gradient(180deg, ${cardBg} 0%, ${cardBg}E6 100%)`,
+                      border: allDone ? '2px solid #10B981' : NEO_BORDER,
                       boxShadow: NEO_SHADOW_SM,
                     }}
                   >
@@ -467,14 +485,46 @@ export function TaskChecklist({
                     />
                     <div className="relative z-10">
                       {/* Patient Header */}
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-bold text-gray-900 truncate">{getPatientName(patient)}</span>
-                        <span
-                          className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
+                        {allDone ? (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-xs font-black text-white flex items-center gap-1"
+                            style={{ backgroundColor: '#10B981', border: '1.5px solid #059669' }}
+                          >
+                            <Check size={12} /> ALL DONE
+                          </span>
+                        ) : (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-xs font-black text-gray-800"
+                            style={{
+                              backgroundColor: percentage > 50 ? COLORS.mint : COLORS.pink,
+                              border: '1.5px solid #2D3436'
+                            }}
+                          >
+                            {totalCount - doneCount} left
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="mb-3">
+                        <div
+                          className="h-2 w-full rounded-full overflow-hidden bg-white"
                           style={{ border: '1.5px solid #2D3436' }}
                         >
-                          {doneCount}/{patientTasks.length}
-                        </span>
+                          <div
+                            className="h-full transition-all duration-300"
+                            style={{
+                              width: `${percentage}%`,
+                              backgroundColor: allDone ? '#10B981' : COLORS.mint,
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-[10px] font-bold text-gray-600">{doneCount}/{totalCount} tasks</span>
+                          <span className="text-[10px] font-bold text-gray-600">{percentage}%</span>
+                        </div>
                       </div>
 
                       {/* Task List */}

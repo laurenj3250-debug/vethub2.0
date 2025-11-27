@@ -45,6 +45,9 @@ export async function PATCH(
       );
     }
 
+    // Get today's date in YYYY-MM-DD format for daily task tracking
+    const today = new Date().toISOString().split('T')[0];
+
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -57,6 +60,7 @@ export async function PATCH(
         dueDate: body.dueDate !== undefined ? (body.dueDate ? new Date(body.dueDate) : null) : undefined,
         completed: body.completed !== undefined ? body.completed : undefined,
         completedAt: body.completed !== undefined ? (body.completed ? new Date() : null) : undefined,
+        completedDate: body.completed !== undefined ? (body.completed ? today : null) : undefined,
       },
     });
 

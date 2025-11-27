@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
-import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw } from 'lucide-react';
+import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw, Sunrise } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { TaskChecklist } from '@/components/TaskChecklist';
@@ -82,6 +82,9 @@ export default function VetHub() {
 
   // Task view mode (kanban vs list)
   const [taskBoardView, setTaskBoardView] = useState<'kanban' | 'list'>('list');
+
+  // Task refresh state
+  const [isRefreshingTasks, setIsRefreshingTasks] = useState(false);
 
   // Active filters for quick filter chips
   const [activeFilters, setActiveFilters] = useState<{
@@ -593,6 +596,41 @@ export default function VetHub() {
         title: 'Failed to update task',
         description: `Could not toggle "${taskTitle}" for ${patientName}. ${error.message || 'Check console for details.'}`
       });
+    }
+  };
+
+  // Refresh all tasks - regenerate based on patient status
+  const handleRefreshTasks = async () => {
+    setIsRefreshingTasks(true);
+    try {
+      const response = await fetch('/api/tasks/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to refresh tasks');
+      }
+
+      const data = await response.json();
+
+      toast({
+        title: 'Tasks refreshed',
+        description: data.message,
+      });
+
+      // Refetch all patient data to show updated tasks
+      refetch();
+      refetchGeneralTasks();
+    } catch (error: any) {
+      console.error('Task refresh error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to refresh tasks',
+        description: error.message || 'Could not refresh tasks. Try again.',
+      });
+    } finally {
+      setIsRefreshingTasks(false);
     }
   };
 
@@ -1770,86 +1808,97 @@ export default function VetHub() {
     runTaskMigration();
   }, [mounted, patients, generalTasks]);
 
-  // Automatic daily task reset - runs when app loads on a new day
-  const hasRunAutoCreation = useRef(false);
+  // Automatic daily reset - runs when app loads on a new day
+  // Resets: sticker counts (to 2 big, 0 tiny) + daily tasks (Owner Called, etc.)
+  const hasRunDailyReset = useRef(false);
+
+  // Function to trigger daily reset (used by auto-reset and manual button)
+  const triggerDailyReset = async (force: boolean = false) => {
+    try {
+      const response = await fetch('/api/daily-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Daily reset failed');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Daily reset error:', error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
-    const autoResetDailyTasks = async () => {
+    const autoResetDaily = async () => {
       if (!patients || patients.length === 0) return;
-      if (hasRunAutoCreation.current) return; // Prevent duplicate runs
+      if (hasRunDailyReset.current) return; // Prevent duplicate runs
 
       const today = new Date().toISOString().split('T')[0];
-      const lastCheck = localStorage.getItem('lastDailyTaskCheck');
+      const lastCheck = localStorage.getItem('lastDailyReset');
 
       // Only run if it's a new day
       if (lastCheck === today) {
-        hasRunAutoCreation.current = true;
+        hasRunDailyReset.current = true;
         return;
       }
 
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const allDailyTasks = [...morningTasks, ...eveningTasks];
+      try {
+        const result = await triggerDailyReset();
 
-      let totalReset = 0;
-      let totalAdded = 0;
+        // Mark today as checked
+        localStorage.setItem('lastDailyReset', today);
+        hasRunDailyReset.current = true;
 
-      for (const patient of activePatients) {
-        const existingTasks = patient.tasks || [];
-
-        for (const taskName of allDailyTasks) {
-          const existingTask = existingTasks.find((t: any) =>
-            (t.title || t.name) === taskName
-          );
-
-          if (existingTask) {
-            // Task exists - reset it to uncompleted if it was completed
-            if (existingTask.completed) {
-              try {
-                await apiClient.updateTask(String(patient.id), String(existingTask.id), {
-                  completed: false,
-                });
-                totalReset++;
-              } catch (error) {
-                console.error('Failed to reset task:', error);
-              }
-            }
-          } else {
-            // Task doesn't exist - create it
-            try {
-              await apiClient.createTask(String(patient.id), {
-                name: taskName,
-                completed: false,
-                date: today,
-              });
-              totalAdded++;
-            } catch (error) {
-              console.error('Failed to create task:', error);
-            }
-          }
-        }
-      }
-
-      // Mark today as checked
-      localStorage.setItem('lastDailyTaskCheck', today);
-      hasRunAutoCreation.current = true;
-
-      if (totalReset > 0 || totalAdded > 0) {
+        // Refetch to get updated data
         refetch();
-        const messages = [];
-        if (totalReset > 0) messages.push(`Reset ${totalReset} tasks`);
-        if (totalAdded > 0) messages.push(`Added ${totalAdded} tasks`);
 
-        toast({
-          title: `🌅 New Day!`,
-          description: messages.join(' • ') + ` for ${activePatients.length} patients`
-        });
+        // Show notification if anything was updated
+        const { stats } = result;
+        if (stats.stickersReset > 0 || stats.tasksReset > 0 || stats.tasksCreated > 0) {
+          const messages = [];
+          if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset to 2`);
+          if (stats.tasksReset > 0) messages.push(`${stats.tasksReset} tasks reset`);
+          if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} daily tasks added`);
+
+          toast({
+            title: `🌅 New Day!`,
+            description: messages.join(' • '),
+          });
+        }
+      } catch (error) {
+        console.error('Auto daily reset failed:', error);
+        // Don't block the app if reset fails - user can manually trigger
+        hasRunDailyReset.current = true;
       }
     };
 
-    autoResetDailyTasks();
+    autoResetDaily();
   }, [patients.length]); // Run when patients are loaded
+
+  // Manual daily reset handler (for Tools menu)
+  const handleManualDailyReset = async () => {
+    try {
+      const result = await triggerDailyReset(true); // force=true
+      refetch();
+
+      const { stats } = result;
+      toast({
+        title: '🔄 Daily Reset Complete',
+        description: `${stats.patientsUpdated} patients: ${stats.stickersReset} stickers reset, ${stats.tasksReset} tasks reset, ${stats.tasksCreated} tasks created`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Reset Failed',
+        description: 'Could not perform daily reset. Check console for details.',
+      });
+    }
+  };
 
   const filteredPatients = patients
     .filter(p => {
@@ -2190,9 +2239,17 @@ export default function VetHub() {
                   style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
                 >
                   <button
+                    onClick={() => { handleManualDailyReset(); setShowToolsMenu(false); }}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
+                    style={{ borderLeft: `4px solid ${NEO_COLORS.mint}` }}
+                  >
+                    <Sunrise size={16} style={{ color: '#6BB89D' }} />
+                    New Day Reset
+                  </button>
+                  <button
                     onClick={() => { handleResetAllTasks(); setShowToolsMenu(false); }}
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
-                    style={{ borderLeft: `4px solid ${NEO_COLORS.pink}` }}
+                    style={{ borderTop: '1px solid #e5e7eb', borderLeft: `4px solid ${NEO_COLORS.pink}` }}
                   >
                     <RotateCcw size={16} style={{ color: '#E89999' }} />
                     Reset All Tasks
@@ -2261,6 +2318,29 @@ export default function VetHub() {
       </header>
 
       <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
+        {/* Task Header with Refresh */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-black text-gray-900">Today's Tasks</h2>
+            <span className="text-sm text-gray-500">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </span>
+          </div>
+          <button
+            onClick={handleRefreshTasks}
+            disabled={isRefreshingTasks}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition hover:-translate-y-0.5 disabled:opacity-50"
+            style={{
+              backgroundColor: '#DCC4F5',
+              border: '2px solid #000',
+              boxShadow: '4px 4px 0 #000',
+            }}
+          >
+            <RotateCcw size={16} className={isRefreshingTasks ? 'animate-spin' : ''} />
+            {isRefreshingTasks ? 'Refreshing...' : 'Refresh Tasks'}
+          </button>
+        </div>
+
         {/* Task Checklist - Always Visible */}
         <TaskChecklist
           patients={filteredPatients}
