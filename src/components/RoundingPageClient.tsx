@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -8,6 +8,7 @@ import { usePatientContext } from '@/contexts/PatientContext';
 import { useCommonItems } from '@/hooks/use-api';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ROUNDING_STORAGE_KEYS } from '@/lib/constants';
 
 // Use new RoundingSheet that matches Google Sheets layout
 const RoundingSheet = dynamic(() => import('@/components/RoundingSheet').then(mod => ({ default: mod.RoundingSheet })), {
@@ -25,7 +26,19 @@ export function RoundingPageClient() {
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
-  console.log('[RoundingPageClient] Patients from context:', patients?.length, patients);
+  // Check for unsaved changes by looking at localStorage backup
+  // This is the source of truth since RoundingSheet saves pending edits there
+  const checkForUnsavedChanges = useCallback((): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const backup = localStorage.getItem(ROUNDING_STORAGE_KEYS.BACKUP);
+      if (!backup) return false;
+      const parsed = JSON.parse(backup);
+      return Object.keys(parsed).length > 0;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -33,21 +46,10 @@ export function RoundingPageClient() {
 
   // Navigation Guard: Client-side routing blocker
   useEffect(() => {
-    // This handles client-side navigation (Link clicks, router.push, etc.)
     const handleRouteChange = (e: Event) => {
-      const hasUnsavedChanges = patients?.some(p => {
-        const roundingData = p.roundingData;
-        // Check if any patient has recent edits (within last 5 minutes as safety)
-        const lastUpdated = roundingData?.lastUpdated;
-        if (!lastUpdated) return false;
-        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-        const updatedAt = new Date(lastUpdated).getTime();
-        return updatedAt > fiveMinutesAgo;
-      });
-
-      if (hasUnsavedChanges) {
+      if (checkForUnsavedChanges()) {
         const confirmed = confirm(
-          'You may have unsaved changes in the rounding sheet. Are you sure you want to leave?'
+          'You have unsaved changes in the rounding sheet. Are you sure you want to leave?'
         );
         if (!confirmed) {
           e.preventDefault();
@@ -56,13 +58,9 @@ export function RoundingPageClient() {
       }
     };
 
-    // Listen for navigation events
     window.addEventListener('popstate', handleRouteChange);
-
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-    };
-  }, [patients]);
+    return () => window.removeEventListener('popstate', handleRouteChange);
+  }, [checkForUnsavedChanges]);
 
   // Neo-pop styling constants
   const NEO_BORDER = '2px solid #000';
@@ -101,18 +99,9 @@ export function RoundingPageClient() {
             <Link
               href="/"
               onClick={(e) => {
-                const hasUnsavedChanges = patients?.some(p => {
-                  const roundingData = p.roundingData;
-                  const lastUpdated = roundingData?.lastUpdated;
-                  if (!lastUpdated) return false;
-                  const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-                  const updatedAt = new Date(lastUpdated).getTime();
-                  return updatedAt > fiveMinutesAgo;
-                });
-
-                if (hasUnsavedChanges) {
+                if (checkForUnsavedChanges()) {
                   const confirmed = confirm(
-                    'You may have unsaved changes. Are you sure you want to leave the rounding sheet?'
+                    'You have unsaved changes. Are you sure you want to leave the rounding sheet?'
                   );
                   if (!confirmed) {
                     e.preventDefault();

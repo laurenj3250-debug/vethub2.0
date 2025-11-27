@@ -8,45 +8,20 @@ import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardR
 import { autoFillRoundingData, generateSignalment, isStaleData } from '@/lib/rounding-auto-fill';
 import { PastePreviewModal } from './PastePreviewModal';
 import { QuickInsertPanel } from '@/components/QuickInsertPanel';
+import {
+  ROUNDING_STORAGE_KEYS,
+  ROUNDING_AUTO_SAVE_DELAY,
+  ROUNDING_SAVE_SUCCESS_CLEAR_DELAY,
+  ROUNDING_SAVE_ERROR_CLEAR_DELAY,
+  ROUNDING_DROPDOWN_OPTIONS,
+  ROUNDING_FIELD_ORDER,
+  ROUNDING_TSV_HEADERS,
+  NEO_POP_STYLES,
+} from '@/lib/constants';
+import type { RoundingData, RoundingPatient } from '@/types/rounding';
 
-interface Patient {
-  id: number;
-  name: string;
-  status: string;
-  rounding_data?: RoundingData;
-  patient_info?: any;
-  demographics?: {
-    name?: string;
-    age?: string;
-    sex?: string;
-    breed?: string;
-    species?: string;
-    weight?: string;
-  };
-  currentStay?: {
-    location?: string;
-    codeStatus?: string;
-    icuCriteria?: string;
-  };
-}
-
-interface RoundingData {
-  signalment?: string;
-  location?: string;
-  icuCriteria?: string;
-  code?: string;  // matches modal field name
-  problems?: string;
-  diagnosticFindings?: string;
-  therapeutics?: string;
-  ivc?: string;  // matches modal field name
-  fluids?: string;  // matches modal field name
-  cri?: string;  // matches modal field name
-  overnightDx?: string;
-  concerns?: string;  // matches modal field name
-  comments?: string;
-  dayCount?: number;  // AI carry-forward: track day count
-  lastUpdated?: string;  // AI carry-forward: ISO date string
-}
+// Local Patient interface for component props (uses RoundingPatient pattern)
+type Patient = RoundingPatient;
 
 interface RoundingSheetProps {
   patients: Patient[];
@@ -75,18 +50,15 @@ function mergePatientRoundingData(
   };
 }
 
-const ROUNDING_BACKUP_KEY = 'vethub-rounding-backup';
-
 export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
   const [editingData, setEditingData] = useState<Record<number, RoundingData>>(() => {
     // Restore from localStorage on mount if available
     if (typeof window !== 'undefined') {
       try {
-        const backup = localStorage.getItem(ROUNDING_BACKUP_KEY);
+        const backup = localStorage.getItem(ROUNDING_STORAGE_KEYS.BACKUP);
         if (backup) {
           const parsed = JSON.parse(backup);
           if (Object.keys(parsed).length > 0) {
-            console.log('[Rounding] Restored backup with', Object.keys(parsed).length, 'patients');
             return parsed;
           }
         }
@@ -99,7 +71,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const [isSaving, setIsSaving] = useState(false);
   const [saveTimers, setSaveTimers] = useState<Map<number, NodeJS.Timeout>>(new Map());
   const [saveStatus, setSaveStatus] = useState<Map<number, 'saving' | 'saved' | 'error'>>(new Map());
-  const autoSaveDelay = 2000; // 2 seconds
   const [carryForwardResults, setCarryForwardResults] = useState<Record<number, CarryForwardResult>>({});
   const [showPastePreview, setShowPastePreview] = useState(false);
   const [pendingPasteData, setPendingPasteData] = useState<any[]>([]);
@@ -132,9 +103,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     if (typeof window !== 'undefined') {
       try {
         if (Object.keys(editingData).length > 0) {
-          localStorage.setItem(ROUNDING_BACKUP_KEY, JSON.stringify(editingData));
+          localStorage.setItem(ROUNDING_STORAGE_KEYS.BACKUP, JSON.stringify(editingData));
         } else {
-          localStorage.removeItem(ROUNDING_BACKUP_KEY);
+          localStorage.removeItem(ROUNDING_STORAGE_KEYS.BACKUP);
         }
       } catch (e) {
         console.error('[Rounding] Failed to backup:', e);
@@ -263,7 +234,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     // Set new timer for auto-save
     const newTimer = setTimeout(() => {
       autoSave(patientId);
-    }, autoSaveDelay);
+    }, ROUNDING_AUTO_SAVE_DELAY);
 
     setSaveTimers(prev => new Map(prev).set(patientId, newTimer));
   };
@@ -301,14 +272,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     return pastedValue;
   };
 
-  const DROPDOWN_OPTIONS = {
-    location: ['IP', 'ICU'],
-    icuCriteria: ['Yes', 'No', 'n/a'],
-    code: ['Green', 'Yellow', 'Orange', 'Red'],
-    ivc: ['Yes', 'No'],
-    fluids: ['Yes', 'No', 'n/a'],
-    cri: ['Yes', 'No', 'No but...', 'Yet but...'],
-  };
+  // Use shared dropdown options from constants
+  const DROPDOWN_OPTIONS = ROUNDING_DROPDOWN_OPTIONS;
 
   // Helper to parse TSV - splits by tab, converts newlines within cells to spaces
   const parseTSVRow = (text: string): string[] => {
@@ -340,11 +305,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
-    const fieldOrder: (keyof RoundingData)[] = [
-      'signalment', 'location', 'icuCriteria', 'code', 'problems',
-      'diagnosticFindings', 'therapeutics', 'ivc', 'fluids',
-      'cri', 'overnightDx', 'concerns', 'comments'
-    ];
+    const fieldOrder = ROUNDING_FIELD_ORDER;
 
     const startIndex = fieldOrder.indexOf(startField);
     if (startIndex === -1) return;
@@ -400,11 +361,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       }
     });
 
-    // DEBUG - show what updates will be applied
-    console.log('Final updates to apply:', updates);
-    console.log('Fields being updated:', Object.keys(updates));
-    console.log('===================');
-
     // Merge with existing data - use prev state to avoid stale closure bug
     setEditingData(prev => {
       const patient = patients.find(p => p.id === patientId);
@@ -412,7 +368,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       const existingEdits = prev[patientId] || {};
 
       const merged = mergePatientRoundingData(savedData, existingEdits, updates);
-      console.log('Merged result:', merged);
 
       return {
         ...prev,
@@ -494,11 +449,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       return false; // Let single-row paste handle it
     }
 
-    const fieldOrder: (keyof RoundingData)[] = [
-      'signalment', 'location', 'icuCriteria', 'code', 'problems',
-      'diagnosticFindings', 'therapeutics', 'ivc', 'fluids',
-      'cri', 'overnightDx', 'concerns', 'comments'
-    ];
+    const fieldOrder = ROUNDING_FIELD_ORDER;
 
     const startFieldIndex = fieldOrder.indexOf(startField);
     if (startFieldIndex === -1) return false;
@@ -643,9 +594,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   };
 
   const exportToTSV = () => {
-    const headers = ['Patient', 'Signalment', 'Location', 'ICU Criteria', 'Code Status', 'Problems',
-                    'Diagnostic Findings', 'Therapeutics', 'IVC', 'Fluids', 'CRI',
-                    'Overnight Dx', 'Concerns', 'Additional Comments'];
+    const headers = ROUNDING_TSV_HEADERS;
 
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
@@ -709,16 +658,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     });
   };
 
-  // Neo-pop styling constants
-  const NEO_BORDER = '2px solid #000';
-  const NEO_SHADOW = '6px 6px 0 #000';
-  const NEO_SHADOW_SM = '4px 4px 0 #000';
-  const COLORS = {
-    lavender: '#DCC4F5',
-    mint: '#B8E6D4',
-    pink: '#FFBDBD',
-    cream: '#FFF8F0',
-  };
+  // Neo-pop styling from shared constants
+  const { BORDER: NEO_BORDER, SHADOW: NEO_SHADOW, SHADOW_SM: NEO_SHADOW_SM, COLORS } = NEO_POP_STYLES;
 
   return (
     <div className="space-y-4">
@@ -952,7 +893,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       <option value="Yes">Yes</option>
                       <option value="No">No</option>
                       <option value="No but...">No but...</option>
-                      <option value="Yet but...">Yet but...</option>
+                      <option value="Yes but...">Yes but...</option>
                     </select>
                   </td>
                   <td className="p-1" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
