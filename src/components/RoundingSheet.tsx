@@ -823,10 +823,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                     {/* Quick-Insert Popup */}
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'diagnosticFindings' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[600px]">
+                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[400px]">
                         <QuickInsertPanel
                           field="diagnostics"
                           onInsert={handleQuickInsert}
+                          currentValue={data.diagnosticFindings}
                         />
                       </div>
                     )}
@@ -846,10 +847,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                     {/* Quick-Insert Popup */}
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'therapeutics' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[600px]">
+                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[400px]">
                         <QuickInsertPanel
                           field="therapeutics"
                           onInsert={handleQuickInsert}
+                          currentValue={data.therapeutics}
                         />
                       </div>
                     )}
@@ -922,10 +924,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                     {/* Quick-Insert Popup */}
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'concerns' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[600px]">
+                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[400px]">
                         <QuickInsertPanel
                           field="concerns"
                           onInsert={handleQuickInsert}
+                          currentValue={data.concerns}
                         />
                       </div>
                     )}
