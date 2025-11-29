@@ -442,29 +442,29 @@ export function QuickOptionsBrowser({
                           {item.field}
                         </span>
                       </div>
-                      {/* Edit/Delete buttons */}
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Edit/Delete buttons - always visible */}
+                      <div className="absolute top-2 right-2 flex gap-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             startEdit(item.id, item.label, item.text);
                           }}
-                          className="p-1.5 rounded bg-white hover:bg-gray-100"
-                          style={{ border: '1px solid #000' }}
+                          className="p-1.5 rounded bg-white hover:bg-blue-50 transition-colors"
+                          style={{ border: '1px solid #D1D5DB' }}
                           title="Edit"
                         >
-                          <Pencil size={12} />
+                          <Pencil size={12} className="text-gray-600" />
                         </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             confirmDelete(item.id);
                           }}
-                          className="p-1.5 rounded bg-white hover:bg-red-100"
-                          style={{ border: '1px solid #000' }}
+                          className="p-1.5 rounded bg-white hover:bg-red-50 transition-colors"
+                          style={{ border: '1px solid #D1D5DB' }}
                           title="Delete"
                         >
-                          <Trash2 size={12} className="text-red-600" />
+                          <Trash2 size={12} className="text-red-500" />
                         </button>
                       </div>
                     </div>

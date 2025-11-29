@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Grid3X3, Loader2 } from 'lucide-react';
+import { Grid3X3, Loader2, Save } from 'lucide-react';
 import { useQuickInsert } from '@/hooks/use-quick-insert';
 import { quickInsertCategories } from '@/data/quick-insert-library';
 import { QuickOptionsBrowser } from './QuickOptionsBrowser';
@@ -96,6 +96,17 @@ export function QuickInsertPanel({ field, onInsert, currentValue }: QuickInsertP
 
           <div className="flex items-center gap-1">
             {isLoading && <Loader2 size={12} className="animate-spin text-gray-400" />}
+            {canSaveCurrentValue && !showSaveForm && (
+              <button
+                onClick={() => setShowSaveForm(true)}
+                className="px-2 py-1 text-[11px] font-medium rounded flex items-center gap-1 hover:bg-green-50 transition"
+                style={{ backgroundColor: COLORS.mint, border: '1px solid #000' }}
+                title="Save current text as quick option"
+              >
+                <Save size={12} />
+                <span className="hidden sm:inline">Save</span>
+              </button>
+            )}
             <button
               onClick={() => setBrowserOpen(true)}
               className="px-2 py-1 text-[11px] font-medium rounded flex items-center gap-1 hover:bg-gray-100 transition"
@@ -136,18 +147,7 @@ export function QuickInsertPanel({ field, onInsert, currentValue }: QuickInsertP
           )}
         </div>
 
-        {/* Save current value as option */}
-        {canSaveCurrentValue && !showSaveForm && (
-          <div className="mt-2 pt-2 border-t border-gray-200">
-            <button
-              onClick={() => setShowSaveForm(true)}
-              className="text-[10px] text-blue-600 hover:text-blue-800 underline"
-            >
-              Save current text as quick option
-            </button>
-          </div>
-        )}
-
+        {/* Save form (appears when Save button clicked) */}
         {showSaveForm && canSaveCurrentValue && (
           <div className="mt-2 pt-2 border-t border-gray-200 flex gap-1.5 items-center">
             <input
