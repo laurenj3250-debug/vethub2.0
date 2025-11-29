@@ -792,21 +792,32 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       }}
                     >
                       <option value="">-</option>
-                      <option value="Green">G</option>
-                      <option value="Yellow">Y</option>
-                      <option value="Orange">O</option>
-                      <option value="Red">R</option>
+                      <option value="Green">Green</option>
+                      <option value="Yellow">Yellow</option>
+                      <option value="Orange">Orange</option>
+                      <option value="Red">Red</option>
                     </select>
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <textarea
+                    <select
                       value={data.problems || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'problems', e.target.value)}
                       onPaste={(e) => handlePaste(e, patient.id, 'problems')}
-                      rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
-                    />
+                    >
+                      <option value="">-</option>
+                      <option value="Cervical myelopathy">Cervical myelopathy</option>
+                      <option value="TL pain">TL pain</option>
+                      <option value="LS pain">LS pain</option>
+                      <option value="Plegic">Plegic</option>
+                      <option value="Vestibular">Vestibular</option>
+                      <option value="Seizures">Seizures</option>
+                      <option value="FCE">FCE</option>
+                      <option value="GME">GME</option>
+                      <option value="MUE">MUE</option>
+                      <option value="SRMA">SRMA</option>
+                    </select>
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
                     <textarea
