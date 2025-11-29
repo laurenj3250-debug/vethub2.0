@@ -251,8 +251,9 @@ export interface PatientTask {
 export interface StickerData {
   isNewAdmit: boolean;
   isSurgery: boolean;
-  bigLabelCount?: number;    // Auto-calculated based on admission flags
-  tinySheetCount?: number;   // Auto-calculated based on admission flags
+  bigLabelCount?: number;    // Auto-calculated based on admission flags (unless useManualCounts)
+  tinySheetCount?: number;   // Auto-calculated based on admission flags (unless useManualCounts)
+  useManualCounts?: boolean; // When true, don't auto-calculate - preserve user's manual values
   bigLabelsPrinted?: boolean;
   tinyLabelsPrinted?: boolean;
   stickersPrintedAt?: Date;

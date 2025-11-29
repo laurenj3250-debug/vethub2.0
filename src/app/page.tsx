@@ -11,6 +11,7 @@ import { PatientListItem } from '@/components/PatientListItem';
 import { TaskChecklist } from '@/components/TaskChecklist';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
+import { calculateStickerCounts } from '@/lib/sticker-calculator';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
@@ -57,6 +58,7 @@ export default function VetHub() {
 
   // Individual sticker picker state (for choosing big vs tiny when clicking sticker button)
   const [stickerPickerPatientId, setStickerPickerPatientId] = useState<number | null>(null);
+  const [stickerPickerCount, setStickerPickerCount] = useState<number>(2);
 
   // Discharge instructions modal state
   const [showDischargeInstructions, setShowDischargeInstructions] = useState(false);
@@ -1665,25 +1667,49 @@ export default function VetHub() {
   };
 
   const handlePrintPatientStickers = (patientId: number) => {
-    // Open sticker picker modal instead of directly printing
+    // Find patient to initialize count from their stickerData
+    const patient = patients.find(p => p.id === patientId);
+    const defaultCount = patient?.stickerData?.bigLabelCount ?? 2;
+    setStickerPickerCount(defaultCount);
     setStickerPickerPatientId(patientId);
   };
 
   // Handlers for the sticker picker modal
-  const handlePrintBigStickersSingle = () => {
+  const handlePrintBigStickersSingle = async () => {
     if (!stickerPickerPatientId) return;
     const patient = patients.find(p => p.id === stickerPickerPatientId);
     if (!patient) return;
+
+    // Capture count before closing modal
+    const countToPrint = stickerPickerCount;
+    const currentCount = patient.stickerData?.bigLabelCount ?? 2;
+
+    // If user changed the count, save it with manual override
+    if (countToPrint !== currentCount) {
+      try {
+        await apiClient.updatePatient(String(stickerPickerPatientId), {
+          stickerData: {
+            ...patient.stickerData,
+            bigLabelCount: countToPrint,
+            useManualCounts: true,
+          }
+        });
+        refetch(); // Refresh patient data
+      } catch (e) {
+        console.error('Failed to save label count:', e);
+      }
+    }
 
     // Close modal first, then print after a brief delay to let UI update
     setStickerPickerPatientId(null);
 
     setTimeout(() => {
       try {
-        printSinglePatientBigLabels(patient as any);
+        // Pass the user-specified count to the print function
+        printSinglePatientBigLabels(patient as any, countToPrint);
         toast({
           title: '🏷️ Big Labels Ready',
-          description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
+          description: `Printing ${countToPrint} labels for ${patient.demographics?.name || patient.name || 'Unnamed'}`
         });
       } catch (error) {
         console.error('Big label generation error:', error);
@@ -1692,26 +1718,77 @@ export default function VetHub() {
     }, 100);
   };
 
-  const handlePrintTinyStickersSingle = () => {
+  const handlePrintTinyStickersSingle = async () => {
     if (!stickerPickerPatientId) return;
     const patient = patients.find(p => p.id === stickerPickerPatientId);
     if (!patient) return;
+
+    // Capture count before closing modal
+    const countToPrint = stickerPickerCount;
+    const currentCount = patient.stickerData?.tinySheetCount ?? 1;
+
+    // If user changed the count, save it with manual override
+    if (countToPrint !== currentCount) {
+      try {
+        await apiClient.updatePatient(String(stickerPickerPatientId), {
+          stickerData: {
+            ...patient.stickerData,
+            tinySheetCount: countToPrint,
+            useManualCounts: true,
+          }
+        });
+        refetch(); // Refresh patient data
+      } catch (e) {
+        console.error('Failed to save tiny label count:', e);
+      }
+    }
 
     // Close modal first, then print after a brief delay to let UI update
     setStickerPickerPatientId(null);
 
     setTimeout(() => {
       try {
-        printSinglePatientTinyLabels(patient as any);
+        // Pass the user-specified count to the print function
+        printSinglePatientTinyLabels(patient as any, countToPrint);
         toast({
           title: '🏷️ Tiny Labels Ready',
-          description: `Print dialog opened for ${patient.demographics?.name || patient.name || 'Unnamed'}`
+          description: `Printing ${countToPrint} sheets for ${patient.demographics?.name || patient.name || 'Unnamed'}`
         });
       } catch (error) {
         console.error('Tiny label generation error:', error);
         toast({ variant: 'destructive', title: 'Failed to generate tiny labels', description: String(error) });
       }
     }, 100);
+  };
+
+  // Reset sticker count to auto-calculated value
+  const handleResetStickerCountToAuto = async () => {
+    if (!stickerPickerPatientId) return;
+    const patient = patients.find(p => p.id === stickerPickerPatientId);
+    if (!patient) return;
+
+    const autoCounts = calculateStickerCounts(
+      patient.stickerData?.isNewAdmit ?? false,
+      patient.stickerData?.isSurgery ?? false
+    );
+
+    try {
+      await apiClient.updatePatient(String(stickerPickerPatientId), {
+        stickerData: {
+          ...patient.stickerData,
+          bigLabelCount: autoCounts.bigLabelCount,
+          tinySheetCount: autoCounts.tinySheetCount,
+          useManualCounts: false, // Clear manual override
+        }
+      });
+      // Update local count state to reflect the auto value
+      setStickerPickerCount(autoCounts.bigLabelCount);
+      refetch();
+      toast({ title: 'Reset to auto', description: `Count reset to ${autoCounts.bigLabelCount} labels` });
+    } catch (e) {
+      console.error('Failed to reset sticker count:', e);
+      toast({ variant: 'destructive', title: 'Failed to reset', description: String(e) });
+    }
   };
 
   // Load rounding data when modal opens
@@ -3584,6 +3661,57 @@ export default function VetHub() {
                 </p>
               </div>
               <div className="p-4 space-y-3 bg-white">
+                {/* Count input */}
+                <div className="p-3 rounded-xl" style={{ backgroundColor: '#FFF8F0', border: '2px solid #000' }}>
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-sm font-bold text-gray-900">How many?</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setStickerPickerCount(Math.max(1, stickerPickerCount - 1))}
+                        className="w-8 h-8 rounded-lg font-black text-lg transition hover:-translate-y-0.5"
+                        style={{ backgroundColor: '#E5E7EB', border: '2px solid #000' }}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        value={stickerPickerCount}
+                        onChange={(e) => setStickerPickerCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-12 h-8 text-center font-black text-lg rounded-lg focus:outline-none"
+                        style={{ border: '2px solid #000' }}
+                        min={1}
+                        max={20}
+                      />
+                      <button
+                        onClick={() => setStickerPickerCount(Math.min(20, stickerPickerCount + 1))}
+                        className="w-8 h-8 rounded-lg font-black text-lg transition hover:-translate-y-0.5"
+                        style={{ backgroundColor: '#E5E7EB', border: '2px solid #000' }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  {/* Reset to auto link - only show when patient has manual override */}
+                  {(() => {
+                    const patient = patients.find(p => p.id === stickerPickerPatientId);
+                    if (patient?.stickerData?.useManualCounts) {
+                      const autoCount = calculateStickerCounts(
+                        patient.stickerData?.isNewAdmit ?? false,
+                        patient.stickerData?.isSurgery ?? false
+                      ).bigLabelCount;
+                      return (
+                        <button
+                          onClick={handleResetStickerCountToAuto}
+                          className="text-xs text-blue-600 hover:text-blue-800 underline mt-2"
+                        >
+                          Reset to auto ({autoCount})
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+
                 <button
                   onClick={handlePrintBigStickersSingle}
                   className="w-full py-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-3 text-gray-900 hover:-translate-y-0.5"
@@ -3591,7 +3719,7 @@ export default function VetHub() {
                 >
                   <Tag size={24} />
                   <div className="text-left">
-                    <div>Big Stickers</div>
+                    <div>Big Stickers ({stickerPickerCount})</div>
                     <div className="text-xs font-medium text-gray-600">70mm × 45mm - Patient files & cages</div>
                   </div>
                 </button>
@@ -3602,7 +3730,7 @@ export default function VetHub() {
                 >
                   <Tag size={18} />
                   <div className="text-left">
-                    <div>Little Stickers</div>
+                    <div>Little Stickers ({stickerPickerCount})</div>
                     <div className="text-xs font-medium text-gray-600">50mm × 35mm - Lab samples & diagnostics</div>
                   </div>
                 </button>

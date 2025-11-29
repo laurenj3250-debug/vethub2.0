@@ -211,3 +211,19 @@ model ResiliencyEntry {
   @@index([createdAt])
   @@index([category])
 }
+
+// Quick Insert Options for Rounding Sheet
+// Synced server-side so options persist across devices/users
+model QuickInsertOption {
+  id        String   @id @default(cuid())
+  label     String   // Button display text
+  text      String   // Text inserted into field
+  category  String   // 'surgery' | 'seizures' | 'other'
+  field     String   // 'therapeutics' | 'diagnostics' | 'concerns' | 'problems'
+  isDefault Boolean  @default(false) // true = system default, false = user-added
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([field])
+}

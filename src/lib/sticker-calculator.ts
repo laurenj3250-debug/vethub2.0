@@ -85,6 +85,11 @@ export function autoCalculateStickerCounts(
     };
   }
 
+  // If user has set manual counts, preserve them - don't auto-calculate
+  if (stickerData.useManualCounts) {
+    return stickerData;
+  }
+
   const counts = calculateStickerCounts(stickerData.isNewAdmit, stickerData.isSurgery);
 
   return {
@@ -102,12 +107,24 @@ export function getStickerSummary(stickerData: StickerData | undefined): string 
     return `${STICKER_RULES.BASE.bigLabels} big labels`;
   }
 
-  const counts = calculateStickerCounts(stickerData.isNewAdmit, stickerData.isSurgery);
+  // Use stored counts if manual, otherwise calculate
+  const bigCount = stickerData.useManualCounts
+    ? (stickerData.bigLabelCount ?? STICKER_RULES.BASE.bigLabels)
+    : calculateStickerCounts(stickerData.isNewAdmit, stickerData.isSurgery).bigLabelCount;
 
-  const parts: string[] = [`${counts.bigLabelCount} big labels`];
+  const tinyCount = stickerData.useManualCounts
+    ? (stickerData.tinySheetCount ?? 0)
+    : calculateStickerCounts(stickerData.isNewAdmit, stickerData.isSurgery).tinySheetCount;
 
-  if (counts.tinySheetCount > 0) {
-    parts.push(`${counts.tinySheetCount} tiny sheets (${counts.tinyLabelTotal} labels)`);
+  const parts: string[] = [`${bigCount} big labels`];
+
+  if (tinyCount > 0) {
+    parts.push(`${tinyCount} tiny sheets (${tinyCount * STICKER_RULES.TINY_LABELS_PER_SHEET} labels)`);
+  }
+
+  // Add indicator if using manual counts
+  if (stickerData.useManualCounts) {
+    parts.push('(manual)');
   }
 
   return parts.join(', ');
