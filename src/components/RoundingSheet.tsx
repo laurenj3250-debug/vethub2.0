@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, Copy, ExternalLink } from 'lucide-react';
+import { Save, Copy, ExternalLink, ChevronDown, X } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
@@ -27,6 +27,105 @@ interface RoundingSheetProps {
   patients: Patient[];
   toast: (options: any) => void;
   onPatientUpdate?: () => void;
+}
+
+// Problem options for multi-select
+const PROBLEM_OPTIONS = [
+  'Cervical myelopathy',
+  'TL pain',
+  'LS pain',
+  'Plegic',
+  'Vestibular',
+  'Seizures',
+  'FCE',
+  'GME',
+  'MUE',
+  'SRMA',
+];
+
+// Multi-select dropdown for Problems field
+function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Parse comma-separated value into array
+  const selectedItems = value ? value.split(', ').filter(Boolean) : [];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (option: string) => {
+    const newSelected = selectedItems.includes(option)
+      ? selectedItems.filter(item => item !== option)
+      : [...selectedItems, option];
+    onChange(newSelected.join(', '));
+  };
+
+  const removeItem = (item: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange(selectedItems.filter(i => i !== item).join(', '));
+  };
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs bg-gray-50 cursor-pointer min-h-[26px] flex items-center justify-between gap-1"
+        style={{ border: '1px solid #ccc' }}
+      >
+        <div className="flex-1 flex flex-wrap gap-0.5 overflow-hidden">
+          {selectedItems.length === 0 ? (
+            <span className="text-gray-400">-</span>
+          ) : (
+            selectedItems.map(item => (
+              <span
+                key={item}
+                className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-medium"
+              >
+                {item}
+                <X
+                  size={10}
+                  className="cursor-pointer hover:text-purple-600"
+                  onClick={(e) => removeItem(item, e)}
+                />
+              </span>
+            ))
+          )}
+        </div>
+        <ChevronDown size={12} className={`text-gray-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <div
+          className="absolute top-full left-0 right-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[200px] overflow-y-auto"
+          style={{ border: '1px solid #ccc' }}
+        >
+          {PROBLEM_OPTIONS.map(option => (
+            <label
+              key={option}
+              className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"
+            >
+              <input
+                type="checkbox"
+                checked={selectedItems.includes(option)}
+                onChange={() => toggleOption(option)}
+                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span>{option}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -798,26 +897,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       <option value="Red">Red</option>
                     </select>
                   </td>
-                  <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <select
+                  <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
+                    <ProblemsMultiSelect
                       value={data.problems || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'problems', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'problems')}
-                      className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
-                      style={{ border: '1px solid #ccc' }}
-                    >
-                      <option value="">-</option>
-                      <option value="Cervical myelopathy">Cervical myelopathy</option>
-                      <option value="TL pain">TL pain</option>
-                      <option value="LS pain">LS pain</option>
-                      <option value="Plegic">Plegic</option>
-                      <option value="Vestibular">Vestibular</option>
-                      <option value="Seizures">Seizures</option>
-                      <option value="FCE">FCE</option>
-                      <option value="GME">GME</option>
-                      <option value="MUE">MUE</option>
-                      <option value="SRMA">SRMA</option>
-                    </select>
+                      onChange={(val) => handleFieldChange(patient.id, 'problems', val)}
+                    />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
                     <textarea
