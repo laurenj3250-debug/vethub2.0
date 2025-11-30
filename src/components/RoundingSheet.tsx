@@ -900,9 +900,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               <th className="p-1 text-left min-w-[40px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>IVC</th>
               <th className="p-1 text-left min-w-[50px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Fluids</th>
               <th className="p-1 text-left min-w-[50px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>CRI</th>
-              <th className="p-1 text-left min-w-[90px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Dx</th>
-              <th className="p-1 text-left min-w-[100px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Concerns</th>
-              <th className="p-1 text-left min-w-[110px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Comments</th>
+              <th className="p-1 text-left min-w-[100px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Dx</th>
+              <th className="p-1 text-left min-w-[110px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Concerns</th>
+              <th className="p-1 text-left min-w-[100px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Extra Notes</th>
               <th className="p-1 text-center sticky right-0 z-10 min-w-[60px]" style={{ backgroundColor: COLORS.mint, borderLeft: NEO_BORDER, borderBottom: NEO_BORDER }}>Actions</th>
             </tr>
           </thead>

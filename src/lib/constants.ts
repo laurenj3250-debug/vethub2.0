@@ -146,9 +146,9 @@ export const ROUNDING_TSV_HEADERS = [
   'IVC',
   'Fluids',
   'CRI',
-  'Overnight Dx',
-  'Concerns',
-  'Additional Comments',
+  'Overnight Diagnostics',
+  'Overnight Concerns/Alerts',
+  'Extra Notes',
 ] as const;
 
 // Neo-pop styling constants
