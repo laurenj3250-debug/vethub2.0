@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, Copy, ExternalLink, ChevronDown, X } from 'lucide-react';
+import { Save, Copy, ExternalLink, ChevronDown, X, Trash2, RotateCcw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
@@ -43,14 +43,43 @@ const PROBLEM_OPTIONS = [
   'SRMA',
 ];
 
+// Storage key for hidden problem presets
+const HIDDEN_PROBLEMS_KEY = 'vethub-hidden-problems';
+
+// Get hidden problems from localStorage
+function getHiddenProblems(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(HIDDEN_PROBLEMS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Save hidden problems to localStorage
+function setHiddenProblems(hidden: string[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(HIDDEN_PROBLEMS_KEY, JSON.stringify(hidden));
+}
+
 // Multi-select dropdown for Problems field
 function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
+  const [hiddenProblems, setHiddenProblemsState] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Load hidden problems on mount
+  useEffect(() => {
+    setHiddenProblemsState(getHiddenProblems());
+  }, []);
 
   // Parse comma-separated value into array
   const selectedItems = value ? value.split(', ').filter(Boolean) : [];
+
+  // Filter out hidden presets
+  const visibleOptions = PROBLEM_OPTIONS.filter(opt => !hiddenProblems.includes(opt));
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -81,6 +110,19 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
       onChange([...selectedItems, trimmed].join(', '));
       setCustomInput('');
     }
+  };
+
+  const hidePreset = (option: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const newHidden = [...hiddenProblems, option];
+    setHiddenProblems(newHidden);
+    setHiddenProblemsState(newHidden);
+  };
+
+  const restoreAllPresets = () => {
+    setHiddenProblems([]);
+    setHiddenProblemsState([]);
   };
 
   return (
@@ -114,22 +156,31 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 right-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[250px] overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[280px] overflow-y-auto"
           style={{ border: '1px solid #ccc' }}
         >
-          {PROBLEM_OPTIONS.map(option => (
-            <label
+          {visibleOptions.map(option => (
+            <div
               key={option}
-              className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 cursor-pointer text-xs"
+              className="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 text-xs group"
             >
-              <input
-                type="checkbox"
-                checked={selectedItems.includes(option)}
-                onChange={() => toggleOption(option)}
-                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-              />
-              <span>{option}</span>
-            </label>
+              <label className="flex items-center gap-2 cursor-pointer flex-1">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.includes(option)}
+                  onChange={() => toggleOption(option)}
+                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                />
+                <span>{option}</span>
+              </label>
+              <button
+                onClick={(e) => hidePreset(option, e)}
+                className="p-1 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Remove from list"
+              >
+                <Trash2 size={12} className="text-red-500" />
+              </button>
+            </div>
           ))}
           <div className="border-t border-gray-200 p-1.5">
             <div className="flex gap-1">
@@ -150,6 +201,15 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
                 Add
               </button>
             </div>
+            {hiddenProblems.length > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); restoreAllPresets(); }}
+                className="mt-1.5 w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+              >
+                <RotateCcw size={10} />
+                Restore {hiddenProblems.length} hidden option{hiddenProblems.length > 1 ? 's' : ''}
+              </button>
+            )}
           </div>
         </div>
       )}
