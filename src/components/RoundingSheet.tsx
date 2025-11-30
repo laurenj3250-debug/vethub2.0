@@ -46,6 +46,7 @@ const PROBLEM_OPTIONS = [
 // Multi-select dropdown for Problems field
 function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [customInput, setCustomInput] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Parse comma-separated value into array
@@ -72,6 +73,14 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
   const removeItem = (item: string, e: React.MouseEvent) => {
     e.stopPropagation();
     onChange(selectedItems.filter(i => i !== item).join(', '));
+  };
+
+  const addCustom = () => {
+    const trimmed = customInput.trim();
+    if (trimmed && !selectedItems.includes(trimmed)) {
+      onChange([...selectedItems, trimmed].join(', '));
+      setCustomInput('');
+    }
   };
 
   return (
@@ -105,7 +114,7 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 right-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[200px] overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[250px] overflow-y-auto"
           style={{ border: '1px solid #ccc' }}
         >
           {PROBLEM_OPTIONS.map(option => (
@@ -122,6 +131,26 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
               <span>{option}</span>
             </label>
           ))}
+          <div className="border-t border-gray-200 p-1.5">
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={customInput}
+                onChange={(e) => setCustomInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addCustom()}
+                placeholder="Add custom..."
+                className="flex-1 px-2 py-1 text-xs rounded border border-gray-300 focus:outline-none focus:border-purple-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                onClick={(e) => { e.stopPropagation(); addCustom(); }}
+                disabled={!customInput.trim()}
+                className="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+              >
+                Add
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
