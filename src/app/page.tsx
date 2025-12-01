@@ -1244,6 +1244,23 @@ export default function VetHub() {
     }
   };
 
+  const handleDeleteAllTasks = async () => {
+    try {
+      const response = await fetch('/api/admin/clear-all-tasks', { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        toast({ title: '🗑️ All tasks cleared', description: `Deleted ${result.deleted} tasks` });
+        // Refresh both patient tasks and general tasks
+        refetchPatients();
+        refetchGeneralTasks();
+      } else {
+        toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to clear tasks' });
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to clear tasks' });
+    }
+  };
+
   const handleAddPatientTaskFromOverview = async () => {
     if (!newPatientTaskName.trim() || !selectedPatientForTask) return;
 
@@ -2427,6 +2444,7 @@ export default function VetHub() {
           onAddTask={handleAddTaskFromChecklist}
           onDeleteTask={handleDeleteTask}
           onDeleteGeneralTask={handleDeleteGeneralTask}
+          onDeleteAllTasks={handleDeleteAllTasks}
         />
 
         {/* OLD Task Overview - DISABLED */}

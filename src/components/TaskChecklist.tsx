@@ -50,6 +50,7 @@ interface TaskChecklistProps {
   onAddTask: (patientId: number | null, taskName: string) => void;
   onDeleteTask?: (patientId: number, taskId: number) => void;
   onDeleteGeneralTask?: (taskId: number) => void;
+  onDeleteAllTasks?: () => void;
 }
 
 export function TaskChecklist({
@@ -60,6 +61,7 @@ export function TaskChecklist({
   onAddTask,
   onDeleteTask,
   onDeleteGeneralTask,
+  onDeleteAllTasks,
 }: TaskChecklistProps) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
@@ -217,6 +219,23 @@ export function TaskChecklist({
           >
             {hideCompleted ? 'show done' : 'hide done'}
           </button>
+          {onDeleteAllTasks && stats.total > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Delete all ${stats.total} tasks? This cannot be undone.`)) {
+                  onDeleteAllTasks();
+                }
+              }}
+              className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5 hover:bg-red-100"
+              style={{
+                backgroundColor: COLORS.pink,
+                border: '2px solid #2D3436',
+              }}
+            >
+              <X size={12} className="inline mr-1" />
+              Clear All
+            </button>
+          )}
         </div>
       </div>
 
