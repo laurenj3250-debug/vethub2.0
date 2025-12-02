@@ -829,6 +829,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     }
   };
 
+  // Helper to properly escape a value for TSV format
+  // If the value contains newlines, tabs, or quotes, wrap it in quotes
+  const escapeTSVValue = (value: string): string => {
+    if (!value) return '';
+    // Check if value needs quoting (contains newline, tab, or double quote)
+    if (value.includes('\n') || value.includes('\t') || value.includes('"')) {
+      // Escape any double quotes by doubling them, then wrap in quotes
+      return '"' + value.replace(/"/g, '""') + '"';
+    }
+    return value;
+  };
+
   const exportToTSV = () => {
     const headers = ROUNDING_TSV_HEADERS;
 
@@ -836,20 +848,20 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       const data = getPatientData(patient.id);
       const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
       return [
-        patientName,
-        data.signalment || '',
-        data.location || '',
-        data.icuCriteria || '',
-        data.code || '',
-        data.problems || '',
-        data.diagnosticFindings || '',
-        data.therapeutics || '',
-        data.ivc || '',
-        data.fluids || '',
-        data.cri || '',
-        data.overnightDx || '',
-        data.concerns || '',
-        data.comments || ''
+        escapeTSVValue(patientName),
+        escapeTSVValue(data.signalment || ''),
+        escapeTSVValue(data.location || ''),
+        escapeTSVValue(data.icuCriteria || ''),
+        escapeTSVValue(data.code || ''),
+        escapeTSVValue(data.problems || ''),
+        escapeTSVValue(data.diagnosticFindings || ''),
+        escapeTSVValue(data.therapeutics || ''),
+        escapeTSVValue(data.ivc || ''),
+        escapeTSVValue(data.fluids || ''),
+        escapeTSVValue(data.cri || ''),
+        escapeTSVValue(data.overnightDx || ''),
+        escapeTSVValue(data.concerns || ''),
+        escapeTSVValue(data.comments || '')
       ].join('\t');
     });
 
@@ -870,20 +882,20 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
 
     const row = [
-      patientName,
-      data.signalment || '',
-      data.location || '',
-      data.icuCriteria || '',
-      data.code || '',
-      data.problems || '',
-      data.diagnosticFindings || '',
-      data.therapeutics || '',
-      data.ivc || '',
-      data.fluids || '',
-      data.cri || '',
-      data.overnightDx || '',
-      data.concerns || '',
-      data.comments || ''
+      escapeTSVValue(patientName),
+      escapeTSVValue(data.signalment || ''),
+      escapeTSVValue(data.location || ''),
+      escapeTSVValue(data.icuCriteria || ''),
+      escapeTSVValue(data.code || ''),
+      escapeTSVValue(data.problems || ''),
+      escapeTSVValue(data.diagnosticFindings || ''),
+      escapeTSVValue(data.therapeutics || ''),
+      escapeTSVValue(data.ivc || ''),
+      escapeTSVValue(data.fluids || ''),
+      escapeTSVValue(data.cri || ''),
+      escapeTSVValue(data.overnightDx || ''),
+      escapeTSVValue(data.concerns || ''),
+      escapeTSVValue(data.comments || '')
     ].join('\t');
 
     navigator.clipboard.writeText(row);
