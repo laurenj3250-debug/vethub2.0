@@ -163,7 +163,7 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
           {visibleOptions.map(option => (
             <div
               key={option}
-              className="flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 text-xs group"
+              className="flex items-center justify-between px-2 py-1 hover:bg-gray-50 text-xs"
             >
               <label className="flex items-center gap-2 cursor-pointer flex-1">
                 <input
@@ -176,10 +176,10 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
               </label>
               <button
                 onClick={(e) => hidePreset(option, e)}
-                className="p-1 rounded hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="p-1 rounded hover:bg-red-100"
                 title="Remove from list"
               >
-                <Trash2 size={12} className="text-red-500" />
+                <Trash2 size={10} className="text-gray-400 hover:text-red-500" />
               </button>
             </div>
           ))}
