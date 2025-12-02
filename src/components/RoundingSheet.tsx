@@ -834,9 +834,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const escapeTSVValue = (value: string): string => {
     if (!value) return '';
     // Check if value needs quoting (contains newline, tab, or double quote)
-    if (value.includes('\n') || value.includes('\t') || value.includes('"')) {
+    const needsQuoting = value.includes('\n') || value.includes('\t') || value.includes('"');
+    if (needsQuoting) {
+      // DEBUG: Log when quoting is applied
+      console.log('=== ESCAPE TSV DEBUG ===');
+      console.log('Original value:', JSON.stringify(value));
+      console.log('Contains newline:', value.includes('\n'));
+      console.log('Contains tab:', value.includes('\t'));
       // Escape any double quotes by doubling them, then wrap in quotes
-      return '"' + value.replace(/"/g, '""') + '"';
+      const escaped = '"' + value.replace(/"/g, '""') + '"';
+      console.log('Escaped value:', JSON.stringify(escaped));
+      return escaped;
     }
     return value;
   };
@@ -847,6 +855,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
       const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+
+      // DEBUG: Log raw therapeutics value
+      console.log('=== EXPORT DEBUG for', patientName, '===');
+      console.log('Raw therapeutics:', JSON.stringify(data.therapeutics));
+
       return [
         escapeTSVValue(patientName),
         escapeTSVValue(data.signalment || ''),
@@ -866,6 +879,12 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     });
 
     const tsv = [headers.join('\t'), ...rows].join('\n');
+
+    // DEBUG: Log final TSV
+    console.log('=== FINAL TSV ===');
+    console.log(tsv);
+    console.log('=== END FINAL TSV ===');
+
     navigator.clipboard.writeText(tsv);
 
     toast({
@@ -880,6 +899,10 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     const data = getPatientData(patientId);
     const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+
+    // DEBUG: Log raw therapeutics value
+    console.log('=== COPY ROW DEBUG for', patientName, '===');
+    console.log('Raw therapeutics:', JSON.stringify(data.therapeutics));
 
     const row = [
       escapeTSVValue(patientName),
@@ -897,6 +920,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       escapeTSVValue(data.concerns || ''),
       escapeTSVValue(data.comments || '')
     ].join('\t');
+
+    // DEBUG: Log final row
+    console.log('Final row being copied:');
+    console.log(row);
+    console.log('=== END COPY ROW DEBUG ===');
 
     navigator.clipboard.writeText(row);
 
