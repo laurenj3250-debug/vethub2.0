@@ -227,3 +227,14 @@ model QuickInsertOption {
   @@index([category])
   @@index([field])
 }
+
+// Problem Options for Rounding Sheet Problems column
+// Synced server-side so options persist across devices/users
+model ProblemOption {
+  id        String   @id @default(cuid())
+  label     String   @unique // Problem name (e.g., "Cervical myelopathy")
+  isDefault Boolean  @default(false) // true = system default, false = user-added
+  createdAt DateTime @default(now())
+
+  @@index([isDefault])
+}
