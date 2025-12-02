@@ -8,6 +8,7 @@ import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardR
 import { autoFillRoundingData, generateSignalment, isStaleData } from '@/lib/rounding-auto-fill';
 import { PastePreviewModal } from './PastePreviewModal';
 import { QuickInsertPanel } from '@/components/QuickInsertPanel';
+import { useProblemOptions } from '@/hooks/use-problem-options';
 import {
   ROUNDING_STORAGE_KEYS,
   ROUNDING_AUTO_SAVE_DELAY,
@@ -29,78 +30,16 @@ interface RoundingSheetProps {
   onPatientUpdate?: () => void;
 }
 
-// Problem options for multi-select
-const PROBLEM_OPTIONS = [
-  'Cervical myelopathy',
-  'TL pain',
-  'LS pain',
-  'Plegic',
-  'Vestibular',
-  'Seizures',
-  'FCE',
-  'GME',
-  'MUE',
-  'SRMA',
-];
-
-// Storage keys for problem options
-const HIDDEN_PROBLEMS_KEY = 'vethub-hidden-problems';
-const CUSTOM_PROBLEMS_KEY = 'vethub-custom-problems';
-
-// Get hidden problems from localStorage
-function getHiddenProblems(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(HIDDEN_PROBLEMS_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-// Save hidden problems to localStorage
-function setHiddenProblems(hidden: string[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(HIDDEN_PROBLEMS_KEY, JSON.stringify(hidden));
-}
-
-// Get custom problems from localStorage
-function getCustomProblems(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const stored = localStorage.getItem(CUSTOM_PROBLEMS_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-// Save custom problems to localStorage
-function saveCustomProblems(customs: string[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(CUSTOM_PROBLEMS_KEY, JSON.stringify(customs));
-}
-
-// Multi-select dropdown for Problems field
+// Multi-select dropdown for Problems field - uses database-backed options
 function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
-  const [hiddenProblems, setHiddenProblemsState] = useState<string[]>([]);
-  const [customProblems, setCustomProblemsState] = useState<string[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Load hidden and custom problems on mount
-  useEffect(() => {
-    setHiddenProblemsState(getHiddenProblems());
-    setCustomProblemsState(getCustomProblems());
-  }, []);
+  const { options, addOption, deleteOption, resetToDefaults, isLoading } = useProblemOptions();
 
   // Parse comma-separated value into array
   const selectedItems = value ? value.split(', ').filter(Boolean) : [];
-
-  // Combine presets (minus hidden) with custom problems
-  const visiblePresets = PROBLEM_OPTIONS.filter(opt => !hiddenProblems.includes(opt));
-  const visibleOptions = [...visiblePresets, ...customProblems];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -113,10 +52,10 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const toggleOption = (option: string) => {
-    const newSelected = selectedItems.includes(option)
-      ? selectedItems.filter(item => item !== option)
-      : [...selectedItems, option];
+  const toggleOption = (optionLabel: string) => {
+    const newSelected = selectedItems.includes(optionLabel)
+      ? selectedItems.filter(item => item !== optionLabel)
+      : [...selectedItems, optionLabel];
     onChange(newSelected.join(', '));
   };
 
@@ -125,42 +64,41 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
     onChange(selectedItems.filter(i => i !== item).join(', '));
   };
 
-  const addCustom = () => {
+  const handleAddCustom = async () => {
     const trimmed = customInput.trim();
-    if (trimmed) {
+    if (!trimmed) return;
+
+    setIsAdding(true);
+    try {
+      // Add to database (hook handles optimistic update)
+      await addOption(trimmed);
       // Add to selected items for this patient
       if (!selectedItems.includes(trimmed)) {
         onChange([...selectedItems, trimmed].join(', '));
       }
-      // Save to custom problems list if not already there
-      if (!visibleOptions.includes(trimmed)) {
-        const newCustoms = [...customProblems, trimmed];
-        saveCustomProblems(newCustoms);
-        setCustomProblemsState(newCustoms);
-      }
       setCustomInput('');
+    } catch (e: any) {
+      // If it already exists, just add to selection
+      if (e.message?.includes('already exists')) {
+        if (!selectedItems.includes(trimmed)) {
+          onChange([...selectedItems, trimmed].join(', '));
+        }
+        setCustomInput('');
+      }
+      console.error('Failed to add problem option:', e);
+    } finally {
+      setIsAdding(false);
     }
   };
 
-  const deleteOption = (option: string, e: React.MouseEvent) => {
+  const handleDeleteOption = async (optionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // If it's a custom problem, remove from custom list
-    if (customProblems.includes(option)) {
-      const newCustoms = customProblems.filter(p => p !== option);
-      saveCustomProblems(newCustoms);
-      setCustomProblemsState(newCustoms);
-    } else {
-      // It's a preset, hide it
-      const newHidden = [...hiddenProblems, option];
-      setHiddenProblems(newHidden);
-      setHiddenProblemsState(newHidden);
+    try {
+      await deleteOption(optionId);
+    } catch (e) {
+      console.error('Failed to delete problem option:', e);
     }
-  };
-
-  const restoreAllPresets = () => {
-    setHiddenProblems([]);
-    setHiddenProblemsState([]);
   };
 
   return (
@@ -198,29 +136,38 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
           className="absolute top-full left-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[320px] overflow-y-auto min-w-[200px]"
           style={{ border: '1px solid #ccc' }}
         >
-          {visibleOptions.map(option => (
-            <div
-              key={option}
-              className="flex items-center justify-between px-2 py-1 hover:bg-gray-50 text-xs"
-            >
-              <label className="flex items-center gap-2 cursor-pointer flex-1">
-                <input
-                  type="checkbox"
-                  checked={selectedItems.includes(option)}
-                  onChange={() => toggleOption(option)}
-                  className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                />
-                <span className="whitespace-nowrap">{option}</span>
-              </label>
-              <button
-                onClick={(e) => deleteOption(option, e)}
-                className="p-1 rounded hover:bg-red-100"
-                title="Remove from list"
+          {isLoading ? (
+            <div className="px-2 py-3 text-xs text-gray-400 text-center">Loading...</div>
+          ) : options.length === 0 ? (
+            <div className="px-2 py-3 text-xs text-gray-400 text-center">No options. Add one below.</div>
+          ) : (
+            options.map(option => (
+              <div
+                key={option.id}
+                className="flex items-center justify-between px-2 py-1 hover:bg-gray-50 text-xs"
               >
-                <Trash2 size={10} className="text-gray-400 hover:text-red-500" />
-              </button>
-            </div>
-          ))}
+                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedItems.includes(option.label)}
+                    onChange={() => toggleOption(option.label)}
+                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="whitespace-nowrap">{option.label}</span>
+                  {option.isDefault && (
+                    <span className="text-[8px] text-gray-400">(default)</span>
+                  )}
+                </label>
+                <button
+                  onClick={(e) => handleDeleteOption(option.id, e)}
+                  className="p-1 rounded hover:bg-red-100"
+                  title="Delete from list"
+                >
+                  <Trash2 size={10} className="text-gray-400 hover:text-red-500" />
+                </button>
+              </div>
+            ))
+          )}
           <div className="border-t border-gray-200 p-2 sticky bottom-0 bg-white">
             <div className="flex gap-1">
               <input
@@ -229,28 +176,27 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
                 onChange={(e) => setCustomInput(e.target.value)}
                 onKeyDown={(e) => {
                   e.stopPropagation();
-                  if (e.key === 'Enter') addCustom();
+                  if (e.key === 'Enter') handleAddCustom();
                 }}
                 placeholder="Type custom problem..."
                 className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                disabled={isAdding}
               />
               <button
-                onClick={addCustom}
-                disabled={!customInput.trim()}
+                onClick={handleAddCustom}
+                disabled={!customInput.trim() || isAdding}
                 className="px-3 py-1.5 text-xs font-medium rounded bg-purple-500 text-white hover:bg-purple-600 disabled:opacity-50 disabled:bg-gray-300"
               >
-                Add
+                {isAdding ? '...' : 'Add'}
               </button>
             </div>
-            {hiddenProblems.length > 0 && (
-              <button
-                onClick={restoreAllPresets}
-                className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-              >
-                <RotateCcw size={10} />
-                Restore {hiddenProblems.length} hidden
-              </button>
-            )}
+            <button
+              onClick={resetToDefaults}
+              className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+            >
+              <RotateCcw size={10} />
+              Reset to defaults
+            </button>
           </div>
         </div>
       )}
