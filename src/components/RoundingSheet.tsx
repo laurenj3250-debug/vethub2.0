@@ -829,24 +829,27 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     }
   };
 
-  // Helper to properly escape a value for TSV format
-  // If the value contains newlines, tabs, or quotes, wrap it in quotes
+  // Helper to escape a value for TSV format
+  // TSV doesn't have standard quoting like CSV, so we replace problematic characters
   const escapeTSVValue = (value: string): string => {
     if (!value) return '';
-    // Check if value needs quoting (contains newline, tab, or double quote)
-    const needsQuoting = value.includes('\n') || value.includes('\t') || value.includes('"');
-    if (needsQuoting) {
-      // DEBUG: Log when quoting is applied
+
+    let escaped = value;
+
+    // Replace newlines with " | " separator (TSV doesn't support quoting well)
+    if (escaped.includes('\n')) {
       console.log('=== ESCAPE TSV DEBUG ===');
-      console.log('Original value:', JSON.stringify(value));
-      console.log('Contains newline:', value.includes('\n'));
-      console.log('Contains tab:', value.includes('\t'));
-      // Escape any double quotes by doubling them, then wrap in quotes
-      const escaped = '"' + value.replace(/"/g, '""') + '"';
-      console.log('Escaped value:', JSON.stringify(escaped));
-      return escaped;
+      console.log('Original value with newlines:', JSON.stringify(escaped));
+      escaped = escaped.replace(/\n/g, ' | ');
+      console.log('After replacing newlines:', JSON.stringify(escaped));
     }
-    return value;
+
+    // Replace tabs with spaces (tabs are column separators in TSV)
+    if (escaped.includes('\t')) {
+      escaped = escaped.replace(/\t/g, '    ');
+    }
+
+    return escaped;
   };
 
   const exportToTSV = () => {
