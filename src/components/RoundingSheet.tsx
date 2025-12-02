@@ -836,16 +836,30 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     let escaped = value;
 
-    // Replace newlines with " | " separator (TSV doesn't support quoting well)
-    if (escaped.includes('\n')) {
+    // DEBUG: Check for ALL types of line breaks
+    const hasLF = escaped.includes('\n');
+    const hasCR = escaped.includes('\r');
+    const hasCRLF = escaped.includes('\r\n');
+
+    if (hasLF || hasCR) {
       console.log('=== ESCAPE TSV DEBUG ===');
-      console.log('Original value with newlines:', JSON.stringify(escaped));
-      escaped = escaped.replace(/\n/g, ' | ');
+      console.log('Original value:', JSON.stringify(escaped));
+      console.log('Has LF (\\n):', hasLF);
+      console.log('Has CR (\\r):', hasCR);
+      console.log('Has CRLF (\\r\\n):', hasCRLF);
+    }
+
+    // Replace ALL types of newlines with " | " separator
+    // Handle CRLF first, then CR, then LF
+    escaped = escaped.replace(/\r\n/g, ' | ').replace(/\r/g, ' | ').replace(/\n/g, ' | ');
+
+    if (hasLF || hasCR) {
       console.log('After replacing newlines:', JSON.stringify(escaped));
     }
 
     // Replace tabs with spaces (tabs are column separators in TSV)
     if (escaped.includes('\t')) {
+      console.log('Value contains tabs, replacing...');
       escaped = escaped.replace(/\t/g, '    ');
     }
 
@@ -903,9 +917,16 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const data = getPatientData(patientId);
     const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
 
-    // DEBUG: Log raw therapeutics value
+    // DEBUG: Log ALL raw field values
     console.log('=== COPY ROW DEBUG for', patientName, '===');
-    console.log('Raw therapeutics:', JSON.stringify(data.therapeutics));
+    console.log('Raw data object:', data);
+    console.log('Fields after therapeutics:');
+    console.log('  ivc:', JSON.stringify(data.ivc));
+    console.log('  fluids:', JSON.stringify(data.fluids));
+    console.log('  cri:', JSON.stringify(data.cri));
+    console.log('  overnightDx:', JSON.stringify(data.overnightDx));
+    console.log('  concerns:', JSON.stringify(data.concerns));
+    console.log('  comments:', JSON.stringify(data.comments));
 
     const row = [
       escapeTSVValue(patientName),
