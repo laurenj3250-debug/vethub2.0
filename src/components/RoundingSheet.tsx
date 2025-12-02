@@ -43,8 +43,9 @@ const PROBLEM_OPTIONS = [
   'SRMA',
 ];
 
-// Storage key for hidden problem presets
+// Storage keys for problem options
 const HIDDEN_PROBLEMS_KEY = 'vethub-hidden-problems';
+const CUSTOM_PROBLEMS_KEY = 'vethub-custom-problems';
 
 // Get hidden problems from localStorage
 function getHiddenProblems(): string[] {
@@ -63,23 +64,43 @@ function setHiddenProblems(hidden: string[]) {
   localStorage.setItem(HIDDEN_PROBLEMS_KEY, JSON.stringify(hidden));
 }
 
+// Get custom problems from localStorage
+function getCustomProblems(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem(CUSTOM_PROBLEMS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Save custom problems to localStorage
+function saveCustomProblems(customs: string[]) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(CUSTOM_PROBLEMS_KEY, JSON.stringify(customs));
+}
+
 // Multi-select dropdown for Problems field
 function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [hiddenProblems, setHiddenProblemsState] = useState<string[]>([]);
+  const [customProblems, setCustomProblemsState] = useState<string[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load hidden problems on mount
+  // Load hidden and custom problems on mount
   useEffect(() => {
     setHiddenProblemsState(getHiddenProblems());
+    setCustomProblemsState(getCustomProblems());
   }, []);
 
   // Parse comma-separated value into array
   const selectedItems = value ? value.split(', ').filter(Boolean) : [];
 
-  // Filter out hidden presets
-  const visibleOptions = PROBLEM_OPTIONS.filter(opt => !hiddenProblems.includes(opt));
+  // Combine presets (minus hidden) with custom problems
+  const visiblePresets = PROBLEM_OPTIONS.filter(opt => !hiddenProblems.includes(opt));
+  const visibleOptions = [...visiblePresets, ...customProblems];
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -106,18 +127,35 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
 
   const addCustom = () => {
     const trimmed = customInput.trim();
-    if (trimmed && !selectedItems.includes(trimmed)) {
-      onChange([...selectedItems, trimmed].join(', '));
+    if (trimmed) {
+      // Add to selected items for this patient
+      if (!selectedItems.includes(trimmed)) {
+        onChange([...selectedItems, trimmed].join(', '));
+      }
+      // Save to custom problems list if not already there
+      if (!visibleOptions.includes(trimmed)) {
+        const newCustoms = [...customProblems, trimmed];
+        saveCustomProblems(newCustoms);
+        setCustomProblemsState(newCustoms);
+      }
       setCustomInput('');
     }
   };
 
-  const hidePreset = (option: string, e: React.MouseEvent) => {
+  const deleteOption = (option: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const newHidden = [...hiddenProblems, option];
-    setHiddenProblems(newHidden);
-    setHiddenProblemsState(newHidden);
+    // If it's a custom problem, remove from custom list
+    if (customProblems.includes(option)) {
+      const newCustoms = customProblems.filter(p => p !== option);
+      saveCustomProblems(newCustoms);
+      setCustomProblemsState(newCustoms);
+    } else {
+      // It's a preset, hide it
+      const newHidden = [...hiddenProblems, option];
+      setHiddenProblems(newHidden);
+      setHiddenProblemsState(newHidden);
+    }
   };
 
   const restoreAllPresets = () => {
@@ -175,7 +213,7 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
                 <span className="whitespace-nowrap">{option}</span>
               </label>
               <button
-                onClick={(e) => hidePreset(option, e)}
+                onClick={(e) => deleteOption(option, e)}
                 className="p-1 rounded hover:bg-red-100"
                 title="Remove from list"
               >
