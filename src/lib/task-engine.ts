@@ -199,6 +199,26 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
   'Discharged': [],
 };
 
+// MRI-specific material tasks for New Admits
+export const MRI_ADMIT_MATERIAL_TASKS: TaskTemplate[] = [
+  {
+    id: 'mri-anaesthesia-sheet',
+    name: 'MRI Anaesthesia Sheet',
+    category: 'Materials',
+    estimatedMinutes: 5,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-stickers',
+    name: 'Stickers',
+    category: 'Materials',
+    estimatedMinutes: 2,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+];
+
 // Legacy: Keep type-based templates for backward compatibility but they're not used for daily tasks
 export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
   'MRI': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
@@ -421,6 +441,7 @@ export interface PatientForTasks {
  *
  * Status → Tasks:
  * - New Admit → Admission tasks (Finalize Record, Admission SOAP, Treatment Sheet)
+ *   - MRI patients also get: MRI Anaesthesia Sheet, Stickers
  * - Hospitalized → Daily tasks (Daily SOAP, Owner Called)
  * - Pre-procedure → Prep tasks (Blood Work, X-rays, NPO)
  * - Recovery → Recovery tasks (Post-Op Vitals, Owner Update)
@@ -432,9 +453,15 @@ export function generateDailyTasksForPatient(
   patient: PatientForTasks
 ): { title: string; category: string; timeOfDay: string; priority: string }[] {
   const patientStatus = patient.status;
+  const patientType = patient.type;
 
   // Get tasks based on STATUS (not type!)
-  const templates = TASK_TEMPLATES_BY_STATUS[patientStatus] || [];
+  let templates = [...(TASK_TEMPLATES_BY_STATUS[patientStatus] || [])];
+
+  // Add MRI-specific material tasks for MRI New Admits
+  if (patientType === 'MRI' && patientStatus === 'New Admit') {
+    templates = [...templates, ...MRI_ADMIT_MATERIAL_TASKS];
+  }
 
   // If no templates for this status, return empty (no auto-generated tasks)
   if (templates.length === 0) {
