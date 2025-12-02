@@ -450,24 +450,70 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   // Use shared dropdown options from constants
   const DROPDOWN_OPTIONS = ROUNDING_DROPDOWN_OPTIONS;
 
-  // Helper to parse TSV - splits by tab, converts newlines within cells to spaces
+  // Helper to parse TSV - properly handles quoted fields with embedded newlines/tabs
+  // Google Sheets wraps cells containing newlines in double quotes
   const parseTSVRow = (text: string): string[] => {
-    // First, normalize all newlines within the data to spaces
-    // This handles cases where cell content has line breaks
-    const normalized = text.replace(/\r\n/g, ' ').replace(/\r/g, ' ').replace(/\n/g, ' ');
+    const values: string[] = [];
+    let currentValue = '';
+    let inQuotes = false;
+    let i = 0;
 
-    // Split by tab
-    const values = normalized.split('\t');
+    // Normalize line endings first
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Trim each value and remove quotes if present
-    return values.map(v => {
-      let trimmed = v.trim();
-      // Remove surrounding quotes if present
-      if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-        trimmed = trimmed.slice(1, -1).replace(/""/g, '"');
+    while (i < normalized.length) {
+      const char = normalized[i];
+
+      if (inQuotes) {
+        if (char === '"') {
+          // Check for escaped quote (double quote)
+          if (i + 1 < normalized.length && normalized[i + 1] === '"') {
+            currentValue += '"';
+            i += 2;
+            continue;
+          }
+          // End of quoted field
+          inQuotes = false;
+          i++;
+          continue;
+        }
+        // Inside quotes - handle newlines by converting to space
+        if (char === '\n') {
+          currentValue += ' ';
+        } else {
+          currentValue += char;
+        }
+        i++;
+      } else {
+        if (char === '"' && currentValue === '') {
+          // Start of quoted field (only at beginning of value)
+          inQuotes = true;
+          i++;
+          continue;
+        }
+        if (char === '\t') {
+          // Tab separator - end current value, start new one
+          values.push(currentValue.trim());
+          currentValue = '';
+          i++;
+          continue;
+        }
+        if (char === '\n') {
+          // Newline outside quotes - treat as end of row, convert remaining to space
+          // This handles cases where clipboard has trailing newlines
+          currentValue += ' ';
+          i++;
+          continue;
+        }
+        currentValue += char;
+        i++;
       }
-      return trimmed;
-    });
+    }
+
+    // Don't forget the last value
+    values.push(currentValue.trim());
+
+    return values;
   };
 
   const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
