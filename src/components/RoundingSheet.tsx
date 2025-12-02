@@ -156,7 +156,8 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 right-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[280px] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-full left-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[320px] overflow-y-auto min-w-[200px]"
           style={{ border: '1px solid #ccc' }}
         >
           {visibleOptions.map(option => (
@@ -171,7 +172,7 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
                   onChange={() => toggleOption(option)}
                   className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                 />
-                <span>{option}</span>
+                <span className="whitespace-nowrap">{option}</span>
               </label>
               <button
                 onClick={(e) => hidePreset(option, e)}
@@ -182,32 +183,34 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
               </button>
             </div>
           ))}
-          <div className="border-t border-gray-200 p-1.5">
+          <div className="border-t border-gray-200 p-2 sticky bottom-0 bg-white">
             <div className="flex gap-1">
               <input
                 type="text"
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addCustom()}
-                placeholder="Add custom..."
-                className="flex-1 px-2 py-1 text-xs rounded border border-gray-300 focus:outline-none focus:border-purple-500"
-                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') addCustom();
+                }}
+                placeholder="Type custom problem..."
+                className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               />
               <button
-                onClick={(e) => { e.stopPropagation(); addCustom(); }}
+                onClick={addCustom}
                 disabled={!customInput.trim()}
-                className="px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50"
+                className="px-3 py-1.5 text-xs font-medium rounded bg-purple-500 text-white hover:bg-purple-600 disabled:opacity-50 disabled:bg-gray-300"
               >
                 Add
               </button>
             </div>
             {hiddenProblems.length > 0 && (
               <button
-                onClick={(e) => { e.stopPropagation(); restoreAllPresets(); }}
-                className="mt-1.5 w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                onClick={restoreAllPresets}
+                className="mt-2 w-full flex items-center justify-center gap-1 px-2 py-1 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
               >
                 <RotateCcw size={10} />
-                Restore {hiddenProblems.length} hidden option{hiddenProblems.length > 1 ? 's' : ''}
+                Restore {hiddenProblems.length} hidden
               </button>
             )}
           </div>
@@ -894,7 +897,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Loc</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>ICU</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Code</th>
-              <th className="p-1 text-left min-w-[110px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Problems</th>
+              <th className="p-1 text-left min-w-[80px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Problems</th>
               <th className="p-1 text-left min-w-[120px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Dx Findings</th>
               <th className="p-1 text-left min-w-[120px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Tx</th>
               <th className="p-1 text-left min-w-[40px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>IVC</th>
