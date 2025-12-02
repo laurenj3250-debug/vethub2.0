@@ -521,8 +521,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     e.stopPropagation();
     const pasteData = e.clipboardData.getData('text');
 
+    // DEBUG: Log raw paste data to help diagnose issues
+    console.log('=== PASTE DEBUG ===');
+    console.log('Raw paste data:', JSON.stringify(pasteData));
+    console.log('Start field:', startField);
+    console.log('Patient ID:', patientId);
+
     // Parse TSV row (converts newlines to spaces, splits by tab)
     const values = parseTSVRow(pasteData);
+
+    // DEBUG: Log parsed values
+    console.log('Parsed values count:', values.length);
+    console.log('Parsed values:', values);
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
@@ -599,6 +609,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const fieldCount = Object.keys(updates).length;
     const dropdownFields = ['location', 'icuCriteria', 'code', 'ivc', 'fluids', 'cri'];
     const pastedDropdowns = Object.keys(updates).filter(f => dropdownFields.includes(f)).length;
+
+    // DEBUG: Log what was updated
+    console.log('Fields updated:', Object.keys(updates));
+    console.log('Updates:', updates);
+    console.log('=== END PASTE DEBUG ===');
 
     toast({
       title: 'Pasted',
