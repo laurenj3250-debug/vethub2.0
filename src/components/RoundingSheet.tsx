@@ -521,18 +521,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     e.stopPropagation();
     const pasteData = e.clipboardData.getData('text');
 
-    // DEBUG: Log raw paste data to help diagnose issues
-    console.log('=== PASTE DEBUG ===');
-    console.log('Raw paste data:', JSON.stringify(pasteData));
-    console.log('Start field:', startField);
-    console.log('Patient ID:', patientId);
-
     // Parse TSV row (converts newlines to spaces, splits by tab)
     const values = parseTSVRow(pasteData);
-
-    // DEBUG: Log parsed values
-    console.log('Parsed values count:', values.length);
-    console.log('Parsed values:', values);
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
@@ -607,17 +597,10 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     });
 
     const fieldCount = Object.keys(updates).length;
-    const dropdownFields = ['location', 'icuCriteria', 'code', 'ivc', 'fluids', 'cri'];
-    const pastedDropdowns = Object.keys(updates).filter(f => dropdownFields.includes(f)).length;
-
-    // DEBUG: Log what was updated
-    console.log('Fields updated:', Object.keys(updates));
-    console.log('Updates:', updates);
-    console.log('=== END PASTE DEBUG ===');
 
     toast({
       title: 'Pasted',
-      description: `Pasted ${fieldCount} field${fieldCount > 1 ? 's' : ''}${pastedDropdowns > 0 ? ` (${pastedDropdowns} dropdown${pastedDropdowns > 1 ? 's' : ''} matched)` : ''}`
+      description: `Pasted ${fieldCount} field${fieldCount > 1 ? 's' : ''}`
     });
   }, [patients, toast]);
 
@@ -831,37 +814,32 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   // Helper to escape a value for TSV format
   // TSV doesn't have standard quoting like CSV, so we replace problematic characters
-  const escapeTSVValue = (value: string): string => {
+  // CRITICAL: This MUST eliminate ALL line breaks or Google Sheets will create multiple rows
+  const escapeTSVValue = (value: string | undefined | null): string => {
     if (!value) return '';
 
-    let escaped = value;
+    // Convert to string in case it's not
+    let escaped = String(value);
 
-    // DEBUG: Check for ALL types of line breaks
-    const hasLF = escaped.includes('\n');
-    const hasCR = escaped.includes('\r');
-    const hasCRLF = escaped.includes('\r\n');
-
-    if (hasLF || hasCR) {
-      console.log('=== ESCAPE TSV DEBUG ===');
-      console.log('Original value:', JSON.stringify(escaped));
-      console.log('Has LF (\\n):', hasLF);
-      console.log('Has CR (\\r):', hasCR);
-      console.log('Has CRLF (\\r\\n):', hasCRLF);
-    }
-
-    // Replace ALL types of newlines with " | " separator
-    // Handle CRLF first, then CR, then LF
-    escaped = escaped.replace(/\r\n/g, ' | ').replace(/\r/g, ' | ').replace(/\n/g, ' | ');
-
-    if (hasLF || hasCR) {
-      console.log('After replacing newlines:', JSON.stringify(escaped));
-    }
+    // Replace ALL types of line breaks with " | " separator
+    // This includes: CRLF, CR, LF, and Unicode line/paragraph separators
+    escaped = escaped
+      .replace(/\r\n/g, ' | ')  // Windows CRLF first
+      .replace(/\r/g, ' | ')     // Mac CR
+      .replace(/\n/g, ' | ')     // Unix LF
+      .replace(/\u2028/g, ' | ') // Unicode Line Separator
+      .replace(/\u2029/g, ' | ') // Unicode Paragraph Separator
+      .replace(/\v/g, ' | ')     // Vertical tab
+      .replace(/\f/g, ' | ');    // Form feed
 
     // Replace tabs with spaces (tabs are column separators in TSV)
-    if (escaped.includes('\t')) {
-      console.log('Value contains tabs, replacing...');
-      escaped = escaped.replace(/\t/g, '    ');
-    }
+    escaped = escaped.replace(/\t/g, '    ');
+
+    // Clean up multiple consecutive separators
+    escaped = escaped.replace(/(\s*\|\s*){2,}/g, ' | ');
+
+    // Trim leading/trailing separators and whitespace
+    escaped = escaped.replace(/^\s*\|\s*/, '').replace(/\s*\|\s*$/, '').trim();
 
     return escaped;
   };
@@ -873,40 +851,30 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       const data = getPatientData(patient.id);
       const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
 
-      // DEBUG: Log raw therapeutics value
-      console.log('=== EXPORT DEBUG for', patientName, '===');
-      console.log('Raw therapeutics:', JSON.stringify(data.therapeutics));
-
       return [
         escapeTSVValue(patientName),
-        escapeTSVValue(data.signalment || ''),
-        escapeTSVValue(data.location || ''),
-        escapeTSVValue(data.icuCriteria || ''),
-        escapeTSVValue(data.code || ''),
-        escapeTSVValue(data.problems || ''),
-        escapeTSVValue(data.diagnosticFindings || ''),
-        escapeTSVValue(data.therapeutics || ''),
-        escapeTSVValue(data.ivc || ''),
-        escapeTSVValue(data.fluids || ''),
-        escapeTSVValue(data.cri || ''),
-        escapeTSVValue(data.overnightDx || ''),
-        escapeTSVValue(data.concerns || ''),
-        escapeTSVValue(data.comments || '')
+        escapeTSVValue(data.signalment),
+        escapeTSVValue(data.location),
+        escapeTSVValue(data.icuCriteria),
+        escapeTSVValue(data.code),
+        escapeTSVValue(data.problems),
+        escapeTSVValue(data.diagnosticFindings),
+        escapeTSVValue(data.therapeutics),
+        escapeTSVValue(data.ivc),
+        escapeTSVValue(data.fluids),
+        escapeTSVValue(data.cri),
+        escapeTSVValue(data.overnightDx),
+        escapeTSVValue(data.concerns),
+        escapeTSVValue(data.comments)
       ].join('\t');
     });
 
     const tsv = [headers.join('\t'), ...rows].join('\n');
-
-    // DEBUG: Log final TSV
-    console.log('=== FINAL TSV ===');
-    console.log(tsv);
-    console.log('=== END FINAL TSV ===');
-
     navigator.clipboard.writeText(tsv);
 
     toast({
       title: 'Copied to Clipboard',
-      description: 'Rounding sheet copied as TSV (paste into Google Sheets)'
+      description: `${activePatients.length} patients copied as TSV`
     });
   };
 
@@ -917,44 +885,37 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const data = getPatientData(patientId);
     const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
 
-    // DEBUG: Log ALL raw field values
-    console.log('=== COPY ROW DEBUG for', patientName, '===');
-    console.log('Raw data object:', data);
-    console.log('Fields after therapeutics:');
-    console.log('  ivc:', JSON.stringify(data.ivc));
-    console.log('  fluids:', JSON.stringify(data.fluids));
-    console.log('  cri:', JSON.stringify(data.cri));
-    console.log('  overnightDx:', JSON.stringify(data.overnightDx));
-    console.log('  concerns:', JSON.stringify(data.concerns));
-    console.log('  comments:', JSON.stringify(data.comments));
-
+    // Build row with all 14 columns - each value MUST be escaped to prevent multi-line pastes
     const row = [
       escapeTSVValue(patientName),
-      escapeTSVValue(data.signalment || ''),
-      escapeTSVValue(data.location || ''),
-      escapeTSVValue(data.icuCriteria || ''),
-      escapeTSVValue(data.code || ''),
-      escapeTSVValue(data.problems || ''),
-      escapeTSVValue(data.diagnosticFindings || ''),
-      escapeTSVValue(data.therapeutics || ''),
-      escapeTSVValue(data.ivc || ''),
-      escapeTSVValue(data.fluids || ''),
-      escapeTSVValue(data.cri || ''),
-      escapeTSVValue(data.overnightDx || ''),
-      escapeTSVValue(data.concerns || ''),
-      escapeTSVValue(data.comments || '')
+      escapeTSVValue(data.signalment),
+      escapeTSVValue(data.location),
+      escapeTSVValue(data.icuCriteria),
+      escapeTSVValue(data.code),
+      escapeTSVValue(data.problems),
+      escapeTSVValue(data.diagnosticFindings),
+      escapeTSVValue(data.therapeutics),
+      escapeTSVValue(data.ivc),
+      escapeTSVValue(data.fluids),
+      escapeTSVValue(data.cri),
+      escapeTSVValue(data.overnightDx),
+      escapeTSVValue(data.concerns),
+      escapeTSVValue(data.comments)
     ].join('\t');
-
-    // DEBUG: Log final row
-    console.log('Final row being copied:');
-    console.log(row);
-    console.log('=== END COPY ROW DEBUG ===');
 
     navigator.clipboard.writeText(row);
 
+    // Count non-empty columns for feedback
+    const filledColumns = [
+      data.signalment, data.location, data.icuCriteria, data.code,
+      data.problems, data.diagnosticFindings, data.therapeutics,
+      data.ivc, data.fluids, data.cri, data.overnightDx,
+      data.concerns, data.comments
+    ].filter(Boolean).length;
+
     toast({
-      title: 'Patient Row Copied',
-      description: `${patientName}'s data copied to clipboard`
+      title: 'Row Copied',
+      description: `${patientName} (${filledColumns}/13 fields)`
     });
   };
 
