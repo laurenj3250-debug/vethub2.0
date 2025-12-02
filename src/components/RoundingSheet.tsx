@@ -1050,7 +1050,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       }}
                       onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'diagnosticFindings' && (
@@ -1069,7 +1069,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       }}
                       onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'therapeutics' && (
@@ -1126,7 +1126,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onChange={(e) => handleFieldChange(patient.id, 'overnightDx', e.target.value)}
                       onPaste={(e) => handlePaste(e, patient.id, 'overnightDx')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                   </td>
@@ -1141,7 +1141,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onPaste={(e) => handlePaste(e, patient.id, 'concerns')}
                       rows={2}
                       placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'concerns' && (
@@ -1156,7 +1156,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onChange={(e) => handleFieldChange(patient.id, 'comments', e.target.value)}
                       onPaste={(e) => handlePaste(e, patient.id, 'comments')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                   </td>
