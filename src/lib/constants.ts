@@ -22,6 +22,7 @@ export const statusColors: Record<PatientStatus, string> = {
   'Discharged': 'bg-gray-100 text-gray-800 border-gray-300'
 };
 
+// General tasks that apply to the team (not patient-specific)
 export const commonGeneralTasks: string[] = [
   'Check Comms',
   'Check Emails',
@@ -29,59 +30,8 @@ export const commonGeneralTasks: string[] = [
   'Rounding'
 ];
 
-export const admitTasks: Record<ProcedureType, string[]> = {
-  Surgery: [
-    'Surgery Slip',
-    'Written on Board',
-    'Print 4 Large Stickers',
-    'Print 2 Sheets Small Stickers',
-    'Print Surgery Sheet'
-  ],
-  MRI: [
-    'Blood Work',
-    'Chest X-rays',
-    'MRI Anesthesia Sheet',
-    'NPO',
-    'Black Book',
-    'Print 5 Stickers',
-    'Print 1 Sheet Small Stickers'
-  ],
-  Medical: [
-    'Admission SOAP',
-    'Treatment Sheet Created',
-    'Owner Admission Call'
-  ],
-  Other: [
-    'Admission SOAP',
-    'Owner Admission Call'
-  ]
-};
-
-export const morningTasks: string[] = [
-  'Owner Called',
-  'Daily SOAP Done',
-  'Vet Radar Sheet Checked',
-  'MRI Findings Inputted (if needed)'
-];
-
-export const eveningTasks: string[] = [
-  'Vet Radar Done',
-  'Rounding Sheet Done',
-  'Sticker on Daily Sheet',
-  'Owner Update Call'
-];
-
-export const commonTasks: string[] = [
-  'SOAP Note',
-  'Call Owner',
-  'Discharge',
-  'Discharge Instructions',
-  'Recheck Exam',
-  'Lab Results Review',
-  'Medication Dispensed',
-  'Treatment Sheet Update',
-  'Pain Assessment'
-];
+// NOTE: Patient-specific task templates are now in src/lib/task-engine.ts
+// See TASK_TEMPLATES_BY_PATIENT_TYPE for MRI, Surgery, Medical, and Discharge tasks
 
 // ============================================================================
 // ROUNDING SHEET CONSTANTS

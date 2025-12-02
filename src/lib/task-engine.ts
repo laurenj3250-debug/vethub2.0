@@ -199,12 +199,188 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
   'Discharged': [],
 };
 
-// Legacy: Keep type-based templates for backward compatibility but they're not used for daily tasks
+// ============================================================================
+// TYPE-SPECIFIC TASK TEMPLATES
+// These are the ACTUAL tasks created when a patient is admitted
+// ============================================================================
+
+// MRI Patient Tasks - Pre-procedure prep + MRI-specific
+const MRI_TASKS: TaskTemplate[] = [
+  // Pre-procedure prep
+  {
+    id: 'mri-blood-work',
+    name: 'Blood Work',
+    category: 'Pre-procedure',
+    estimatedMinutes: 10,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-chest-xrays',
+    name: 'Chest X-rays',
+    category: 'Pre-procedure',
+    estimatedMinutes: 15,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-anesthesia-sheet',
+    name: 'MRI Anesthesia Sheet',
+    category: 'Pre-procedure',
+    estimatedMinutes: 10,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-npo',
+    name: 'NPO',
+    category: 'Pre-procedure',
+    estimatedMinutes: 1,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-black-book',
+    name: 'Black Book',
+    category: 'Admin',
+    estimatedMinutes: 5,
+    priority: 'medium',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-print-stickers',
+    name: 'Print 5 Stickers',
+    category: 'Admin',
+    estimatedMinutes: 3,
+    priority: 'medium',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'mri-print-small-stickers',
+    name: 'Print 1 Sheet Small Stickers',
+    category: 'Admin',
+    estimatedMinutes: 2,
+    priority: 'low',
+    timeOfDay: 'morning',
+  },
+];
+
+// Surgery Patient Tasks - Pre-procedure prep + Surgery-specific
+const SURGERY_TASKS: TaskTemplate[] = [
+  // Pre-procedure prep
+  {
+    id: 'surgery-blood-work',
+    name: 'Blood Work',
+    category: 'Pre-procedure',
+    estimatedMinutes: 10,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'surgery-chest-xrays',
+    name: 'Chest X-rays',
+    category: 'Pre-procedure',
+    estimatedMinutes: 15,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'surgery-npo',
+    name: 'NPO',
+    category: 'Pre-procedure',
+    estimatedMinutes: 1,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  // Surgery-specific
+  {
+    id: 'surgery-slip',
+    name: 'Surgery Slip',
+    category: 'Surgery Prep',
+    estimatedMinutes: 5,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'surgery-written-on-board',
+    name: 'Written on Board',
+    category: 'Surgery Prep',
+    estimatedMinutes: 2,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'surgery-print-large-stickers',
+    name: 'Print 4 Large Stickers',
+    category: 'Admin',
+    estimatedMinutes: 3,
+    priority: 'medium',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'surgery-print-small-stickers',
+    name: 'Print 2 Sheets Small Stickers',
+    category: 'Admin',
+    estimatedMinutes: 3,
+    priority: 'medium',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'surgery-print-sheet',
+    name: 'Print Surgery Sheet',
+    category: 'Surgery Prep',
+    estimatedMinutes: 3,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+];
+
+// Medical Patient Tasks - Admission tasks
+const MEDICAL_TASKS: TaskTemplate[] = [
+  {
+    id: 'medical-admission-soap',
+    name: 'Admission SOAP',
+    category: 'Admission',
+    estimatedMinutes: 15,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'medical-treatment-sheet',
+    name: 'Treatment Sheet Created',
+    category: 'Admission',
+    estimatedMinutes: 10,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'medical-owner-call',
+    name: 'Owner Admission Call',
+    category: 'Admission',
+    estimatedMinutes: 10,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+];
+
+// Discharge Tasks
+const DISCHARGE_TASKS: TaskTemplate[] = [
+  {
+    id: 'discharge-final-check',
+    name: 'Final Checkout',
+    category: 'Discharge',
+    estimatedMinutes: 10,
+    priority: 'high',
+    timeOfDay: 'anytime',
+  },
+];
+
+// Map patient types to their task templates
 export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
-  'MRI': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
-  'Surgery': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
-  'Medical': TASK_TEMPLATES_BY_STATUS['Hospitalized'],
-  'Discharge': TASK_TEMPLATES_BY_STATUS['Discharging'],
+  'MRI': MRI_TASKS,
+  'Surgery': SURGERY_TASKS,
+  'Medical': MEDICAL_TASKS,
+  'Discharge': DISCHARGE_TASKS,
 };
 
 // ============================================================================
