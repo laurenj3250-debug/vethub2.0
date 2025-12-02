@@ -521,8 +521,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     e.stopPropagation();
     const pasteData = e.clipboardData.getData('text');
 
+    // DEBUG: Log raw paste data to help diagnose issues
+    console.log('=== PASTE DEBUG ===');
+    console.log('Raw paste data:', JSON.stringify(pasteData));
+    console.log('Start field:', startField);
+    console.log('Patient ID:', patientId);
+
     // Parse TSV row (converts newlines to spaces, splits by tab)
     const values = parseTSVRow(pasteData);
+
+    // DEBUG: Log parsed values
+    console.log('Parsed values count:', values.length);
+    console.log('Parsed values:', values);
 
     // Field order matching Google Sheets columns (EXCLUDING patient name column)
     // When pasting from Google Sheets export, first column is Patient name which we skip
@@ -599,6 +609,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const fieldCount = Object.keys(updates).length;
     const dropdownFields = ['location', 'icuCriteria', 'code', 'ivc', 'fluids', 'cri'];
     const pastedDropdowns = Object.keys(updates).filter(f => dropdownFields.includes(f)).length;
+
+    // DEBUG: Log what was updated
+    console.log('Fields updated:', Object.keys(updates));
+    console.log('Updates:', updates);
+    console.log('=== END PASTE DEBUG ===');
 
     toast({
       title: 'Pasted',
@@ -814,31 +829,79 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     }
   };
 
+  // Helper to escape a value for TSV format
+  // TSV doesn't have standard quoting like CSV, so we replace problematic characters
+  const escapeTSVValue = (value: string): string => {
+    if (!value) return '';
+
+    let escaped = value;
+
+    // DEBUG: Check for ALL types of line breaks
+    const hasLF = escaped.includes('\n');
+    const hasCR = escaped.includes('\r');
+    const hasCRLF = escaped.includes('\r\n');
+
+    if (hasLF || hasCR) {
+      console.log('=== ESCAPE TSV DEBUG ===');
+      console.log('Original value:', JSON.stringify(escaped));
+      console.log('Has LF (\\n):', hasLF);
+      console.log('Has CR (\\r):', hasCR);
+      console.log('Has CRLF (\\r\\n):', hasCRLF);
+    }
+
+    // Replace ALL types of newlines with " | " separator
+    // Handle CRLF first, then CR, then LF
+    escaped = escaped.replace(/\r\n/g, ' | ').replace(/\r/g, ' | ').replace(/\n/g, ' | ');
+
+    if (hasLF || hasCR) {
+      console.log('After replacing newlines:', JSON.stringify(escaped));
+    }
+
+    // Replace tabs with spaces (tabs are column separators in TSV)
+    if (escaped.includes('\t')) {
+      console.log('Value contains tabs, replacing...');
+      escaped = escaped.replace(/\t/g, '    ');
+    }
+
+    return escaped;
+  };
+
   const exportToTSV = () => {
     const headers = ROUNDING_TSV_HEADERS;
 
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
       const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+
+      // DEBUG: Log raw therapeutics value
+      console.log('=== EXPORT DEBUG for', patientName, '===');
+      console.log('Raw therapeutics:', JSON.stringify(data.therapeutics));
+
       return [
-        patientName,
-        data.signalment || '',
-        data.location || '',
-        data.icuCriteria || '',
-        data.code || '',
-        data.problems || '',
-        data.diagnosticFindings || '',
-        data.therapeutics || '',
-        data.ivc || '',
-        data.fluids || '',
-        data.cri || '',
-        data.overnightDx || '',
-        data.concerns || '',
-        data.comments || ''
+        escapeTSVValue(patientName),
+        escapeTSVValue(data.signalment || ''),
+        escapeTSVValue(data.location || ''),
+        escapeTSVValue(data.icuCriteria || ''),
+        escapeTSVValue(data.code || ''),
+        escapeTSVValue(data.problems || ''),
+        escapeTSVValue(data.diagnosticFindings || ''),
+        escapeTSVValue(data.therapeutics || ''),
+        escapeTSVValue(data.ivc || ''),
+        escapeTSVValue(data.fluids || ''),
+        escapeTSVValue(data.cri || ''),
+        escapeTSVValue(data.overnightDx || ''),
+        escapeTSVValue(data.concerns || ''),
+        escapeTSVValue(data.comments || '')
       ].join('\t');
     });
 
     const tsv = [headers.join('\t'), ...rows].join('\n');
+
+    // DEBUG: Log final TSV
+    console.log('=== FINAL TSV ===');
+    console.log(tsv);
+    console.log('=== END FINAL TSV ===');
+
     navigator.clipboard.writeText(tsv);
 
     toast({
@@ -854,22 +917,38 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const data = getPatientData(patientId);
     const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
 
+    // DEBUG: Log ALL raw field values
+    console.log('=== COPY ROW DEBUG for', patientName, '===');
+    console.log('Raw data object:', data);
+    console.log('Fields after therapeutics:');
+    console.log('  ivc:', JSON.stringify(data.ivc));
+    console.log('  fluids:', JSON.stringify(data.fluids));
+    console.log('  cri:', JSON.stringify(data.cri));
+    console.log('  overnightDx:', JSON.stringify(data.overnightDx));
+    console.log('  concerns:', JSON.stringify(data.concerns));
+    console.log('  comments:', JSON.stringify(data.comments));
+
     const row = [
-      patientName,
-      data.signalment || '',
-      data.location || '',
-      data.icuCriteria || '',
-      data.code || '',
-      data.problems || '',
-      data.diagnosticFindings || '',
-      data.therapeutics || '',
-      data.ivc || '',
-      data.fluids || '',
-      data.cri || '',
-      data.overnightDx || '',
-      data.concerns || '',
-      data.comments || ''
+      escapeTSVValue(patientName),
+      escapeTSVValue(data.signalment || ''),
+      escapeTSVValue(data.location || ''),
+      escapeTSVValue(data.icuCriteria || ''),
+      escapeTSVValue(data.code || ''),
+      escapeTSVValue(data.problems || ''),
+      escapeTSVValue(data.diagnosticFindings || ''),
+      escapeTSVValue(data.therapeutics || ''),
+      escapeTSVValue(data.ivc || ''),
+      escapeTSVValue(data.fluids || ''),
+      escapeTSVValue(data.cri || ''),
+      escapeTSVValue(data.overnightDx || ''),
+      escapeTSVValue(data.concerns || ''),
+      escapeTSVValue(data.comments || '')
     ].join('\t');
+
+    // DEBUG: Log final row
+    console.log('Final row being copied:');
+    console.log(row);
+    console.log('=== END COPY ROW DEBUG ===');
 
     navigator.clipboard.writeText(row);
 
@@ -1035,7 +1114,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       }}
                       onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'diagnosticFindings' && (
@@ -1054,7 +1133,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       }}
                       onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'therapeutics' && (
@@ -1111,7 +1190,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onChange={(e) => handleFieldChange(patient.id, 'overnightDx', e.target.value)}
                       onPaste={(e) => handlePaste(e, patient.id, 'overnightDx')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                   </td>
@@ -1126,7 +1205,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onPaste={(e) => handlePaste(e, patient.id, 'concerns')}
                       rows={2}
                       placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'concerns' && (
@@ -1141,7 +1220,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onChange={(e) => handleFieldChange(patient.id, 'comments', e.target.value)}
                       onPaste={(e) => handlePaste(e, patient.id, 'comments')}
                       rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none"
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                   </td>
