@@ -22,14 +22,8 @@ export const statusColors: Record<PatientStatus, string> = {
   'Discharged': 'bg-gray-100 text-gray-800 border-gray-300'
 };
 
-// General tasks that apply to the team (not patient-specific)
-export const commonGeneralTasks: string[] = [
-  'Draw Up Contrast',
-  'Rounding'
-];
-
-// NOTE: Patient-specific task templates are now in src/lib/task-engine.ts
-// See TASK_TEMPLATES_BY_PATIENT_TYPE for MRI, Surgery, Medical, and Discharge tasks
+// NOTE: Task definitions have been centralized in src/lib/task-definitions.ts
+// Import COMMON_GENERAL_TASKS, DAILY_TASKS, MORNING_TASK_NAMES, etc. from there
 
 // ============================================================================
 // ROUNDING SHEET CONSTANTS

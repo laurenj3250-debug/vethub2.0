@@ -11,6 +11,15 @@ import { PatientListItem } from '@/components/PatientListItem';
 import { TaskChecklist } from '@/components/TaskChecklist';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
+import {
+  MORNING_TASK_NAMES,
+  EVENING_TASK_NAMES,
+  DAILY_TASKS,
+  getTaskTimeOfDay,
+  getTaskIcon,
+  getTimeColors,
+  type TaskTimeOfDay,
+} from '@/lib/task-definitions';
 import { calculateStickerCounts } from '@/lib/sticker-calculator';
 
 export default function VetHub() {
@@ -832,7 +841,7 @@ export default function VetHub() {
       // Only auto-create tasks if patient is a "New Admit"
       // Existing/hospitalized patients switching types shouldn't get new admission tasks
       const patient = patients.find(p => p.id === patientId);
-      const isNewAdmit = patient?.status === 'New Admit';
+      const isNewAdmit = patient?.status?.toLowerCase() === 'new admit';
 
       if (isNewAdmit && ['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
         // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
@@ -894,8 +903,8 @@ export default function VetHub() {
 
       const tasks = patient.tasks || [];
       const categoryTasks = tasks.filter((t: any) => {
-        const taskCategory = getTaskCategory(t.title || t.name);
-        return taskCategory === category && !t.completed;
+        const timeOfDay = getTaskTimeOfDay(t.title || t.name);
+        return timeOfDay === category && !t.completed;
       });
 
       for (const task of categoryTasks) {
@@ -914,10 +923,7 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const morningTasks = ['Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-
-      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
+      const tasksToAdd = category === 'morning' ? MORNING_TASK_NAMES : EVENING_TASK_NAMES;
       const today = new Date().toISOString().split('T')[0];
       const existingTasks = patient.tasks || [];
 
@@ -953,9 +959,7 @@ export default function VetHub() {
   const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Daily SOAP Done', 'Overnight Notes Checked'];
-      const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-      const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
+      const tasksToAdd = category === 'morning' ? MORNING_TASK_NAMES : EVENING_TASK_NAMES;
       const today = new Date().toISOString().split('T')[0];
 
       let totalAdded = 0;
@@ -2121,31 +2125,7 @@ export default function VetHub() {
     return 'from-emerald-500 to-pink-600';
   };
 
-  const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
-    const morningTasks = ['Daily SOAP Done', 'Overnight Notes Checked'];
-    const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
-
-    if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
-    if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
-    return 'general';
-  };
-
-  const getTaskIcon = (category: string) => {
-    if (category === 'morning') return '🌅';
-    if (category === 'evening') return '🌙';
-    return '📋';
-  };
-
-  // Time-based colors for task cards
-  const getTimeOfDayColors = (category: 'morning' | 'evening' | 'general') => {
-    if (category === 'morning') {
-      return { bg: 'bg-amber-900/30', border: 'border-amber-500/50', text: 'text-amber-300' };
-    }
-    if (category === 'evening') {
-      return { bg: 'bg-indigo-900/30', border: 'border-indigo-500/50', text: 'text-indigo-300' };
-    }
-    return { bg: 'bg-slate-900/50', border: 'border-slate-700/50', text: 'text-slate-300' };
-  };
+  // Note: getTaskTimeOfDay, getTaskIcon, and getTimeColors are imported from @/lib/task-definitions
 
   // Color palette for patient task cards
   const patientColorPalette = [
@@ -2171,14 +2151,14 @@ export default function VetHub() {
     if (taskTimeFilter === 'all') return tasks;
     if (taskTimeFilter === 'day') {
       return tasks.filter(t => {
-        const category = getTaskCategory(t.title || t.name);
-        return category === 'morning' || category === 'general';
+        const timeOfDay = getTaskTimeOfDay(t.title || t.name);
+        return timeOfDay === 'morning' || timeOfDay === 'anytime';
       });
     }
     if (taskTimeFilter === 'night') {
       return tasks.filter(t => {
-        const category = getTaskCategory(t.title || t.name);
-        return category === 'evening';
+        const timeOfDay = getTaskTimeOfDay(t.title || t.name);
+        return timeOfDay === 'evening';
       });
     }
     return tasks;
@@ -2697,17 +2677,13 @@ export default function VetHub() {
                       <h3 className="text-white font-bold mb-1.5 text-sm">{patient.demographics?.name || patient.name || 'Unnamed'}</h3>
                       <div className="space-y-1">
                         {tasks.map((task: any) => {
-                          const category = getTaskCategory(task.title || task.name);
-                          const icon = getTaskIcon(category);
-                          const timeColors = getTimeOfDayColors(category);
+                          const timeOfDay = getTaskTimeOfDay(task.title || task.name);
+                          const icon = getTaskIcon(timeOfDay);
+                          const timeColors = getTimeColors(timeOfDay);
                           return (
                             <div
                               key={task.id}
-                              className={`flex items-center gap-1.5 text-xs group rounded-r px-1 py-0.5 border-l-2 ${
-                                category === 'morning' ? 'border-l-amber-500/70 bg-amber-900/10' :
-                                category === 'evening' ? 'border-l-indigo-500/70 bg-indigo-900/10' :
-                                'border-l-transparent'
-                              }`}
+                              className={`flex items-center gap-1.5 text-xs group rounded-r px-1 py-0.5 border-l-2 ${timeColors.rowBorder} ${timeColors.rowBg}`}
                             >
                               <button
                                 onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
@@ -2759,14 +2735,14 @@ export default function VetHub() {
                   });
 
                   return Object.entries(taskGroups).map(([taskName, items]) => {
-                    const category = getTaskCategory(taskName);
-                    const icon = getTaskIcon(category);
-                    const timeColors = getTimeOfDayColors(category);
+                    const timeOfDay = getTaskTimeOfDay(taskName);
+                    const icon = getTaskIcon(timeOfDay);
+                    const timeColors = getTimeColors(timeOfDay);
                     const allCompleted = items.every(item => item.task.completed);
                     const incompleteCount = items.filter(i => !i.task.completed).length;
 
                     return (
-                      <div key={taskName} className={`${timeColors.bg} rounded-lg p-2 border ${timeColors.border}`}>
+                      <div key={taskName} className={`${timeColors.cardBg} rounded-lg p-2 border ${timeColors.cardBorder}`}>
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-lg">{icon}</span>
                           <h3 className={`font-bold flex-1 text-sm ${timeColors.text}`}>{taskName}</h3>
