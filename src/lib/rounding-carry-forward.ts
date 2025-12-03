@@ -4,23 +4,10 @@
  * Saves 90% of data entry time (10 min → 30 sec per patient)
  */
 
-export interface RoundingData {
-  signalment?: string;
-  location?: string;
-  icuCriteria?: string;
-  code?: string;
-  problems?: string;
-  diagnosticFindings?: string;
-  therapeutics?: string;
-  ivc?: string;
-  fluids?: string;
-  cri?: string;
-  overnightDx?: string;
-  concerns?: string;
-  comments?: string;
-  dayCount?: number;
-  lastUpdated?: string; // ISO date string
-}
+import type { RoundingData } from '@/types/rounding';
+
+// Re-export for backwards compatibility
+export type { RoundingData };
 
 export interface CarryForwardResult {
   data: RoundingData;

@@ -15,7 +15,7 @@ interface PastePreviewModalProps {
   onClose: () => void;
   onConfirm: () => void;
   previewData: PastePreviewData[];
-  fieldNames: string[];
+  fieldNames: readonly string[];
 }
 
 export function PastePreviewModal({

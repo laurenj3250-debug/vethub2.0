@@ -808,11 +808,28 @@ export class VetRadarScraper {
       for (const block of patientBlocks) {
         try {
           // Extract name (e.g., "Clara" Iovino)
+          // Be careful to only get the last name, not owner info like "Mrs. Smith" or phone numbers
           const nameMatch = block.match(/"([^"]+)"\s+([^\n]+)/);
           if (!nameMatch) continue;
 
           const firstName = nameMatch[1].trim();
-          const lastName = nameMatch[2].split('\n')[0].trim();
+          // Clean up lastName - remove common suffixes that aren't part of the pet's name
+          let lastName = nameMatch[2].split('\n')[0].trim();
+
+          // Remove owner titles/prefixes that might be captured (Mrs., Mr., Ms., Dr., etc.)
+          lastName = lastName.replace(/\b(Mrs?\.?|Ms\.?|Dr\.?|Miss)\s+\w+/gi, '').trim();
+
+          // Remove phone numbers (formats: 1234567890, 123-456-7890, (123) 456-7890)
+          lastName = lastName.replace(/\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, '').trim();
+
+          // Remove "Ph:" or "Phone:" prefixes and numbers
+          lastName = lastName.replace(/Ph:?\s*\S+/gi, '').trim();
+
+          // Stop at first non-name character (numbers, special chars except hyphen/apostrophe)
+          // This catches cases like "Johnson 100 - Neuro" → "Johnson"
+          const lastNameClean = lastName.match(/^([A-Za-z\-']+(?:\s+[A-Za-z\-']+)?)/);
+          lastName = lastNameClean ? lastNameClean[1].trim() : lastName.split(/\s+\d/)[0].trim();
+
           const fullName = `${firstName} ${lastName}`;
 
           // Extract species and breed (e.g., "Canine • Pitbull")

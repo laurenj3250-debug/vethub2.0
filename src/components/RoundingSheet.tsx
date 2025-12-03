@@ -1,19 +1,17 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, Copy, ExternalLink, ChevronDown, X, Trash2, RotateCcw } from 'lucide-react';
+import { Save, Copy, ChevronDown, X, Trash2, RotateCcw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
-import { carryForwardRoundingData, formatCarryForwardMessage, type CarryForwardResult } from '@/lib/rounding-carry-forward';
-import { autoFillRoundingData, generateSignalment, isStaleData } from '@/lib/rounding-auto-fill';
+import { carryForwardRoundingData, type CarryForwardResult } from '@/lib/rounding-carry-forward';
+import { autoFillRoundingData } from '@/lib/rounding-auto-fill';
 import { PastePreviewModal } from './PastePreviewModal';
 import { QuickInsertPanel } from '@/components/QuickInsertPanel';
 import { useProblemOptions } from '@/hooks/use-problem-options';
 import {
   ROUNDING_STORAGE_KEYS,
   ROUNDING_AUTO_SAVE_DELAY,
-  ROUNDING_SAVE_SUCCESS_CLEAR_DELAY,
-  ROUNDING_SAVE_ERROR_CLEAR_DELAY,
   ROUNDING_DROPDOWN_OPTIONS,
   ROUNDING_FIELD_ORDER,
   ROUNDING_TSV_HEADERS,
@@ -101,11 +99,58 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
     }
   };
 
+  // Handle paste - parse comma/newline separated values and select matching options
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const pasteData = e.clipboardData.getData('text');
+    if (!pasteData.trim()) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Parse by comma, semicolon, or newline
+    const pastedItems = pasteData
+      .split(/[,;\n]/)
+      .map(item => item.trim())
+      .filter(Boolean);
+
+    if (pastedItems.length === 0) return;
+
+    const newSelected = [...selectedItems];
+
+    for (const item of pastedItems) {
+      // Check if already selected
+      if (newSelected.includes(item)) continue;
+
+      // Try to find matching option (case-insensitive)
+      const matchingOption = options.find(opt =>
+        opt.label.toLowerCase() === item.toLowerCase()
+      );
+
+      if (matchingOption) {
+        // Add matching option
+        newSelected.push(matchingOption.label);
+      } else {
+        // Add as custom option
+        try {
+          await addOption(item);
+          newSelected.push(item);
+        } catch (err) {
+          // If already exists, just add to selection
+          newSelected.push(item);
+        }
+      }
+    }
+
+    onChange(newSelected.join(', '));
+  };
+
   return (
     <div ref={dropdownRef} className="relative">
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs bg-gray-50 cursor-pointer min-h-[26px] flex items-center justify-between gap-1"
+        onPaste={handlePaste}
+        tabIndex={0}
+        className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs bg-gray-50 cursor-pointer min-h-[26px] flex items-center justify-between gap-1 focus:outline-none focus:ring-1 focus:ring-[#6BB89D]"
         style={{ border: '1px solid #ccc' }}
       >
         <div className="flex-1 flex flex-wrap gap-0.5 overflow-hidden">
@@ -205,6 +250,17 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
 }
 
 /**
+ * Get patient name from various possible sources.
+ * Handles API format (demographics.name), legacy format (patient_info.name), and fallbacks.
+ */
+function getPatientName(patient: Patient): string {
+  return (patient as any)?.demographics?.name
+    || patient.name
+    || patient.patient_info?.name
+    || `Patient ${patient.id}`;
+}
+
+/**
  * Pure function to merge rounding data from multiple sources.
  * Prevents code duplication and ensures consistent merge behavior.
  *
@@ -249,16 +305,42 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const [carryForwardResults, setCarryForwardResults] = useState<Record<number, CarryForwardResult>>({});
   const [showPastePreview, setShowPastePreview] = useState(false);
   const [pendingPasteData, setPendingPasteData] = useState<any[]>([]);
-  const [pasteStartPatientIndex, setPasteStartPatientIndex] = useState(0);
   const [autoFilledFields, setAutoFilledFields] = useState<Record<number, Set<string>>>({});
   const autoFillInitialized = useRef(false);
 
-  // Quick-insert: Track currently focused field for inserting text
+  // Track currently focused field for paste distribution and QuickInsert
   const [focusedField, setFocusedField] = useState<{
     patientId: number;
-    field: 'therapeutics' | 'diagnosticFindings' | 'concerns';
+    field: keyof RoundingData;
   } | null>(null);
   const [showQuickInsert, setShowQuickInsert] = useState(false);
+
+  // Close QuickInsert on Escape key or click outside
+  useEffect(() => {
+    if (!showQuickInsert) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowQuickInsert(false);
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      // Check if click is outside QuickInsertPanel
+      const target = e.target as Element;
+      if (!target.closest('.quick-insert-panel') && !target.closest('button[title="Quick Insert (Ctrl+Space)"]')) {
+        setShowQuickInsert(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showQuickInsert]);
 
   // Ref to always get fresh editingData in async callbacks (avoids stale closure)
   const editingDataRef = useRef(editingData);
@@ -316,16 +398,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         roundingData: previousData,
       });
 
+      // Destructure to separate tracking arrays from actual data fields
+      const { autoFilledFields: autoFilled, carriedForwardFields: carriedFields, ...autoFillData } = autoFillResult;
+
       // Merge carry-forward and auto-fill data
+      // Cast needed because autoFillData.code is string but RoundingData.code is a union type
       const mergedData: RoundingData = {
         ...carryResult.data,
-        ...autoFillResult, // Auto-fill takes precedence
+        ...autoFillData,
+        code: autoFillData.code as RoundingData['code'],
       };
 
       // Track which fields were auto-filled
       const autoFields = new Set<string>([
-        ...autoFillResult.autoFilledFields,
-        ...autoFillResult.carriedForwardFields,
+        ...autoFilled,
+        ...carriedFields,
       ]);
       newAutoFilledFields[patient.id] = autoFields;
 
@@ -426,7 +513,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     handleFieldChange(patientId, field as keyof RoundingData, newValue);
   };
 
-  const matchDropdownValue = (pastedValue: string, validOptions: string[]): string => {
+  const matchDropdownValue = (pastedValue: string, validOptions: readonly string[]): string => {
     if (!pastedValue || !pastedValue.trim()) return '';
 
     const normalized = pastedValue.trim().toLowerCase();
@@ -449,6 +536,33 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
   // Use shared dropdown options from constants
   const DROPDOWN_OPTIONS = ROUNDING_DROPDOWN_OPTIONS;
+
+  /**
+   * Apply smart matching for a field value.
+   * For dropdown fields, matches to valid options.
+   * For text fields, returns trimmed value.
+   */
+  const applySmartMatching = (field: string, value: string): string => {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) return '';
+
+    switch (field) {
+      case 'location':
+        return matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.location);
+      case 'icuCriteria':
+        return matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.icuCriteria);
+      case 'code':
+        return matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.code);
+      case 'ivc':
+        return matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.ivc);
+      case 'fluids':
+        return matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.fluids);
+      case 'cri':
+        return matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.cri);
+      default:
+        return trimmedValue;
+    }
+  };
 
   // Helper to parse TSV - properly handles quoted fields with embedded newlines/tabs
   // Google Sheets wraps cells containing newlines in double quotes
@@ -516,44 +630,110 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     return values;
   };
 
-  const handlePaste = useCallback((e: React.ClipboardEvent, patientId: number, startField: keyof RoundingData) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const pasteData = e.clipboardData.getData('text');
+  // Multi-row paste: parses multiple lines and shows preview modal
+  // Must be defined BEFORE handleRowPaste since it's referenced there
+  const handleMultiRowPaste = useCallback((
+    pasteData: string,
+    startPatientId: number,
+    startField: keyof RoundingData
+  ) => {
+    const rows = pasteData.split('\n').filter(row => row.trim());
 
-    // Parse TSV row (converts newlines to spaces, splits by tab)
-    const values = parseTSVRow(pasteData);
+    // If only one row, use existing single-row paste
+    if (rows.length === 1) {
+      return false; // Let single-row paste handle it
+    }
 
-    // Field order matching Google Sheets columns (EXCLUDING patient name column)
-    // When pasting from Google Sheets export, first column is Patient name which we skip
     const fieldOrder = ROUNDING_FIELD_ORDER;
 
-    const startIndex = fieldOrder.indexOf(startField);
+    // Cast to string for indexOf since field might be dayCount/lastUpdated which aren't in order
+    const startFieldIndex = fieldOrder.indexOf(startField as typeof fieldOrder[number]);
+    if (startFieldIndex === -1) return false;
+
+    // Find the index of the starting patient in active patients list
+    const activePatientsList = patients.filter(p => p.status !== 'Discharged');
+    const startPatientIdx = activePatientsList.findIndex(p => p.id === startPatientId);
+    if (startPatientIdx === -1) return false;
+
+    // Parse all rows and create preview data
+    const previewData = rows.map((row, rowIdx) => {
+      const values = row.split('\t');
+      const patientIdx = startPatientIdx + rowIdx;
+      const patient = activePatientsList[patientIdx];
+
+      const fields: { [key: string]: string } = {};
+
+      values.forEach((value, valueIdx) => {
+        const fieldIdx = startFieldIndex + valueIdx;
+        if (fieldIdx < fieldOrder.length) {
+          const field = fieldOrder[fieldIdx];
+          // Apply smart matching for dropdown fields
+          fields[field] = applySmartMatching(field, value);
+        }
+      });
+
+      return {
+        patientId: patient?.id || 0,
+        patientName: patient ? getPatientName(patient) : '',
+        fields,
+        rowIndex: rowIdx
+      };
+    });
+
+    // Show preview modal
+    setPendingPasteData(previewData);
+    setShowPastePreview(true);
+
+    return true; // Multi-row paste handled
+  }, [patients]);
+
+  // Row-level paste handler - distributes pasted values across fields
+  // Works for ALL fields including dropdowns (which can't capture paste events directly)
+  const handleRowPaste = useCallback((e: React.ClipboardEvent, patientId: number) => {
+    const pasteData = e.clipboardData.getData('text');
+    if (!pasteData.trim()) return;
+
+    // Check for multi-row paste (multiple lines)
+    const lines = pasteData.split('\n').filter(line => line.trim());
+    if (lines.length > 1) {
+      // Multi-row paste - show preview modal
+      e.preventDefault();
+      e.stopPropagation();
+
+      const startField = focusedField?.field || 'signalment';
+      if (handleMultiRowPaste(pasteData, patientId, startField)) {
+        return; // Multi-row paste handled
+      }
+    }
+
+    // Single row paste - determine starting field from focused field
+    const startField = focusedField?.patientId === patientId ? focusedField.field : 'signalment';
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Parse TSV row
+    const values = parseTSVRow(pasteData);
+    const fieldOrder = ROUNDING_FIELD_ORDER;
+    // Cast to fieldOrder element type since startField might include dayCount/lastUpdated
+    const startIndex = fieldOrder.indexOf(startField as typeof fieldOrder[number]);
     if (startIndex === -1) return;
 
-    // Values already parsed by parseTSVRow - now check if we need to skip patient name column
     let finalValues = values;
 
-    // Smart detection: if pasting a full row into signalment field,
-    // check if we need to skip the patient name column
-    // Export format has 14 cols (Patient + 13 data fields), paste expects 13 data fields
+    // Smart detection: skip patient name column if needed
     if (startField === 'signalment' && finalValues.length >= fieldOrder.length) {
-      // If we have 14+ values and pasting to signalment, first col is likely patient name
-      // Also check: if first value doesn't look like a signalment (no breed/age/sex patterns),
-      // and second value does look like signalment or is short, skip first
       const firstVal = finalValues[0]?.trim().toLowerCase() || '';
       const secondVal = finalValues[1]?.trim().toLowerCase() || '';
-
-      // Common signalment patterns: "8y MN DSH", "4yo FS Lab", "5 M/N Pit mix"
       const signalmentPattern = /\d+\s*(y|yo|yr|m|mo)?\s*(m|f|fs|mn|cm|sf|intact)/i;
       const firstLooksLikeSignalment = signalmentPattern.test(firstVal);
       const secondLooksLikeSignalment = signalmentPattern.test(secondVal);
 
-      // If first doesn't look like signalment but second does (or we just have too many cols), skip first
       if (finalValues.length > fieldOrder.length || (!firstLooksLikeSignalment && secondLooksLikeSignalment)) {
-        finalValues = finalValues.slice(1); // Skip patient name column
+        finalValues = finalValues.slice(1);
       }
     }
+
     const updates: Partial<RoundingData> = {};
 
     finalValues.forEach((value, index) => {
@@ -562,7 +742,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         const field = fieldOrder[fieldIndex];
         const trimmedValue = value.trim();
 
-        // Handle dropdown fields with smart matching
+        // Smart matching for dropdown fields
         if (field === 'location') {
           updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.location);
         } else if (field === 'icuCriteria') {
@@ -576,33 +756,65 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         } else if (field === 'cri') {
           updates[field] = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.cri);
         } else {
-          // Text fields (signalment, problems, diagnosticFindings, therapeutics, overnightDx, concerns, comments)
           (updates as Record<string, string>)[field] = trimmedValue;
         }
       }
     });
 
-    // Merge with existing data - use prev state to avoid stale closure bug
+    // Apply updates
     setEditingData(prev => {
       const patient = patients.find(p => p.id === patientId);
       const savedData = (patient as any)?.roundingData || patient?.rounding_data || {};
       const existingEdits = prev[patientId] || {};
-
-      const merged = mergePatientRoundingData(savedData, existingEdits, updates);
-
       return {
         ...prev,
-        [patientId]: merged,
+        [patientId]: mergePatientRoundingData(savedData, existingEdits, updates),
       };
     });
 
     const fieldCount = Object.keys(updates).length;
-
     toast({
       title: 'Pasted',
-      description: `Pasted ${fieldCount} field${fieldCount > 1 ? 's' : ''}`
+      description: `Filled ${fieldCount} field${fieldCount > 1 ? 's' : ''} starting from ${startField}`
     });
-  }, [patients, toast]);
+  }, [patients, toast, focusedField, handleMultiRowPaste]);
+
+  // Field-level paste for text inputs (still needed for single-field paste)
+  const handleFieldPaste = useCallback((e: React.ClipboardEvent, patientId: number, field: keyof RoundingData) => {
+    const pasteData = e.clipboardData.getData('text');
+
+    // If paste contains tabs, let row-level handler distribute it
+    if (pasteData.includes('\t')) {
+      // Update focused field so row handler knows where to start
+      setFocusedField({ patientId, field });
+      // Don't prevent default - let it bubble to row handler
+      return;
+    }
+
+    // Single value paste - apply directly to this field
+    e.preventDefault();
+    e.stopPropagation();
+
+    const trimmedValue = pasteData.replace(/[\r\n]+/g, ' ').trim();
+
+    // For dropdown fields, use smart matching
+    let finalValue = trimmedValue;
+    if (field === 'location') {
+      finalValue = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.location);
+    } else if (field === 'icuCriteria') {
+      finalValue = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.icuCriteria);
+    } else if (field === 'code') {
+      finalValue = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.code);
+    } else if (field === 'ivc') {
+      finalValue = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.ivc);
+    } else if (field === 'fluids') {
+      finalValue = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.fluids);
+    } else if (field === 'cri') {
+      finalValue = matchDropdownValue(trimmedValue, DROPDOWN_OPTIONS.cri);
+    }
+
+    handleFieldChange(patientId, field, finalValue);
+  }, [handleFieldChange]);
 
   const autoSave = useCallback(async (patientId: number) => {
     try {
@@ -656,60 +868,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     }
   }, []);
 
-  const handleMultiRowPaste = useCallback((
-    pasteData: string,
-    startPatientId: number,
-    startField: keyof RoundingData
-  ) => {
-    const rows = pasteData.split('\n').filter(row => row.trim());
-
-    // If only one row, use existing single-row paste
-    if (rows.length === 1) {
-      return false; // Let single-row paste handle it
-    }
-
-    const fieldOrder = ROUNDING_FIELD_ORDER;
-
-    const startFieldIndex = fieldOrder.indexOf(startField);
-    if (startFieldIndex === -1) return false;
-
-    // Find the index of the starting patient in active patients list
-    const activePatients = patients.filter(p => p.status !== 'Discharged');
-    const startPatientIdx = activePatients.findIndex(p => p.id === startPatientId);
-    if (startPatientIdx === -1) return false;
-
-    // Parse all rows and create preview data
-    const previewData = rows.map((row, rowIdx) => {
-      const values = row.split('\t');
-      const patientIdx = startPatientIdx + rowIdx;
-      const patient = activePatients[patientIdx];
-
-      const fields: { [key: string]: string } = {};
-
-      values.forEach((value, valueIdx) => {
-        const fieldIdx = startFieldIndex + valueIdx;
-        if (fieldIdx < fieldOrder.length) {
-          const field = fieldOrder[fieldIdx];
-          fields[field] = value.trim();
-        }
-      });
-
-      return {
-        patientId: patient?.id || 0,
-        patientName: patient?.name || '',
-        fields,
-        rowIndex: rowIdx
-      };
-    });
-
-    // Show preview modal
-    setPendingPasteData(previewData);
-    setPasteStartPatientIndex(startPatientIdx);
-    setShowPastePreview(true);
-
-    return true; // Multi-row paste handled
-  }, [patients]);
-
   const applyMultiRowPaste = useCallback(() => {
     const updates: { [patientId: number]: Partial<RoundingData> } = {};
 
@@ -759,13 +917,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         description: `Rounding data saved (Day ${dayCount})`
       });
 
-      // Clear this patient from editingData since it's saved
-      setEditingData(prev => {
-        const updated = { ...prev };
-        delete updated[patientId];
-        return updated;
-      });
-
+      // DON'T clear editingData - keep user's changes visible for Copy Row to work correctly
+      // The data is saved to the server but we keep it locally for accurate copy operations
       // DON'T refetch - prevents flickering
     } catch (error) {
       console.error('Failed to save:', error);
@@ -849,7 +1002,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     const rows = activePatients.map(patient => {
       const data = getPatientData(patient.id);
-      const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+      const patientName = getPatientName(patient);
 
       return [
         escapeTSVValue(patientName),
@@ -883,7 +1036,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     if (!patient) return;
 
     const data = getPatientData(patientId);
-    const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+    const patientName = getPatientName(patient);
 
     // Build row with all 14 columns - each value MUST be escaped to prevent multi-line pastes
     const row = [
@@ -920,7 +1073,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   };
 
   // Neo-pop styling from shared constants
-  const { BORDER: NEO_BORDER, SHADOW: NEO_SHADOW, SHADOW_SM: NEO_SHADOW_SM, COLORS } = NEO_POP_STYLES;
+  const { BORDER: NEO_BORDER, SHADOW: NEO_SHADOW, COLORS } = NEO_POP_STYLES;
 
   return (
     <div className="space-y-4">
@@ -986,13 +1139,17 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               const carryForward = carryForwardResults[patient.id];
 
               // API returns demographics.name, not patient.name or patient_info.name
-              const patientName = (patient as any)?.demographics?.name || patient.name || patient.patient_info?.name || `Patient ${patient.id}`;
+              const patientName = getPatientName(patient);
 
               // Alternating row colors for neo-pop
               const rowBg = hasChanges ? COLORS.mint + '40' : 'white';
 
               return (
-                <tr key={patient.id} style={{ backgroundColor: rowBg }}>
+                <tr
+                  key={patient.id}
+                  style={{ backgroundColor: rowBg }}
+                  onPaste={(e) => handleRowPaste(e, patient.id)}
+                >
                   <td className="p-1 sticky left-0 z-10" style={{ backgroundColor: rowBg, borderRight: NEO_BORDER, borderBottom: '1px solid #000' }}>
                     <Link
                       href={`/?patient=${patient.id}`}
@@ -1009,7 +1166,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       type="text"
                       value={data.signalment || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'signalment')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'signalment' })}
+                      onPaste={(e) => handleFieldPaste(e, patient.id, 'signalment')}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     />
@@ -1018,7 +1176,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.location || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'location')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'location' })}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1031,7 +1189,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.icuCriteria || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'icuCriteria')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'icuCriteria' })}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1045,7 +1203,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.code || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'code')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'code' })}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D]"
                       style={{
                         border: '1px solid #ccc',
@@ -1066,39 +1224,71 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <textarea
-                      value={data.diagnosticFindings || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'diagnosticFindings', e.target.value)}
-                      onFocus={() => {
-                        setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' });
-                        setShowQuickInsert(true);
-                      }}
-                      onPaste={(e) => handlePaste(e, patient.id, 'diagnosticFindings')}
-                      rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={data.diagnosticFindings || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'diagnosticFindings', e.target.value)}
+                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' })}
+                        onKeyDown={(e) => {
+                          if (e.ctrlKey && e.code === 'Space') {
+                            e.preventDefault();
+                            setShowQuickInsert(prev => !prev);
+                          }
+                        }}
+                        onPaste={(e) => handleFieldPaste(e, patient.id, 'diagnosticFindings')}
+                        rows={2}
+                        className="w-full px-1 py-0.5 pr-6 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
+                        style={{ border: '1px solid #ccc' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' });
+                          setShowQuickInsert(prev => !prev);
+                        }}
+                        className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition"
+                        title="Quick Insert (Ctrl+Space)"
+                      >
+                        <span className="text-[10px]">⚡</span>
+                      </button>
+                    </div>
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'diagnosticFindings' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px]">
+                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px] quick-insert-panel">
                         <QuickInsertPanel field="diagnostics" onInsert={handleQuickInsert} currentValue={data.diagnosticFindings} />
                       </div>
                     )}
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <textarea
-                      value={data.therapeutics || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'therapeutics', e.target.value)}
-                      onFocus={() => {
-                        setFocusedField({ patientId: patient.id, field: 'therapeutics' });
-                        setShowQuickInsert(true);
-                      }}
-                      onPaste={(e) => handlePaste(e, patient.id, 'therapeutics')}
-                      rows={2}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={data.therapeutics || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'therapeutics', e.target.value)}
+                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'therapeutics' })}
+                        onKeyDown={(e) => {
+                          if (e.ctrlKey && e.code === 'Space') {
+                            e.preventDefault();
+                            setShowQuickInsert(prev => !prev);
+                          }
+                        }}
+                        onPaste={(e) => handleFieldPaste(e, patient.id, 'therapeutics')}
+                        rows={2}
+                        className="w-full px-1 py-0.5 pr-6 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
+                        style={{ border: '1px solid #ccc' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFocusedField({ patientId: patient.id, field: 'therapeutics' });
+                          setShowQuickInsert(prev => !prev);
+                        }}
+                        className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition"
+                        title="Quick Insert (Ctrl+Space)"
+                      >
+                        <span className="text-[10px]">⚡</span>
+                      </button>
+                    </div>
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'therapeutics' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px]">
+                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px] quick-insert-panel">
                         <QuickInsertPanel field="therapeutics" onInsert={handleQuickInsert} currentValue={data.therapeutics} />
                       </div>
                     )}
@@ -1107,7 +1297,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.ivc || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'ivc', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'ivc')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'ivc' })}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1120,7 +1310,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.fluids || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'fluids', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'fluids')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'fluids' })}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1134,7 +1324,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <select
                       value={data.cri || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'cri', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'cri')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'cri' })}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1149,28 +1339,45 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <textarea
                       value={data.overnightDx || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'overnightDx', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'overnightDx')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'overnightDx' })}
+                      onPaste={(e) => handleFieldPaste(e, patient.id, 'overnightDx')}
                       rows={2}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <textarea
-                      value={data.concerns || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'concerns', e.target.value)}
-                      onFocus={() => {
-                        setFocusedField({ patientId: patient.id, field: 'concerns' });
-                        setShowQuickInsert(true);
-                      }}
-                      onPaste={(e) => handlePaste(e, patient.id, 'concerns')}
-                      rows={2}
-                      placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={data.concerns || ''}
+                        onChange={(e) => handleFieldChange(patient.id, 'concerns', e.target.value)}
+                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'concerns' })}
+                        onKeyDown={(e) => {
+                          if (e.ctrlKey && e.code === 'Space') {
+                            e.preventDefault();
+                            setShowQuickInsert(prev => !prev);
+                          }
+                        }}
+                        onPaste={(e) => handleFieldPaste(e, patient.id, 'concerns')}
+                        rows={2}
+                        placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
+                        className="w-full px-1 py-0.5 pr-6 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
+                        style={{ border: '1px solid #ccc' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFocusedField({ patientId: patient.id, field: 'concerns' });
+                          setShowQuickInsert(prev => !prev);
+                        }}
+                        className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition"
+                        title="Quick Insert (Ctrl+Space)"
+                      >
+                        <span className="text-[10px]">⚡</span>
+                      </button>
+                    </div>
                     {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'concerns' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px]">
+                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px] quick-insert-panel">
                         <QuickInsertPanel field="concerns" onInsert={handleQuickInsert} currentValue={data.concerns} />
                       </div>
                     )}
@@ -1179,7 +1386,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <textarea
                       value={data.comments || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'comments', e.target.value)}
-                      onPaste={(e) => handlePaste(e, patient.id, 'comments')}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'comments' })}
+                      onPaste={(e) => handleFieldPaste(e, patient.id, 'comments')}
                       rows={2}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
@@ -1226,6 +1434,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           <p className="text-gray-500 font-bold">No active patients to display</p>
         </div>
       )}
+
+      {/* Multi-row paste preview modal */}
+      <PastePreviewModal
+        isOpen={showPastePreview}
+        onClose={() => {
+          setShowPastePreview(false);
+          setPendingPasteData([]);
+        }}
+        onConfirm={applyMultiRowPaste}
+        previewData={pendingPasteData}
+        fieldNames={ROUNDING_FIELD_ORDER}
+      />
     </div>
   );
 }
