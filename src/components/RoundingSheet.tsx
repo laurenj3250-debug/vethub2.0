@@ -1097,6 +1097,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     return escaped;
   };
 
+  // Helper to convert problems field to plain text for Google Sheets
+  // Problems are stored as comma-separated (e.g., "IVDD, Seizures") but we export as pipe-separated
+  // to ensure Google Sheets treats it as pure plain text (not dropdown/list data)
+  const escapeProblemsForExport = (value: string | undefined | null): string => {
+    if (!value) return '';
+
+    // Split by comma+space and rejoin with " | " for unambiguous plain text
+    const problems = String(value)
+      .split(/,\s*/)
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    return problems.join(' | ');
+  };
+
   const exportToTSV = () => {
     const headers = ROUNDING_TSV_HEADERS;
 
@@ -1110,7 +1125,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         escapeTSVValue(data.location),
         escapeTSVValue(data.icuCriteria),
         escapeTSVValue(data.code),
-        escapeTSVValue(data.problems),
+        escapeProblemsForExport(data.problems),
         escapeTSVValue(data.diagnosticFindings),
         escapeTSVValue(data.therapeutics),
         escapeTSVValue(data.ivc),
@@ -1145,7 +1160,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       escapeTSVValue(data.location),
       escapeTSVValue(data.icuCriteria),
       escapeTSVValue(data.code),
-      escapeTSVValue(data.problems),
+      escapeProblemsForExport(data.problems),
       escapeTSVValue(data.diagnosticFindings),
       escapeTSVValue(data.therapeutics),
       escapeTSVValue(data.ivc),
