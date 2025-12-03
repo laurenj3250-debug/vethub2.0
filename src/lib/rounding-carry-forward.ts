@@ -79,15 +79,17 @@ export function carryForwardRoundingData(
   const fieldsCarried: string[] = [];
 
   fieldsToCarry.forEach((field) => {
-    if (previousData[field] && previousData[field]?.trim() !== '') {
-      let value = previousData[field];
+    const fieldValue = previousData[field];
+    // Only process string fields (dayCount and lastUpdated are handled separately)
+    if (typeof fieldValue === 'string' && fieldValue.trim() !== '') {
+      let value = fieldValue;
 
       // Auto-increment day count in problems field
       if (field === 'problems' && incrementDayCount) {
-        value = incrementDayCountInText(value || '');
+        value = incrementDayCountInText(value);
       }
 
-      carriedData[field] = value;
+      (carriedData as Record<string, string>)[field] = value;
       fieldsCarried.push(field);
     }
   });
@@ -117,8 +119,10 @@ export function carryForwardRoundingData(
 
   // Preserve specific fields if requested
   preserveFields.forEach((field) => {
-    if (previousData[field] !== undefined) {
-      carriedData[field] = previousData[field];
+    const fieldValue = previousData[field];
+    if (fieldValue !== undefined) {
+      // Use type assertion for dynamic field assignment
+      (carriedData as Record<string, typeof fieldValue>)[field] = fieldValue;
       if (!fieldsCarried.includes(field as string)) {
         fieldsCarried.push(field as string);
       }

@@ -1443,18 +1443,22 @@ export default function VetHub() {
         return;
       }
 
-      // Build TSV data with header
-      const header = 'Name\tPatient ID\tWeight (kg)\tScan Type';
+      // Build TSV data WITHOUT header (user doesn't want title row)
       const rows = mriPatients.map((patient) => {
         const name = patient.demographics?.name || patient.name || '';
-        const patientId = patient.demographics?.patientId || patient.demographics?.patientId || '';
-        const weight = (patient.demographics?.weight || patient.demographics?.weight || '').replace(/[^\d.]/g, '');
-        const scanType = patient.mriData?.scanType || '';
+        // Use local input values first (current edits), fall back to saved data
+        const patientIdKey = `${patient.id}-patientId`;
+        const weightKey = `${patient.id}-weight`;
+        const scanTypeKey = `${patient.id}-scanType`;
+
+        const patientId = mriInputValues[patientIdKey] ?? (patient.demographics?.patientId || '');
+        const weight = (mriInputValues[weightKey] ?? (patient.demographics?.weight || '')).toString().replace(/[^\d.]/g, '');
+        const scanType = mriInputValues[scanTypeKey] ?? (patient.mriData?.scanType || '');
 
         return `${name}\t${patientId}\t${weight}\t${scanType}`;
       });
 
-      const tsvContent = [header, ...rows].join('\n');
+      const tsvContent = rows.join('\n');
 
       // Copy to clipboard
       navigator.clipboard.writeText(tsvContent);
@@ -1478,10 +1482,15 @@ export default function VetHub() {
       }
 
       // Build single line TSV (no header)
+      // Use local input values first (current edits), fall back to saved data
       const name = patient.demographics?.name || patient.name || '';
-      const patientIdStr = patient.demographics?.patientId || '';
-      const weight = (patient.demographics?.weight || '').replace(/[^\d.]/g, '');
-      const scanType = patient.mriData?.scanType || '';
+      const patientIdKey = `${patientId}-patientId`;
+      const weightKey = `${patientId}-weight`;
+      const scanTypeKey = `${patientId}-scanType`;
+
+      const patientIdStr = mriInputValues[patientIdKey] ?? (patient.demographics?.patientId || '');
+      const weight = (mriInputValues[weightKey] ?? (patient.demographics?.weight || '')).toString().replace(/[^\d.]/g, '');
+      const scanType = mriInputValues[scanTypeKey] ?? (patient.mriData?.scanType || '');
 
       const tsvLine = `${name}\t${patientIdStr}\t${weight}\t${scanType}`;
 
@@ -1496,6 +1505,62 @@ export default function VetHub() {
       console.error('MRI line copy error:', error);
       toast({ variant: 'destructive', title: 'Copy failed', description: 'Could not copy MRI line' });
     }
+  };
+
+  // Handle paste for MRI schedule row - fills patientId, weight, scanType from TSV
+  const handleMRIPaste = (e: React.ClipboardEvent, patientId: number) => {
+    const pasteData = e.clipboardData.getData('text');
+    if (!pasteData.trim()) return;
+
+    // Check if it contains tabs (TSV format)
+    if (!pasteData.includes('\t')) return; // Let normal paste happen for single values
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Parse TSV - expected format: Name\tPatientID\tWeight\tScanType
+    // Or just: PatientID\tWeight\tScanType (if pasting without name)
+    const values = pasteData.split('\t').map(v => v.trim());
+
+    let patientIdVal = '';
+    let weightVal = '';
+    let scanTypeVal = '';
+
+    if (values.length >= 4) {
+      // Full row with name: Name\tPatientID\tWeight\tScanType
+      patientIdVal = values[1];
+      weightVal = values[2].replace(/[^\d.]/g, '');
+      scanTypeVal = values[3];
+    } else if (values.length === 3) {
+      // Without name: PatientID\tWeight\tScanType
+      patientIdVal = values[0];
+      weightVal = values[1].replace(/[^\d.]/g, '');
+      scanTypeVal = values[2];
+    } else if (values.length === 2) {
+      // Just Weight\tScanType
+      weightVal = values[0].replace(/[^\d.]/g, '');
+      scanTypeVal = values[1];
+    }
+
+    // Update local input state immediately
+    if (patientIdVal) {
+      setMriInputValues(prev => ({ ...prev, [`${patientId}-patientId`]: patientIdVal }));
+      debouncedMRIUpdate(patientId, 'patientId', patientIdVal, 'demographics');
+    }
+    if (weightVal) {
+      setMriInputValues(prev => ({ ...prev, [`${patientId}-weight`]: weightVal }));
+      debouncedMRIUpdate(patientId, 'weight', weightVal, 'demographics');
+    }
+    if (scanTypeVal) {
+      setMriInputValues(prev => ({ ...prev, [`${patientId}-scanType`]: scanTypeVal }));
+      debouncedMRIUpdate(patientId, 'scanType', scanTypeVal, 'mriData');
+    }
+
+    const fieldsCount = [patientIdVal, weightVal, scanTypeVal].filter(Boolean).length;
+    toast({
+      title: '✅ Pasted!',
+      description: `Filled ${fieldsCount} field${fieldsCount > 1 ? 's' : ''}`
+    });
   };
 
   const handleCopySingleRoundingLine = (patientId: number) => {
@@ -3098,6 +3163,7 @@ export default function VetHub() {
                           backgroundColor: idx % 2 === 0 ? 'white' : NEO_COLORS.cream,
                           borderBottom: '1px solid #e5e7eb'
                         }}
+                        onPaste={(e) => handleMRIPaste(e, patient.id)}
                       >
                         <td className="p-3">
                           <button

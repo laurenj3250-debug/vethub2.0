@@ -9,6 +9,7 @@ import { useCommonItems } from '@/hooks/use-api';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ROUNDING_STORAGE_KEYS } from '@/lib/constants';
+import type { RoundingPatient } from '@/types/rounding';
 
 // Use new RoundingSheet that matches Google Sheets layout
 const RoundingSheet = dynamic(() => import('@/components/RoundingSheet').then(mod => ({ default: mod.RoundingSheet })), {
@@ -128,7 +129,7 @@ export function RoundingPageClient() {
         <main className="max-w-[98%] mx-auto px-4 py-6">
           <ErrorBoundary fallback={<RoundingErrorFallback />}>
             <RoundingSheet
-              patients={patients}
+              patients={patients as RoundingPatient[]}
               toast={toast}
               onPatientUpdate={loadPatients}
             />

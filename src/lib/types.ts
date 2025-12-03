@@ -35,6 +35,11 @@ export type PatientInfo = {
   age?: string;
 };
 
+/**
+ * @deprecated Use RoundingData from '@/types/rounding' instead.
+ * This type has outdated field names and is not used.
+ * Canonical source: src/types/rounding.ts
+ */
 export type RoundingData = {
   signalment?: string;
   location?: string;

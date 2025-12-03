@@ -40,9 +40,10 @@ export interface CurrentStay {
 }
 
 // Patient as used in rounding sheet
+// Compatible with both legacy Patient format and UnifiedPatient format
 export interface RoundingPatient {
   id: number;
-  name: string;
+  name?: string; // Optional - UnifiedPatient uses demographics.name instead
   status: string;
   rounding_data?: RoundingData;
   roundingData?: RoundingData;
