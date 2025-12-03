@@ -829,8 +829,12 @@ export default function VetHub() {
       console.log(`[handleTypeChange] API response:`, result);
       toast({ title: `✅ Type updated to ${newType}` });
 
-      // Auto-create tasks based on patient type using task engine templates
-      if (['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
+      // Only auto-create tasks if patient is a "New Admit"
+      // Existing/hospitalized patients switching types shouldn't get new admission tasks
+      const patient = patients.find(p => p.id === patientId);
+      const isNewAdmit = patient?.status === 'New Admit';
+
+      if (isNewAdmit && ['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
         // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
         const freshPatient = await apiClient.getPatient(String(patientId));
         const patientName = freshPatient?.demographics?.name || 'Unknown Patient';
@@ -910,7 +914,7 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      const morningTasks = ['Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
@@ -949,7 +953,7 @@ export default function VetHub() {
   const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      const morningTasks = ['Daily SOAP Done', 'Overnight Notes Checked'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       const today = new Date().toISOString().split('T')[0];
@@ -2118,7 +2122,7 @@ export default function VetHub() {
   };
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
-    const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+    const morningTasks = ['Daily SOAP Done', 'Overnight Notes Checked'];
     const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
     if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
@@ -2130,6 +2134,17 @@ export default function VetHub() {
     if (category === 'morning') return '🌅';
     if (category === 'evening') return '🌙';
     return '📋';
+  };
+
+  // Time-based colors for task cards
+  const getTimeOfDayColors = (category: 'morning' | 'evening' | 'general') => {
+    if (category === 'morning') {
+      return { bg: 'bg-amber-900/30', border: 'border-amber-500/50', text: 'text-amber-300' };
+    }
+    if (category === 'evening') {
+      return { bg: 'bg-indigo-900/30', border: 'border-indigo-500/50', text: 'text-indigo-300' };
+    }
+    return { bg: 'bg-slate-900/50', border: 'border-slate-700/50', text: 'text-slate-300' };
   };
 
   // Color palette for patient task cards
@@ -2684,10 +2699,15 @@ export default function VetHub() {
                         {tasks.map((task: any) => {
                           const category = getTaskCategory(task.title || task.name);
                           const icon = getTaskIcon(category);
+                          const timeColors = getTimeOfDayColors(category);
                           return (
                             <div
                               key={task.id}
-                              className="flex items-center gap-1.5 text-xs group"
+                              className={`flex items-center gap-1.5 text-xs group rounded-r px-1 py-0.5 border-l-2 ${
+                                category === 'morning' ? 'border-l-amber-500/70 bg-amber-900/10' :
+                                category === 'evening' ? 'border-l-indigo-500/70 bg-indigo-900/10' :
+                                'border-l-transparent'
+                              }`}
                             >
                               <button
                                 onClick={() => handleToggleTask(patient.id, task.id, task.completed)}
@@ -2741,14 +2761,15 @@ export default function VetHub() {
                   return Object.entries(taskGroups).map(([taskName, items]) => {
                     const category = getTaskCategory(taskName);
                     const icon = getTaskIcon(category);
+                    const timeColors = getTimeOfDayColors(category);
                     const allCompleted = items.every(item => item.task.completed);
                     const incompleteCount = items.filter(i => !i.task.completed).length;
 
                     return (
-                      <div key={taskName} className="bg-slate-900/50 rounded-lg p-2 border border-slate-700/50">
+                      <div key={taskName} className={`${timeColors.bg} rounded-lg p-2 border ${timeColors.border}`}>
                         <div className="flex items-center gap-2 mb-1.5">
                           <span className="text-lg">{icon}</span>
-                          <h3 className="text-white font-bold flex-1 text-sm">{taskName}</h3>
+                          <h3 className={`font-bold flex-1 text-sm ${timeColors.text}`}>{taskName}</h3>
                           <span className={`text-xs ${allCompleted ? 'text-green-400' : 'text-slate-400'}`}>
                             {items.filter(i => i.task.completed).length}/{items.length}
                           </span>

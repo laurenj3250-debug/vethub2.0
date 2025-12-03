@@ -13,7 +13,6 @@ import { prisma } from '@/lib/prisma';
 // Patient-specific daily tasks that should reset each day
 const DAILY_PATIENT_TASKS = {
   morning: [
-    { name: 'Owner Called', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
     { name: 'Daily SOAP Done', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
     { name: 'Overnight Notes Checked', category: 'Daily', timeOfDay: 'morning', priority: 'medium' },
   ],
