@@ -24,8 +24,6 @@ export const statusColors: Record<PatientStatus, string> = {
 
 // General tasks that apply to the team (not patient-specific)
 export const commonGeneralTasks: string[] = [
-  'Check Comms',
-  'Check Emails',
   'Draw Up Contrast',
   'Rounding'
 ];

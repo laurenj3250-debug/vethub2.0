@@ -26,10 +26,7 @@ const DAILY_PATIENT_TASKS = {
 
 // General team tasks (not patient-specific) that should reset each day
 const DAILY_GENERAL_TASKS = {
-  morning: [
-    { name: 'Check Comms', category: 'General', timeOfDay: 'morning', priority: 'high' },
-    { name: 'Check Emails', category: 'General', timeOfDay: 'morning', priority: 'medium' },
-  ],
+  morning: [] as Array<{ name: string; category: string; timeOfDay: string; priority: string }>,
   evening: [
     { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening', priority: 'high' },
   ],
