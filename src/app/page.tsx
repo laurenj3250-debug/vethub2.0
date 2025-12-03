@@ -2148,20 +2148,29 @@ export default function VetHub() {
   };
 
   const filterTasksByTime = (tasks: any[]) => {
-    if (taskTimeFilter === 'all') return tasks;
+    // Sort order: morning (0) -> anytime (1) -> evening (2)
+    const timeOrder = { morning: 0, anytime: 1, evening: 2 };
+
+    const sortedTasks = [...tasks].sort((a, b) => {
+      const aTime = getTaskTimeOfDay(a.title || a.name);
+      const bTime = getTaskTimeOfDay(b.title || b.name);
+      return timeOrder[aTime] - timeOrder[bTime];
+    });
+
+    if (taskTimeFilter === 'all') return sortedTasks;
     if (taskTimeFilter === 'day') {
-      return tasks.filter(t => {
+      return sortedTasks.filter(t => {
         const timeOfDay = getTaskTimeOfDay(t.title || t.name);
         return timeOfDay === 'morning' || timeOfDay === 'anytime';
       });
     }
     if (taskTimeFilter === 'night') {
-      return tasks.filter(t => {
+      return sortedTasks.filter(t => {
         const timeOfDay = getTaskTimeOfDay(t.title || t.name);
         return timeOfDay === 'evening';
       });
     }
-    return tasks;
+    return sortedTasks;
   };
 
   if (authLoading) {
@@ -2503,6 +2512,43 @@ export default function VetHub() {
           </button>
         </div>
 
+        {/* Time Filter Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTaskTimeFilter('all')}
+            className="px-4 py-2 rounded-xl text-sm font-bold transition hover:-translate-y-0.5"
+            style={{
+              backgroundColor: taskTimeFilter === 'all' ? '#B8E6D4' : '#FFF8F0',
+              border: '2px solid #000',
+              boxShadow: taskTimeFilter === 'all' ? '4px 4px 0 #000' : '2px 2px 0 #000',
+            }}
+          >
+            All Tasks
+          </button>
+          <button
+            onClick={() => setTaskTimeFilter('day')}
+            className="px-4 py-2 rounded-xl text-sm font-bold transition hover:-translate-y-0.5"
+            style={{
+              backgroundColor: taskTimeFilter === 'day' ? '#FEF3C7' : '#FFF8F0',
+              border: '2px solid #000',
+              boxShadow: taskTimeFilter === 'day' ? '4px 4px 0 #000' : '2px 2px 0 #000',
+            }}
+          >
+            🌅 Morning
+          </button>
+          <button
+            onClick={() => setTaskTimeFilter('night')}
+            className="px-4 py-2 rounded-xl text-sm font-bold transition hover:-translate-y-0.5"
+            style={{
+              backgroundColor: taskTimeFilter === 'night' ? '#E0E7FF' : '#FFF8F0',
+              border: '2px solid #000',
+              boxShadow: taskTimeFilter === 'night' ? '4px 4px 0 #000' : '2px 2px 0 #000',
+            }}
+          >
+            🌙 Evening
+          </button>
+        </div>
+
         {/* Task Checklist - Always Visible */}
         <TaskChecklist
           patients={filteredPatients}
@@ -2513,6 +2559,7 @@ export default function VetHub() {
           onDeleteTask={handleDeleteTask}
           onDeleteGeneralTask={handleDeleteGeneralTask}
           onDeleteAllTasks={handleDeleteAllTasks}
+          taskTimeFilter={taskTimeFilter}
         />
 
         {/* OLD Task Overview - DISABLED */}
@@ -2717,7 +2764,7 @@ export default function VetHub() {
                 })}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-4">
                 {(() => {
                   const today = new Date().toISOString().split('T')[0];
                   const taskGroups: { [key: string]: Array<{ patient: any; task: any }> } = {};
@@ -2734,7 +2781,12 @@ export default function VetHub() {
                     });
                   });
 
-                  return Object.entries(taskGroups).map(([taskName, items]) => {
+                  // Group tasks by time of day
+                  const morningTasks = Object.entries(taskGroups).filter(([name]) => getTaskTimeOfDay(name) === 'morning');
+                  const eveningTasks = Object.entries(taskGroups).filter(([name]) => getTaskTimeOfDay(name) === 'evening');
+                  const anytimeTasks = Object.entries(taskGroups).filter(([name]) => getTaskTimeOfDay(name) === 'anytime');
+
+                  const renderTaskCard = ([taskName, items]: [string, Array<{ patient: any; task: any }>]) => {
                     const timeOfDay = getTaskTimeOfDay(taskName);
                     const icon = getTaskIcon(timeOfDay);
                     const timeColors = getTimeColors(timeOfDay);
@@ -2785,7 +2837,47 @@ export default function VetHub() {
                         </div>
                       </div>
                     );
-                  });
+                  };
+
+                  return (
+                    <>
+                      {/* Morning Section */}
+                      {morningTasks.length > 0 && (
+                        <div>
+                          <h3 className="text-amber-400 font-bold text-sm mb-2 flex items-center gap-2">
+                            🌅 MORNING TASKS
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {morningTasks.map(renderTaskCard)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Anytime Section */}
+                      {anytimeTasks.length > 0 && (
+                        <div>
+                          <h3 className="text-slate-400 font-bold text-sm mb-2 flex items-center gap-2">
+                            📋 OTHER TASKS
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {anytimeTasks.map(renderTaskCard)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Evening Section */}
+                      {eveningTasks.length > 0 && (
+                        <div>
+                          <h3 className="text-indigo-400 font-bold text-sm mb-2 flex items-center gap-2">
+                            🌙 EVENING TASKS
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {eveningTasks.map(renderTaskCard)}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
                 })()}
               </div>
             )}

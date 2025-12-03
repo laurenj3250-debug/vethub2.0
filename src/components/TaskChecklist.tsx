@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Check, Plus, X } from 'lucide-react';
+import { getTaskTimeOfDay } from '@/lib/task-definitions';
 
 // Neo-pop styling constants
 const NEO_SHADOW = '6px 6px 0 #000';
@@ -51,6 +52,7 @@ interface TaskChecklistProps {
   onDeleteTask?: (patientId: number, taskId: number) => void;
   onDeleteGeneralTask?: (taskId: number) => void;
   onDeleteAllTasks?: () => void;
+  taskTimeFilter?: 'all' | 'day' | 'night';
 }
 
 export function TaskChecklist({
@@ -62,6 +64,7 @@ export function TaskChecklist({
   onDeleteTask,
   onDeleteGeneralTask,
   onDeleteAllTasks,
+  taskTimeFilter = 'all',
 }: TaskChecklistProps) {
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
@@ -75,6 +78,15 @@ export function TaskChecklist({
   const getFirstName = (patient: Patient) =>
     getPatientName(patient).split(' ')[0];
 
+  // Filter task by time of day
+  const shouldShowTask = (taskName: string): boolean => {
+    if (taskTimeFilter === 'all') return true;
+    const timeOfDay = getTaskTimeOfDay(taskName);
+    if (taskTimeFilter === 'day') return timeOfDay === 'morning' || timeOfDay === 'anytime';
+    if (taskTimeFilter === 'night') return timeOfDay === 'evening';
+    return true;
+  };
+
   // Build matrix data: unique task names and patient-task lookup
   const { taskNames, patientTaskMap, stats } = useMemo(() => {
     const names = new Set<string>();
@@ -82,10 +94,11 @@ export function TaskChecklist({
     let total = 0;
     let completed = 0;
 
-    // Collect all task names from patients
+    // Collect all task names from patients (filtered by time)
     patients.forEach(patient => {
       (patient.tasks || []).forEach(task => {
         const taskName = task.title || task.name || 'Untitled';
+        if (!shouldShowTask(taskName)) return; // Filter by time
         names.add(taskName);
         if (!map[taskName]) map[taskName] = {};
         map[taskName][patient.id] = task;
@@ -94,9 +107,10 @@ export function TaskChecklist({
       });
     });
 
-    // Add general tasks
+    // Add general tasks (filtered by time)
     generalTasks.forEach(task => {
       const taskName = task.title || task.name || 'Untitled';
+      if (!shouldShowTask(taskName)) return; // Filter by time
       names.add(taskName);
       total++;
       if (task.completed) completed++;
@@ -107,7 +121,7 @@ export function TaskChecklist({
       patientTaskMap: map,
       stats: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
     };
-  }, [patients, generalTasks]);
+  }, [patients, generalTasks, taskTimeFilter]);
 
   // Helper to get completion stats for a task
   const getTaskStats = (taskName: string) => {
