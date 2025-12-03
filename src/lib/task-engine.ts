@@ -74,14 +74,6 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
       priority: 'high',
       timeOfDay: 'morning',
     },
-    {
-      id: 'daily-owner-call',
-      name: 'Owner Called',
-      category: 'Daily',
-      estimatedMinutes: 5,
-      priority: 'high',
-      timeOfDay: 'morning',
-    },
   ],
 
   // PRE-PROCEDURE - needs prep tasks (MRI/Surgery specific)
@@ -142,14 +134,6 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
       name: 'Daily SOAP',
       category: 'Daily',
       estimatedMinutes: 10,
-      priority: 'medium',
-      timeOfDay: 'morning',
-    },
-    {
-      id: 'monitor-owner-call',
-      name: 'Owner Called',
-      category: 'Daily',
-      estimatedMinutes: 5,
       priority: 'medium',
       timeOfDay: 'morning',
     },

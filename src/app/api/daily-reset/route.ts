@@ -9,41 +9,11 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-// Patient-specific daily tasks that should reset each day
-const DAILY_PATIENT_TASKS = {
-  morning: [
-    { name: 'Owner Called', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
-    { name: 'Daily SOAP Done', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
-    { name: 'Overnight Notes Checked', category: 'Daily', timeOfDay: 'morning', priority: 'medium' },
-  ],
-  evening: [
-    { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening', priority: 'high' },
-    { name: 'Rounding Sheet Done', category: 'Daily', timeOfDay: 'evening', priority: 'high' },
-    { name: 'Sticker on Daily Sheet', category: 'Daily', timeOfDay: 'evening', priority: 'medium' },
-  ],
-};
-
-// General team tasks (not patient-specific) that should reset each day
-const DAILY_GENERAL_TASKS = {
-  morning: [
-    { name: 'Check Comms', category: 'General', timeOfDay: 'morning', priority: 'high' },
-    { name: 'Check Emails', category: 'General', timeOfDay: 'morning', priority: 'medium' },
-  ],
-  evening: [
-    { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening', priority: 'high' },
-  ],
-};
-
-const ALL_DAILY_PATIENT_TASK_NAMES = [
-  ...DAILY_PATIENT_TASKS.morning.map(t => t.name),
-  ...DAILY_PATIENT_TASKS.evening.map(t => t.name),
-];
-
-const ALL_DAILY_GENERAL_TASK_NAMES = [
-  ...DAILY_GENERAL_TASKS.morning.map(t => t.name),
-  ...DAILY_GENERAL_TASKS.evening.map(t => t.name),
-];
+import {
+  DAILY_TASKS,
+  ALL_DAILY_PATIENT_TASK_NAMES,
+  ALL_DAILY_GENERAL_TASK_NAMES,
+} from '@/lib/task-definitions';
 
 // Base sticker data for daily reset
 const BASE_STICKER_DATA = {
@@ -86,7 +56,7 @@ export async function POST(request: Request) {
     });
     const existingGeneralTaskTitles = new Set(existingGeneralTasks.map(t => t.title));
 
-    for (const taskTemplate of [...DAILY_GENERAL_TASKS.morning, ...DAILY_GENERAL_TASKS.evening]) {
+    for (const taskTemplate of [...DAILY_TASKS.general.morning, ...DAILY_TASKS.general.evening]) {
       if (!existingGeneralTaskTitles.has(taskTemplate.name)) {
         await prisma.task.create({
           data: {
@@ -157,7 +127,7 @@ export async function POST(request: Request) {
       const existingTasks = patient.tasks || [];
       const existingTaskTitles = new Set(existingTasks.map((t: any) => t.title));
 
-      for (const taskTemplate of [...DAILY_PATIENT_TASKS.morning, ...DAILY_PATIENT_TASKS.evening]) {
+      for (const taskTemplate of [...DAILY_TASKS.patient.morning, ...DAILY_TASKS.patient.evening]) {
         if (!existingTaskTitles.has(taskTemplate.name)) {
           await prisma.task.create({
             data: {
