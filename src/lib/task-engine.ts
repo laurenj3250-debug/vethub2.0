@@ -186,10 +186,10 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
   // DISCHARGING - actively leaving
   'Discharging': [
     {
-      id: 'discharge-final-check',
-      name: 'Final Checkout',
+      id: 'discharge-instructions',
+      name: 'Discharge Instructions',
       category: 'Discharge',
-      estimatedMinutes: 10,
+      estimatedMinutes: 15,
       priority: 'high',
       timeOfDay: 'anytime',
     },
@@ -366,10 +366,10 @@ const MEDICAL_TASKS: TaskTemplate[] = [
 // Discharge Tasks
 const DISCHARGE_TASKS: TaskTemplate[] = [
   {
-    id: 'discharge-final-check',
-    name: 'Final Checkout',
+    id: 'discharge-instructions',
+    name: 'Discharge Instructions',
     category: 'Discharge',
-    estimatedMinutes: 10,
+    estimatedMinutes: 15,
     priority: 'high',
     timeOfDay: 'anytime',
   },
