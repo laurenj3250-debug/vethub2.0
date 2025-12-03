@@ -38,9 +38,9 @@ export const DAILY_TASKS = {
   },
   // General team tasks (not tied to any patient)
   general: {
-    morning: [] as TaskDefinition[],
+    morning: [] as const,
     evening: [
-      { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening', priority: 'high' },
+      { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening' as const, priority: 'high' as const },
     ],
   },
 } as const;
