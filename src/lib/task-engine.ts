@@ -183,37 +183,13 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
     },
   ],
 
-  // DISCHARGING - actively leaving (includes all discharge prep tasks)
+  // DISCHARGING - actively leaving
   'Discharging': [
     {
       id: 'discharge-instructions',
       name: 'Discharge Instructions',
       category: 'Discharge',
       estimatedMinutes: 15,
-      priority: 'high',
-      timeOfDay: 'anytime',
-    },
-    {
-      id: 'discharge-meds',
-      name: 'Discharge Meds Ready',
-      category: 'Discharge',
-      estimatedMinutes: 10,
-      priority: 'high',
-      timeOfDay: 'anytime',
-    },
-    {
-      id: 'discharge-owner-call',
-      name: 'Owner Pickup Call',
-      category: 'Discharge',
-      estimatedMinutes: 5,
-      priority: 'high',
-      timeOfDay: 'anytime',
-    },
-    {
-      id: 'discharge-final-check',
-      name: 'Final Checkout',
-      category: 'Discharge',
-      estimatedMinutes: 10,
       priority: 'high',
       timeOfDay: 'anytime',
     },
@@ -387,37 +363,13 @@ const MEDICAL_TASKS: TaskTemplate[] = [
   },
 ];
 
-// Discharge Tasks - all tasks needed when marking patient as discharging
+// Discharge Tasks
 const DISCHARGE_TASKS: TaskTemplate[] = [
   {
     id: 'discharge-instructions',
     name: 'Discharge Instructions',
     category: 'Discharge',
     estimatedMinutes: 15,
-    priority: 'high',
-    timeOfDay: 'anytime',
-  },
-  {
-    id: 'discharge-meds',
-    name: 'Discharge Meds Ready',
-    category: 'Discharge',
-    estimatedMinutes: 10,
-    priority: 'high',
-    timeOfDay: 'anytime',
-  },
-  {
-    id: 'discharge-owner-call',
-    name: 'Owner Pickup Call',
-    category: 'Discharge',
-    estimatedMinutes: 5,
-    priority: 'high',
-    timeOfDay: 'anytime',
-  },
-  {
-    id: 'discharge-final-check',
-    name: 'Final Checkout',
-    category: 'Discharge',
-    estimatedMinutes: 10,
     priority: 'high',
     timeOfDay: 'anytime',
   },
