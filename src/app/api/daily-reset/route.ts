@@ -10,8 +10,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Daily tasks that should reset each day
-const DAILY_TASKS = {
+// Patient-specific daily tasks that should reset each day
+const DAILY_PATIENT_TASKS = {
   morning: [
     { name: 'Owner Called', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
     { name: 'Daily SOAP Done', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
@@ -24,9 +24,25 @@ const DAILY_TASKS = {
   ],
 };
 
-const ALL_DAILY_TASK_NAMES = [
-  ...DAILY_TASKS.morning.map(t => t.name),
-  ...DAILY_TASKS.evening.map(t => t.name),
+// General team tasks (not patient-specific) that should reset each day
+const DAILY_GENERAL_TASKS = {
+  morning: [
+    { name: 'Check Comms', category: 'General', timeOfDay: 'morning', priority: 'high' },
+    { name: 'Check Emails', category: 'General', timeOfDay: 'morning', priority: 'medium' },
+  ],
+  evening: [
+    { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening', priority: 'high' },
+  ],
+};
+
+const ALL_DAILY_PATIENT_TASK_NAMES = [
+  ...DAILY_PATIENT_TASKS.morning.map(t => t.name),
+  ...DAILY_PATIENT_TASKS.evening.map(t => t.name),
+];
+
+const ALL_DAILY_GENERAL_TASK_NAMES = [
+  ...DAILY_GENERAL_TASKS.morning.map(t => t.name),
+  ...DAILY_GENERAL_TASKS.evening.map(t => t.name),
 ];
 
 // Base sticker data for daily reset
@@ -44,7 +60,51 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const forceReset = body.force === true; // Allow manual force reset for testing
 
-    // Get all active (non-discharged) patients
+    let stickersReset = 0;
+    let tasksDeleted = 0;
+    let tasksCreated = 0;
+    let generalTasksCreated = 0;
+
+    // ========================================
+    // 1. DELETE ALL COMPLETED TASKS (clean slate for new day)
+    // ========================================
+    const deletedTasks = await prisma.task.deleteMany({
+      where: {
+        completed: true,
+      },
+    });
+    tasksDeleted = deletedTasks.count;
+
+    // ========================================
+    // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
+    // ========================================
+    const existingGeneralTasks = await prisma.task.findMany({
+      where: {
+        patientId: null,
+        title: { in: ALL_DAILY_GENERAL_TASK_NAMES },
+      },
+    });
+    const existingGeneralTaskTitles = new Set(existingGeneralTasks.map(t => t.title));
+
+    for (const taskTemplate of [...DAILY_GENERAL_TASKS.morning, ...DAILY_GENERAL_TASKS.evening]) {
+      if (!existingGeneralTaskTitles.has(taskTemplate.name)) {
+        await prisma.task.create({
+          data: {
+            patientId: null, // General task - not tied to any patient
+            title: taskTemplate.name,
+            category: taskTemplate.category,
+            timeOfDay: taskTemplate.timeOfDay,
+            priority: taskTemplate.priority,
+            completed: false,
+          },
+        });
+        generalTasksCreated++;
+      }
+    }
+
+    // ========================================
+    // 3. PROCESS ACTIVE PATIENTS
+    // ========================================
     const activePatients = await prisma.patient.findMany({
       where: {
         status: {
@@ -57,20 +117,17 @@ export async function POST(request: Request) {
     });
 
     if (activePatients.length === 0) {
+      console.log(`[Daily Reset] No active patients. Deleted ${tasksDeleted} completed tasks, created ${generalTasksCreated} general tasks.`);
       return NextResponse.json({
         success: true,
-        message: 'No active patients to reset',
-        stats: { patientsUpdated: 0, stickersReset: 0, tasksReset: 0, tasksCreated: 0 },
+        message: 'Daily reset complete (no active patients)',
+        stats: { patientsUpdated: 0, stickersReset: 0, tasksDeleted, tasksCreated: 0, generalTasksCreated },
       });
     }
 
-    let stickersReset = 0;
-    let tasksReset = 0;
-    let tasksCreated = 0;
-
     // Process each patient
     for (const patient of activePatients) {
-      // 1. Reset sticker data
+      // 3a. Reset sticker data
       const currentStickerData = (patient.stickerData as any) || {};
       const needsStickerReset =
         currentStickerData.bigLabelCount !== BASE_STICKER_DATA.bigLabelCount ||
@@ -96,27 +153,12 @@ export async function POST(request: Request) {
         stickersReset++;
       }
 
-      // 2. Reset/create daily tasks
+      // 3b. Create daily patient tasks (completed ones were already deleted above)
       const existingTasks = patient.tasks || [];
       const existingTaskTitles = new Set(existingTasks.map((t: any) => t.title));
 
-      for (const taskTemplate of [...DAILY_TASKS.morning, ...DAILY_TASKS.evening]) {
-        const existingTask = existingTasks.find((t: any) => t.title === taskTemplate.name);
-
-        if (existingTask) {
-          // Task exists - reset to uncompleted if it was completed
-          if (existingTask.completed) {
-            await prisma.task.update({
-              where: { id: existingTask.id },
-              data: {
-                completed: false,
-                completedAt: null,
-              },
-            });
-            tasksReset++;
-          }
-        } else {
-          // Task doesn't exist - create it
+      for (const taskTemplate of [...DAILY_PATIENT_TASKS.morning, ...DAILY_PATIENT_TASKS.evening]) {
+        if (!existingTaskTitles.has(taskTemplate.name)) {
           await prisma.task.create({
             data: {
               patientId: patient.id,
@@ -132,7 +174,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksReset} tasks reset, ${tasksCreated} tasks created`);
+    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
 
     return NextResponse.json({
       success: true,
@@ -140,8 +182,9 @@ export async function POST(request: Request) {
       stats: {
         patientsUpdated: activePatients.length,
         stickersReset,
-        tasksReset,
+        tasksDeleted,
         tasksCreated,
+        generalTasksCreated,
       },
     });
   } catch (error) {
@@ -156,6 +199,20 @@ export async function POST(request: Request) {
 // GET endpoint to check reset status (for debugging)
 export async function GET() {
   try {
+    // Get general tasks
+    const generalTasks = await prisma.task.findMany({
+      where: {
+        patientId: null,
+        title: { in: ALL_DAILY_GENERAL_TASK_NAMES },
+      },
+      select: {
+        title: true,
+        completed: true,
+        timeOfDay: true,
+      },
+    });
+
+    // Get patient tasks
     const activePatients = await prisma.patient.findMany({
       where: {
         status: { not: 'Discharged' },
@@ -166,7 +223,7 @@ export async function GET() {
         stickerData: true,
         tasks: {
           where: {
-            title: { in: ALL_DAILY_TASK_NAMES },
+            title: { in: ALL_DAILY_PATIENT_TASK_NAMES },
           },
           select: {
             title: true,
@@ -176,7 +233,7 @@ export async function GET() {
       },
     });
 
-    const summary = activePatients.map(p => {
+    const patientSummary = activePatients.map(p => {
       const stickerData = (p.stickerData as any) || {};
       const demographics = (p.demographics as any) || {};
       return {
@@ -195,8 +252,13 @@ export async function GET() {
     });
 
     return NextResponse.json({
+      generalTasks: generalTasks.map(t => ({
+        name: t.title,
+        completed: t.completed,
+        timeOfDay: t.timeOfDay,
+      })),
       activePatientCount: activePatients.length,
-      patients: summary,
+      patients: patientSummary,
     });
   } catch (error) {
     return NextResponse.json(
