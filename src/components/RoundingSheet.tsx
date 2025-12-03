@@ -29,11 +29,14 @@ interface RoundingSheetProps {
 }
 
 // Multi-select dropdown for Problems field - uses database-backed options
+// Now supports direct typing in the field (not just dropdown selection)
 function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
+  const [directInput, setDirectInput] = useState(''); // For typing directly in the field
   const [isAdding, setIsAdding] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { options, addOption, deleteOption, resetToDefaults, isLoading } = useProblemOptions();
 
   // Parse comma-separated value into array
@@ -62,31 +65,56 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
     onChange(selectedItems.filter(i => i !== item).join(', '));
   };
 
+  // Add a problem from any input (dropdown or direct)
+  const addProblem = async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    // Check if it matches an existing option (case-insensitive)
+    const matchingOption = options.find(opt =>
+      opt.label.toLowerCase() === trimmed.toLowerCase()
+    );
+
+    const labelToAdd = matchingOption ? matchingOption.label : trimmed;
+
+    // Already selected? Do nothing
+    if (selectedItems.includes(labelToAdd)) return;
+
+    // If not in options, add it
+    if (!matchingOption) {
+      try {
+        await addOption(trimmed);
+      } catch (e: any) {
+        // Already exists is fine
+        if (!e.message?.includes('already exists')) {
+          console.error('Failed to add problem option:', e);
+        }
+      }
+    }
+
+    // Add to selection
+    onChange([...selectedItems, labelToAdd].join(', '));
+  };
+
   const handleAddCustom = async () => {
     const trimmed = customInput.trim();
     if (!trimmed) return;
 
     setIsAdding(true);
-    try {
-      // Add to database (hook handles optimistic update)
-      await addOption(trimmed);
-      // Add to selected items for this patient
-      if (!selectedItems.includes(trimmed)) {
-        onChange([...selectedItems, trimmed].join(', '));
-      }
-      setCustomInput('');
-    } catch (e: any) {
-      // If it already exists, just add to selection
-      if (e.message?.includes('already exists')) {
-        if (!selectedItems.includes(trimmed)) {
-          onChange([...selectedItems, trimmed].join(', '));
-        }
-        setCustomInput('');
-      }
-      console.error('Failed to add problem option:', e);
-    } finally {
-      setIsAdding(false);
-    }
+    await addProblem(trimmed);
+    setCustomInput('');
+    setIsAdding(false);
+  };
+
+  // Handle direct input in the main field
+  const handleDirectInputSubmit = async () => {
+    const trimmed = directInput.trim();
+    if (!trimmed) return;
+
+    setIsAdding(true);
+    await addProblem(trimmed);
+    setDirectInput('');
+    setIsAdding(false);
   };
 
   const handleDeleteOption = async (optionId: string, e: React.MouseEvent) => {
@@ -147,30 +175,53 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
   return (
     <div ref={dropdownRef} className="relative">
       <div
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          // Don't toggle dropdown if clicking on the input
+          if ((e.target as HTMLElement).tagName !== 'INPUT') {
+            setIsOpen(!isOpen);
+          }
+        }}
         onPaste={handlePaste}
         tabIndex={0}
         className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs bg-gray-50 cursor-pointer min-h-[26px] flex items-center justify-between gap-1 focus:outline-none focus:ring-1 focus:ring-[#6BB89D]"
         style={{ border: '1px solid #ccc' }}
       >
-        <div className="flex-1 flex flex-wrap gap-0.5 overflow-hidden">
-          {selectedItems.length === 0 ? (
-            <span className="text-gray-400">-</span>
-          ) : (
-            selectedItems.map(item => (
-              <span
-                key={item}
-                className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-medium"
-              >
-                {item}
-                <X
-                  size={10}
-                  className="cursor-pointer hover:text-purple-600"
-                  onClick={(e) => removeItem(item, e)}
-                />
-              </span>
-            ))
-          )}
+        <div className="flex-1 flex flex-wrap gap-0.5 items-center overflow-hidden">
+          {selectedItems.map(item => (
+            <span
+              key={item}
+              className="inline-flex items-center gap-0.5 px-1 py-0.5 bg-purple-100 text-purple-800 rounded text-[10px] font-medium"
+            >
+              {item}
+              <X
+                size={10}
+                className="cursor-pointer hover:text-purple-600"
+                onClick={(e) => removeItem(item, e)}
+              />
+            </span>
+          ))}
+          {/* Inline input for typing directly */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={directInput}
+            onChange={(e) => setDirectInput(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleDirectInputSubmit();
+              }
+              if (e.key === 'Escape') {
+                setDirectInput('');
+                inputRef.current?.blur();
+              }
+            }}
+            onClick={(e) => e.stopPropagation()}
+            placeholder={selectedItems.length === 0 ? "Type or click ▼" : ""}
+            className="flex-1 min-w-[60px] bg-transparent border-none outline-none text-xs placeholder-gray-400"
+            disabled={isAdding}
+          />
         </div>
         <ChevronDown size={12} className={`text-gray-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </div>
@@ -591,12 +642,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           i++;
           continue;
         }
-        // Inside quotes - handle newlines by converting to space
-        if (char === '\n') {
-          currentValue += ' ';
-        } else {
-          currentValue += char;
-        }
+        // Inside quotes - preserve newlines for multi-line medication lists
+        currentValue += char;
         i++;
       } else {
         if (char === '"' && currentValue === '') {
@@ -630,6 +677,57 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     return values;
   };
 
+  /**
+   * Parse TSV data into rows, respecting quoted fields that may contain newlines.
+   * Google Sheets wraps cells containing newlines in double quotes.
+   *
+   * Example input: 'Toby\tICU\t"Med1\nMed2"\nJane\tIP\tMed3'
+   * Returns: ['Toby\tICU\t"Med1\nMed2"', 'Jane\tIP\tMed3']
+   */
+  const parseTSVRows = (text: string): string[] => {
+    const rows: string[] = [];
+    let currentRow = '';
+    let inQuotes = false;
+    let i = 0;
+
+    const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    while (i < normalized.length) {
+      const char = normalized[i];
+
+      if (char === '"') {
+        // Check for escaped quote (double quote "")
+        if (inQuotes && i + 1 < normalized.length && normalized[i + 1] === '"') {
+          // Escaped quote - add both and skip
+          currentRow += '""';
+          i += 2;
+          continue;
+        }
+        // Toggle quote state
+        inQuotes = !inQuotes;
+        currentRow += char;
+        i++;
+      } else if (char === '\n' && !inQuotes) {
+        // End of row (only when not inside quotes)
+        if (currentRow.trim()) {
+          rows.push(currentRow);
+        }
+        currentRow = '';
+        i++;
+      } else {
+        currentRow += char;
+        i++;
+      }
+    }
+
+    // Don't forget the last row
+    if (currentRow.trim()) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  };
+
   // Multi-row paste: parses multiple lines and shows preview modal
   // Must be defined BEFORE handleRowPaste since it's referenced there
   const handleMultiRowPaste = useCallback((
@@ -637,7 +735,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     startPatientId: number,
     startField: keyof RoundingData
   ) => {
-    const rows = pasteData.split('\n').filter(row => row.trim());
+    // Use parseTSVRows to respect quoted fields with internal newlines (like medications)
+    const rows = parseTSVRows(pasteData);
 
     // If only one row, use existing single-row paste
     if (rows.length === 1) {
@@ -657,7 +756,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     // Parse all rows and create preview data
     const previewData = rows.map((row, rowIdx) => {
-      const values = row.split('\t');
+      // Use parseTSVRow to properly handle quoted fields with tabs/newlines
+      const values = parseTSVRow(row);
       const patientIdx = startPatientIdx + rowIdx;
       const patient = activePatientsList[patientIdx];
 
@@ -693,8 +793,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const pasteData = e.clipboardData.getData('text');
     if (!pasteData.trim()) return;
 
-    // Check for multi-row paste (multiple lines)
-    const lines = pasteData.split('\n').filter(line => line.trim());
+    // Check for multi-row paste using parseTSVRows (respects quoted fields with newlines)
+    const lines = parseTSVRows(pasteData);
     if (lines.length > 1) {
       // Multi-row paste - show preview modal
       e.preventDefault();
