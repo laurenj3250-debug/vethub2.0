@@ -1929,7 +1929,6 @@ export default function VetHub() {
 
   useEffect(() => {
     const autoResetDaily = async () => {
-      if (!patients || patients.length === 0) return;
       if (hasRunDailyReset.current) return; // Prevent duplicate runs
 
       const today = new Date().toISOString().split('T')[0];
@@ -1948,16 +1947,18 @@ export default function VetHub() {
         localStorage.setItem('lastDailyReset', today);
         hasRunDailyReset.current = true;
 
-        // Refetch to get updated data
+        // Refetch to get updated data (both patients and general tasks)
         refetch();
+        refetchGeneralTasks();
 
         // Show notification if anything was updated
         const { stats } = result;
-        if (stats.stickersReset > 0 || stats.tasksReset > 0 || stats.tasksCreated > 0) {
+        if (stats.stickersReset > 0 || stats.tasksDeleted > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
           const messages = [];
-          if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset to 2`);
-          if (stats.tasksReset > 0) messages.push(`${stats.tasksReset} tasks reset`);
-          if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} daily tasks added`);
+          if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset`);
+          if (stats.tasksDeleted > 0) messages.push(`${stats.tasksDeleted} completed tasks cleared`);
+          if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} patient tasks added`);
+          if (stats.generalTasksCreated > 0) messages.push(`${stats.generalTasksCreated} general tasks added`);
 
           toast({
             title: `🌅 New Day!`,
@@ -1972,18 +1973,25 @@ export default function VetHub() {
     };
 
     autoResetDaily();
-  }, [patients.length]); // Run when patients are loaded
+  }, [mounted]); // Run on mount (general tasks don't need patients)
 
   // Manual daily reset handler (for Tools menu)
   const handleManualDailyReset = async () => {
     try {
       const result = await triggerDailyReset(true); // force=true
       refetch();
+      refetchGeneralTasks();
 
       const { stats } = result;
+      const messages = [];
+      if (stats.tasksDeleted > 0) messages.push(`${stats.tasksDeleted} completed cleared`);
+      if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset`);
+      if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} patient tasks`);
+      if (stats.generalTasksCreated > 0) messages.push(`${stats.generalTasksCreated} general tasks`);
+
       toast({
         title: '🔄 Daily Reset Complete',
-        description: `${stats.patientsUpdated} patients: ${stats.stickersReset} stickers reset, ${stats.tasksReset} tasks reset, ${stats.tasksCreated} tasks created`,
+        description: messages.length > 0 ? messages.join(' • ') : 'All up to date',
       });
     } catch (error) {
       toast({
