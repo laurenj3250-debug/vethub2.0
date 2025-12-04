@@ -29,6 +29,7 @@ export const DAILY_TASKS = {
     morning: [
       { name: 'Daily SOAP Done', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
       { name: 'Overnight Notes Checked', category: 'Daily', timeOfDay: 'morning', priority: 'medium' },
+      { name: 'Call Owner', category: 'Daily', timeOfDay: 'morning', priority: 'high' },
     ],
     evening: [
       { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening', priority: 'high' },
