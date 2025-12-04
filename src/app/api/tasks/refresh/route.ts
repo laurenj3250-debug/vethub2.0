@@ -5,6 +5,7 @@ import {
   getTodayDateString,
   TASK_TEMPLATES_BY_PATIENT_TYPE,
 } from '@/lib/task-engine';
+import { DAILY_TASKS } from '@/lib/task-definitions';
 
 /**
  * POST /api/tasks/refresh
@@ -41,12 +42,34 @@ export async function POST() {
       const existingTaskTitles = new Set(existingIncompleteTasks.map(t => t.title));
 
       // Generate expected tasks based on current status
-      const expectedTasks = generateDailyTasksForPatient({
+      const statusBasedTasks = generateDailyTasksForPatient({
         id: patient.id,
         status: patientStatus,
         type: patientType,
         demographics: patient.demographics as { name?: string } | null,
       });
+
+      // Also include daily recurring tasks (Call Owner, Daily SOAP Done, etc.)
+      const dailyRecurringTasks = [
+        ...DAILY_TASKS.patient.morning,
+        ...DAILY_TASKS.patient.evening,
+      ].map(t => ({
+        title: t.name,
+        category: t.category,
+        timeOfDay: t.timeOfDay,
+        priority: t.priority,
+      }));
+
+      // Combine both task sources (deduplicate by title)
+      const allExpectedTitles = new Set<string>();
+      const expectedTasks: { title: string; category: string; timeOfDay: string; priority: string }[] = [];
+
+      for (const task of [...statusBasedTasks, ...dailyRecurringTasks]) {
+        if (!allExpectedTitles.has(task.title)) {
+          allExpectedTitles.add(task.title);
+          expectedTasks.push(task);
+        }
+      }
 
       // Check for status change - if discharging, clear non-discharge tasks
       if (patientStatus === 'Discharging') {
