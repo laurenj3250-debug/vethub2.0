@@ -24,8 +24,8 @@ import { calculateStickerCounts } from '@/lib/sticker-calculator';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
-  const { patients, isLoading: patientsLoading, refetch } = usePatients();
-  const { tasks: generalTasks, refetch: refetchGeneralTasks } = useGeneralTasks();
+  const { patients, setPatients, isLoading: patientsLoading, refetch } = usePatients();
+  const { tasks: generalTasks, setTasks: setGeneralTasks, refetch: refetchGeneralTasks } = useGeneralTasks();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
@@ -589,10 +589,35 @@ export default function VetHub() {
   };
 
   const handleToggleTask = async (patientId: number, taskId: number, currentStatus: boolean) => {
+    // Optimistic update: update local state immediately to prevent reordering
+    const newStatus = !currentStatus;
+    setPatients(prev => prev.map(p =>
+      p.id === patientId
+        ? {
+            ...p,
+            tasks: (p.tasks || []).map((t: any) =>
+              t.id === taskId ? { ...t, completed: newStatus } : t
+            ),
+          }
+        : p
+    ));
+
     try {
-      await apiClient.updateTask(String(patientId), String(taskId), { completed: !currentStatus });
-      refetch();
+      await apiClient.updateTask(String(patientId), String(taskId), { completed: newStatus });
+      // Success - no refetch needed, local state is already updated
     } catch (error: any) {
+      // Rollback optimistic update on error
+      setPatients(prev => prev.map(p =>
+        p.id === patientId
+          ? {
+              ...p,
+              tasks: (p.tasks || []).map((t: any) =>
+                t.id === taskId ? { ...t, completed: currentStatus } : t
+              ),
+            }
+          : p
+      ));
+
       // Find patient and task for detailed error message
       const patient = patients.find(p => p.id === patientId);
       const task = patient?.tasks?.find((t: any) => t.id === taskId);
@@ -1234,10 +1259,20 @@ export default function VetHub() {
   };
 
   const handleToggleGeneralTask = async (taskId: number, currentStatus: boolean) => {
+    // Optimistic update: update local state immediately to prevent reordering
+    const newStatus = !currentStatus;
+    setGeneralTasks(prev => prev.map(t =>
+      t.id === taskId ? { ...t, completed: newStatus } : t
+    ));
+
     try {
-      await apiClient.updateGeneralTask(String(taskId), { completed: !currentStatus });
-      refetchGeneralTasks();
+      await apiClient.updateGeneralTask(String(taskId), { completed: newStatus });
+      // Success - no refetch needed, local state is already updated
     } catch (error) {
+      // Rollback optimistic update on error
+      setGeneralTasks(prev => prev.map(t =>
+        t.id === taskId ? { ...t, completed: currentStatus } : t
+      ));
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
     }
   };

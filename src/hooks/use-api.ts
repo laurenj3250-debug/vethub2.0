@@ -107,7 +107,7 @@ export function usePatients() {
     };
   }, []);
 
-  return { patients, isLoading, error, refetch: () => fetchPatients(true) };
+  return { patients, setPatients, isLoading, error, refetch: () => fetchPatients(true) };
 }
 
 export function useGeneralTasks() {
@@ -156,7 +156,7 @@ export function useGeneralTasks() {
     };
   }, []);
 
-  return { tasks, isLoading, error, refetch: fetchTasks };
+  return { tasks, setTasks, isLoading, error, refetch: fetchTasks };
 }
 
 export function useCommonItems() {
