@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getTodayET } from '@/lib/timezone';
+import { getStatusTriggeredTasks } from '@/lib/task-config';
 
 /**
  * GET /api/patients/[id]
@@ -121,10 +123,10 @@ export async function PATCH(
 
     const body = await request.json();
 
-    // Get existing patient data to merge JSON fields properly
+    // Get existing patient data to merge JSON fields properly AND track status changes
     const existingPatient = await prisma.patient.findUnique({
       where: { id: patientId },
-      select: { roundingData: true, mriData: true },
+      select: { status: true, type: true, roundingData: true, mriData: true },
     });
 
     // Prepare update data
@@ -170,6 +172,62 @@ export async function PATCH(
         },
       },
     });
+
+    // ========================================
+    // STATUS CHANGE HOOK: Auto-create tasks when status changes
+    // ========================================
+    const oldStatus = existingPatient?.status;
+    const newStatus = body.status;
+
+    if (newStatus && oldStatus !== newStatus) {
+      console.log(`[Patient ${patientId}] Status changed: ${oldStatus} -> ${newStatus}`);
+
+      // Get tasks for the new status
+      const statusTasks = getStatusTriggeredTasks(newStatus);
+      const today = getTodayET();
+
+      // Get existing incomplete task titles for this patient
+      const existingIncompleteTasks = patient.tasks.filter((t: any) => !t.completed);
+      const existingTaskTitles = new Set(existingIncompleteTasks.map((t: any) => t.title));
+
+      let tasksCreated = 0;
+      for (const taskDef of statusTasks) {
+        // Don't create duplicate tasks
+        if (!existingTaskTitles.has(taskDef.name)) {
+          await prisma.task.create({
+            data: {
+              patientId: patientId,
+              title: taskDef.name,
+              category: taskDef.category,
+              priority: taskDef.priority,
+              timeOfDay: taskDef.timeOfDay || null,
+              completed: false,
+            },
+          });
+          tasksCreated++;
+        }
+      }
+
+      if (tasksCreated > 0) {
+        console.log(`[Patient ${patientId}] Created ${tasksCreated} tasks for status: ${newStatus}`);
+      }
+
+      // If patient is Discharged, auto-complete all incomplete tasks
+      if (newStatus === 'Discharged') {
+        const autoCompleteResult = await prisma.task.updateMany({
+          where: {
+            patientId: patientId,
+            completed: false,
+          },
+          data: {
+            completed: true,
+            completedAt: new Date(),
+            completedDate: today,
+          },
+        });
+        console.log(`[Patient ${patientId}] Auto-completed ${autoCompleteResult.count} tasks on discharge`);
+      }
+    }
 
     // Transform to UnifiedPatient format
     const transformedPatient = {

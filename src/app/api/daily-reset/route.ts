@@ -11,10 +11,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTodayET } from '@/lib/timezone';
 import {
-  DAILY_TASKS,
-  ALL_DAILY_PATIENT_TASK_NAMES,
-  ALL_DAILY_GENERAL_TASK_NAMES,
-} from '@/lib/task-definitions';
+  TASK_CONFIG,
+  DAILY_PATIENT_TASK_NAMES,
+  DAILY_GENERAL_TASK_NAMES,
+  shouldGetDailyTasks,
+} from '@/lib/task-config';
 
 // Base sticker data for daily reset
 const BASE_STICKER_DATA = {
@@ -51,12 +52,13 @@ export async function POST(request: Request) {
     const existingGeneralTasks = await prisma.task.findMany({
       where: {
         patientId: null,
-        title: { in: ALL_DAILY_GENERAL_TASK_NAMES },
+        title: { in: DAILY_GENERAL_TASK_NAMES },
+        completed: false, // Only check incomplete tasks
       },
     });
     const existingGeneralTaskTitles = new Set(existingGeneralTasks.map(t => t.title));
 
-    for (const taskTemplate of [...DAILY_TASKS.general.morning, ...DAILY_TASKS.general.evening]) {
+    for (const taskTemplate of TASK_CONFIG.dailyRecurring.general) {
       if (!existingGeneralTaskTitles.has(taskTemplate.name)) {
         await prisma.task.create({
           data: {
@@ -74,11 +76,12 @@ export async function POST(request: Request) {
 
     // ========================================
     // 3. PROCESS ACTIVE PATIENTS
+    // Only patients NOT in excludeStatuses get daily tasks
     // ========================================
     const activePatients = await prisma.patient.findMany({
       where: {
         status: {
-          not: 'Discharged',
+          notIn: TASK_CONFIG.dailyRecurring.excludeStatuses,
         },
       },
       include: {
@@ -124,12 +127,14 @@ export async function POST(request: Request) {
         stickersReset++;
       }
 
-      // 3b. Create daily patient tasks (completed ones were already deleted above)
+      // 3b. Create daily patient tasks (only if not already exists as incomplete)
       const existingTasks = patient.tasks || [];
-      const existingTaskTitles = new Set(existingTasks.map((t: any) => t.title));
+      const existingIncompleteTaskTitles = new Set(
+        existingTasks.filter((t: any) => !t.completed).map((t: any) => t.title)
+      );
 
-      for (const taskTemplate of [...DAILY_TASKS.patient.morning, ...DAILY_TASKS.patient.evening]) {
-        if (!existingTaskTitles.has(taskTemplate.name)) {
+      for (const taskTemplate of TASK_CONFIG.dailyRecurring.patient) {
+        if (!existingIncompleteTaskTitles.has(taskTemplate.name)) {
           await prisma.task.create({
             data: {
               patientId: patient.id,
@@ -175,7 +180,7 @@ export async function GET() {
     const generalTasks = await prisma.task.findMany({
       where: {
         patientId: null,
-        title: { in: ALL_DAILY_GENERAL_TASK_NAMES },
+        title: { in: DAILY_GENERAL_TASK_NAMES },
       },
       select: {
         title: true,
@@ -184,18 +189,19 @@ export async function GET() {
       },
     });
 
-    // Get patient tasks
+    // Get patient tasks - only patients eligible for daily tasks
     const activePatients = await prisma.patient.findMany({
       where: {
-        status: { not: 'Discharged' },
+        status: { notIn: TASK_CONFIG.dailyRecurring.excludeStatuses },
       },
       select: {
         id: true,
+        status: true,
         demographics: true,
         stickerData: true,
         tasks: {
           where: {
-            title: { in: ALL_DAILY_PATIENT_TASK_NAMES },
+            title: { in: DAILY_PATIENT_TASK_NAMES },
           },
           select: {
             title: true,
@@ -211,6 +217,7 @@ export async function GET() {
       return {
         id: p.id,
         name: demographics.name || 'Unknown',
+        status: p.status,
         stickers: {
           bigLabelCount: stickerData.bigLabelCount ?? 'not set',
           tinySheetCount: stickerData.tinySheetCount ?? 'not set',
