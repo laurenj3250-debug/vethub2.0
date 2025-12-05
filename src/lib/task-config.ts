@@ -78,10 +78,10 @@ export const TASK_CONFIG = {
    */
   typeSpecific: {
     'MRI': [
-      { name: 'MRI Anesthesia Sheet', category: 'Pre-procedure', priority: 'high' as TaskPriority },
-      { name: 'Black Book', category: 'Admin', priority: 'medium' as TaskPriority },
-      { name: 'Print 5 Stickers', category: 'Admin', priority: 'medium' as TaskPriority },
-      { name: 'Print 1 Sheet Small Stickers', category: 'Admin', priority: 'low' as TaskPriority },
+      { name: 'MRI Anesthesia Sheet', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Black Book', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
+      { name: 'Print 5 Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
+      { name: 'Print 1 Sheet Small Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'low' as TaskPriority },
     ],
     'Surgery': [
       { name: 'Surgery Slip', category: 'Surgery Prep', priority: 'high' as TaskPriority },
