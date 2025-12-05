@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getTodayET } from '@/lib/timezone';
 import {
   DAILY_TASKS,
   ALL_DAILY_PATIENT_TASK_NAMES,
@@ -29,21 +30,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const forceReset = body.force === true; // Allow manual force reset for testing
+    const today = getTodayET(); // Use Eastern Time
 
     let stickersReset = 0;
-    let tasksDeleted = 0;
+    let tasksCarriedOver = 0;
     let tasksCreated = 0;
     let generalTasksCreated = 0;
 
     // ========================================
-    // 1. DELETE ALL COMPLETED TASKS (clean slate for new day)
+    // 1. MARK INCOMPLETE TASKS AS CARRIED OVER (don't delete!)
+    // Tasks from previous days that weren't completed carry over
     // ========================================
-    const deletedTasks = await prisma.task.deleteMany({
-      where: {
-        completed: true,
-      },
-    });
-    tasksDeleted = deletedTasks.count;
+    // Note: We don't delete completed tasks anymore - they're kept for history
+    // Old incomplete daily tasks will just remain and new ones won't be created
+    // if they already exist (checked below)
 
     // ========================================
     // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
@@ -87,11 +87,12 @@ export async function POST(request: Request) {
     });
 
     if (activePatients.length === 0) {
-      console.log(`[Daily Reset] No active patients. Deleted ${tasksDeleted} completed tasks, created ${generalTasksCreated} general tasks.`);
+      console.log(`[Daily Reset] No active patients. Created ${generalTasksCreated} general tasks.`);
       return NextResponse.json({
         success: true,
         message: 'Daily reset complete (no active patients)',
-        stats: { patientsUpdated: 0, stickersReset: 0, tasksDeleted, tasksCreated: 0, generalTasksCreated },
+        resetDate: today,
+        stats: { patientsUpdated: 0, stickersReset: 0, tasksCarriedOver, tasksCreated: 0, generalTasksCreated },
       });
     }
 
@@ -144,15 +145,16 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
+    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created (tasks are now preserved, not deleted)`);
 
     return NextResponse.json({
       success: true,
       message: `Daily reset complete for ${activePatients.length} patients`,
+      resetDate: today,
       stats: {
         patientsUpdated: activePatients.length,
         stickersReset,
-        tasksDeleted,
+        tasksCarriedOver,
         tasksCreated,
         generalTasksCreated,
       },

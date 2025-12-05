@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getTodayET } from '@/lib/timezone';
 import {
   generateDailyTasksForPatient,
-  getTodayDateString,
   TASK_TEMPLATES_BY_PATIENT_TYPE,
 } from '@/lib/task-engine';
 
@@ -16,7 +16,7 @@ import {
  */
 export async function POST() {
   try {
-    const today = getTodayDateString();
+    const today = getTodayET();
 
     // Get all active patients (not discharged)
     const patients = await prisma.patient.findMany({

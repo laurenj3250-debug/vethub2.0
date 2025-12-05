@@ -2039,10 +2039,13 @@ export default function VetHub() {
     const autoResetDaily = async () => {
       if (hasRunDailyReset.current) return; // Prevent duplicate runs
 
-      const today = new Date().toISOString().split('T')[0];
+      // Use Eastern Time for date check (not UTC!)
+      const today = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'America/New_York',
+      });
       const lastCheck = localStorage.getItem('lastDailyReset');
 
-      // Only run if it's a new day
+      // Only run if it's a new day in Eastern Time
       if (lastCheck === today) {
         hasRunDailyReset.current = true;
         return;
@@ -2051,7 +2054,7 @@ export default function VetHub() {
       try {
         const result = await triggerDailyReset();
 
-        // Mark today as checked
+        // Mark today as checked (in ET)
         localStorage.setItem('lastDailyReset', today);
         hasRunDailyReset.current = true;
 
@@ -2061,12 +2064,12 @@ export default function VetHub() {
 
         // Show notification if anything was updated
         const { stats } = result;
-        if (stats.stickersReset > 0 || stats.tasksDeleted > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
+        if (stats.stickersReset > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
           const messages = [];
           if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset`);
-          if (stats.tasksDeleted > 0) messages.push(`${stats.tasksDeleted} completed tasks cleared`);
           if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} patient tasks added`);
           if (stats.generalTasksCreated > 0) messages.push(`${stats.generalTasksCreated} general tasks added`);
+          if (stats.tasksCarriedOver > 0) messages.push(`${stats.tasksCarriedOver} tasks carried over`);
 
           toast({
             title: `🌅 New Day!`,

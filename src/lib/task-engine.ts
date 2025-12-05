@@ -542,10 +542,14 @@ export function batchCompleteTasks(
 // ============================================================================
 
 /**
- * Get today's date in YYYY-MM-DD format
+ * Get today's date in YYYY-MM-DD format in Eastern Time
+ * @deprecated Use getTodayET() from @/lib/timezone instead
  */
 export function getTodayDateString(): string {
-  return new Date().toISOString().split('T')[0];
+  // Use Eastern Time instead of UTC
+  return new Date().toLocaleDateString('en-CA', {
+    timeZone: 'America/New_York',
+  });
 }
 
 /**

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getTodayET } from '@/lib/timezone';
 
 /**
  * GET /api/tasks/general
@@ -96,8 +97,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Get today's date in YYYY-MM-DD format for daily task tracking
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in YYYY-MM-DD format in Eastern Time
+    const today = getTodayET();
 
     const updatedTask = await prisma.task.update({
       where: { id: body.id },
