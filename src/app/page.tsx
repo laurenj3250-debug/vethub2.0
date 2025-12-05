@@ -2064,12 +2064,12 @@ export default function VetHub() {
 
         // Show notification if anything was updated
         const { stats } = result;
-        if (stats.stickersReset > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
+        if (stats.stickersReset > 0 || stats.tasksDeleted > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
           const messages = [];
           if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset`);
+          if (stats.tasksDeleted > 0) messages.push(`${stats.tasksDeleted} completed tasks cleared`);
           if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} patient tasks added`);
           if (stats.generalTasksCreated > 0) messages.push(`${stats.generalTasksCreated} general tasks added`);
-          if (stats.tasksCarriedOver > 0) messages.push(`${stats.tasksCarriedOver} tasks carried over`);
 
           toast({
             title: `🌅 New Day!`,

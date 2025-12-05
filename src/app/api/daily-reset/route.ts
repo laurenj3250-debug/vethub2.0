@@ -34,17 +34,19 @@ export async function POST(request: Request) {
     const today = getTodayET(); // Use Eastern Time
 
     let stickersReset = 0;
-    let tasksCarriedOver = 0;
+    let tasksDeleted = 0;
     let tasksCreated = 0;
     let generalTasksCreated = 0;
 
     // ========================================
-    // 1. MARK INCOMPLETE TASKS AS CARRIED OVER (don't delete!)
-    // Tasks from previous days that weren't completed carry over
+    // 1. DELETE COMPLETED TASKS (clean slate for new day)
     // ========================================
-    // Note: We don't delete completed tasks anymore - they're kept for history
-    // Old incomplete daily tasks will just remain and new ones won't be created
-    // if they already exist (checked below)
+    const deletedTasks = await prisma.task.deleteMany({
+      where: {
+        completed: true,
+      },
+    });
+    tasksDeleted = deletedTasks.count;
 
     // ========================================
     // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
         success: true,
         message: 'Daily reset complete (no active patients)',
         resetDate: today,
-        stats: { patientsUpdated: 0, stickersReset: 0, tasksCarriedOver, tasksCreated: 0, generalTasksCreated },
+        stats: { patientsUpdated: 0, stickersReset: 0, tasksDeleted, tasksCreated: 0, generalTasksCreated },
       });
     }
 
@@ -150,7 +152,7 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created (tasks are now preserved, not deleted)`);
+    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} completed tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
 
     return NextResponse.json({
       success: true,
@@ -159,7 +161,7 @@ export async function POST(request: Request) {
       stats: {
         patientsUpdated: activePatients.length,
         stickersReset,
-        tasksCarriedOver,
+        tasksDeleted,
         tasksCreated,
         generalTasksCreated,
       },
