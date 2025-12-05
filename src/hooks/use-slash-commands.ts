@@ -20,7 +20,7 @@ const STORAGE_KEY = 'vethub-slash-commands';
 const fieldMapping: Record<string, string> = {
   therapeutics: 'therapeutics',
   diagnostics: 'diagnosticFindings',
-  concerns: 'concerns',
+  concerns: 'comments', // O/N concerns commands go to Comments field
   problems: 'problems',
 };
 
