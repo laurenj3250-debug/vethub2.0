@@ -1,17 +1,15 @@
 id,trigger,label,text,category,field
-gaba-100,g1,Gaba 100mg,Gabapentin 100mg PO,surgery,therapeutics
-gaba-300,g3,Gaba 300mg,Gabapentin 300mg PO,surgery,therapeutics
-tramadol-50,tram,Tramadol 50mg,Tramadol 50mg PO,surgery,therapeutics
-trazodone,traz,Trazodone,Trazodone 50mg PO,surgery,therapeutics
-pred,pred,Pred,Prednisone PO,surgery,therapeutics
-famo-10,f10,Famo 10mg,Famotidine 10mg PO,surgery,therapeutics
-famo-20,f20,Famo 20mg,Famotidine 20mg PO,surgery,therapeutics
-ondansetron,ond,Ondansetron,Ondansetron 4mg PO/IV,surgery,therapeutics
-maropitant,maro,Maropitant,Maropitant 1mg/kg SQ,surgery,therapeutics
-methocarbamol,metho,Methocarbamol,Methocarbamol 500mg PO,surgery,therapeutics
-amantadine,aman,Amantadine,Amantadine 100mg PO,surgery,therapeutics
-fentanyl-cri,fent,Fentanyl CRI,Fentanyl CRI 2-5mcg/kg/hr,surgery,therapeutics
-ketamine-cri,ket,Ketamine CRI,Ketamine CRI 0.1-0.5mg/kg/hr,surgery,therapeutics
+gabapentin,gaba,Gabapentin,Gabapentin PO,surgery,therapeutics
+tramadol,tram,Tramadol,Tramadol PO,surgery,therapeutics
+trazodone,traz,Trazodone,Trazodone PO,surgery,therapeutics
+pred,pred,Prednisone,Prednisone PO,surgery,therapeutics
+famotidine,famo,Famotidine,Famotidine PO,surgery,therapeutics
+ondansetron,ond,Ondansetron,Ondansetron PO/IV,surgery,therapeutics
+maropitant,maro,Maropitant,Maropitant SQ,surgery,therapeutics
+methocarbamol,metho,Methocarbamol,Methocarbamol PO,surgery,therapeutics
+amantadine,aman,Amantadine,Amantadine PO,surgery,therapeutics
+fentanyl-cri,fent,Fentanyl CRI,Fentanyl CRI,surgery,therapeutics
+ketamine-cri,ket,Ketamine CRI,Ketamine CRI,surgery,therapeutics
 cervical-myelopathy,cm,Cervical Myelopathy,Cervical myelopathy,surgery,problems
 tl-pain,tlp,TL Pain,TL pain,surgery,problems
 ls-pain,lsp,LS Pain,LS pain,surgery,problems
@@ -22,27 +20,24 @@ cbc-chem-nsf,nsf,CBC/CHEM NSF,"CBC/CHEM- nsf
 CXR: nsf",surgery,diagnostics
 cbc-chem-wnl,wnl,Labs WNL,CBC/CHEM- WNL,surgery,diagnostics
 cbc-chem-pending,pend,Labs Pending,CBC/CHEM- pending,surgery,diagnostics
-cxr-normal,cxrn,CXR: NORMAL,CXR: NORMAL,surgery,diagnostics
-cxr-pending,cxrp,CXR: PENDING,CXR: PENDING,surgery,diagnostics
+cxr-normal,cxrn,CXR Normal,CXR: NORMAL,surgery,diagnostics
+cxr-pending,cxrp,CXR Pending,CXR: PENDING,surgery,diagnostics
 bladder-palp,blad,Bladder Palp,Bladder palpation q6-8h,surgery,diagnostics
 npo-8pm,npo,NPO 8pm,NPO from 8pm,surgery,concerns
-increase-gaba-tram,incgt,Can ↑ Gaba/Tram,can increase gaba tram prn,surgery,concerns
+increase-gaba-tram,incgt,Can Increase Gaba/Tram,can increase gaba tram prn,surgery,concerns
 pain-management,pain,Pain Mgmt,"Monitor pain level, adjust analgesics PRN",surgery,concerns
 bladder-express,bex,Bladder Express,Express bladder q6-8h if unable to void,surgery,concerns
-keppra-500,k5,Keppra 500mg,Levetiracetam 500mg PO q8h,seizures,therapeutics
-keppra-750,k75,Keppra 750mg,Levetiracetam 750mg PO q8h,seizures,therapeutics
-keppra-1000,k10,Keppra 1000mg,Levetiracetam 1000mg PO q8h,seizures,therapeutics
-zonisamide-100,z1,Zoni 100mg,Zonisamide 100mg PO q12h,seizures,therapeutics
-zonisamide-200,z2,Zoni 200mg,Zonisamide 200mg PO q12h,seizures,therapeutics
-phenobarbital PO,ppo,Pheno PO,Phenobarbital PO,seizures,therapeutics
-phenobarbital IV,piv,Pheno IV,Phenobarbital IV,seizures,therapeutics
-kbr,kbr,KBr,Potassium Bromide 250mg PO q12-24h,seizures,therapeutics
-diazepam IV,diaz,Diazepam,Diazepam 1-2mg/kg IV PRN for cluster seizures,seizures,therapeutics
-seizure-protocol,szpro,Seizure Protocol,"If seizures >3min give Diazepam 0.5mg/kg IV, if 3+ seizures start on diazepam CRI 0.3mg/kg/hr",seizures,concerns
-New Seizuring Kiddo,newsz,New Seizures,"If has a seizure, start loading on Phenobarbital 4mg/kg q4-6h IV",seizures,concerns
-Detioration,det,Detioration,"If mentally detiorates, give 1g/kg of Mannitol IV",seizures,concerns
-dopamine-cri,dopa,Dopamine CRI,Dopamine 5mcg/kg/min CRI,other,therapeutics
-cerenia,cer,Cerenia,Maropitant (Cerenia) 1mg/kg SQ q24h,other,therapeutics
+keppra,kep,Keppra,Levetiracetam PO,seizures,therapeutics
+zonisamide,zoni,Zonisamide,Zonisamide PO,seizures,therapeutics
+phenobarbital-po,ppo,Pheno PO,Phenobarbital PO,seizures,therapeutics
+phenobarbital-iv,piv,Pheno IV,Phenobarbital IV,seizures,therapeutics
+kbr,kbr,KBr,Potassium Bromide PO,seizures,therapeutics
+diazepam,diaz,Diazepam,Diazepam IV,seizures,therapeutics
+seizure-protocol,szpro,Seizure Protocol,"If seizures >3min give Diazepam IV, if 3+ seizures start on diazepam CRI",seizures,concerns
+new-seizures,newsz,New Seizures,"If has a seizure, start loading on Phenobarbital IV",seizures,concerns
+deterioration,det,Deterioration,"If mentally deteriorates, give Mannitol IV",seizures,concerns
+dopamine-cri,dopa,Dopamine CRI,Dopamine CRI,other,therapeutics
+cerenia,cer,Cerenia,Maropitant (Cerenia) SQ,other,therapeutics
 pre-anesthetic,preanes,Pre-Anesthetic,Pre-anesthetic bloodwork pending,other,diagnostics
 mri-scheduled,mri,MRI Scheduled,MRI scheduled - NPO protocol,other,diagnostics
 npo-8pm-mri,npomri,NPO 8pm MRI,NPO after 8pm for MRI,other,concerns
