@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { carryForwardRoundingData, type CarryForwardResult } from '@/lib/rounding-carry-forward';
 import { autoFillRoundingData } from '@/lib/rounding-auto-fill';
 import { PastePreviewModal } from './PastePreviewModal';
-import { QuickInsertPanel } from '@/components/QuickInsertPanel';
+import { SlashCommandTextarea } from '@/components/SlashCommandTextarea';
 import { useProblemOptions } from '@/hooks/use-problem-options';
 import {
   ROUNDING_STORAGE_KEYS,
@@ -364,35 +364,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     patientId: number;
     field: keyof RoundingData;
   } | null>(null);
-  const [showQuickInsert, setShowQuickInsert] = useState(false);
-
-  // Close QuickInsert on Escape key or click outside
-  useEffect(() => {
-    if (!showQuickInsert) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowQuickInsert(false);
-      }
-    };
-
-    const handleClickOutside = (e: MouseEvent) => {
-      // Check if click is outside QuickInsertPanel
-      const target = e.target as Element;
-      if (!target.closest('.quick-insert-panel') && !target.closest('button[title="Quick Insert (Ctrl+Space)"]')) {
-        setShowQuickInsert(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showQuickInsert]);
-
   // Ref to always get fresh editingData in async callbacks (avoids stale closure)
   const editingDataRef = useRef(editingData);
   useEffect(() => {
@@ -550,18 +521,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     }, ROUNDING_AUTO_SAVE_DELAY);
 
     setSaveTimers(prev => new Map(prev).set(patientId, newTimer));
-  };
-
-  // Quick-insert: Insert text into currently focused field
-  const handleQuickInsert = (text: string) => {
-    if (!focusedField) return;
-
-    const { patientId, field } = focusedField;
-    const currentData = getPatientData(patientId);
-    const currentValue = currentData[field] || '';
-
-    const newValue = currentValue ? `${currentValue}\n${text}` : text;
-    handleFieldChange(patientId, field as keyof RoundingData, newValue);
   };
 
   const matchDropdownValue = (pastedValue: string, validOptions: readonly string[]): string => {
@@ -1206,6 +1165,14 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
             <Copy size={16} />
             Copy to Clipboard
           </button>
+          <Link
+            href="/slash-commands"
+            className="px-3 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-1.5 text-sm"
+            style={{ backgroundColor: '#FEF3C7', border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
+          >
+            <span>/</span>
+            Shortcuts
+          </Link>
           <div>
             <h2 className="text-xl font-black text-gray-900">Rounding Sheet</h2>
             <p className="text-sm font-medium text-gray-500">{activePatients.length} active patients</p>
@@ -1339,74 +1306,28 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <div className="relative">
-                      <textarea
-                        value={data.diagnosticFindings || ''}
-                        onChange={(e) => handleFieldChange(patient.id, 'diagnosticFindings', e.target.value)}
-                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' })}
-                        onKeyDown={(e) => {
-                          if (e.ctrlKey && e.code === 'Space') {
-                            e.preventDefault();
-                            setShowQuickInsert(prev => !prev);
-                          }
-                        }}
-                        onPaste={(e) => handleFieldPaste(e, patient.id, 'diagnosticFindings')}
-                        rows={2}
-                        className="w-full px-1 py-0.5 pr-6 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                        style={{ border: '1px solid #ccc' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' });
-                          setShowQuickInsert(prev => !prev);
-                        }}
-                        className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition"
-                        title="Quick Insert (Ctrl+Space)"
-                      >
-                        <span className="text-[10px]">⚡</span>
-                      </button>
-                    </div>
-                    {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'diagnosticFindings' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px] quick-insert-panel">
-                        <QuickInsertPanel field="diagnostics" onInsert={handleQuickInsert} currentValue={data.diagnosticFindings} />
-                      </div>
-                    )}
+                    <SlashCommandTextarea
+                      value={data.diagnosticFindings || ''}
+                      onChange={(val) => handleFieldChange(patient.id, 'diagnosticFindings', val)}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' })}
+                      onPaste={(e) => handleFieldPaste(e, patient.id, 'diagnosticFindings')}
+                      field="diagnosticFindings"
+                      rows={2}
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
+                      style={{ border: '1px solid #ccc' }}
+                    />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <div className="relative">
-                      <textarea
-                        value={data.therapeutics || ''}
-                        onChange={(e) => handleFieldChange(patient.id, 'therapeutics', e.target.value)}
-                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'therapeutics' })}
-                        onKeyDown={(e) => {
-                          if (e.ctrlKey && e.code === 'Space') {
-                            e.preventDefault();
-                            setShowQuickInsert(prev => !prev);
-                          }
-                        }}
-                        onPaste={(e) => handleFieldPaste(e, patient.id, 'therapeutics')}
-                        rows={2}
-                        className="w-full px-1 py-0.5 pr-6 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                        style={{ border: '1px solid #ccc' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFocusedField({ patientId: patient.id, field: 'therapeutics' });
-                          setShowQuickInsert(prev => !prev);
-                        }}
-                        className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition"
-                        title="Quick Insert (Ctrl+Space)"
-                      >
-                        <span className="text-[10px]">⚡</span>
-                      </button>
-                    </div>
-                    {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'therapeutics' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px] quick-insert-panel">
-                        <QuickInsertPanel field="therapeutics" onInsert={handleQuickInsert} currentValue={data.therapeutics} />
-                      </div>
-                    )}
+                    <SlashCommandTextarea
+                      value={data.therapeutics || ''}
+                      onChange={(val) => handleFieldChange(patient.id, 'therapeutics', val)}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'therapeutics' })}
+                      onPaste={(e) => handleFieldPaste(e, patient.id, 'therapeutics')}
+                      field="therapeutics"
+                      rows={2}
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
+                      style={{ border: '1px solid #ccc' }}
+                    />
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
                     <select
@@ -1450,59 +1371,38 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       <option value="Yes but...">Y...</option>
                     </select>
                   </td>
-                  <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <textarea
+                  <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
+                    <SlashCommandTextarea
                       value={data.overnightDx || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'overnightDx', e.target.value)}
+                      onChange={(val) => handleFieldChange(patient.id, 'overnightDx', val)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'overnightDx' })}
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'overnightDx')}
+                      field="overnightDx"
                       rows={2}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <div className="relative">
-                      <textarea
-                        value={data.concerns || ''}
-                        onChange={(e) => handleFieldChange(patient.id, 'concerns', e.target.value)}
-                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'concerns' })}
-                        onKeyDown={(e) => {
-                          if (e.ctrlKey && e.code === 'Space') {
-                            e.preventDefault();
-                            setShowQuickInsert(prev => !prev);
-                          }
-                        }}
-                        onPaste={(e) => handleFieldPaste(e, patient.id, 'concerns')}
-                        rows={2}
-                        placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
-                        className="w-full px-1 py-0.5 pr-6 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                        style={{ border: '1px solid #ccc' }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFocusedField({ patientId: patient.id, field: 'concerns' });
-                          setShowQuickInsert(prev => !prev);
-                        }}
-                        className="absolute top-0.5 right-0.5 p-0.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition"
-                        title="Quick Insert (Ctrl+Space)"
-                      >
-                        <span className="text-[10px]">⚡</span>
-                      </button>
-                    </div>
-                    {showQuickInsert && focusedField?.patientId === patient.id && focusedField?.field === 'concerns' && (
-                      <div className="absolute top-full left-0 mt-1 z-30 min-w-[350px] quick-insert-panel">
-                        <QuickInsertPanel field="concerns" onInsert={handleQuickInsert} currentValue={data.concerns} />
-                      </div>
-                    )}
+                    <SlashCommandTextarea
+                      value={data.concerns || ''}
+                      onChange={(val) => handleFieldChange(patient.id, 'concerns', val)}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'concerns' })}
+                      onPaste={(e) => handleFieldPaste(e, patient.id, 'concerns')}
+                      field="concerns"
+                      rows={2}
+                      placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
+                      style={{ border: '1px solid #ccc' }}
+                    />
                   </td>
-                  <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <textarea
+                  <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
+                    <SlashCommandTextarea
                       value={data.comments || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'comments', e.target.value)}
+                      onChange={(val) => handleFieldChange(patient.id, 'comments', val)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'comments' })}
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'comments')}
+                      field="comments"
                       rows={2}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
