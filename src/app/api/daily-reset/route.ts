@@ -29,6 +29,19 @@ const BASE_STICKER_DATA = {
 
 export async function POST(request: Request) {
   try {
+    // Check for cron secret (optional - allows external cron services)
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization');
+    const isCronRequest = cronSecret && authHeader && (
+      authHeader === cronSecret ||
+      authHeader === `Bearer ${cronSecret}`
+    );
+
+    // Log the source of the request
+    if (isCronRequest) {
+      console.log('[Daily Reset] Triggered by external cron service');
+    }
+
     const body = await request.json().catch(() => ({}));
     const forceReset = body.force === true; // Allow manual force reset for testing
     const today = getTodayET(); // Use Eastern Time
@@ -152,12 +165,14 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[Daily Reset] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} completed tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
+    const triggeredBy = isCronRequest ? 'cron' : (forceReset ? 'manual' : 'app');
+    console.log(`[Daily Reset] [${triggeredBy}] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} completed tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
 
     return NextResponse.json({
       success: true,
       message: `Daily reset complete for ${activePatients.length} patients`,
       resetDate: today,
+      triggeredBy,
       stats: {
         patientsUpdated: activePatients.length,
         stickersReset,
