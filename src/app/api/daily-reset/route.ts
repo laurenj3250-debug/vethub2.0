@@ -63,7 +63,33 @@ export async function POST(request: Request) {
 
     // ========================================
     // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
+    // Each general task should exist exactly ONCE
     // ========================================
+
+    // First, clean up any duplicate general tasks (keep newest incomplete, or newest if all complete)
+    for (const taskTemplate of TASK_CONFIG.dailyRecurring.general) {
+      const duplicates = await prisma.task.findMany({
+        where: {
+          patientId: null,
+          title: taskTemplate.name,
+        },
+        orderBy: [
+          { completed: 'asc' }, // Incomplete first
+          { createdAt: 'desc' }, // Then newest
+        ],
+      });
+
+      // Keep only the first one (incomplete & newest, or just newest if all complete)
+      if (duplicates.length > 1) {
+        const idsToDelete = duplicates.slice(1).map(t => t.id);
+        await prisma.task.deleteMany({
+          where: { id: { in: idsToDelete } },
+        });
+        console.log(`[Daily Reset] Cleaned up ${idsToDelete.length} duplicate "${taskTemplate.name}" tasks`);
+      }
+    }
+
+    // Now check what exists and create if missing
     const existingGeneralTasks = await prisma.task.findMany({
       where: {
         patientId: null,

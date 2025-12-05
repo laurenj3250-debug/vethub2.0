@@ -54,9 +54,22 @@ interface TaskChecklistProps {
   onDeleteAllTasks?: () => void;
 }
 
+// Deduplicate general tasks by title - keep only one per unique title
+function deduplicateGeneralTasks(tasks: GeneralTask[]): GeneralTask[] {
+  const seen = new Map<string, GeneralTask>();
+  tasks.forEach(task => {
+    const title = task.title || task.name || 'Untitled';
+    // Keep the first incomplete one, or the first one if all are complete
+    if (!seen.has(title) || (!task.completed && seen.get(title)?.completed)) {
+      seen.set(title, task);
+    }
+  });
+  return Array.from(seen.values());
+}
+
 export function TaskChecklist({
   patients,
-  generalTasks,
+  generalTasks: rawGeneralTasks,
   onToggleTask,
   onToggleGeneralTask,
   onAddTask,
@@ -64,6 +77,8 @@ export function TaskChecklist({
   onDeleteGeneralTask,
   onDeleteAllTasks,
 }: TaskChecklistProps) {
+  // Deduplicate general tasks to ensure each shows only once
+  const generalTasks = useMemo(() => deduplicateGeneralTasks(rawGeneralTasks), [rawGeneralTasks]);
   const [showAddTask, setShowAddTask] = useState(false);
   const [newTaskName, setNewTaskName] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
