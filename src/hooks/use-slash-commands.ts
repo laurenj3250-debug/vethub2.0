@@ -28,7 +28,7 @@ const fieldMapping: Record<string, string> = {
 function getBuiltInCommands(): SlashCommand[] {
   return quickInsertLibrary.map(item => ({
     id: item.id,
-    trigger: item.id.replace(/-/g, ''), // gaba-300 -> gaba300
+    trigger: item.trigger, // Use explicit short trigger from library
     label: item.label,
     text: item.text,
     field: fieldMapping[item.field] || item.field,
