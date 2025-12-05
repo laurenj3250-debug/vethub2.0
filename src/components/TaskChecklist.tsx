@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, X, Sun, Moon } from 'lucide-react';
+import { getTaskTimeOfDay } from '@/lib/task-config';
 
 // Neo-pop styling constants
 const NEO_SHADOW = '6px 6px 0 #000';
@@ -68,6 +69,7 @@ export function TaskChecklist({
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [hideCompleted, setHideCompleted] = useState(true);
   const [viewMode, setViewMode] = useState<'task' | 'patient'>('task');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'evening'>('all');
 
   const getPatientName = (patient: Patient) =>
     patient.demographics?.name || patient.name || 'Unnamed';
@@ -120,26 +122,36 @@ export function TaskChecklist({
     return { done, total: taskPatients.length };
   };
 
-  // Filter task names - keep stable order (alphabetical), don't re-sort on completion
+  // Filter task names - by completion status and time of day
   const visibleTaskNames = useMemo(() => {
-    if (!hideCompleted) {
-      return taskNames; // Already alphabetically sorted
+    let filtered = taskNames;
+
+    // Filter by time of day
+    if (timeFilter !== 'all') {
+      filtered = filtered.filter(taskName => {
+        const taskTime = getTaskTimeOfDay(taskName);
+        return taskTime === timeFilter || taskTime === 'anytime';
+      });
     }
 
-    // Filter out fully completed tasks, but keep order stable
-    return taskNames.filter(taskName => {
-      // Check if any patient has this task incomplete
-      const hasIncomplete = patients.some(patient => {
-        const task = patientTaskMap[taskName]?.[patient.id];
-        return task && !task.completed;
-      });
-      // Check general tasks
-      const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
-      const generalIncomplete = generalTask && !generalTask.completed;
+    // Filter out fully completed tasks if hideCompleted is on
+    if (hideCompleted) {
+      filtered = filtered.filter(taskName => {
+        // Check if any patient has this task incomplete
+        const hasIncomplete = patients.some(patient => {
+          const task = patientTaskMap[taskName]?.[patient.id];
+          return task && !task.completed;
+        });
+        // Check general tasks
+        const generalTask = generalTasks.find(t => (t.title || t.name) === taskName);
+        const generalIncomplete = generalTask && !generalTask.completed;
 
-      return hasIncomplete || generalIncomplete;
-    });
-  }, [taskNames, hideCompleted, patients, patientTaskMap, generalTasks]);
+        return hasIncomplete || generalIncomplete;
+      });
+    }
+
+    return filtered;
+  }, [taskNames, hideCompleted, timeFilter, patients, patientTaskMap, generalTasks]);
 
   const handleAddTask = () => {
     if (newTaskName.trim()) {
@@ -187,6 +199,38 @@ export function TaskChecklist({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Time Filter */}
+          <div className="flex rounded-full overflow-hidden" style={{ border: '2px solid #2D3436' }}>
+            <button
+              onClick={() => setTimeFilter('all')}
+              className="px-3 py-1.5 text-xs font-bold transition"
+              style={{
+                backgroundColor: timeFilter === 'all' ? COLORS.mint : 'white',
+              }}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setTimeFilter('morning')}
+              className="px-3 py-1.5 text-xs font-bold transition flex items-center gap-1"
+              style={{
+                backgroundColor: timeFilter === 'morning' ? '#FCD34D' : 'white',
+                borderLeft: '2px solid #2D3436',
+              }}
+            >
+              <Sun size={12} /> AM
+            </button>
+            <button
+              onClick={() => setTimeFilter('evening')}
+              className="px-3 py-1.5 text-xs font-bold transition flex items-center gap-1"
+              style={{
+                backgroundColor: timeFilter === 'evening' ? '#818CF8' : 'white',
+                borderLeft: '2px solid #2D3436',
+              }}
+            >
+              <Moon size={12} /> PM
+            </button>
+          </div>
           {/* View Mode Toggle */}
           <div className="flex rounded-full overflow-hidden" style={{ border: '2px solid #2D3436' }}>
             <button

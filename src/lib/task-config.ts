@@ -153,3 +153,51 @@ export function getTaskTimeOfDay(taskName: string): TaskTimeOfDay {
   }
   return 'anytime';
 }
+
+/**
+ * Get icon for a task based on its time of day
+ */
+export function getTaskIcon(timeOfDay: TaskTimeOfDay): string {
+  switch (timeOfDay) {
+    case 'morning': return '🌅';
+    case 'evening': return '🌙';
+    default: return '📋';
+  }
+}
+
+/**
+ * Time-based colors (Tailwind classes)
+ */
+export const TIME_COLORS = {
+  morning: {
+    cardBg: 'bg-amber-900/30',
+    cardBorder: 'border-amber-500/50',
+    rowBorder: 'border-l-amber-500/70',
+    rowBg: 'bg-amber-900/10',
+    text: 'text-amber-300',
+    gradient: 'from-yellow-500 to-orange-500',
+  },
+  evening: {
+    cardBg: 'bg-indigo-900/30',
+    cardBorder: 'border-indigo-500/50',
+    rowBorder: 'border-l-indigo-500/70',
+    rowBg: 'bg-indigo-900/10',
+    text: 'text-indigo-300',
+    gradient: 'from-indigo-500 to-purple-500',
+  },
+  anytime: {
+    cardBg: 'bg-slate-900/50',
+    cardBorder: 'border-slate-700/50',
+    rowBorder: 'border-l-transparent',
+    rowBg: '',
+    text: 'text-slate-300',
+    gradient: 'from-slate-500 to-slate-600',
+  },
+} as const;
+
+/**
+ * Get color classes for a task based on its time of day
+ */
+export function getTimeColors(timeOfDay: TaskTimeOfDay) {
+  return TIME_COLORS[timeOfDay];
+}

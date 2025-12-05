@@ -14,12 +14,11 @@ import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, pr
 import {
   MORNING_TASK_NAMES,
   EVENING_TASK_NAMES,
-  DAILY_TASKS,
   getTaskTimeOfDay,
   getTaskIcon,
   getTimeColors,
   type TaskTimeOfDay,
-} from '@/lib/task-definitions';
+} from '@/lib/task-config';
 import { calculateStickerCounts } from '@/lib/sticker-calculator';
 
 export default function VetHub() {
@@ -519,9 +518,9 @@ export default function VetHub() {
 
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
-      // Get type-specific tasks from task-engine (single source of truth)
-      const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
-      const typeTemplates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical'] || [];
+      // Get type-specific tasks from task-config (single source of truth)
+      const { getTypeSpecificTasks } = await import('@/lib/task-config');
+      const typeTemplates = getTypeSpecificTasks(patientType);
       const typeTasks = typeTemplates.map(t => t.name);
 
       // All tasks = type-specific tasks only (no more hardcoded morning/evening tasks)
@@ -814,9 +813,9 @@ export default function VetHub() {
         const freshPatient = await apiClient.getPatient(String(patientId));
         const existingTasks = freshPatient?.tasks || [];
 
-        // Get discharge task templates from task engine
-        const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
-        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE['Discharge'] || [];
+        // Get discharge task templates from task config
+        const { getStatusTriggeredTasks } = await import('@/lib/task-config');
+        const templates = getStatusTriggeredTasks('Discharging');
 
         let createdCount = 0;
         const taskNames: string[] = [];
@@ -875,8 +874,8 @@ export default function VetHub() {
         const existingTasks = freshPatient?.tasks || [];
 
         // Get task templates for this patient type
-        const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
-        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[newType as 'MRI' | 'Surgery' | 'Medical' | 'Discharge'] || [];
+        const { getTypeSpecificTasks } = await import('@/lib/task-config');
+        const templates = getTypeSpecificTasks(newType);
 
         let createdCount = 0;
         const taskNames: string[] = [];

@@ -2,27 +2,25 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTodayET } from '@/lib/timezone';
 import {
-  generateDailyTasksForPatient,
-  TASK_TEMPLATES_BY_PATIENT_TYPE,
-} from '@/lib/task-engine';
+  TASK_CONFIG,
+  getStatusTriggeredTasks,
+  shouldGetDailyTasks,
+} from '@/lib/task-config';
 
 /**
  * POST /api/tasks/refresh
- * Regenerate tasks for all active patients based on their current status
- * This handles:
- * - New day = fresh tasks
- * - Status change = correct task templates
- * - Discharged = no tasks
+ * On-demand task refresh for all active patients.
+ * Creates missing daily recurring tasks and status-triggered tasks.
  */
 export async function POST() {
   try {
     const today = getTodayET();
 
-    // Get all active patients (not discharged)
+    // Get all active patients (those that should get daily tasks)
     const patients = await prisma.patient.findMany({
       where: {
         status: {
-          not: 'Discharged',
+          notIn: TASK_CONFIG.dailyRecurring.excludeStatuses,
         },
       },
       include: {
@@ -33,68 +31,59 @@ export async function POST() {
     const results: { patientId: number; action: string; tasksCreated: number }[] = [];
 
     for (const patient of patients) {
-      const patientType = patient.type || 'Medical';
       const patientStatus = patient.status;
 
       // Get existing incomplete tasks for this patient
       const existingIncompleteTasks = patient.tasks.filter(t => !t.completed);
       const existingTaskTitles = new Set(existingIncompleteTasks.map(t => t.title));
 
-      // Generate expected tasks based on current status
-      const expectedTasks = generateDailyTasksForPatient({
-        id: patient.id,
-        status: patientStatus,
-        type: patientType,
-        demographics: patient.demographics as { name?: string } | null,
-      });
+      let tasksCreated = 0;
 
-      // Check for status change - if discharging, clear non-discharge tasks
-      if (patientStatus === 'Discharging') {
-        // Delete non-discharge incomplete tasks
-        const tasksToDelete = existingIncompleteTasks.filter(
-          t => t.category !== 'Discharge'
-        );
-        if (tasksToDelete.length > 0) {
-          await prisma.task.deleteMany({
-            where: {
-              id: { in: tasksToDelete.map(t => t.id) },
-            },
-          });
+      // 1. Create missing daily recurring tasks (if patient should get them)
+      if (shouldGetDailyTasks(patientStatus)) {
+        for (const taskDef of TASK_CONFIG.dailyRecurring.patient) {
+          if (!existingTaskTitles.has(taskDef.name)) {
+            await prisma.task.create({
+              data: {
+                patientId: patient.id,
+                title: taskDef.name,
+                category: taskDef.category,
+                timeOfDay: taskDef.timeOfDay,
+                priority: taskDef.priority,
+                completed: false,
+              },
+            });
+            tasksCreated++;
+          }
         }
       }
 
-      // Create missing tasks (tasks in expected but not in existing)
-      const tasksToCreate = expectedTasks.filter(
-        expected => !existingTaskTitles.has(expected.title)
-      );
-
-      if (tasksToCreate.length > 0) {
-        await prisma.task.createMany({
-          data: tasksToCreate.map(task => ({
-            patientId: patient.id,
-            title: task.title,
-            category: task.category,
-            timeOfDay: task.timeOfDay,
-            priority: task.priority,
-            completed: false,
-          })),
-        });
-
-        results.push({
-          patientId: patient.id,
-          action: 'created',
-          tasksCreated: tasksToCreate.length,
-        });
-      } else {
-        results.push({
-          patientId: patient.id,
-          action: 'no_change',
-          tasksCreated: 0,
-        });
+      // 2. Create missing status-triggered tasks
+      const statusTasks = getStatusTriggeredTasks(patientStatus);
+      for (const taskDef of statusTasks) {
+        if (!existingTaskTitles.has(taskDef.name)) {
+          await prisma.task.create({
+            data: {
+              patientId: patient.id,
+              title: taskDef.name,
+              category: taskDef.category,
+              timeOfDay: taskDef.timeOfDay || null,
+              priority: taskDef.priority,
+              completed: false,
+            },
+          });
+          tasksCreated++;
+        }
       }
+
+      results.push({
+        patientId: patient.id,
+        action: tasksCreated > 0 ? 'created' : 'no_change',
+        tasksCreated,
+      });
     }
 
-    // Also handle discharged patients - mark all their incomplete tasks as complete
+    // Handle discharged patients - mark all their incomplete tasks as complete
     const dischargedPatients = await prisma.patient.findMany({
       where: {
         status: 'Discharged',
