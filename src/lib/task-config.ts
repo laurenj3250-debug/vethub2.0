@@ -54,7 +54,7 @@ export const TASK_CONFIG = {
       { name: 'Treatment Sheet Created', category: 'Admission', priority: 'high' as TaskPriority },
     ],
     'Pre-procedure': [
-      { name: 'Blood Work', category: 'Pre-procedure', priority: 'high' as TaskPriority },
+      { name: 'Blood Work', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Chest X-rays', category: 'Pre-procedure', priority: 'high' as TaskPriority },
       { name: 'NPO Confirmed', category: 'Pre-procedure', priority: 'high' as TaskPriority },
     ],
