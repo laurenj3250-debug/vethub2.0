@@ -68,7 +68,7 @@ export const quickInsertLibrary: QuickInsertItem[] = [
   },
   {
     id: 'maropitant',
-    trigger: 'March',
+    trigger: 'mar',
     label: 'Maropitant',
     text: 'Maropitant SQ',
     category: 'surgery',
