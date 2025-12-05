@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { quickInsertLibrary } from '@/data/quick-insert-library';
 
 export interface SlashCommand {
@@ -11,6 +11,7 @@ export interface SlashCommand {
   field: string; // Which rounding field
   category?: string;
   isCustom?: boolean; // User-created vs built-in
+  isOverride?: boolean; // Overrides a built-in command
 }
 
 const STORAGE_KEY = 'vethub-slash-commands';
@@ -63,8 +64,16 @@ export function useSlashCommands() {
     }
   }, []);
 
-  // Get all commands (built-in + custom)
-  const allCommands = [...getBuiltInCommands(), ...customCommands];
+  // Get all commands - custom commands and overrides take precedence over built-in
+  const allCommands = useMemo(() => {
+    const builtIn = getBuiltInCommands();
+    const customIds = new Set(customCommands.map(c => c.id));
+
+    // Filter out built-in commands that have been overridden
+    const filteredBuiltIn = builtIn.filter(cmd => !customIds.has(cmd.id));
+
+    return [...filteredBuiltIn, ...customCommands];
+  }, [customCommands]);
 
   // Get commands for a specific field
   const getCommandsForField = useCallback((field: string): SlashCommand[] => {
@@ -82,19 +91,47 @@ export function useSlashCommands() {
     return newCommand;
   }, [customCommands, saveCustomCommands]);
 
-  // Update an existing command (only custom ones)
+  // Update an existing command (works for both custom and built-in)
   const updateCommand = useCallback((id: string, updates: Partial<SlashCommand>) => {
-    const updated = customCommands.map(cmd =>
-      cmd.id === id ? { ...cmd, ...updates } : cmd
-    );
-    saveCustomCommands(updated);
+    // Check if this is a built-in command being edited
+    const builtIn = getBuiltInCommands().find(c => c.id === id);
+    const existingCustom = customCommands.find(c => c.id === id);
+
+    if (existingCustom) {
+      // Update existing custom command
+      const updated = customCommands.map(cmd =>
+        cmd.id === id ? { ...cmd, ...updates } : cmd
+      );
+      saveCustomCommands(updated);
+    } else if (builtIn) {
+      // Create an override for the built-in command
+      const override: SlashCommand = {
+        ...builtIn,
+        ...updates,
+        id: id, // Keep the same ID to override
+        isCustom: true,
+        isOverride: true,
+      };
+      saveCustomCommands([...customCommands, override]);
+    }
   }, [customCommands, saveCustomCommands]);
 
-  // Delete a custom command
+  // Delete a command
   const deleteCommand = useCallback((id: string) => {
     const filtered = customCommands.filter(cmd => cmd.id !== id);
     saveCustomCommands(filtered);
   }, [customCommands, saveCustomCommands]);
+
+  // Reset a built-in command to its original state
+  const resetCommand = useCallback((id: string) => {
+    const filtered = customCommands.filter(cmd => cmd.id !== id);
+    saveCustomCommands(filtered);
+  }, [customCommands, saveCustomCommands]);
+
+  // Check if a command has been modified from its original
+  const isModified = useCallback((id: string) => {
+    return customCommands.some(cmd => cmd.id === id && cmd.isOverride);
+  }, [customCommands]);
 
   // Import commands (for bulk operations)
   const importCommands = useCallback((commands: SlashCommand[]) => {
@@ -120,6 +157,8 @@ export function useSlashCommands() {
     addCommand,
     updateCommand,
     deleteCommand,
+    resetCommand,
+    isModified,
     importCommands,
     exportCommands,
   };

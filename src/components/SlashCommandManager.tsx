@@ -354,33 +354,37 @@ export function SlashCommandManager() {
                           /{cmd.trigger}
                         </code>
                         <span className="text-sm font-medium text-gray-700">{cmd.label}</span>
-                        {!cmd.isCustom && (
+                        {cmd.isOverride ? (
+                          <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            modified
+                          </span>
+                        ) : !cmd.isCustom ? (
                           <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
                             built-in
                           </span>
-                        )}
+                        ) : null}
                       </div>
                       <p className="text-sm text-gray-600 whitespace-pre-wrap">{cmd.text}</p>
                     </div>
 
-                    {cmd.isCustom && (
-                      <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => handleEdit(cmd)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition"
-                          title="Edit"
-                        >
-                          <Edit2 size={14} />
-                        </button>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => handleEdit(cmd)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition"
+                        title="Edit"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      {cmd.isCustom && (
                         <button
                           onClick={() => handleDelete(cmd.id)}
                           className="p-1.5 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition"
-                          title="Delete"
+                          title={cmd.isOverride ? "Reset to default" : "Delete"}
                         >
                           <Trash2 size={14} />
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
