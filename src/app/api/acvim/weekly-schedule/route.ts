@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-// Helper to generate all weeks for a residency year
+// Helper to generate all weeks for a residency year using actual calendar months
 function generateWeeksForYear(year: number, startDate: Date): Array<{
   residencyYear: number;
   monthNumber: number;
@@ -29,18 +27,33 @@ function generateWeeksForYear(year: number, startDate: Date): Array<{
   const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   currentDate.setDate(currentDate.getDate() - daysToMonday);
 
+  // Track week counts per month
+  const weekCountPerMonth: Record<number, number> = {};
+
   // Generate 52 weeks
   for (let weekIndex = 0; weekIndex < 52; weekIndex++) {
     const weekStart = new Date(currentDate);
     const weekEnd = new Date(currentDate);
     weekEnd.setDate(weekEnd.getDate() + 4); // Friday (work week)
 
-    // Calculate month number (1-12) relative to residency year
-    const monthsFromStart = Math.floor(weekIndex / 4.33); // ~4.33 weeks per month
-    const monthNumber = (monthsFromStart % 12) + 1;
+    // Calculate months elapsed from residency start (using midpoint of week for accuracy)
+    const weekMidpoint = new Date(weekStart);
+    weekMidpoint.setDate(weekMidpoint.getDate() + 3);
 
-    // Calculate week number within month (1-5)
-    const weekInMonth = (weekIndex % 4) + 1;
+    // Calculate month number based on actual calendar months from start
+    const monthsElapsed =
+      (weekMidpoint.getFullYear() - yearStartDate.getFullYear()) * 12 +
+      (weekMidpoint.getMonth() - yearStartDate.getMonth());
+
+    // Month number is 1-12, wrapping around
+    const monthNumber = (monthsElapsed % 12) + 1;
+
+    // Track week number within each month
+    if (!weekCountPerMonth[monthNumber]) {
+      weekCountPerMonth[monthNumber] = 0;
+    }
+    weekCountPerMonth[monthNumber]++;
+    const weekNumber = weekCountPerMonth[monthNumber];
 
     // Format date range: "7/14-7/18"
     const formatDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
@@ -49,7 +62,7 @@ function generateWeeksForYear(year: number, startDate: Date): Array<{
     weeks.push({
       residencyYear: year,
       monthNumber,
-      weekNumber: weekInMonth > 4 ? 4 : weekInMonth, // Cap at 4 weeks per month for uniqueness
+      weekNumber: Math.min(weekNumber, 5), // Cap at 5 weeks per month
       weekDateRange,
       weekStartDate: weekStart.toISOString().split('T')[0],
     });
@@ -58,22 +71,7 @@ function generateWeeksForYear(year: number, startDate: Date): Array<{
     currentDate.setDate(currentDate.getDate() + 7);
   }
 
-  // Ensure unique monthNumber/weekNumber combinations
-  const seen = new Map<string, number>();
-  return weeks.map((week, idx) => {
-    const key = `${week.monthNumber}-${week.weekNumber}`;
-    const count = seen.get(key) || 0;
-    seen.set(key, count + 1);
-
-    if (count > 0) {
-      // Adjust week number to ensure uniqueness
-      return {
-        ...week,
-        weekNumber: Math.min(week.weekNumber + count, 5),
-      };
-    }
-    return week;
-  });
+  return weeks;
 }
 
 // GET - fetch weekly schedule entries (optionally filtered by year)
