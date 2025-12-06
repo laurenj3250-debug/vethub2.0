@@ -82,6 +82,25 @@ export async function POST(request: Request) {
     tasksDeleted += deletedOldTasks.count;
 
     // ========================================
+    // 1c. DELETE STALE NON-DAILY TASKS (>7 days old)
+    // Status-triggered and type-specific tasks that are incomplete for >7 days
+    // ========================================
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const deletedStaleTasks = await prisma.task.deleteMany({
+      where: {
+        createdAt: { lt: sevenDaysAgo },
+        completed: false,
+        title: { notIn: allDailyTaskNames }, // Non-daily tasks only
+      },
+    });
+    if (deletedStaleTasks.count > 0) {
+      console.log(`[Daily Reset] Cleaned up ${deletedStaleTasks.count} stale non-daily tasks (>7 days old)`);
+    }
+    tasksDeleted += deletedStaleTasks.count;
+
+    // ========================================
     // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
     // Each general task should exist exactly ONCE
     // ========================================
@@ -212,7 +231,12 @@ export async function POST(request: Request) {
     }
 
     const triggeredBy = isCronRequest ? 'cron' : (forceReset ? 'manual' : 'app');
-    console.log(`[Daily Reset] [${triggeredBy}] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} completed tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
+
+    // Log task counts for monitoring
+    const totalTasks = await prisma.task.count();
+    const incompleteTasks = await prisma.task.count({ where: { completed: false } });
+    console.log(`[Daily Reset] [${triggeredBy}] Updated ${activePatients.length} patients: ${stickersReset} stickers reset, ${tasksDeleted} tasks deleted, ${tasksCreated} patient tasks created, ${generalTasksCreated} general tasks created`);
+    console.log(`[Daily Reset] Task counts - Total: ${totalTasks}, Incomplete: ${incompleteTasks}`);
 
     return NextResponse.json({
       success: true,
@@ -225,6 +249,8 @@ export async function POST(request: Request) {
         tasksDeleted,
         tasksCreated,
         generalTasksCreated,
+        totalTasksRemaining: totalTasks,
+        incompleteTasksRemaining: incompleteTasks,
       },
     });
   } catch (error) {

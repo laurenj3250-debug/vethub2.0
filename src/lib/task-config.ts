@@ -49,26 +49,26 @@ export const TASK_CONFIG = {
    */
   statusTriggered: {
     'New Admit': [
-      { name: 'Finalize Record', category: 'Admission', priority: 'high' as TaskPriority },
-      { name: 'Admission SOAP', category: 'Admission', priority: 'high' as TaskPriority },
-      { name: 'Treatment Sheet Created', category: 'Admission', priority: 'high' as TaskPriority },
+      { name: 'Finalize Record', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Admission SOAP', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Treatment Sheet Created', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Pre-procedure': [
       { name: 'Blood Work', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Chest X-rays', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'NPO Confirmed', category: 'Pre-procedure', priority: 'high' as TaskPriority },
+      { name: 'NPO Confirmed', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Recovery': [
-      { name: 'Post-Op Vitals', category: 'Recovery', priority: 'high' as TaskPriority },
-      { name: 'Owner Update Call', category: 'Recovery', priority: 'high' as TaskPriority },
+      { name: 'Post-Op Vitals', category: 'Recovery', timeOfDay: 'anytime' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Owner Update Call', category: 'Recovery', timeOfDay: 'anytime' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Ready for Discharge': [
-      { name: 'Discharge Instructions', category: 'Discharge', priority: 'high' as TaskPriority },
-      { name: 'Discharge Meds Ready', category: 'Discharge', priority: 'high' as TaskPriority },
-      { name: 'Owner Pickup Call', category: 'Discharge', priority: 'high' as TaskPriority },
+      { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Discharge Meds Ready', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Owner Pickup Call', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Discharging': [
-      { name: 'Discharge Instructions', category: 'Discharge', priority: 'high' as TaskPriority },
+      { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
   } as Record<string, TaskDefinition[]>,
 
@@ -84,14 +84,14 @@ export const TASK_CONFIG = {
       { name: 'Print 1 Sheet Small Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'low' as TaskPriority },
     ],
     'Surgery': [
-      { name: 'Surgery Slip', category: 'Surgery Prep', priority: 'high' as TaskPriority },
-      { name: 'Written on Board', category: 'Surgery Prep', priority: 'high' as TaskPriority },
-      { name: 'Print Surgery Sheet', category: 'Surgery Prep', priority: 'high' as TaskPriority },
-      { name: 'Print 4 Large Stickers', category: 'Admin', priority: 'medium' as TaskPriority },
-      { name: 'Print 2 Sheets Small Stickers', category: 'Admin', priority: 'medium' as TaskPriority },
+      { name: 'Surgery Slip', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Written on Board', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Print Surgery Sheet', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Print 4 Large Stickers', category: 'Admin', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
+      { name: 'Print 2 Sheets Small Stickers', category: 'Admin', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
     ],
     'Medical': [
-      { name: 'Owner Admission Call', category: 'Admission', priority: 'high' as TaskPriority },
+      { name: 'Owner Admission Call', category: 'Admission', timeOfDay: 'anytime' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
   } as Record<string, TaskDefinition[]>,
 };

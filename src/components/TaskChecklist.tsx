@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Check, Plus, X, Sun, Moon } from 'lucide-react';
+import { Check, Plus, X, Sun, Moon, ChevronDown } from 'lucide-react';
 import { getTaskTimeOfDay } from '@/lib/task-config';
 
 // Neo-pop styling constants
@@ -85,6 +85,7 @@ export function TaskChecklist({
   const [hideCompleted, setHideCompleted] = useState(true);
   const [viewMode, setViewMode] = useState<'task' | 'patient'>('task');
   const [timeFilter, setTimeFilter] = useState<'all' | 'morning' | 'evening'>('all');
+  const [expandedPatients, setExpandedPatients] = useState<Set<number>>(new Set());
 
   const getPatientName = (patient: Patient) =>
     patient.demographics?.name || patient.name || 'Unnamed';
@@ -180,6 +181,29 @@ export function TaskChecklist({
   // Check if a task is general (not patient-specific)
   const getGeneralTask = (taskName: string) =>
     generalTasks.find(t => (t.title || t.name) === taskName);
+
+  // Toggle patient card expansion
+  const togglePatientExpanded = (patientId: number) => {
+    setExpandedPatients(prev => {
+      const next = new Set(prev);
+      if (next.has(patientId)) {
+        next.delete(patientId);
+      } else {
+        next.add(patientId);
+      }
+      return next;
+    });
+  };
+
+  // Check if a patient is expanded (default: expand if has incomplete tasks)
+  const isPatientExpanded = (patientId: number, hasIncomplete: boolean) => {
+    // If user has explicitly toggled, use that
+    if (expandedPatients.size > 0) {
+      return expandedPatients.has(patientId);
+    }
+    // Default: expand if has incomplete tasks
+    return hasIncomplete;
+  };
 
   // Cycle through colors for task cards
   const cardColors = [COLORS.lavender, COLORS.mint, COLORS.pink];
@@ -417,19 +441,33 @@ export function TaskChecklist({
       {/* Patient View - Group by Patient */}
       {viewMode === 'patient' && (
         (() => {
-          // Get patients with tasks (filtered if hideCompleted)
+          // Get patients with visible tasks (filtered by hideCompleted and timeFilter)
           const patientsWithTasks = patients.filter(patient => {
             const patientTasks = patient.tasks || [];
-            if (hideCompleted) {
-              return patientTasks.some(t => !t.completed);
-            }
-            return patientTasks.length > 0;
+            // Check if any tasks pass all filters
+            return patientTasks.some(task => {
+              // Check hideCompleted
+              if (hideCompleted && task.completed) return false;
+              // Check time filter
+              if (timeFilter !== 'all') {
+                const taskTime = getTaskTimeOfDay(task.title || task.name || '');
+                if (taskTime !== timeFilter && taskTime !== 'anytime') return false;
+              }
+              return true;
+            });
           });
 
-          // Also include general tasks section if any exist
-          const visibleGeneralTasks = hideCompleted
-            ? generalTasks.filter(t => !t.completed)
-            : generalTasks;
+          // Also include general tasks section if any exist (with time filter)
+          const visibleGeneralTasks = generalTasks.filter(task => {
+            // Apply hideCompleted filter
+            if (hideCompleted && task.completed) return false;
+            // Apply time filter
+            if (timeFilter !== 'all') {
+              const taskTime = getTaskTimeOfDay(task.title || task.name || '');
+              if (taskTime !== timeFilter && taskTime !== 'anytime') return false;
+            }
+            return true;
+          });
 
           const hasContent = patientsWithTasks.length > 0 || visibleGeneralTasks.length > 0;
 
@@ -534,12 +572,20 @@ export function TaskChecklist({
                   return a.percentage - b.percentage;
                 })
                 .map(({ patient, patientTasks, doneCount, totalCount, allDone, percentage }, index) => {
-                const visibleTasks = hideCompleted
-                  ? patientTasks.filter(t => !t.completed)
-                  : patientTasks;
+                const visibleTasks = patientTasks.filter(task => {
+                  // Apply hideCompleted filter
+                  if (hideCompleted && task.completed) return false;
+                  // Apply time filter
+                  if (timeFilter !== 'all') {
+                    const taskTime = getTaskTimeOfDay(task.title || task.name || '');
+                    if (taskTime !== timeFilter && taskTime !== 'anytime') return false;
+                  }
+                  return true;
+                });
 
                 const colorIndex = (visibleGeneralTasks.length > 0 ? index + 1 : index) % 3;
                 const cardBg = allDone ? COLORS.mint : cardColors[colorIndex];
+                const isExpanded = isPatientExpanded(patient.id, !allDone);
 
                 return (
                   <div
@@ -562,9 +608,18 @@ export function TaskChecklist({
                       }}
                     />
                     <div className="relative z-10">
-                      {/* Patient Header */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-bold text-gray-900 truncate">{getPatientName(patient)}</span>
+                      {/* Patient Header - Clickable to expand/collapse */}
+                      <button
+                        onClick={() => togglePatientExpanded(patient.id)}
+                        className="w-full flex items-center justify-between mb-2 cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ChevronDown
+                            size={16}
+                            className={`text-gray-600 transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
+                          />
+                          <span className="text-sm font-bold text-gray-900 truncate">{getPatientName(patient)}</span>
+                        </div>
                         {allDone ? (
                           <span
                             className="px-2 py-0.5 rounded-full text-xs font-black text-white flex items-center gap-1"
@@ -583,10 +638,10 @@ export function TaskChecklist({
                             {totalCount - doneCount} left
                           </span>
                         )}
-                      </div>
+                      </button>
 
-                      {/* Progress Bar */}
-                      <div className="mb-3">
+                      {/* Progress Bar - Always visible */}
+                      <div className={isExpanded ? 'mb-3' : ''}>
                         <div
                           className="h-2 w-full rounded-full overflow-hidden bg-white"
                           style={{ border: '1.5px solid #2D3436' }}
@@ -605,38 +660,40 @@ export function TaskChecklist({
                         </div>
                       </div>
 
-                      {/* Task List */}
-                      <div className="space-y-2">
-                        {visibleTasks.map(task => (
-                          <div
-                            key={task.id}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
-                              task.completed ? 'opacity-60' : ''
-                            }`}
-                            style={{
-                              backgroundColor: 'white',
-                              border: '1.5px solid #2D3436',
-                            }}
-                          >
-                            <button
-                              onClick={() => onToggleTask(patient.id, task.id, task.completed)}
-                              className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
+                      {/* Task List - Only visible when expanded */}
+                      {isExpanded && visibleTasks.length > 0 && (
+                        <div className="space-y-2 mt-3">
+                          {visibleTasks.map(task => (
+                            <div
+                              key={task.id}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-2 ${
+                                task.completed ? 'opacity-60' : ''
+                              }`}
+                              style={{
+                                backgroundColor: 'white',
+                                border: '1.5px solid #2D3436',
+                              }}
                             >
-                              <span className={task.completed ? 'line-through' : ''}>
-                                {task.completed ? '✓' : '○'} {task.title || task.name}
-                              </span>
-                            </button>
-                            {onDeleteTask && (
                               <button
-                                onClick={() => onDeleteTask(patient.id, task.id)}
-                                className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                                onClick={() => onToggleTask(patient.id, task.id, task.completed)}
+                                className="flex-1 text-left transition hover:-translate-y-0.5 flex items-center gap-2"
                               >
-                                <X size={14} />
+                                <span className={task.completed ? 'line-through' : ''}>
+                                  {task.completed ? '✓' : '○'} {task.title || task.name}
+                                </span>
                               </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                              {onDeleteTask && (
+                                <button
+                                  onClick={() => onDeleteTask(patient.id, task.id)}
+                                  className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition"
+                                >
+                                  <X size={14} />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -689,6 +746,7 @@ export function TaskChecklist({
               onClick={() => { setShowAddTask(false); setNewTaskName(''); setSelectedPatientId(null); }}
               className="p-2 rounded-xl transition hover:bg-white"
               style={{ border: NEO_BORDER, backgroundColor: 'white' }}
+              data-testid="close-add-task"
             >
               <X size={16} />
             </button>
