@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateWeeklyScheduleFields } from '@/lib/acvim-validation';
 
 // Helper to generate all weeks for a residency year using actual calendar months
 function generateWeeksForYear(year: number, startDate: Date): Array<{
@@ -147,7 +148,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(entries);
     }
 
-    // Otherwise, upsert a single entry
+    // Validate hour fields
+    const validation = validateWeeklyScheduleFields({
+      clinicalNeurologyDirect: data.clinicalNeurologyDirect,
+      clinicalNeurologyIndirect: data.clinicalNeurologyIndirect,
+      neurosurgeryHours: data.neurosurgeryHours,
+      radiologyHours: data.radiologyHours,
+      neuropathologyHours: data.neuropathologyHours,
+      clinicalPathologyHours: data.clinicalPathologyHours,
+      electrodiagnosticsHours: data.electrodiagnosticsHours,
+      journalClubHours: data.journalClubHours,
+    });
+
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.errors.join(', ') }, { status: 400 });
+    }
+
+    // Upsert a single entry
     const entry = await prisma.aCVIMWeeklySchedule.upsert({
       where: {
         residencyYear_monthNumber_weekNumber: {

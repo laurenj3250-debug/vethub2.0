@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateJournalClubHours } from '@/lib/acvim-validation';
 
 // GET - fetch all journal club entries (optionally filtered by year)
 export async function GET(request: NextRequest) {
@@ -32,8 +33,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate hours (0.5 increments)
-    if (data.hours <= 0 || (data.hours * 2) % 1 !== 0) {
-      return NextResponse.json({ error: 'Hours must be in 0.5 increments' }, { status: 400 });
+    const hoursValidation = validateJournalClubHours(data.hours);
+    if (!hoursValidation.valid) {
+      return NextResponse.json({ error: hoursValidation.errors.join(', ') }, { status: 400 });
     }
 
     const entry = await prisma.aCVIMJournalClub.create({
@@ -47,20 +49,28 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(entry);
+    return NextResponse.json(entry, { status: 201 });
   } catch (error) {
     console.error('Error creating journal club entry:', error);
     return NextResponse.json({ error: 'Failed to create entry' }, { status: 500 });
   }
 }
 
-// PUT - update entry
+// PUT - update existing entry
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
 
     if (!data.id) {
       return NextResponse.json({ error: 'Entry ID required' }, { status: 400 });
+    }
+
+    // Validate hours if provided (0.5 increments)
+    if (data.hours !== undefined) {
+      const hoursValidation = validateJournalClubHours(data.hours);
+      if (!hoursValidation.valid) {
+        return NextResponse.json({ error: hoursValidation.errors.join(', ') }, { status: 400 });
+      }
     }
 
     const updated = await prisma.aCVIMJournalClub.update({

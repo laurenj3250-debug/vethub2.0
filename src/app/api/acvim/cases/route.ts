@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { validateCaseHours } from '@/lib/acvim-validation';
 
 // GET - fetch all cases (optionally filtered by year)
 export async function GET(request: NextRequest) {
@@ -37,8 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate hours (0.25 increments)
-    if (data.hours <= 0 || (data.hours * 4) % 1 !== 0) {
-      return NextResponse.json({ error: 'Hours must be in 0.25 increments' }, { status: 400 });
+    const hoursValidation = validateCaseHours(data.hours);
+    if (!hoursValidation.valid) {
+      return NextResponse.json({ error: hoursValidation.errors.join(', ') }, { status: 400 });
     }
 
     const newCase = await prisma.aCVIMNeurosurgeryCase.create({
@@ -56,20 +58,33 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(newCase);
+    return NextResponse.json(newCase, { status: 201 });
   } catch (error) {
     console.error('Error creating case:', error);
     return NextResponse.json({ error: 'Failed to create case' }, { status: 500 });
   }
 }
 
-// PUT - update case
+// PUT - update existing case
 export async function PUT(request: NextRequest) {
   try {
     const data = await request.json();
 
     if (!data.id) {
       return NextResponse.json({ error: 'Case ID required' }, { status: 400 });
+    }
+
+    // Validate role if provided
+    if (data.role && !['Primary', 'Assistant'].includes(data.role)) {
+      return NextResponse.json({ error: 'Role must be "Primary" or "Assistant"' }, { status: 400 });
+    }
+
+    // Validate hours if provided (0.25 increments)
+    if (data.hours !== undefined) {
+      const hoursValidation = validateCaseHours(data.hours);
+      if (!hoursValidation.valid) {
+        return NextResponse.json({ error: hoursValidation.errors.join(', ') }, { status: 400 });
+      }
     }
 
     const updated = await prisma.aCVIMNeurosurgeryCase.update({
