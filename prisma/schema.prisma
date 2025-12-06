@@ -238,3 +238,94 @@ model ProblemOption {
 
   @@index([isDefault])
 }
+
+// ==========================================
+// ACVIM Neurology Residency Tracking Models
+// Matches official ACVIM Credentials Committee forms exactly
+// ==========================================
+
+// Resident Profile - identity and program settings
+model ACVIMProfile {
+  id                        String   @id @default(cuid())
+  residentName              String
+  acvimCandidateId          String?
+  trainingFacility          String?
+  programStartDate          String?  // ISO date - when residency started (e.g., "2025-07-14")
+  supervisingDiplomateNames String[] // Default diplomates for quick fill
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}
+
+// Neurosurgery Case Log - ACVIM form exact match
+// Columns: Procedure Name, Date Completed, Case ID Number, Primary or Assistant, Hours
+model ACVIMNeurosurgeryCase {
+  id            String   @id @default(cuid())
+  procedureName String   // Free text: "hemilaminectomy", "ventral slot", etc.
+  dateCompleted String   // ISO date (YYYY-MM-DD)
+  caseIdNumber  String   // Medical record / patient ID number
+  role          String   // "Primary" | "Assistant" (per ACVIM instructions)
+  hours         Float    // 0.25 increments (15-min blocks)
+  residencyYear Int      // 1, 2, or 3
+  notes         String?
+
+  // Optional link to VetHub patient
+  patientId     Int?
+  patientName   String?
+  patientInfo   String?  // Species/breed for reference
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([residencyYear])
+  @@index([dateCompleted])
+}
+
+// Journal Club Log - ACVIM form exact match
+// Columns: Date, Title of Article(s), Supervising Neurologist(s), Hours
+model ACVIMJournalClub {
+  id                      String   @id @default(cuid())
+  date                    String   // ISO date (YYYY-MM-DD)
+  articleTitles           String[] // Can have multiple articles per session
+  supervisingNeurologists String[] // Board-certified neurologists in attendance
+  hours                   Float    // 0.5 increments (30-min blocks)
+  residencyYear           Int      // 1, 2, or 3
+  notes                   String?
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([residencyYear])
+  @@index([date])
+}
+
+// Weekly Schedule Entry - ACVIM form exact match
+// Pre-generated for all 52 weeks per year, user fills in hours
+model ACVIMWeeklySchedule {
+  id                        String   @id @default(cuid())
+  residencyYear             Int      // 1, 2, or 3
+  monthNumber               Int      // 1-12 (relative to residency start)
+  weekNumber                Int      // 1-5 (week within month)
+  weekDateRange             String   // Display format: "7/14-7/18"
+  weekStartDate             String   // ISO date for sorting
+
+  // ACVIM columns exactly as specified
+  clinicalNeurologyDirect   Float?   // Weeks (0, 0.5, 1)
+  clinicalNeurologyIndirect Float?   // Weeks (0, 0.5, 1)
+  neurosurgeryHours         Float?   // 0.25, 0.5, 0.75, 1, etc.
+  radiologyHours            Float?   // Whole hours only (1, 2, 3...)
+  neuropathologyHours       Float?   // Whole hours only
+  clinicalPathologyHours    Float?   // Whole hours only
+  electrodiagnosticsHours   Float?   // 0.25, 0.5, 0.75, 1, etc.
+  journalClubHours          Float?   // 0.5, 1, 1.5, etc.
+  otherTime                 String?  // Free text for weeks/days
+  otherTimeDescription      String?  // e.g., "vacation", "research", "Brain Camp"
+
+  supervisingDiplomateName  String?  // REQUIRED per ACVIM but nullable for pre-generation
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  @@unique([residencyYear, monthNumber, weekNumber])
+  @@index([residencyYear])
+  @@index([monthNumber])
+}
