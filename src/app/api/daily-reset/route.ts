@@ -62,6 +62,26 @@ export async function POST(request: Request) {
     tasksDeleted = deletedTasks.count;
 
     // ========================================
+    // 1b. DELETE OLD INCOMPLETE DAILY TASKS (prevent accumulation)
+    // Only delete recurring daily tasks from previous days, not one-time tasks
+    // ========================================
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const allDailyTaskNames = [...DAILY_PATIENT_TASK_NAMES, ...DAILY_GENERAL_TASK_NAMES];
+    const deletedOldTasks = await prisma.task.deleteMany({
+      where: {
+        createdAt: { lt: todayStart },
+        completed: false,
+        title: { in: allDailyTaskNames },
+      },
+    });
+    if (deletedOldTasks.count > 0) {
+      console.log(`[Daily Reset] Cleaned up ${deletedOldTasks.count} old incomplete daily tasks`);
+    }
+    tasksDeleted += deletedOldTasks.count;
+
+    // ========================================
     // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
     // Each general task should exist exactly ONCE
     // ========================================

@@ -55,7 +55,7 @@ export const TASK_CONFIG = {
     ],
     'Pre-procedure': [
       { name: 'Blood Work', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Chest X-rays', category: 'Pre-procedure', priority: 'high' as TaskPriority },
+      { name: 'Chest X-rays', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'NPO Confirmed', category: 'Pre-procedure', priority: 'high' as TaskPriority },
     ],
     'Recovery': [
@@ -107,18 +107,45 @@ export const DAILY_PATIENT_TASK_NAMES = TASK_CONFIG.dailyRecurring.patient.map(t
 export const DAILY_GENERAL_TASK_NAMES = TASK_CONFIG.dailyRecurring.general.map(t => t.name);
 
 /**
- * Helper: Get morning task names
+ * Helper: Get all task names with a specific timeOfDay from ALL sources
  */
-export const MORNING_TASK_NAMES = TASK_CONFIG.dailyRecurring.patient
-  .filter(t => t.timeOfDay === 'morning')
-  .map(t => t.name);
+function getAllTaskNamesWithTime(time: TaskTimeOfDay): string[] {
+  const names: string[] = [];
+
+  // Daily patient tasks
+  TASK_CONFIG.dailyRecurring.patient
+    .filter(t => t.timeOfDay === time)
+    .forEach(t => names.push(t.name));
+
+  // Daily general tasks
+  TASK_CONFIG.dailyRecurring.general
+    .filter(t => t.timeOfDay === time)
+    .forEach(t => names.push(t.name));
+
+  // Status-triggered tasks (Pre-procedure, Recovery, etc.)
+  Object.values(TASK_CONFIG.statusTriggered)
+    .flat()
+    .filter(t => t.timeOfDay === time)
+    .forEach(t => names.push(t.name));
+
+  // Type-specific tasks (MRI, Surgery, Medical)
+  Object.values(TASK_CONFIG.typeSpecific)
+    .flat()
+    .filter(t => t.timeOfDay === time)
+    .forEach(t => names.push(t.name));
+
+  return names;
+}
 
 /**
- * Helper: Get evening task names
+ * Helper: Get morning task names (from all sources)
  */
-export const EVENING_TASK_NAMES = TASK_CONFIG.dailyRecurring.patient
-  .filter(t => t.timeOfDay === 'evening')
-  .map(t => t.name);
+export const MORNING_TASK_NAMES = getAllTaskNamesWithTime('morning');
+
+/**
+ * Helper: Get evening task names (from all sources)
+ */
+export const EVENING_TASK_NAMES = getAllTaskNamesWithTime('evening');
 
 /**
  * Check if a patient status should receive daily recurring tasks

@@ -2353,7 +2353,7 @@ export default function VetHub() {
       </svg>
 
       <header
-        className="relative sticky top-0 z-50 bg-white"
+        className="relative sticky top-0 z-40 bg-white"
         style={{ borderBottom: NEO_BORDER }}
       >
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -2516,7 +2516,7 @@ export default function VetHub() {
         </div>
       </header>
 
-      <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6">
+      <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6 scroll-mt-20">
         {/* Task Header with Refresh */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
