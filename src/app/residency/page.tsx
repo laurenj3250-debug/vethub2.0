@@ -1040,70 +1040,76 @@ export default function ACVIMResidencyTrackerPage() {
                                     />
                                   </td>
                                   <td className="px-1 py-1">
-                                    <input
-                                      type="number"
-                                      step="0.25"
-                                      min="0"
+                                    <select
                                       value={entry.neurosurgeryHours || ''}
                                       onChange={(e) => updateWeeklyEntry(entry, 'neurosurgeryHours', e.target.value ? parseFloat(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                      placeholder="-"
-                                    />
+                                      className="w-14 px-1 py-1.5 text-xs border-2 border-black rounded-lg bg-white cursor-pointer hover:bg-orange-50 focus:ring-2 focus:ring-orange-300 outline-none text-center font-medium"
+                                    >
+                                      <option value="">-</option>
+                                      {[1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20].map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                      ))}
+                                    </select>
                                   </td>
                                   <td className="px-1 py-1">
-                                    <input
-                                      type="number"
-                                      step="1"
-                                      min="0"
+                                    <select
                                       value={entry.radiologyHours || ''}
                                       onChange={(e) => updateWeeklyEntry(entry, 'radiologyHours', e.target.value ? parseInt(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                      placeholder="-"
-                                    />
+                                      className="w-14 px-1 py-1.5 text-xs border-2 border-black rounded-lg bg-white cursor-pointer hover:bg-blue-50 focus:ring-2 focus:ring-blue-300 outline-none text-center font-medium"
+                                    >
+                                      <option value="">-</option>
+                                      {[1, 2, 3, 4, 5, 6, 8, 10].map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                      ))}
+                                    </select>
                                   </td>
                                   <td className="px-1 py-1">
-                                    <input
-                                      type="number"
-                                      step="1"
-                                      min="0"
+                                    <select
                                       value={entry.neuropathologyHours || ''}
                                       onChange={(e) => updateWeeklyEntry(entry, 'neuropathologyHours', e.target.value ? parseInt(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                      placeholder="-"
-                                    />
+                                      className="w-14 px-1 py-1.5 text-xs border-2 border-black rounded-lg bg-white cursor-pointer hover:bg-pink-50 focus:ring-2 focus:ring-pink-300 outline-none text-center font-medium"
+                                    >
+                                      <option value="">-</option>
+                                      {[1, 2, 3, 4, 5, 6, 8].map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                      ))}
+                                    </select>
                                   </td>
                                   <td className="px-1 py-1">
-                                    <input
-                                      type="number"
-                                      step="1"
-                                      min="0"
+                                    <select
                                       value={entry.clinicalPathologyHours || ''}
                                       onChange={(e) => updateWeeklyEntry(entry, 'clinicalPathologyHours', e.target.value ? parseInt(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                      placeholder="-"
-                                    />
+                                      className="w-14 px-1 py-1.5 text-xs border-2 border-black rounded-lg bg-white cursor-pointer hover:bg-purple-50 focus:ring-2 focus:ring-purple-300 outline-none text-center font-medium"
+                                    >
+                                      <option value="">-</option>
+                                      {[1, 2, 3, 4, 5, 6, 8].map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                      ))}
+                                    </select>
                                   </td>
                                   <td className="px-1 py-1">
-                                    <input
-                                      type="number"
-                                      step="0.25"
-                                      min="0"
+                                    <select
                                       value={entry.electrodiagnosticsHours || ''}
                                       onChange={(e) => updateWeeklyEntry(entry, 'electrodiagnosticsHours', e.target.value ? parseFloat(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                      placeholder="-"
-                                    />
+                                      className="w-14 px-1 py-1.5 text-xs border-2 border-black rounded-lg bg-white cursor-pointer hover:bg-yellow-50 focus:ring-2 focus:ring-yellow-300 outline-none text-center font-medium"
+                                    >
+                                      <option value="">-</option>
+                                      {[1, 2, 3, 4, 5, 6, 8].map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                      ))}
+                                    </select>
                                   </td>
                                   <td className="px-1 py-1">
-                                    <input
-                                      type="number"
-                                      step="0.5"
-                                      min="0"
+                                    <select
                                       value={entry.journalClubHours || ''}
                                       onChange={(e) => updateWeeklyEntry(entry, 'journalClubHours', e.target.value ? parseFloat(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                      placeholder="-"
-                                    />
+                                      className="w-14 px-1 py-1.5 text-xs border-2 border-black rounded-lg bg-white cursor-pointer hover:bg-indigo-50 focus:ring-2 focus:ring-indigo-300 outline-none text-center font-medium"
+                                    >
+                                      <option value="">-</option>
+                                      {[0.5, 1, 1.5, 2, 2.5, 3, 4, 5].map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                      ))}
+                                    </select>
                                   </td>
                                   <td className="px-1 py-1">
                                     <input
