@@ -9,7 +9,6 @@ import {
   BookOpen,
   Calendar,
   TrendingUp,
-  Download,
   Award,
   Trash2,
   Settings,
@@ -24,6 +23,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { useDebouncedCallback, useSaveStatus, SaveStatus } from '@/hooks/useDebounce';
+import { generateACVIMWordDocument } from '@/lib/acvim-word-export';
 import {
   NeurosurgeryCase,
   JournalClubEntry,
@@ -490,24 +490,26 @@ export default function ACVIMResidencyTrackerPage() {
     };
   }, [cases, journalClub, weeklySchedule]);
 
-  // Export to Word (JSON for now - Word generation can be added)
-  function handleExport() {
-    const exportData = {
-      profile,
-      year: selectedYear,
-      cases,
-      journalClub,
-      weeklySchedule,
-      summary,
-      exportDate: new Date().toISOString(),
-    };
+  // Export to Word document
+  const [exporting, setExporting] = useState(false);
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `ACVIM-Year${selectedYear}-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await generateACVIMWordDocument({
+        profile,
+        year: selectedYear,
+        cases,
+        journalClub,
+        weeklySchedule,
+        summary,
+      });
+    } catch (error) {
+      console.error('Error exporting document:', error);
+      alert('Failed to export document');
+    } finally {
+      setExporting(false);
+    }
   }
 
   if (loading) {
@@ -545,10 +547,15 @@ export default function ACVIMResidencyTrackerPage() {
               </button>
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+                disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-50"
               >
-                <Download size={16} />
-                Export Year {selectedYear}
+                {exporting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <FileText size={16} />
+                )}
+                {exporting ? 'Exporting...' : `Export to Word`}
               </button>
             </div>
           </div>
