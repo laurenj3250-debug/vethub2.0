@@ -540,38 +540,38 @@ export default function ACVIMResidencyTrackerPage() {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/"
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
               >
-                <ArrowLeft size={16} />
-                Dashboard
+                <ArrowLeft size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Dashboard</span>
               </Link>
-              <h1 className="text-xl font-bold text-gray-900">ACVIM Residency Tracker</h1>
-              <Award className="text-purple-600" size={24} />
+              <h1 className="text-base sm:text-xl font-bold text-gray-900">ACVIM Tracker</h1>
+              <Award className="text-purple-600 hidden sm:block" size={24} />
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowProfileDialog(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-sm"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-xs sm:text-sm"
               >
-                <Settings size={16} />
-                Profile
+                <Settings size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">Profile</span>
               </button>
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm disabled:opacity-50"
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm disabled:opacity-50"
               >
                 {exporting ? (
-                  <Loader2 size={16} className="animate-spin" />
+                  <Loader2 size={14} className="animate-spin sm:w-4 sm:h-4" />
                 ) : (
-                  <FileText size={16} />
+                  <FileText size={14} className="sm:w-4 sm:h-4" />
                 )}
-                {exporting ? 'Exporting...' : `Export to Word`}
+                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
               </button>
             </div>
           </div>
@@ -580,78 +580,78 @@ export default function ACVIMResidencyTrackerPage() {
 
       {/* Year Selector + Tabs */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between py-3">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 gap-2 sm:gap-0">
             {/* Year Selector */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2">
               <button
                 onClick={() => setSelectedYear(Math.max(1, selectedYear - 1))}
                 disabled={selectedYear === 1}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
               </button>
               <div className="flex gap-1">
                 {[1, 2, 3].map((year) => (
                   <button
                     key={year}
                     onClick={() => setSelectedYear(year)}
-                    className={`px-4 py-2 rounded-lg font-semibold transition ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-semibold transition ${
                       selectedYear === year
                         ? 'bg-purple-600 text-white'
                         : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                     }`}
                   >
-                    Year {year}
+                    Y{year}
                   </button>
                 ))}
               </div>
               <button
                 onClick={() => setSelectedYear(Math.min(3, selectedYear + 1))}
                 disabled={selectedYear === 3}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"
               >
-                <ChevronRight size={20} />
+                <ChevronRight size={18} className="sm:w-5 sm:h-5" />
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
               <button
                 onClick={() => setActiveTab('cases')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
                   activeTab === 'cases' ? 'bg-white shadow text-blue-600' : 'text-gray-600'
                 }`}
               >
-                <Stethoscope size={16} />
-                Case Log
+                <Stethoscope size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Cases</span>
               </button>
               <button
                 onClick={() => setActiveTab('journal')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
                   activeTab === 'journal' ? 'bg-white shadow text-purple-600' : 'text-gray-600'
                 }`}
               >
-                <BookOpen size={16} />
-                Journal Club
+                <BookOpen size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Journal</span>
               </button>
               <button
                 onClick={() => setActiveTab('schedule')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
                   activeTab === 'schedule' ? 'bg-white shadow text-orange-600' : 'text-gray-600'
                 }`}
               >
-                <Calendar size={16} />
-                Weekly Schedule
+                <Calendar size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Schedule</span>
               </button>
               <button
                 onClick={() => setActiveTab('summary')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
                   activeTab === 'summary' ? 'bg-white shadow text-green-600' : 'text-gray-600'
                 }`}
               >
-                <TrendingUp size={16} />
-                Summary
+                <TrendingUp size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Summary</span>
               </button>
             </div>
           </div>
@@ -659,12 +659,12 @@ export default function ACVIMResidencyTrackerPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Case Log Tab */}
         {activeTab === 'cases' && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900">
                 Neurosurgery Case Log - Year {selectedYear}
               </h2>
               <button
