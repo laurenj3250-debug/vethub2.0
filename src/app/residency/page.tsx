@@ -453,7 +453,7 @@ export default function ResidencyTrackerPage() {
               </div>
               <button
                 onClick={() => setShowCaseDialog(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                className="flex items-center gap-1 px-3 py-2 min-h-[44px] bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
               >
                 <Plus size={16} />
                 Add Case
@@ -480,9 +480,9 @@ export default function ResidencyTrackerPage() {
                       </div>
                       <button
                         onClick={() => deleteCase(c.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                     <div className="flex items-center gap-2 text-xs">
@@ -505,7 +505,7 @@ export default function ResidencyTrackerPage() {
               </div>
               <button
                 onClick={() => setShowJournalDialog(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+                className="flex items-center gap-1 px-3 py-2 min-h-[44px] bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
               >
                 <Plus size={16} />
                 Add Entry
@@ -527,9 +527,9 @@ export default function ResidencyTrackerPage() {
                       </div>
                       <button
                         onClick={() => deleteJournal(j.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                     <div className="text-xs text-gray-600 mb-1">
@@ -551,7 +551,7 @@ export default function ResidencyTrackerPage() {
               </div>
               <button
                 onClick={() => setShowScheduleDialog(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm"
+                className="flex items-center gap-1 px-3 py-2 min-h-[44px] bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition text-sm"
               >
                 <Plus size={16} />
                 Add Week
@@ -573,9 +573,9 @@ export default function ResidencyTrackerPage() {
                       </div>
                       <button
                         onClick={() => deleteSchedule(w.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                     <div className="grid grid-cols-2 gap-1">
