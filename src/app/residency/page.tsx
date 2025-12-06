@@ -21,6 +21,7 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  Pencil,
 } from 'lucide-react';
 import { useDebouncedCallback, useSaveStatus, SaveStatus } from '@/hooks/useDebounce';
 import {
@@ -52,6 +53,10 @@ export default function ACVIMResidencyTrackerPage() {
   const [showCaseDialog, setShowCaseDialog] = useState(false);
   const [showJournalDialog, setShowJournalDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+
+  // Edit mode tracking
+  const [editingCaseId, setEditingCaseId] = useState<string | null>(null);
+  const [editingJournalId, setEditingJournalId] = useState<string | null>(null);
 
   // Weekly schedule save status (tracks per-cell saving)
   const { status: scheduleStatus, setStatus: setScheduleStatus, trackSave } = useSaveStatus(2000);
@@ -193,30 +198,57 @@ export default function ACVIMResidencyTrackerPage() {
     }
   }
 
-  // Add case
-  async function handleAddCase() {
+  // Start editing a case
+  function handleEditCase(c: NeurosurgeryCase) {
+    setCaseForm({
+      procedureName: c.procedureName,
+      dateCompleted: c.dateCompleted,
+      caseIdNumber: c.caseIdNumber,
+      role: c.role as CaseRole,
+      hours: c.hours,
+      notes: c.notes || '',
+      patientId: c.patientId || undefined,
+      patientName: c.patientName || '',
+      patientInfo: c.patientInfo || '',
+    });
+    setEditingCaseId(c.id);
+    setShowCaseDialog(true);
+  }
+
+  // Add or update case
+  async function handleSaveCase() {
     if (!caseForm.procedureName || !caseForm.caseIdNumber) {
       alert('Please fill in required fields');
       return;
     }
     setSaving(true);
     try {
+      const isEditing = editingCaseId !== null;
       const res = await fetch('/api/acvim/cases', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...(isEditing ? { id: editingCaseId } : {}),
           ...caseForm,
           residencyYear: selectedYear,
         }),
       });
       if (res.ok) {
-        const newCase = await res.json();
-        setCases([newCase, ...cases]);
+        const savedCase = await res.json();
+        if (isEditing) {
+          setCases(cases.map((c) => (c.id === savedCase.id ? savedCase : c)));
+        } else {
+          setCases([savedCase, ...cases]);
+        }
         setShowCaseDialog(false);
+        setEditingCaseId(null);
         resetCaseForm();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to save case');
       }
     } catch (error) {
-      console.error('Error adding case:', error);
+      console.error('Error saving case:', error);
     } finally {
       setSaving(false);
     }
@@ -249,18 +281,33 @@ export default function ACVIMResidencyTrackerPage() {
     }
   }
 
-  // Add journal club entry
-  async function handleAddJournal() {
+  // Start editing a journal club entry
+  function handleEditJournal(j: JournalClubEntry) {
+    setJournalForm({
+      date: j.date,
+      articleTitles: j.articleTitles.join('\n'),
+      supervisingNeurologists: j.supervisingNeurologists.join(', '),
+      hours: j.hours,
+      notes: j.notes || '',
+    });
+    setEditingJournalId(j.id);
+    setShowJournalDialog(true);
+  }
+
+  // Add or update journal club entry
+  async function handleSaveJournal() {
     if (!journalForm.date || !journalForm.hours) {
       alert('Please fill in required fields');
       return;
     }
     setSaving(true);
     try {
+      const isEditing = editingJournalId !== null;
       const res = await fetch('/api/acvim/journal-club', {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...(isEditing ? { id: editingJournalId } : {}),
           date: journalForm.date,
           articleTitles: journalForm.articleTitles
             .split('\n')
@@ -276,13 +323,21 @@ export default function ACVIMResidencyTrackerPage() {
         }),
       });
       if (res.ok) {
-        const newEntry = await res.json();
-        setJournalClub([newEntry, ...journalClub]);
+        const savedEntry = await res.json();
+        if (isEditing) {
+          setJournalClub(journalClub.map((j) => (j.id === savedEntry.id ? savedEntry : j)));
+        } else {
+          setJournalClub([savedEntry, ...journalClub]);
+        }
         setShowJournalDialog(false);
+        setEditingJournalId(null);
         resetJournalForm();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to save entry');
       }
     } catch (error) {
-      console.error('Error adding journal club entry:', error);
+      console.error('Error saving journal club entry:', error);
     } finally {
       setSaving(false);
     }
@@ -590,7 +645,11 @@ export default function ACVIMResidencyTrackerPage() {
                 Neurosurgery Case Log - Year {selectedYear}
               </h2>
               <button
-                onClick={() => setShowCaseDialog(true)}
+                onClick={() => {
+                  resetCaseForm();
+                  setEditingCaseId(null);
+                  setShowCaseDialog(true);
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 <Plus size={16} />
@@ -655,12 +714,22 @@ export default function ACVIMResidencyTrackerPage() {
                           {c.patientName ? `${c.patientName} (${c.patientInfo || ''})` : '-'}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleDeleteCase(c.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleEditCase(c)}
+                              className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition"
+                              title="Edit case"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCase(c.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                              title="Delete case"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -681,6 +750,7 @@ export default function ACVIMResidencyTrackerPage() {
               <button
                 onClick={() => {
                   resetJournalForm();
+                  setEditingJournalId(null);
                   setShowJournalDialog(true);
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
@@ -737,12 +807,22 @@ export default function ACVIMResidencyTrackerPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{j.hours}h</td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => handleDeleteJournal(j.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleEditJournal(j)}
+                              className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition"
+                              title="Edit entry"
+                            >
+                              <Pencil size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteJournal(j.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                              title="Delete entry"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -1130,7 +1210,9 @@ export default function ACVIMResidencyTrackerPage() {
       {showCaseDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Add Neurosurgery Case</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              {editingCaseId ? 'Edit Neurosurgery Case' : 'Add Neurosurgery Case'}
+            </h3>
 
             <div className="space-y-3">
               <div>
@@ -1233,14 +1315,18 @@ export default function ACVIMResidencyTrackerPage() {
 
             <div className="flex gap-2 mt-4">
               <button
-                onClick={handleAddCase}
+                onClick={handleSaveCase}
                 disabled={saving}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Add Case'}
+                {saving ? 'Saving...' : editingCaseId ? 'Save Changes' : 'Add Case'}
               </button>
               <button
-                onClick={() => setShowCaseDialog(false)}
+                onClick={() => {
+                  setShowCaseDialog(false);
+                  setEditingCaseId(null);
+                  resetCaseForm();
+                }}
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
               >
                 Cancel
@@ -1254,7 +1340,9 @@ export default function ACVIMResidencyTrackerPage() {
       {showJournalDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Add Journal Club Entry</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              {editingJournalId ? 'Edit Journal Club Entry' : 'Add Journal Club Entry'}
+            </h3>
 
             <div className="space-y-3">
               <div>
@@ -1324,14 +1412,18 @@ export default function ACVIMResidencyTrackerPage() {
 
             <div className="flex gap-2 mt-4">
               <button
-                onClick={handleAddJournal}
+                onClick={handleSaveJournal}
                 disabled={saving}
                 className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Add Entry'}
+                {saving ? 'Saving...' : editingJournalId ? 'Save Changes' : 'Add Entry'}
               </button>
               <button
-                onClick={() => setShowJournalDialog(false)}
+                onClick={() => {
+                  setShowJournalDialog(false);
+                  setEditingJournalId(null);
+                  resetJournalForm();
+                }}
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
               >
                 Cancel
