@@ -1149,10 +1149,75 @@ export default function ACVIMResidencyTrackerPage() {
 
         {/* Summary Tab */}
         {activeTab === 'summary' && (
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
+          <div className="space-y-6">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900">
               Annual Summary - Year {selectedYear}
             </h2>
+
+            {/* ACVIM Requirements Progress */}
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow p-4 sm:p-6 border border-purple-100">
+              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Award size={18} className="text-purple-600" />
+                ACVIM Requirements Progress (Year {selectedYear})
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Clinical Neurology Direct */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Clinical Neurology (Direct)</span>
+                    <span className="font-medium">{summary.clinicalDirectWeeks}/40 weeks</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (summary.clinicalDirectWeeks / 40) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Clinical Neurology Indirect */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Clinical Neurology (Indirect)</span>
+                    <span className="font-medium">{summary.clinicalIndirectWeeks}/12 weeks</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (summary.clinicalIndirectWeeks / 12) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Neurosurgery Hours */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Neurosurgery</span>
+                    <span className="font-medium">{summary.neurosurgeryHours}/200 hrs</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-orange-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (summary.neurosurgeryHours / 200) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+                {/* Journal Club Hours */}
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Journal Club</span>
+                    <span className="font-medium">{summary.totalJournalHours}/50 hrs</span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500 transition-all duration-500"
+                      style={{ width: `${Math.min(100, (summary.totalJournalHours / 50) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-3">
+                * Requirements are approximate per-year targets. Consult ACVIM credentials committee for exact requirements.
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Case Log Summary */}
