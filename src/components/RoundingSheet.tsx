@@ -30,7 +30,7 @@ interface RoundingSheetProps {
 
 // Multi-select dropdown for Problems field - uses database-backed options
 // Now supports direct typing in the field (not just dropdown selection)
-function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { value: string; onChange: (val: string) => void; 'aria-label'?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [directInput, setDirectInput] = useState(''); // For typing directly in the field
@@ -219,6 +219,7 @@ function ProblemsMultiSelect({ value, onChange }: { value: string; onChange: (va
             }}
             onClick={(e) => e.stopPropagation()}
             placeholder={selectedItems.length === 0 ? "Type or click ▼" : ""}
+            aria-label={ariaLabel}
             className="flex-1 min-w-[60px] bg-transparent border-none outline-none text-xs placeholder-gray-400"
             disabled={isAdding}
           />
@@ -1250,6 +1251,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'signalment' })}
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'signalment')}
+                      aria-label={`Signalment for ${patientName}`}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     />
@@ -1259,6 +1261,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       value={data.location || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'location' })}
+                      aria-label={`Location for ${patientName}`}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1272,6 +1275,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       value={data.icuCriteria || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'icuCriteria' })}
+                      aria-label={`ICU Criteria for ${patientName}`}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1286,6 +1290,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       value={data.code || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'code' })}
+                      aria-label={`Code status for ${patientName}`}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D]"
                       style={{
                         border: '1px solid #ccc',
@@ -1303,6 +1308,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     <ProblemsMultiSelect
                       value={data.problems || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'problems', val)}
+                      aria-label={`Problems for ${patientName}`}
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
@@ -1313,6 +1319,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'diagnosticFindings')}
                       field="diagnosticFindings"
                       rows={2}
+                      aria-label={`Diagnostic findings for ${patientName}`}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
@@ -1325,6 +1332,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'therapeutics')}
                       field="therapeutics"
                       rows={2}
+                      aria-label={`Therapeutics for ${patientName}`}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
@@ -1334,6 +1342,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       value={data.ivc || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'ivc', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'ivc' })}
+                      aria-label={`IVC for ${patientName}`}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1347,6 +1356,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       value={data.fluids || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'fluids', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'fluids' })}
+                      aria-label={`Fluids for ${patientName}`}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1361,6 +1371,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       value={data.cri || ''}
                       onChange={(e) => handleFieldChange(patient.id, 'cri', e.target.value)}
                       onFocus={() => setFocusedField({ patientId: patient.id, field: 'cri' })}
+                      aria-label={`CRI for ${patientName}`}
                       className="w-full px-0.5 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
                       style={{ border: '1px solid #ccc' }}
                     >
@@ -1379,6 +1390,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'overnightDx')}
                       field="overnightDx"
                       rows={2}
+                      aria-label={`Overnight diagnostics for ${patientName}`}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
@@ -1392,6 +1404,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       field="concerns"
                       rows={2}
                       placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
+                      aria-label={`Concerns for ${patientName}`}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />
@@ -1404,6 +1417,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       onPaste={(e) => handleFieldPaste(e, patient.id, 'comments')}
                       field="comments"
                       rows={2}
+                      aria-label={`Comments for ${patientName}`}
                       className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
                       style={{ border: '1px solid #ccc' }}
                     />

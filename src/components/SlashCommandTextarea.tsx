@@ -14,6 +14,7 @@ interface SlashCommandTextareaProps {
   placeholder?: string;
   className?: string;
   style?: React.CSSProperties;
+  'aria-label'?: string;
 }
 
 export function SlashCommandTextarea({
@@ -26,6 +27,7 @@ export function SlashCommandTextarea({
   placeholder,
   className = '',
   style,
+  'aria-label': ariaLabel,
 }: SlashCommandTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isSlashMenuOpen, setIsSlashMenuOpen] = useState(false);
@@ -158,6 +160,7 @@ export function SlashCommandTextarea({
         placeholder={placeholder}
         className={className}
         style={style}
+        aria-label={ariaLabel}
       />
       <SlashCommandMenu
         isOpen={isSlashMenuOpen}
