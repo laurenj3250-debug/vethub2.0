@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -18,7 +18,11 @@ import {
   Save,
   FileText,
   User,
+  Check,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
+import { useDebouncedCallback, useSaveStatus, SaveStatus } from '@/hooks/useDebounce';
 import {
   NeurosurgeryCase,
   JournalClubEntry,
@@ -48,6 +52,11 @@ export default function ACVIMResidencyTrackerPage() {
   const [showCaseDialog, setShowCaseDialog] = useState(false);
   const [showJournalDialog, setShowJournalDialog] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+
+  // Weekly schedule save status (tracks per-cell saving)
+  const { status: scheduleStatus, setStatus: setScheduleStatus, trackSave } = useSaveStatus(2000);
+  const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
+  const lastSavedRef = useRef<Date | null>(null);
 
   // Form states
   const [caseForm, setCaseForm] = useState({
@@ -302,29 +311,68 @@ export default function ACVIMResidencyTrackerPage() {
     }
   }
 
-  // Update weekly schedule entry
-  const updateWeeklyEntry = useCallback(
-    async (
-      entry: WeeklyScheduleEntry,
-      field: keyof WeeklyScheduleEntry,
-      value: number | string | null
-    ) => {
-      const updatedEntry = { ...entry, [field]: value };
+  // Track pending updates for optimistic UI
+  const pendingEntriesRef = useRef<Map<string, WeeklyScheduleEntry>>(new Map());
+
+  // Actual save function (called after debounce)
+  const saveWeeklyEntry = useCallback(
+    async (entryId: string) => {
+      const entryToSave = pendingEntriesRef.current.get(entryId);
+      if (!entryToSave) return;
+
+      setPendingUpdates((prev) => new Set([...prev, entryId]));
+      setScheduleStatus('saving');
+
       try {
         const res = await fetch('/api/acvim/weekly-schedule', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedEntry),
+          body: JSON.stringify(entryToSave),
         });
+
         if (res.ok) {
           const saved = await res.json();
           setWeeklySchedule((prev) => prev.map((e) => (e.id === saved.id ? saved : e)));
+          pendingEntriesRef.current.delete(entryId);
+          lastSavedRef.current = new Date();
+          setScheduleStatus('saved');
+        } else {
+          const error = await res.json();
+          console.error('Validation error:', error);
+          setScheduleStatus('error');
         }
       } catch (error) {
         console.error('Error updating weekly entry:', error);
+        setScheduleStatus('error');
+      } finally {
+        setPendingUpdates((prev) => {
+          const next = new Set(prev);
+          next.delete(entryId);
+          return next;
+        });
       }
     },
-    []
+    [setScheduleStatus]
+  );
+
+  // Debounced save - waits 500ms after last change before saving
+  const debouncedSave = useDebouncedCallback(saveWeeklyEntry, 500);
+
+  // Update weekly schedule entry with optimistic update + debounce
+  const updateWeeklyEntry = useCallback(
+    (entry: WeeklyScheduleEntry, field: keyof WeeklyScheduleEntry, value: number | string | null) => {
+      const updatedEntry = { ...entry, [field]: value };
+
+      // Optimistic update - show change immediately
+      setWeeklySchedule((prev) => prev.map((e) => (e.id === entry.id ? updatedEntry : e)));
+
+      // Store pending update
+      pendingEntriesRef.current.set(entry.id, updatedEntry);
+
+      // Trigger debounced save
+      debouncedSave(entry.id);
+    },
+    [debouncedSave]
   );
 
   // Handle patient selection
@@ -712,7 +760,35 @@ export default function ACVIMResidencyTrackerPage() {
               <h2 className="text-lg font-bold text-gray-900">
                 Weekly Schedule - Year {selectedYear}
               </h2>
-              <p className="text-sm text-gray-500">Click cells to edit. Auto-saves on change.</p>
+              <div className="flex items-center gap-3">
+                {/* Save Status Indicator */}
+                <div className="flex items-center gap-2 text-sm">
+                  {scheduleStatus === 'saving' && (
+                    <span className="flex items-center gap-1 text-blue-600">
+                      <Loader2 size={14} className="animate-spin" />
+                      Saving...
+                    </span>
+                  )}
+                  {scheduleStatus === 'saved' && (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <Check size={14} />
+                      Saved
+                    </span>
+                  )}
+                  {scheduleStatus === 'error' && (
+                    <span className="flex items-center gap-1 text-red-600">
+                      <AlertCircle size={14} />
+                      Error saving
+                    </span>
+                  )}
+                  {scheduleStatus === 'idle' && lastSavedRef.current && (
+                    <span className="text-gray-400">
+                      Last saved {lastSavedRef.current.toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">Click cells to edit. Auto-saves after typing.</p>
+              </div>
             </div>
 
             {/* Schedule Grid */}
