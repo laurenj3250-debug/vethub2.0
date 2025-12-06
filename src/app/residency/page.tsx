@@ -512,6 +512,22 @@ export default function ACVIMResidencyTrackerPage() {
     }
   }
 
+  // Format timestamp for display
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center">
@@ -687,13 +703,16 @@ export default function ACVIMResidencyTrackerPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                       Patient
                     </th>
-                    <th className="px-4 py-3 w-12"></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">
+                      Updated
+                    </th>
+                    <th className="px-4 py-3 w-16"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {cases.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                      <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
                         No cases logged yet. Click "Add Case" to begin.
                       </td>
                     </tr>
@@ -719,6 +738,9 @@ export default function ACVIMResidencyTrackerPage() {
                         <td className="px-4 py-3 text-sm text-gray-600">{c.hours}h</td>
                         <td className="px-4 py-3 text-sm text-gray-500">
                           {c.patientName ? `${c.patientName} (${c.patientInfo || ''})` : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400" title={c.updatedAt ? new Date(c.updatedAt).toLocaleString() : ''}>
+                          {c.updatedAt ? formatTimestamp(c.updatedAt) : '-'}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
@@ -784,13 +806,16 @@ export default function ACVIMResidencyTrackerPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">
                       Hours
                     </th>
-                    <th className="px-4 py-3 w-12"></th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">
+                      Updated
+                    </th>
+                    <th className="px-4 py-3 w-16"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {journalClub.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                      <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                         No journal club entries yet. Click "Add Entry" to begin.
                       </td>
                     </tr>
@@ -813,6 +838,9 @@ export default function ACVIMResidencyTrackerPage() {
                           {j.supervisingNeurologists.join(', ')}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">{j.hours}h</td>
+                        <td className="px-4 py-3 text-xs text-gray-400" title={j.updatedAt ? new Date(j.updatedAt).toLocaleString() : ''}>
+                          {j.updatedAt ? formatTimestamp(j.updatedAt) : '-'}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
                             <button
