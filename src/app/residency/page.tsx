@@ -1028,7 +1028,7 @@ export default function ACVIMResidencyTrackerPage() {
                                       type="checkbox"
                                       checked={entry.clinicalNeurologyDirect === 1}
                                       onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyDirect', e.target.checked ? 1 : null)}
-                                      className="w-5 h-5 rounded border-2 border-black accent-green-500 cursor-pointer"
+                                      className="w-5 h-5 rounded border-2 border-black accent-violet-500 cursor-pointer hover:scale-110 transition"
                                     />
                                   </td>
                                   <td className="px-1 py-1 text-center">
@@ -1036,7 +1036,7 @@ export default function ACVIMResidencyTrackerPage() {
                                       type="checkbox"
                                       checked={entry.clinicalNeurologyIndirect === 1}
                                       onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyIndirect', e.target.checked ? 1 : null)}
-                                      className="w-5 h-5 rounded border-2 border-black accent-blue-500 cursor-pointer"
+                                      className="w-5 h-5 rounded border-2 border-black accent-violet-500 cursor-pointer hover:scale-110 transition"
                                     />
                                   </td>
                                   <td className="px-1 py-1">
