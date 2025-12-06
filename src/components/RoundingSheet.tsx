@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, Copy, ChevronDown, X, Trash2, RotateCcw } from 'lucide-react';
+import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-media-query';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
 import { carryForwardRoundingData, type CarryForwardResult } from '@/lib/rounding-carry-forward';
@@ -359,6 +360,22 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const [pendingPasteData, setPendingPasteData] = useState<any[]>([]);
   const [autoFilledFields, setAutoFilledFields] = useState<Record<number, Set<string>>>({});
   const autoFillInitialized = useRef(false);
+
+  // Mobile responsive handling
+  const isMobile = useIsMobile();
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+
+  const toggleCardExpanded = (patientId: number) => {
+    setExpandedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(patientId)) {
+        newSet.delete(patientId);
+      } else {
+        newSet.add(patientId);
+      }
+      return newSet;
+    });
+  };
 
   // Track currently focused field for paste distribution and QuickInsert
   const [focusedField, setFocusedField] = useState<{
@@ -1190,11 +1207,245 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         </button>
       </div>
 
-      {/* Rounding Sheet Table */}
-      <div
-        className="overflow-x-auto rounded-2xl"
-        style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
-      >
+      {/* Mobile Card View */}
+      {isMobile && activePatients.length > 0 && (
+        <div className="space-y-3">
+          {activePatients.map(patient => {
+            const data = getPatientData(patient.id);
+            const carryForward = carryForwardResults[patient.id];
+            const patientName = getPatientName(patient);
+            const isExpanded = expandedCards.has(patient.id);
+            const hasChanges = !!editingData[patient.id];
+            const status = saveStatus.get(patient.id);
+
+            // Get code color for card header
+            const codeColors: Record<string, string> = {
+              Green: '#22C55E',
+              Yellow: '#FBBF24',
+              Orange: '#F97316',
+              Red: '#EF4444',
+            };
+            const codeColor = codeColors[data.code || ''] || '#E5E7EB';
+
+            return (
+              <div
+                key={patient.id}
+                className="rounded-2xl overflow-hidden"
+                style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW, backgroundColor: 'white' }}
+              >
+                {/* Card Header - Always Visible */}
+                <button
+                  onClick={() => toggleCardExpanded(patient.id)}
+                  className="w-full p-4 flex items-center justify-between text-left"
+                  style={{ backgroundColor: COLORS.mint, borderBottom: NEO_BORDER }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: codeColor, border: '1px solid #000' }}
+                      title={`Code: ${data.code || 'None'}`}
+                    />
+                    <div>
+                      <div className="font-bold text-gray-900">{patientName}</div>
+                      <div className="text-xs text-gray-600">{data.signalment || 'No signalment'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {status === 'saving' && (
+                      <span className="text-xs text-blue-600 font-medium">Saving...</span>
+                    )}
+                    {status === 'saved' && (
+                      <span className="text-xs text-green-600 font-medium">✓ Saved</span>
+                    )}
+                    {hasChanges && !status && (
+                      <span className="text-xs text-amber-600 font-medium">Unsaved</span>
+                    )}
+                    <ChevronRight
+                      size={20}
+                      className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                    />
+                  </div>
+                </button>
+
+                {/* Expanded Content */}
+                {isExpanded && (
+                  <div className="p-4 space-y-4">
+                    {/* Quick Info Row */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">Location</label>
+                        <select
+                          value={data.location || ''}
+                          onChange={(e) => handleFieldChange(patient.id, 'location', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                          aria-label={`Location for ${patientName}`}
+                        >
+                          <option value="">-</option>
+                          {ROUNDING_DROPDOWN_OPTIONS.location.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">ICU</label>
+                        <select
+                          value={data.icuCriteria || ''}
+                          onChange={(e) => handleFieldChange(patient.id, 'icuCriteria', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                          aria-label={`ICU criteria for ${patientName}`}
+                        >
+                          <option value="">-</option>
+                          {ROUNDING_DROPDOWN_OPTIONS.icuCriteria.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">Code</label>
+                        <select
+                          value={data.code || ''}
+                          onChange={(e) => handleFieldChange(patient.id, 'code', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded text-sm border border-gray-300"
+                          style={{ backgroundColor: codeColor }}
+                          aria-label={`Code for ${patientName}`}
+                        >
+                          <option value="">-</option>
+                          {ROUNDING_DROPDOWN_OPTIONS.code.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Problems */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Problems</label>
+                      <div className="text-sm p-2 bg-gray-50 rounded border border-gray-300 min-h-[40px]">
+                        {data.problems || <span className="text-gray-400">No problems listed</span>}
+                      </div>
+                    </div>
+
+                    {/* Dx Findings */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Diagnostic Findings</label>
+                      <SlashCommandTextarea
+                        value={data.diagnosticFindings || ''}
+                        onChange={(val) => handleFieldChange(patient.id, 'diagnosticFindings', val)}
+                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' })}
+                        field="diagnosticFindings"
+                        rows={3}
+                        aria-label={`Diagnostic findings for ${patientName}`}
+                        className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                      />
+                    </div>
+
+                    {/* Therapeutics */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Therapeutics</label>
+                      <SlashCommandTextarea
+                        value={data.therapeutics || ''}
+                        onChange={(val) => handleFieldChange(patient.id, 'therapeutics', val)}
+                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'therapeutics' })}
+                        field="therapeutics"
+                        rows={3}
+                        aria-label={`Therapeutics for ${patientName}`}
+                        className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                      />
+                    </div>
+
+                    {/* IVC/Fluids/CRI Row */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">IVC</label>
+                        <select
+                          value={data.ivc || ''}
+                          onChange={(e) => handleFieldChange(patient.id, 'ivc', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                          aria-label={`IVC for ${patientName}`}
+                        >
+                          <option value="">-</option>
+                          <option value="Yes">Y</option>
+                          <option value="No">N</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">Fluids</label>
+                        <select
+                          value={data.fluids || ''}
+                          onChange={(e) => handleFieldChange(patient.id, 'fluids', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                          aria-label={`Fluids for ${patientName}`}
+                        >
+                          <option value="">-</option>
+                          <option value="Yes">Y</option>
+                          <option value="No">N</option>
+                          <option value="n/a">n/a</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-gray-500 uppercase">CRI</label>
+                        <select
+                          value={data.cri || ''}
+                          onChange={(e) => handleFieldChange(patient.id, 'cri', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                          aria-label={`CRI for ${patientName}`}
+                        >
+                          <option value="">-</option>
+                          <option value="Yes">Y</option>
+                          <option value="No">N</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Overnight Concerns */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Overnight Concerns</label>
+                      <SlashCommandTextarea
+                        value={data.concerns || ''}
+                        onChange={(val) => handleFieldChange(patient.id, 'concerns', val)}
+                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'concerns' })}
+                        field="concerns"
+                        rows={2}
+                        placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
+                        aria-label={`Concerns for ${patientName}`}
+                        className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => copyPatientRow(patient.id)}
+                        className="flex-1 px-4 py-3 rounded-xl font-bold transition hover:-translate-y-0.5 text-gray-900 flex items-center justify-center gap-2"
+                        style={{ backgroundColor: COLORS.lavender, border: NEO_BORDER }}
+                      >
+                        <Copy size={16} />
+                        Copy
+                      </button>
+                      <button
+                        onClick={() => handleSave(patient.id)}
+                        disabled={!hasChanges || isSaving}
+                        className="flex-1 px-4 py-3 rounded-xl font-bold transition hover:-translate-y-0.5 disabled:opacity-50 text-gray-900 flex items-center justify-center gap-2"
+                        style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
+                      >
+                        <Save size={16} />
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Desktop Rounding Sheet Table */}
+      {!isMobile && (
+        <div
+          className="overflow-x-auto rounded-2xl"
+          style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+        >
         <table className="w-full border-collapse bg-white overflow-hidden">
           <thead>
             <tr className="text-gray-900 text-[10px] font-bold" style={{ backgroundColor: COLORS.mint }}>
@@ -1423,20 +1674,23 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-1 text-center sticky right-0 z-10" style={{ backgroundColor: rowBg, borderLeft: NEO_BORDER, borderBottom: '1px solid #000' }}>
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1 md:gap-0.5">
                       <button
                         onClick={() => copyPatientRow(patient.id)}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-bold transition hover:-translate-y-0.5 text-gray-900"
+                        className="min-w-[44px] min-h-[36px] md:min-w-0 md:min-h-0 px-2 py-1.5 md:px-1.5 md:py-0.5 rounded text-xs md:text-[10px] font-bold transition hover:-translate-y-0.5 text-gray-900 flex items-center justify-center"
                         style={{ backgroundColor: COLORS.lavender, border: '1px solid #000' }}
                         title="Copy row"
+                        aria-label={`Copy row for ${patientName}`}
                       >
-                        <Copy size={10} className="inline" />
+                        <Copy size={14} className="md:hidden" />
+                        <Copy size={10} className="hidden md:inline" />
                       </button>
                       <button
                         onClick={() => handleSave(patient.id)}
                         disabled={!hasChanges || isSaving}
-                        className="px-1.5 py-0.5 rounded text-[10px] font-bold transition hover:-translate-y-0.5 disabled:opacity-50 text-gray-900"
+                        className="min-w-[44px] min-h-[36px] md:min-w-0 md:min-h-0 px-2 py-1.5 md:px-1.5 md:py-0.5 rounded text-xs md:text-[10px] font-bold transition hover:-translate-y-0.5 disabled:opacity-50 text-gray-900 flex items-center justify-center"
                         style={{ backgroundColor: COLORS.mint, border: '1px solid #000' }}
+                        aria-label={`Save row for ${patientName}`}
                       >
                         Save
                       </button>
@@ -1447,7 +1701,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
             })}
           </tbody>
         </table>
-      </div>
+        </div>
+      )}
 
       {activePatients.length === 0 && (
         <div

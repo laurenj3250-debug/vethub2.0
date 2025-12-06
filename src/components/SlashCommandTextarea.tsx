@@ -37,6 +37,27 @@ export function SlashCommandTextarea({
 
   const { commands } = useFieldSlashCommands(field);
 
+  // Auto-resize textarea based on content
+  const autoResize = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height to auto to get accurate scrollHeight
+    textarea.style.height = 'auto';
+
+    // Calculate new height with min/max constraints
+    const minHeight = 40; // Minimum 40px
+    const maxHeight = 200; // Maximum 200px to prevent huge cells
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+
+    textarea.style.height = `${newHeight}px`;
+  }, []);
+
+  // Auto-resize on value change
+  useEffect(() => {
+    autoResize();
+  }, [value, autoResize]);
+
   // Convert to SlashCommand format expected by menu
   const menuCommands: SlashCommand[] = commands.map(cmd => ({
     id: cmd.id,
@@ -159,7 +180,13 @@ export function SlashCommandTextarea({
         rows={rows}
         placeholder={placeholder}
         className={className}
-        style={style}
+        style={{
+          ...style,
+          minHeight: '40px',
+          maxHeight: '200px',
+          overflow: 'auto',
+          transition: 'height 0.1s ease-out',
+        }}
         aria-label={ariaLabel}
       />
       <SlashCommandMenu
