@@ -1023,27 +1023,21 @@ export default function ACVIMResidencyTrackerPage() {
                                       </span>
                                     )}
                                   </td>
-                                  <td className="px-1 py-1">
-                                    <select
-                                      value={entry.clinicalNeurologyDirect || ''}
-                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyDirect', e.target.value ? parseFloat(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                    >
-                                      <option value="">-</option>
-                                      <option value="0.5">0.5</option>
-                                      <option value="1">1</option>
-                                    </select>
+                                  <td className="px-1 py-1 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={entry.clinicalNeurologyDirect === 1}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyDirect', e.target.checked ? 1 : null)}
+                                      className="w-5 h-5 rounded border-2 border-black accent-green-500 cursor-pointer"
+                                    />
                                   </td>
-                                  <td className="px-1 py-1">
-                                    <select
-                                      value={entry.clinicalNeurologyIndirect || ''}
-                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyIndirect', e.target.value ? parseFloat(e.target.value) : null)}
-                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
-                                    >
-                                      <option value="">-</option>
-                                      <option value="0.5">0.5</option>
-                                      <option value="1">1</option>
-                                    </select>
+                                  <td className="px-1 py-1 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={entry.clinicalNeurologyIndirect === 1}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyIndirect', e.target.checked ? 1 : null)}
+                                      className="w-5 h-5 rounded border-2 border-black accent-blue-500 cursor-pointer"
+                                    />
                                   </td>
                                   <td className="px-1 py-1">
                                     <input

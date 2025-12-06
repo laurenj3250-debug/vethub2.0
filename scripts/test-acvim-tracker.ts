@@ -138,6 +138,26 @@ async function testACVIMTracker() {
     results.push({ name: 'Journal Club tab', status: 'FAIL', message: e.message });
   }
 
+  // Test 6.5: Schedule tab with collapsible months
+  console.log('\n=== Test 6.5: Schedule tab (Collapsible Months) ===');
+  try {
+    await page.locator('button:has-text("Schedule")').first().click();
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '05b-schedule-collapsible.png'), fullPage: true });
+
+    // Check for collapsible month headers
+    const monthHeaders = await page.locator('text=/Month \\d+/').count();
+    console.log(`  Found ${monthHeaders} month headers (should be 12)`);
+
+    // Check for current week indicator
+    const currentWeekBadge = await page.locator('text=NOW, text=THIS WEEK').count();
+    console.log(`  Current week indicators: ${currentWeekBadge}`);
+
+    results.push({ name: 'Schedule Collapsible', status: monthHeaders > 0 ? 'PASS' : 'CHECK', message: `${monthHeaders} months` });
+  } catch (e: any) {
+    results.push({ name: 'Schedule Collapsible', status: 'FAIL', message: e.message });
+  }
+
   // Test 7: Summary tab with progress bars (Phase 7)
   console.log('\n=== Test 7: Summary tab (Phase 7 - Progress Bars) ===');
   try {
