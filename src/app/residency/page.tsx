@@ -14,6 +14,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Save,
   FileText,
   User,
@@ -32,8 +33,25 @@ import {
   CaseRole,
 } from '@/lib/residency-types';
 import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
+import { NEO_POP } from '@/lib/neo-pop-styles';
 
 type TabType = 'cases' | 'journal' | 'schedule' | 'summary';
+
+// Neo-Pop styled components
+const neoCard = "bg-white border-2 border-black shadow-[4px_4px_0_#000] rounded-2xl";
+const neoButton = "border-2 border-black shadow-[3px_3px_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000] transition-all rounded-xl font-bold";
+const neoInput = "border-2 border-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-300 outline-none";
+
+// Calculate current week based on program start date
+function getCurrentWeekInfo(startDate: string): { monthNumber: number; weekNumber: number } {
+  const start = new Date(startDate || '2025-07-14');
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  const weeksSinceStart = Math.floor(diffDays / 7);
+  const monthNumber = Math.floor(weeksSinceStart / 4) + 1;
+  const weekInMonth = (weeksSinceStart % 4) + 1;
+  return { monthNumber: Math.min(12, Math.max(1, monthNumber)), weekNumber: Math.min(5, weekInMonth) };
+}
 
 export default function ACVIMResidencyTrackerPage() {
   // Core state
@@ -62,6 +80,21 @@ export default function ACVIMResidencyTrackerPage() {
   const { status: scheduleStatus, setStatus: setScheduleStatus, trackSave } = useSaveStatus(2000);
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
   const lastSavedRef = useRef<Date | null>(null);
+
+  // Schedule view state - collapsed months for cleaner view
+  const [expandedMonths, setExpandedMonths] = useState<Set<number>>(new Set());
+
+  // Current week info
+  const currentWeekInfo = useMemo(() => {
+    return getCurrentWeekInfo(profile?.programStartDate || '2025-07-14');
+  }, [profile?.programStartDate]);
+
+  // Auto-expand current month on load
+  useEffect(() => {
+    if (currentWeekInfo.monthNumber) {
+      setExpandedMonths(new Set([currentWeekInfo.monthNumber]));
+    }
+  }, [currentWeekInfo.monthNumber]);
 
   // Form states
   const [caseForm, setCaseForm] = useState({
@@ -530,129 +563,112 @@ export default function ACVIMResidencyTrackerPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading ACVIM data...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: NEO_POP.colors.cream }}>
+        <div className={`${neoCard} p-8 flex items-center gap-3`}>
+          <Loader2 size={24} className="animate-spin text-purple-600" />
+          <span className="text-lg font-bold text-gray-900">Loading ACVIM data...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3">
+    <div className="min-h-screen" style={{ backgroundColor: NEO_POP.colors.cream }}>
+      {/* Header - Neo-Pop Style */}
+      <div className="bg-white border-b-2 border-black sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                className={`${neoButton} flex items-center gap-2 px-3 py-2 text-sm`}
+                style={{ backgroundColor: NEO_POP.colors.gray100 }}
               >
-                <ArrowLeft size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Dashboard</span>
+                <ArrowLeft size={16} />
+                <span className="hidden sm:inline">Back</span>
               </Link>
-              <h1 className="text-base sm:text-xl font-bold text-gray-900">ACVIM Tracker</h1>
-              <Award className="text-purple-600 hidden sm:block" size={24} />
+              <div className="flex items-center gap-2">
+                <h1
+                  className="text-2xl sm:text-3xl font-black text-gray-900 uppercase tracking-tight"
+                  style={{ textShadow: '3px 3px 0 #DCC4F5' }}
+                >
+                  ACVIM
+                </h1>
+                <Award className="text-purple-600" size={28} />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowProfileDialog(true)}
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition text-xs sm:text-sm"
+                className={`${neoButton} flex items-center gap-2 px-3 py-2 text-sm`}
+                style={{ backgroundColor: NEO_POP.colors.lavender }}
               >
-                <Settings size={14} className="sm:w-4 sm:h-4" />
+                <Settings size={16} />
                 <span className="hidden sm:inline">Profile</span>
               </button>
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs sm:text-sm disabled:opacity-50"
+                className={`${neoButton} flex items-center gap-2 px-4 py-2 text-sm disabled:opacity-50`}
+                style={{ backgroundColor: NEO_POP.colors.mint }}
               >
                 {exporting ? (
-                  <Loader2 size={14} className="animate-spin sm:w-4 sm:h-4" />
+                  <Loader2 size={16} className="animate-spin" />
                 ) : (
-                  <FileText size={14} className="sm:w-4 sm:h-4" />
+                  <FileText size={16} />
                 )}
-                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export'}</span>
+                <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export Word'}</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Year Selector + Tabs */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 gap-2 sm:gap-0">
-            {/* Year Selector */}
-            <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-2">
-              <button
-                onClick={() => setSelectedYear(Math.max(1, selectedYear - 1))}
-                disabled={selectedYear === 1}
-                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"
-              >
-                <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-              </button>
-              <div className="flex gap-1">
+      {/* Year Selector + Tabs - Neo-Pop Style */}
+      <div className="border-b-2 border-black" style={{ backgroundColor: NEO_POP.colors.cream }}>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Year Selector - Neo-Pop pills */}
+            <div className="flex items-center justify-center sm:justify-start gap-2">
+              <span className="text-sm font-bold text-gray-600 mr-2">YEAR:</span>
+              <div className="flex gap-2">
                 {[1, 2, 3].map((year) => (
                   <button
                     key={year}
                     onClick={() => setSelectedYear(year)}
-                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-sm sm:text-base font-semibold transition ${
-                      selectedYear === year
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                    className={`${neoButton} px-4 py-2 text-sm ${
+                      selectedYear === year ? 'text-gray-900' : 'text-gray-600'
                     }`}
+                    style={{
+                      backgroundColor: selectedYear === year ? NEO_POP.colors.lavender : NEO_POP.colors.white,
+                    }}
                   >
                     Y{year}
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => setSelectedYear(Math.min(3, selectedYear + 1))}
-                disabled={selectedYear === 3}
-                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"
-              >
-                <ChevronRight size={18} className="sm:w-5 sm:h-5" />
-              </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg overflow-x-auto">
-              <button
-                onClick={() => setActiveTab('cases')}
-                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-                  activeTab === 'cases' ? 'bg-white shadow text-blue-600' : 'text-gray-600'
-                }`}
-              >
-                <Stethoscope size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Cases</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('journal')}
-                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-                  activeTab === 'journal' ? 'bg-white shadow text-purple-600' : 'text-gray-600'
-                }`}
-              >
-                <BookOpen size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Journal</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('schedule')}
-                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-                  activeTab === 'schedule' ? 'bg-white shadow text-orange-600' : 'text-gray-600'
-                }`}
-              >
-                <Calendar size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Schedule</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('summary')}
-                className={`flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition whitespace-nowrap ${
-                  activeTab === 'summary' ? 'bg-white shadow text-green-600' : 'text-gray-600'
-                }`}
-              >
-                <TrendingUp size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Summary</span>
-              </button>
+            {/* Tabs - Neo-Pop colored */}
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {[
+                { id: 'cases' as TabType, label: 'Cases', icon: Stethoscope, color: NEO_POP.colors.mint },
+                { id: 'journal' as TabType, label: 'Journal', icon: BookOpen, color: NEO_POP.colors.lavender },
+                { id: 'schedule' as TabType, label: 'Schedule', icon: Calendar, color: NEO_POP.colors.yellow },
+                { id: 'summary' as TabType, label: 'Summary', icon: TrendingUp, color: NEO_POP.colors.pink },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${neoButton} flex items-center gap-2 px-4 py-2 text-sm whitespace-nowrap`}
+                  style={{
+                    backgroundColor: activeTab === tab.id ? tab.color : NEO_POP.colors.white,
+                  }}
+                >
+                  <tab.icon size={16} />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -868,281 +884,252 @@ export default function ACVIMResidencyTrackerPage() {
           </div>
         )}
 
-        {/* Weekly Schedule Tab */}
+        {/* Weekly Schedule Tab - Collapsible by Month with Current Week Highlight */}
         {activeTab === 'schedule' && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">
-                Weekly Schedule - Year {selectedYear}
-              </h2>
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2
+                  className="text-xl font-black text-gray-900 uppercase"
+                  style={{ textShadow: '2px 2px 0 #FFF3B8' }}
+                >
+                  Schedule - Year {selectedYear}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Current: Month {currentWeekInfo.monthNumber}, Week {currentWeekInfo.weekNumber}
+                </p>
+              </div>
               <div className="flex items-center gap-3">
-                {/* Save Status Indicator */}
-                <div className="flex items-center gap-2 text-sm">
-                  {scheduleStatus === 'saving' && (
-                    <span className="flex items-center gap-1 text-blue-600">
-                      <Loader2 size={14} className="animate-spin" />
-                      Saving...
-                    </span>
-                  )}
-                  {scheduleStatus === 'saved' && (
-                    <span className="flex items-center gap-1 text-green-600">
-                      <Check size={14} />
-                      Saved
-                    </span>
-                  )}
-                  {scheduleStatus === 'error' && (
-                    <span className="flex items-center gap-1 text-red-600">
-                      <AlertCircle size={14} />
-                      Error saving
-                    </span>
-                  )}
-                  {scheduleStatus === 'idle' && lastSavedRef.current && (
-                    <span className="text-gray-400">
-                      Last saved {lastSavedRef.current.toLocaleTimeString()}
-                    </span>
-                  )}
+                {/* Save Status */}
+                <div className={`${neoButton} px-3 py-2 text-sm flex items-center gap-2`} style={{
+                  backgroundColor: scheduleStatus === 'saving' ? NEO_POP.colors.yellow :
+                                   scheduleStatus === 'saved' ? NEO_POP.colors.mint :
+                                   scheduleStatus === 'error' ? NEO_POP.colors.pink :
+                                   NEO_POP.colors.white
+                }}>
+                  {scheduleStatus === 'saving' && <><Loader2 size={14} className="animate-spin" /> Saving...</>}
+                  {scheduleStatus === 'saved' && <><Check size={14} /> Saved</>}
+                  {scheduleStatus === 'error' && <><AlertCircle size={14} /> Error</>}
+                  {scheduleStatus === 'idle' && <><Calendar size={14} /> Auto-saves</>}
                 </div>
-                <p className="text-sm text-gray-500">Click cells to edit. Auto-saves after typing.</p>
+                <button
+                  onClick={() => setExpandedMonths(new Set([1,2,3,4,5,6,7,8,9,10,11,12]))}
+                  className={`${neoButton} px-3 py-2 text-sm`}
+                  style={{ backgroundColor: NEO_POP.colors.gray100 }}
+                >
+                  Expand All
+                </button>
+                <button
+                  onClick={() => setExpandedMonths(new Set([currentWeekInfo.monthNumber]))}
+                  className={`${neoButton} px-3 py-2 text-sm`}
+                  style={{ backgroundColor: NEO_POP.colors.gray100 }}
+                >
+                  Collapse
+                </button>
               </div>
             </div>
 
-            {/* Schedule Grid */}
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b sticky top-0">
-                  <tr>
-                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 min-w-[80px]">
-                      Month
-                    </th>
-                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 min-w-[90px]">
-                      Week
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Clinical
-                      <br />
-                      Direct
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Clinical
-                      <br />
-                      Indirect
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Neuro
-                      <br />
-                      surgery
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Radiology
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Neuro
-                      <br />
-                      pathology
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Clinical
-                      <br />
-                      Pathology
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Electro
-                      <br />
-                      diagnostics
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[70px]">
-                      Journal
-                      <br />
-                      Club
-                    </th>
-                    <th className="px-2 py-2 text-center text-xs font-semibold text-gray-600 min-w-[100px]">
-                      Other
-                    </th>
-                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-600 min-w-[120px]">
-                      Diplomate
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {weeklySchedule.map((entry, idx) => {
-                    const showMonthHeader =
-                      idx === 0 || weeklySchedule[idx - 1].monthNumber !== entry.monthNumber;
-                    return (
-                      <tr
-                        key={entry.id}
-                        className={showMonthHeader ? 'bg-gray-50' : 'hover:bg-gray-50'}
-                      >
-                        <td className="px-2 py-2 text-xs font-medium text-gray-700">
-                          {showMonthHeader ? `Month ${entry.monthNumber}` : ''}
-                        </td>
-                        <td className="px-2 py-2 text-xs text-gray-600">{entry.weekDateRange}</td>
-                        <td className="px-1 py-1">
-                          <select
-                            value={entry.clinicalNeurologyDirect || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'clinicalNeurologyDirect',
-                                e.target.value ? parseFloat(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                          >
-                            <option value="">-</option>
-                            <option value="0.5">0.5</option>
-                            <option value="1">1</option>
-                          </select>
-                        </td>
-                        <td className="px-1 py-1">
-                          <select
-                            value={entry.clinicalNeurologyIndirect || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'clinicalNeurologyIndirect',
-                                e.target.value ? parseFloat(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                          >
-                            <option value="">-</option>
-                            <option value="0.5">0.5</option>
-                            <option value="1">1</option>
-                          </select>
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="number"
-                            step="0.25"
-                            min="0"
-                            value={entry.neurosurgeryHours || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'neurosurgeryHours',
-                                e.target.value ? parseFloat(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                            placeholder="-"
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            value={entry.radiologyHours || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'radiologyHours',
-                                e.target.value ? parseInt(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                            placeholder="-"
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            value={entry.neuropathologyHours || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'neuropathologyHours',
-                                e.target.value ? parseInt(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                            placeholder="-"
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="number"
-                            step="1"
-                            min="0"
-                            value={entry.clinicalPathologyHours || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'clinicalPathologyHours',
-                                e.target.value ? parseInt(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                            placeholder="-"
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="number"
-                            step="0.25"
-                            min="0"
-                            value={entry.electrodiagnosticsHours || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'electrodiagnosticsHours',
-                                e.target.value ? parseFloat(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                            placeholder="-"
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="number"
-                            step="0.5"
-                            min="0"
-                            value={entry.journalClubHours || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'journalClubHours',
-                                e.target.value ? parseFloat(e.target.value) : null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded text-center"
-                            placeholder="-"
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="text"
-                            value={entry.otherTimeDescription || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(entry, 'otherTimeDescription', e.target.value || null)
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded"
-                            placeholder="vacation, Brain Camp..."
-                          />
-                        </td>
-                        <td className="px-1 py-1">
-                          <input
-                            type="text"
-                            value={entry.supervisingDiplomateName || ''}
-                            onChange={(e) =>
-                              updateWeeklyEntry(
-                                entry,
-                                'supervisingDiplomateName',
-                                e.target.value || null
-                              )
-                            }
-                            className="w-full px-1 py-1 text-xs border rounded"
-                            placeholder="Dr. ..."
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            {/* Collapsible Month Cards */}
+            <div className="space-y-3">
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((monthNum) => {
+                const monthEntries = weeklySchedule.filter(e => e.monthNumber === monthNum);
+                const isExpanded = expandedMonths.has(monthNum);
+                const isCurrentMonth = monthNum === currentWeekInfo.monthNumber;
+                const monthHours = monthEntries.reduce((sum, e) => sum + (e.neurosurgeryHours || 0), 0);
+
+                return (
+                  <div
+                    key={monthNum}
+                    className={`${neoCard} overflow-hidden`}
+                    style={{
+                      borderLeftWidth: '6px',
+                      borderLeftColor: isCurrentMonth ? '#10B981' : '#000',
+                    }}
+                  >
+                    {/* Month Header - Clickable */}
+                    <button
+                      onClick={() => {
+                        const newExpanded = new Set(expandedMonths);
+                        if (isExpanded) {
+                          newExpanded.delete(monthNum);
+                        } else {
+                          newExpanded.add(monthNum);
+                        }
+                        setExpandedMonths(newExpanded);
+                      }}
+                      className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                      style={{ backgroundColor: isCurrentMonth ? '#DCFCE7' : undefined }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <ChevronDown
+                          size={20}
+                          className={`transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`}
+                        />
+                        <span className="font-black text-lg">
+                          Month {monthNum}
+                          {isCurrentMonth && (
+                            <span className="ml-2 text-sm font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+                              NOW
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm">
+                        <span className="text-gray-500">{monthEntries.length} weeks</span>
+                        {monthHours > 0 && (
+                          <span className="font-bold" style={{ color: NEO_POP.colors.mintDark }}>
+                            {monthHours}h surgery
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* Expanded Content */}
+                    {isExpanded && monthEntries.length > 0 && (
+                      <div className="border-t-2 border-black overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-100 border-b border-black">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-bold">Week</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">Direct</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">Indirect</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">Surgery</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">Radiology</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">NeuroPath</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">ClinPath</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">Electro</th>
+                              <th className="px-2 py-2 text-center text-xs font-bold">Journal</th>
+                              <th className="px-2 py-2 text-left text-xs font-bold">Diplomate</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {monthEntries.map((entry) => {
+                              const isCurrentWeek = monthNum === currentWeekInfo.monthNumber &&
+                                                    entry.weekNumber === currentWeekInfo.weekNumber;
+                              return (
+                                <tr
+                                  key={entry.id}
+                                  className="border-b border-gray-200"
+                                  style={{
+                                    backgroundColor: isCurrentWeek ? '#FEF3C7' : undefined,
+                                  }}
+                                >
+                                  <td className="px-3 py-2 text-xs font-medium whitespace-nowrap">
+                                    {entry.weekDateRange}
+                                    {isCurrentWeek && (
+                                      <span className="ml-1 text-[10px] font-bold text-amber-700 bg-amber-200 px-1.5 py-0.5 rounded">
+                                        THIS WEEK
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <select
+                                      value={entry.clinicalNeurologyDirect || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyDirect', e.target.value ? parseFloat(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                    >
+                                      <option value="">-</option>
+                                      <option value="0.5">0.5</option>
+                                      <option value="1">1</option>
+                                    </select>
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <select
+                                      value={entry.clinicalNeurologyIndirect || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalNeurologyIndirect', e.target.value ? parseFloat(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                    >
+                                      <option value="">-</option>
+                                      <option value="0.5">0.5</option>
+                                      <option value="1">1</option>
+                                    </select>
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="number"
+                                      step="0.25"
+                                      min="0"
+                                      value={entry.neurosurgeryHours || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'neurosurgeryHours', e.target.value ? parseFloat(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                      placeholder="-"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="number"
+                                      step="1"
+                                      min="0"
+                                      value={entry.radiologyHours || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'radiologyHours', e.target.value ? parseInt(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                      placeholder="-"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="number"
+                                      step="1"
+                                      min="0"
+                                      value={entry.neuropathologyHours || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'neuropathologyHours', e.target.value ? parseInt(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                      placeholder="-"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="number"
+                                      step="1"
+                                      min="0"
+                                      value={entry.clinicalPathologyHours || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'clinicalPathologyHours', e.target.value ? parseInt(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                      placeholder="-"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="number"
+                                      step="0.25"
+                                      min="0"
+                                      value={entry.electrodiagnosticsHours || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'electrodiagnosticsHours', e.target.value ? parseFloat(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                      placeholder="-"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="number"
+                                      step="0.5"
+                                      min="0"
+                                      value={entry.journalClubHours || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'journalClubHours', e.target.value ? parseFloat(e.target.value) : null)}
+                                      className={`w-14 px-1 py-1 text-xs ${neoInput} text-center`}
+                                      placeholder="-"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1">
+                                    <input
+                                      type="text"
+                                      value={entry.supervisingDiplomateName || ''}
+                                      onChange={(e) => updateWeeklyEntry(entry, 'supervisingDiplomateName', e.target.value || null)}
+                                      className={`w-24 px-1 py-1 text-xs ${neoInput}`}
+                                      placeholder="Dr. ..."
+                                    />
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
