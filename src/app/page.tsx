@@ -53,6 +53,7 @@ export default function VetHub() {
   const [showAllTasksView, setShowAllTasksView] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [isAlreadyHospitalized, setIsAlreadyHospitalized] = useState(false);
+  const [needsMRIPrep, setNeedsMRIPrep] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
@@ -523,8 +524,11 @@ export default function VetHub() {
 
       // Get type-specific tasks from task-config (single source of truth)
       // Skip admission tasks if patient is already hospitalized (coming from weekend)
+      // BUT include MRI prep tasks if needsMRIPrep is checked (for case-by-case handling)
       const { getTypeSpecificTasks } = await import('@/lib/task-config');
-      const typeTemplates = isAlreadyHospitalized ? [] : getTypeSpecificTasks(patientType);
+      const typeTemplates = isAlreadyHospitalized
+        ? (needsMRIPrep && patientType === 'MRI' ? getTypeSpecificTasks('MRI') : [])
+        : getTypeSpecificTasks(patientType);
       const typeTasks = typeTemplates.map(t => t.name);
 
       // All tasks = type-specific tasks only (no more hardcoded morning/evening tasks)
@@ -3697,7 +3701,7 @@ export default function VetHub() {
                     </span>
                   </div>
                   <button
-                    onClick={() => { setShowAddPatientModal(false); setIsAlreadyHospitalized(false); }}
+                    onClick={() => { setShowAddPatientModal(false); setIsAlreadyHospitalized(false); setNeedsMRIPrep(false); }}
                     className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition font-bold"
                   >
                     ✕
@@ -3734,11 +3738,27 @@ export default function VetHub() {
                   <input
                     type="checkbox"
                     checked={isAlreadyHospitalized}
-                    onChange={(e) => setIsAlreadyHospitalized(e.target.checked)}
+                    onChange={(e) => {
+                      setIsAlreadyHospitalized(e.target.checked);
+                      if (!e.target.checked) setNeedsMRIPrep(false);
+                    }}
                     className="w-5 h-5 rounded border-2 border-black accent-emerald-500"
                   />
                   <span className="text-gray-900 font-bold">Already hospitalized (skip admission tasks)</span>
                 </label>
+
+                {/* Conditional MRI Prep checkbox - only shows for MRI patients who are already hospitalized */}
+                {patientType === 'MRI' && isAlreadyHospitalized && (
+                  <label className="flex items-center gap-3 cursor-pointer ml-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <input
+                      type="checkbox"
+                      checked={needsMRIPrep}
+                      onChange={(e) => setNeedsMRIPrep(e.target.checked)}
+                      className="w-5 h-5 rounded border-2 border-black accent-violet-500"
+                    />
+                    <span className="text-gray-700 font-medium">Needs MRI prep tasks (anesthesia sheet, stickers, black book)</span>
+                  </label>
+                )}
 
                 <textarea
                   value={patientBlurb}
@@ -3755,6 +3775,7 @@ export default function VetHub() {
                     setShowAddPatientModal(false);
                     setPatientBlurb('');
                     setIsAlreadyHospitalized(false);
+                    setNeedsMRIPrep(false);
                   }}
                   disabled={isAddingPatient || !patientBlurb.trim()}
                   className="w-full py-3 rounded-2xl font-black hover:-translate-y-1 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 text-gray-900"
