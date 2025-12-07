@@ -68,7 +68,7 @@ export const TASK_CONFIG = {
       { name: 'Owner Pickup Call', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Discharging': [
-      { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      // Discharge Instructions removed - already created in 'Ready for Discharge'
     ],
   } as Record<string, TaskDefinition[]>,
 
