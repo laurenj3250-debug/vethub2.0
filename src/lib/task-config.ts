@@ -50,7 +50,7 @@ export const TASK_CONFIG = {
    */
   statusTriggered: {
     'New Admit': [
-      { name: 'Finalize Record', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Finalize Record', category: 'Admission', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Treatment Sheet Created', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Pre-procedure': [
