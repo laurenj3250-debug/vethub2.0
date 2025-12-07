@@ -14,6 +14,8 @@ import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, pr
 import {
   MORNING_TASK_NAMES,
   EVENING_TASK_NAMES,
+  DAILY_MORNING_TASK_NAMES,
+  DAILY_EVENING_TASK_NAMES,
   getTaskTimeOfDay,
   getTaskIcon,
   getTimeColors,
@@ -947,7 +949,8 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const tasksToAdd = category === 'morning' ? MORNING_TASK_NAMES : EVENING_TASK_NAMES;
+      // Use DAILY tasks only (not all morning/evening tasks from every source)
+      const tasksToAdd = category === 'morning' ? DAILY_MORNING_TASK_NAMES : DAILY_EVENING_TASK_NAMES;
       const today = new Date().toISOString().split('T')[0];
       const existingTasks = patient.tasks || [];
 
@@ -983,7 +986,8 @@ export default function VetHub() {
   const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const tasksToAdd = category === 'morning' ? MORNING_TASK_NAMES : EVENING_TASK_NAMES;
+      // Use DAILY tasks only (not all morning/evening tasks from every source)
+      const tasksToAdd = category === 'morning' ? DAILY_MORNING_TASK_NAMES : DAILY_EVENING_TASK_NAMES;
       const today = new Date().toISOString().split('T')[0];
 
       let totalAdded = 0;

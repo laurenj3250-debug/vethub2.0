@@ -24,9 +24,10 @@ export const TASK_CONFIG = {
    */
   dailyRecurring: {
     // Tasks created for each active patient every day
+    // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner (per user request)
     patient: [
-      { name: 'Daily SOAP Done', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Overnight Notes Checked', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
+      { name: 'Daily SOAP', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Check Overnight Notes', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
       { name: 'Call Owner', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Rounding Sheet Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
@@ -91,7 +92,7 @@ export const TASK_CONFIG = {
       { name: 'Print 2 Sheets Small Stickers', category: 'Admin', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
     ],
     'Medical': [
-      { name: 'Owner Admission Call', category: 'Admission', timeOfDay: 'anytime' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      // Owner Admission Call removed per user request
     ],
   } as Record<string, TaskDefinition[]>,
 };
@@ -105,6 +106,21 @@ export const DAILY_PATIENT_TASK_NAMES = TASK_CONFIG.dailyRecurring.patient.map(t
  * Helper: Get all daily general task names
  */
 export const DAILY_GENERAL_TASK_NAMES = TASK_CONFIG.dailyRecurring.general.map(t => t.name);
+
+/**
+ * Helper: Get ONLY daily recurring morning tasks (for "Add Morning Tasks" button)
+ * This is the subset users actually want - NOT all morning tasks from every source
+ */
+export const DAILY_MORNING_TASK_NAMES = TASK_CONFIG.dailyRecurring.patient
+  .filter(t => t.timeOfDay === 'morning')
+  .map(t => t.name);
+
+/**
+ * Helper: Get ONLY daily recurring evening tasks (for "Add Evening Tasks" button)
+ */
+export const DAILY_EVENING_TASK_NAMES = TASK_CONFIG.dailyRecurring.patient
+  .filter(t => t.timeOfDay === 'evening')
+  .map(t => t.name);
 
 /**
  * Helper: Get all task names with a specific timeOfDay from ALL sources
