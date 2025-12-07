@@ -533,7 +533,7 @@ export default function VetHub() {
       const patientData = {
         name: fullName,
         type: patientType,
-        status: isAlreadyHospitalized ? 'Hospitalized' : 'New Admit',
+        status: isAlreadyHospitalized ? 'Monitoring' : 'New Admit',
         added_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         demographics: {
           name: fullName,  // Use full name (patient name + owner last name) for consistency
