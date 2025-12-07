@@ -52,6 +52,7 @@ export default function VetHub() {
   const [showMRISchedule, setShowMRISchedule] = useState(false);
   const [showAllTasksView, setShowAllTasksView] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [isAlreadyHospitalized, setIsAlreadyHospitalized] = useState(false);
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
@@ -521,8 +522,9 @@ export default function VetHub() {
       const fullName = ownerLastName ? `${patientName} ${ownerLastName}` : patientName;
 
       // Get type-specific tasks from task-config (single source of truth)
+      // Skip admission tasks if patient is already hospitalized (coming from weekend)
       const { getTypeSpecificTasks } = await import('@/lib/task-config');
-      const typeTemplates = getTypeSpecificTasks(patientType);
+      const typeTemplates = isAlreadyHospitalized ? [] : getTypeSpecificTasks(patientType);
       const typeTasks = typeTemplates.map(t => t.name);
 
       // All tasks = type-specific tasks only (no more hardcoded morning/evening tasks)
@@ -531,7 +533,7 @@ export default function VetHub() {
       const patientData = {
         name: fullName,
         type: patientType,
-        status: 'New Admit',
+        status: isAlreadyHospitalized ? 'Hospitalized' : 'New Admit',
         added_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         demographics: {
           name: fullName,  // Use full name (patient name + owner last name) for consistency
@@ -560,7 +562,7 @@ export default function VetHub() {
         },
         // Auto-set sticker counts based on patient type
         stickerData: {
-          isNewAdmit: true,
+          isNewAdmit: !isAlreadyHospitalized,
           isSurgery: patientType === 'Surgery',
           bigLabelCount: patientType === 'MRI' ? 5 : patientType === 'Surgery' ? 4 : 2,
           tinySheetCount: patientType === 'MRI' ? 4 : patientType === 'Surgery' ? 8 : 0,
@@ -3695,7 +3697,7 @@ export default function VetHub() {
                     </span>
                   </div>
                   <button
-                    onClick={() => setShowAddPatientModal(false)}
+                    onClick={() => { setShowAddPatientModal(false); setIsAlreadyHospitalized(false); }}
                     className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition font-bold"
                   >
                     ✕
@@ -3727,6 +3729,17 @@ export default function VetHub() {
                   })}
                 </div>
 
+                {/* Already Hospitalized checkbox - skips New Admit tasks */}
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAlreadyHospitalized}
+                    onChange={(e) => setIsAlreadyHospitalized(e.target.checked)}
+                    className="w-5 h-5 rounded border-2 border-black accent-emerald-500"
+                  />
+                  <span className="text-gray-900 font-bold">Already hospitalized (skip admission tasks)</span>
+                </label>
+
                 <textarea
                   value={patientBlurb}
                   onChange={(e) => setPatientBlurb(e.target.value)}
@@ -3741,6 +3754,7 @@ export default function VetHub() {
                     handleAddPatient();
                     setShowAddPatientModal(false);
                     setPatientBlurb('');
+                    setIsAlreadyHospitalized(false);
                   }}
                   disabled={isAddingPatient || !patientBlurb.trim()}
                   className="w-full py-3 rounded-2xl font-black hover:-translate-y-1 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 text-gray-900"
