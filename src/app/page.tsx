@@ -1297,7 +1297,7 @@ export default function VetHub() {
       if (result.success) {
         toast({ title: '🗑️ All tasks cleared', description: `Deleted ${result.deleted} tasks` });
         // Refresh both patient tasks and general tasks
-        refetchPatients();
+        refetch();
         refetchGeneralTasks();
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to clear tasks' });
