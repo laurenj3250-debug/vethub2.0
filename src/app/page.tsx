@@ -910,7 +910,8 @@ export default function VetHub() {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner
+      const morningTasks = ['Daily SOAP', 'Check Overnight Notes', 'Call Owner'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
@@ -949,7 +950,8 @@ export default function VetHub() {
   const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
     try {
       const activePatients = patients.filter(p => p.status !== 'Discharged');
-      const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+      // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner
+      const morningTasks = ['Daily SOAP', 'Check Overnight Notes', 'Call Owner'];
       const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
       const tasksToAdd = category === 'morning' ? morningTasks : eveningTasks;
       const today = new Date().toISOString().split('T')[0];
@@ -1251,7 +1253,7 @@ export default function VetHub() {
       if (result.success) {
         toast({ title: '🗑️ All tasks cleared', description: `Deleted ${result.deleted} tasks` });
         // Refresh both patient tasks and general tasks
-        refetchPatients();
+        refetch();
         refetchGeneralTasks();
       } else {
         toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to clear tasks' });
@@ -2045,11 +2047,14 @@ export default function VetHub() {
   };
 
   const getTaskCategory = (taskName: string): 'morning' | 'evening' | 'general' => {
-    const morningTasks = ['Owner Called', 'Daily SOAP Done', 'Overnight Notes Checked'];
+    // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner (and legacy 'Owner Called')
+    const morningTasks = ['Daily SOAP', 'Check Overnight Notes', 'Call Owner', 'Owner Called'];
     const eveningTasks = ['Vet Radar Done', 'Rounding Sheet Done', 'Sticker on Daily Sheet'];
 
-    if (morningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'morning';
-    if (eveningTasks.some(t => taskName.includes(t) || t.includes(taskName))) return 'evening';
+    // EXACT match only (case-insensitive) - substring matching was showing too many tasks
+    const taskLower = taskName.toLowerCase();
+    if (morningTasks.some(t => t.toLowerCase() === taskLower)) return 'morning';
+    if (eveningTasks.some(t => t.toLowerCase() === taskLower)) return 'evening';
     return 'general';
   };
 
@@ -2082,9 +2087,10 @@ export default function VetHub() {
   const filterTasksByTime = (tasks: any[]) => {
     if (taskTimeFilter === 'all') return tasks;
     if (taskTimeFilter === 'day') {
+      // Morning filter: ONLY show morning tasks (Daily SOAP, Check Overnight Notes, Call Owner)
       return tasks.filter(t => {
         const category = getTaskCategory(t.title || t.name);
-        return category === 'morning' || category === 'general';
+        return category === 'morning';
       });
     }
     if (taskTimeFilter === 'night') {

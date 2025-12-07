@@ -65,6 +65,7 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
   ],
 
   // HOSPITALIZED - ongoing care, daily tasks only
+  // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner
   'Hospitalized': [
     {
       id: 'daily-soap',
@@ -75,8 +76,16 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
       timeOfDay: 'morning',
     },
     {
+      id: 'daily-overnight-notes',
+      name: 'Check Overnight Notes',
+      category: 'Daily',
+      estimatedMinutes: 5,
+      priority: 'high',
+      timeOfDay: 'morning',
+    },
+    {
       id: 'daily-owner-call',
-      name: 'Owner Called',
+      name: 'Call Owner',
       category: 'Daily',
       estimatedMinutes: 5,
       priority: 'high',
@@ -136,6 +145,7 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
   ],
 
   // MONITORING - stable patients
+  // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner
   'Monitoring': [
     {
       id: 'monitor-daily-soap',
@@ -146,8 +156,16 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
       timeOfDay: 'morning',
     },
     {
+      id: 'monitor-overnight-notes',
+      name: 'Check Overnight Notes',
+      category: 'Daily',
+      estimatedMinutes: 5,
+      priority: 'medium',
+      timeOfDay: 'morning',
+    },
+    {
       id: 'monitor-owner-call',
-      name: 'Owner Called',
+      name: 'Call Owner',
       category: 'Daily',
       estimatedMinutes: 5,
       priority: 'medium',

@@ -48,20 +48,17 @@ export const admitTasks: Record<ProcedureType, string[]> = {
   ],
   Medical: [
     'Admission SOAP',
-    'Treatment Sheet Created',
-    'Owner Admission Call'
+    'Treatment Sheet Created'
   ],
   Other: [
-    'Admission SOAP',
-    'Owner Admission Call'
+    'Admission SOAP'
   ]
 };
 
 export const morningTasks: string[] = [
-  'Owner Called',
-  'Daily SOAP Done',
-  'Vet Radar Sheet Checked',
-  'MRI Findings Inputted (if needed)'
+  'Daily SOAP',
+  'Check Overnight Notes',
+  'Call Owner'
 ];
 
 export const eveningTasks: string[] = [
