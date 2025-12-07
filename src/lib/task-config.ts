@@ -40,8 +40,8 @@ export const TASK_CONFIG = {
     ],
 
     // Patient statuses that should NOT get daily recurring tasks
-    // These patients are leaving or have left - no need for daily tasks
-    excludeStatuses: ['Discharged', 'Discharging'] as string[],
+    // These patients have left - no need for daily tasks
+    excludeStatuses: ['Discharged'] as string[],
   },
 
   /**
@@ -66,9 +66,6 @@ export const TASK_CONFIG = {
       { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Discharge Meds Ready', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Owner Pickup Call', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-    ],
-    'Discharging': [
-      // Discharge Instructions removed - already created in 'Ready for Discharge'
     ],
   } as Record<string, TaskDefinition[]>,
 
@@ -185,12 +182,13 @@ export function getTypeSpecificTasks(type: string): TaskDefinition[] {
 
 /**
  * Determine task time of day from task name
+ * Uses exact match to avoid false positives (e.g., "Daily SOAP Done" != "Daily SOAP")
  */
 export function getTaskTimeOfDay(taskName: string): TaskTimeOfDay {
-  if (MORNING_TASK_NAMES.some(t => taskName.includes(t) || t.includes(taskName))) {
+  if (MORNING_TASK_NAMES.some(t => t === taskName)) {
     return 'morning';
   }
-  if (EVENING_TASK_NAMES.some(t => taskName.includes(t) || t.includes(taskName))) {
+  if (EVENING_TASK_NAMES.some(t => t === taskName)) {
     return 'evening';
   }
   return 'anytime';
