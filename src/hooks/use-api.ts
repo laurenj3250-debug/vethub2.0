@@ -86,12 +86,12 @@ export function usePatients() {
     // Only set up polling on client side
     if (typeof window === 'undefined') return;
 
-    // Poll for updates every 2 minutes, but only when page is visible
+    // Poll for updates every 30 seconds for cross-device sync
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchPatients(false);
       }
-    }, 120000);
+    }, 30000);
 
     // Fetch when tab becomes visible again
     const handleVisibilityChange = () => {
@@ -135,12 +135,12 @@ export function useGeneralTasks() {
     // Only set up polling on client side
     if (typeof window === 'undefined') return;
 
-    // Poll for updates every 2 minutes, but only when page is visible
+    // Poll for updates every 30 seconds for cross-device sync
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchTasks();
       }
-    }, 120000);
+    }, 30000);
 
     // Fetch when tab becomes visible again
     const handleVisibilityChange = () => {
@@ -189,12 +189,12 @@ export function useCommonItems() {
     // Only set up polling on client side
     if (typeof window === 'undefined') return;
 
-    // Poll for updates every 2 minutes, but only when page is visible
+    // Poll for updates every 30 seconds for cross-device sync
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
         fetchAll();
       }
-    }, 120000);
+    }, 30000);
 
     // Fetch when tab becomes visible again
     const handleVisibilityChange = () => {
