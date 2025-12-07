@@ -257,19 +257,15 @@ export function mapVetRadarToUnifiedPatient(
  * Map VetRadar status to VetHub patient status
  */
 function mapVetRadarStatusToPatientStatus(vetRadarStatus?: string): UnifiedPatient['status'] {
-  if (!vetRadarStatus) return 'Active';
+  if (!vetRadarStatus) return 'New';
 
   const statusLower = vetRadarStatus.toLowerCase();
 
-  if (statusLower.includes('discharged')) {
-    return 'Discharged';
-  } else if (statusLower.includes('mri')) {
-    return 'MRI';
-  } else if (statusLower.includes('surgery')) {
-    return 'Surgery';
+  if (statusLower.includes('discharg')) {
+    return 'Discharging';
   } else {
-    // Default to Active for critical, stable, friendly, or other statuses
-    return 'Active';
+    // Default to New for active patients
+    return 'New';
   }
 }
 

@@ -1,13 +1,9 @@
 export type ProcedureType = 'Surgery' | 'MRI' | 'Medical' | 'Other';
 
 export type PatientStatus =
-  | 'New Admit'
-  | 'Pre-procedure'
-  | 'In Procedure'
-  | 'Recovery'
-  | 'Monitoring'
-  | 'Ready for Discharge'
-  | 'Discharged';
+  | 'New'
+  | 'Hospitalized'
+  | 'Discharging';
 
 export type TaskStatus = 'todo' | 'in-progress' | 'done';
 

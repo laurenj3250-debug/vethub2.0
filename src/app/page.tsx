@@ -545,7 +545,7 @@ export default function VetHub() {
       const patientData = {
         name: fullName,
         type: patientType,
-        status: isAlreadyHospitalized ? 'Monitoring' : 'New Admit',
+        status: isAlreadyHospitalized ? 'Hospitalized' : 'New',
         added_time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         demographics: {
           name: fullName,  // Use full name (patient name + owner last name) for consistency
@@ -745,7 +745,7 @@ export default function VetHub() {
 
   const handleResetAllTasks = async () => {
     try {
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const activePatients = patients.filter(p => p.status !== 'Discharging');
       let taskCount = 0;
 
       for (const patient of activePatients) {
@@ -999,7 +999,7 @@ export default function VetHub() {
   // Batch add tasks to ALL patients
   const handleBatchAddAllCategoryTasks = async (category: 'morning' | 'evening') => {
     try {
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const activePatients = patients.filter(p => p.status !== 'Discharging');
       // Use DAILY tasks only (not all morning/evening tasks from every source)
       const tasksToAdd = category === 'morning' ? DAILY_MORNING_TASK_NAMES : DAILY_EVENING_TASK_NAMES;
       const today = new Date().toISOString().split('T')[0];
@@ -1489,7 +1489,7 @@ export default function VetHub() {
       console.log('[MRI Export] All patients:', patients.map(p => ({ name: p.demographics?.name || p.name, type: p.type, status: p.status })));
 
       // Filter MRI patients (exclude discharged)
-      const allMRIPatients = patients.filter(p => p.type === 'MRI' && p.status !== 'Discharged');
+      const allMRIPatients = patients.filter(p => p.type === 'MRI' && p.status !== 'Discharging');
 
       // ✅ Use selected patients if any are selected, otherwise use all MRI patients
       const mriPatients = selectedPatientIds.size > 0
@@ -1662,7 +1662,7 @@ export default function VetHub() {
   const handleExportRoundingSheets = (format: 'tsv' | 'csv' | 'tsv-no-header' | 'csv-no-header' = 'tsv') => {
     try {
       // Filter active patients (exclude Discharged)
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const activePatients = patients.filter(p => p.status !== 'Discharging');
 
       if (activePatients.length === 0) {
         toast({ variant: 'destructive', title: 'No active patients', description: 'No patients to export' });
@@ -1727,7 +1727,7 @@ export default function VetHub() {
   // Sticker Print Handlers
   const handlePrintBigLabels = async () => {
     try {
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const activePatients = patients.filter(p => p.status !== 'Discharging');
 
       if (activePatients.length === 0) {
         toast({ title: 'No active patients', description: 'Add patients to print big labels' });
@@ -1774,7 +1774,7 @@ export default function VetHub() {
 
   const handlePrintTinyLabels = async () => {
     try {
-      const activePatients = patients.filter(p => p.status !== 'Discharged');
+      const activePatients = patients.filter(p => p.status !== 'Discharging');
 
       if (activePatients.length === 0) {
         toast({ title: 'No active patients', description: 'Add patients to print tiny labels' });
@@ -2935,7 +2935,7 @@ export default function VetHub() {
             {/* Tab Content */}
             {taskViewMode === 'by-patient' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).map(patient => {
+                {patients.filter(p => p.status !== 'Discharging' && (p.tasks?.length || 0) > 0).map(patient => {
                   const today = new Date().toISOString().split('T')[0];
                   const allTasks = patient.tasks || [];
                   // Only show today's tasks
@@ -2996,7 +2996,7 @@ export default function VetHub() {
                     </div>
                   );
                 })}
-                {patients.filter(p => p.status !== 'Discharged' && (p.tasks?.length || 0) > 0).length === 0 && (
+                {patients.filter(p => p.status !== 'Discharging' && (p.tasks?.length || 0) > 0).length === 0 && (
                   <div className="text-center py-12 text-slate-400">
                     <div className="text-5xl mb-3">✨</div>
                     <p className="text-lg">No patient tasks found.</p>
@@ -3012,7 +3012,7 @@ export default function VetHub() {
                   const taskGroups: Record<string, Array<{ task: any; patient: any }>> = {};
                   const today = new Date().toISOString().split('T')[0];
 
-                  patients.filter(p => p.status !== 'Discharged').forEach(patient => {
+                  patients.filter(p => p.status !== 'Discharging').forEach(patient => {
                     (patient.tasks || []).forEach((task: any) => {
                       // Apply hide completed filter (no date filtering - tasks don't have date field)
                       if (!hideCompletedTasks || !task.completed) {
@@ -3191,7 +3191,7 @@ export default function VetHub() {
                   </tr>
                 </thead>
                 <tbody>
-                  {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').map((patient, idx) => {
+                  {patients.filter(p => p.type === 'MRI' && p.status === 'New').map((patient, idx) => {
                     // Helper to render save status indicator
                     const renderSaveStatus = (field: string) => {
                       const status = mriSaveStatus[`${patient.id}-${field}`];
@@ -3282,13 +3282,13 @@ export default function VetHub() {
                 </tbody>
               </table>
             </div>
-            {patients.filter(p => p.type === 'MRI' && p.status === 'New Admit').length === 0 && (
+            {patients.filter(p => p.type === 'MRI' && p.status === 'New').length === 0 && (
               <div
                 className="text-center py-8 mt-4 rounded-xl"
                 style={{ backgroundColor: NEO_COLORS.cream, border: NEO_BORDER }}
               >
                 <div className="text-4xl mb-2">🧠</div>
-                <p className="text-gray-500 font-bold">No MRI patients with 'New Admit' status</p>
+                <p className="text-gray-500 font-bold">No MRI patients with 'New' status</p>
               </div>
             )}
           </div>
@@ -4759,7 +4759,7 @@ Please schedule a recheck appointment with the Neurology department to have stap
                   onClick={async () => {
                     // Mark patient as fully discharged
                     try {
-                      await apiClient.updatePatient(String(dischargingPatientId), { status: 'Discharged' });
+                      await apiClient.updatePatient(String(dischargingPatientId), { status: 'Discharging' });
                       toast({ title: '✅ Patient marked as Discharged' });
                       setShowDischargeInstructions(false);
                       setDischargingPatientId(null);

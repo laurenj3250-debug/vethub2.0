@@ -68,17 +68,16 @@ export function PatientListItem({
   // Status badge color - neo-pop style
   const getStatusBadgeStyle = () => {
     switch (patient.status) {
-      case 'New Admit': return { backgroundColor: COLORS.lavender, color: '#000' };
+      case 'New': return { backgroundColor: COLORS.lavender, color: '#000' };
       case 'Hospitalized': return { backgroundColor: COLORS.mint, color: '#000' };
       case 'Discharging': return { backgroundColor: COLORS.pink, color: '#000' };
-      case 'Discharged': return { backgroundColor: '#E5E7EB', color: '#6B7280' };
       default: return { backgroundColor: '#E5E7EB', color: '#000' };
     }
   };
 
   return (
     <div
-      className={`rounded-2xl transition-all overflow-hidden ${patient.status === 'Discharged' ? 'opacity-60' : ''}`}
+      className={`rounded-2xl transition-all overflow-hidden ${patient.status === 'Discharging' ? 'opacity-60' : ''}`}
       style={{
         border: NEO_BORDER,
         boxShadow: isSelected ? `0 0 0 3px ${COLORS.mint}, ${NEO_SHADOW_SM}` : NEO_SHADOW_SM,
@@ -132,7 +131,7 @@ export function PatientListItem({
 
         {/* Status dropdown */}
         <select
-          value={patient.status || 'New Admit'}
+          value={patient.status || 'New'}
           onChange={(e) => {
             e.stopPropagation();
             onUpdatePatient('status', e.target.value);

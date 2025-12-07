@@ -93,7 +93,7 @@ export function QuickSwitcher({ isOpen, onClose, patients }: QuickSwitcherProps)
 
     // Patients - support both UnifiedPatient (demographics) and legacy (patient_info) structures
     const patientResults: SearchResult[] = patients
-      .filter(p => p.status !== 'Discharged')
+      .filter(p => p.status !== 'Discharging')
       .map(p => ({
         id: `patient-${p.id}`,
         title: p.demographics?.name || p.name || 'Unnamed',

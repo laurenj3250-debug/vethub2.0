@@ -72,7 +72,7 @@ export function formatPatientForRoundingSheet(patient: UnifiedPatient): Rounding
  */
 export function generateRoundingSheetData(patients: UnifiedPatient[]): RoundingSheetData[] {
   // Filter to active patients only
-  const activePatients = patients.filter(p => p.status !== 'Discharged');
+  const activePatients = patients.filter(p => p.status !== 'Discharging');
 
   return activePatients.map(formatPatientForRoundingSheet);
 }

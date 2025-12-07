@@ -43,7 +43,7 @@ export function QuickPatientNav({ currentPatientId }: QuickPatientNavProps) {
         if (response.ok) {
           const data = await response.json();
           // Only show active patients
-          const activePatients = data.filter((p: Patient) => p.status !== 'Discharged');
+          const activePatients = data.filter((p: Patient) => p.status !== 'Discharging');
           setPatients(activePatients);
 
           if (currentPatientId) {

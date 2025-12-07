@@ -232,7 +232,7 @@ export class EzyVetClient {
         ) || [],
       },
 
-      status: ezyvetData.active ? 'New Admit' : 'Discharged',
+      status: ezyvetData.active ? 'New' : 'Discharging',
       type: this.determinePatientType(ezyvetData.presenting_problems || ''),
       addedTime: new Date().toISOString(),
     };

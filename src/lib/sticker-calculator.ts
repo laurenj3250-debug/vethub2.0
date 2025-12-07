@@ -5,9 +5,9 @@
  *
  * Rules:
  * - Base: 2 big labels, 0 tiny sheets
- * - New Admit: 6 big labels, 1 tiny sheet (4 tiny labels)
+ * - New patient: 6 big labels, 1 tiny sheet (4 tiny labels)
  * - Surgery: 5 big labels, 2 tiny sheets (8 tiny labels)
- * - Both New Admit + Surgery: 6 big labels, 2 tiny sheets (max of both)
+ * - Both New + Surgery: 6 big labels, 2 tiny sheets (max of both)
  */
 
 import { StickerData } from '@/contexts/PatientContext';

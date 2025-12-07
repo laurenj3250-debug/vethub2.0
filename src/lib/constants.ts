@@ -3,23 +3,15 @@ import type { ProcedureType, PatientStatus } from './types';
 export const procedureTypes: ProcedureType[] = ['Surgery', 'MRI', 'Medical', 'Other'];
 
 export const statusOptions: PatientStatus[] = [
-  'New Admit',
-  'Pre-procedure',
-  'In Procedure',
-  'Recovery',
-  'Monitoring',
-  'Ready for Discharge',
-  'Discharged',
+  'New',
+  'Hospitalized',
+  'Discharging',
 ];
 
 export const statusColors: Record<PatientStatus, string> = {
-  'New Admit': 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  'Pre-procedure': 'bg-blue-100 text-blue-800 border-blue-300',
-  'In Procedure': 'bg-primary/20 text-primary border-primary/40',
-  'Recovery': 'bg-orange-100 text-orange-800 border-orange-300',
-  'Monitoring': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-  'Ready for Discharge': 'bg-green-100 text-green-800 border-green-300',
-  'Discharged': 'bg-gray-100 text-gray-800 border-gray-300'
+  'New': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+  'Hospitalized': 'bg-blue-100 text-blue-800 border-blue-300',
+  'Discharging': 'bg-green-100 text-green-800 border-green-300',
 };
 
 // NOTE: Task definitions have been centralized in src/lib/task-definitions.ts

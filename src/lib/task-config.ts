@@ -40,8 +40,8 @@ export const TASK_CONFIG = {
     ],
 
     // Patient statuses that should NOT get daily recurring tasks
-    // These patients have left - no need for daily tasks
-    excludeStatuses: ['Discharged'] as string[],
+    // Discharging patients are leaving - no need for daily tasks
+    excludeStatuses: ['Discharging'] as string[],
   },
 
   /**
@@ -49,20 +49,14 @@ export const TASK_CONFIG = {
    * These are workflow tasks, not daily recurring
    */
   statusTriggered: {
-    'New Admit': [
+    'New': [
       { name: 'Finalize Record', category: 'Admission', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Treatment Sheet Created', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
-    'Pre-procedure': [
-      { name: 'Blood Work', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Chest X-rays', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'NPO Confirmed', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+    'Hospitalized': [
+      // Daily recurring tasks handle hospitalized patients - no one-time status tasks
     ],
-    'Recovery': [
-      { name: 'Post-Op Vitals', category: 'Recovery', timeOfDay: 'anytime' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Owner Update Call', category: 'Recovery', timeOfDay: 'anytime' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-    ],
-    'Ready for Discharge': [
+    'Discharging': [
       { name: 'Finalize Record', category: 'Discharge', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Discharge Meds Ready', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
@@ -76,7 +70,10 @@ export const TASK_CONFIG = {
    */
   typeSpecific: {
     'MRI': [
-      { name: 'MRI Anesthesia Sheet', category: 'Pre-procedure', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Blood Work', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Chest X-rays', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'NPO Confirmed', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'MRI Anesthesia Sheet', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Black Book', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
       { name: 'Print 5 Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
       { name: 'Print 1 Sheet Small Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'low' as TaskPriority },
