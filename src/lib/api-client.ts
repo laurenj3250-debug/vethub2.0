@@ -18,13 +18,19 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const fullUrl = `${API_URL}${endpoint}`;
+    console.log('[API DEBUG] Request:', options.method || 'GET', fullUrl);
+
+    const response = await fetch(fullUrl, {
       ...options,
       headers,
     });
 
+    console.log('[API DEBUG] Response status:', response.status, response.statusText);
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      console.error('[API DEBUG] Error response:', error);
       throw new Error(error.error || `HTTP ${response.status}`);
     }
 
