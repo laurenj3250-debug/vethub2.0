@@ -23,7 +23,7 @@ const CARD_BORDERS = {
 };
 
 interface Task {
-  id: number;
+  id: string;  // Task IDs are CUIDs (strings)
   title?: string;
   name?: string;
   completed: boolean;
@@ -37,7 +37,7 @@ interface Patient {
 }
 
 interface GeneralTask {
-  id: number;
+  id: string;  // Task IDs are CUIDs (strings)
   title?: string;
   name?: string;
   completed: boolean;
@@ -46,11 +46,11 @@ interface GeneralTask {
 interface TaskChecklistProps {
   patients: Patient[];
   generalTasks: GeneralTask[];
-  onToggleTask: (patientId: number, taskId: number, currentStatus: boolean) => void;
-  onToggleGeneralTask: (taskId: number, currentStatus: boolean) => void;
+  onToggleTask: (patientId: number, taskId: string, currentStatus: boolean) => void;
+  onToggleGeneralTask: (taskId: string, currentStatus: boolean) => void;
   onAddTask: (patientId: number | null, taskName: string) => void;
-  onDeleteTask?: (patientId: number, taskId: number) => void;
-  onDeleteGeneralTask?: (taskId: number) => void;
+  onDeleteTask?: (patientId: number, taskId: string) => void;
+  onDeleteGeneralTask?: (taskId: string) => void;
   onDeleteAllTasks?: () => void;
 }
 

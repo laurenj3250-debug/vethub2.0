@@ -603,7 +603,7 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleTask = async (patientId: number, taskId: number, currentStatus: boolean) => {
+  const handleToggleTask = async (patientId: number, taskId: string, currentStatus: boolean) => {
     // Optimistic update: update local state immediately to prevent reordering
     const newStatus = !currentStatus;
     console.log('[TASK DEBUG] Toggle request:', { patientId, taskId, currentStatus, newStatus });
@@ -724,7 +724,7 @@ export default function VetHub() {
     }
   };
 
-  const handleDeleteTask = async (patientId: number, taskId: number) => {
+  const handleDeleteTask = async (patientId: number, taskId: string) => {
     try {
       await apiClient.deleteTask(String(patientId), String(taskId));
       refetch();
@@ -752,7 +752,7 @@ export default function VetHub() {
       let taskCount = 0;
 
       for (const patient of activePatients) {
-        const completedTasks = patient.tasks.filter(t => t.completed);
+        const completedTasks = patient.tasks.filter((t: { completed: boolean }) => t.completed);
         for (const task of completedTasks) {
           await apiClient.updateTask(String(patient.id), String(task.id), { completed: false });
           taskCount++;
@@ -1172,7 +1172,7 @@ export default function VetHub() {
         refetchGeneralTasks();
       } else {
         // Add as patient task
-        await apiClient.createTask(patientId, { title: taskName, completed: false });
+        await apiClient.createTask(String(patientId), { title: taskName, completed: false });
         refetch();
       }
       toast({ title: `✅ Added: ${taskName}` });
@@ -1315,7 +1315,7 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleGeneralTask = async (taskId: number, currentStatus: boolean) => {
+  const handleToggleGeneralTask = async (taskId: string, currentStatus: boolean) => {
     // Optimistic update: update local state immediately to prevent reordering
     const newStatus = !currentStatus;
     setGeneralTasks(prev => prev.map(t =>
@@ -1334,7 +1334,7 @@ export default function VetHub() {
     }
   };
 
-  const handleDeleteGeneralTask = async (taskId: number) => {
+  const handleDeleteGeneralTask = async (taskId: string) => {
     try {
       await apiClient.deleteGeneralTask(String(taskId));
       toast({ title: '🗑️ General task deleted' });
