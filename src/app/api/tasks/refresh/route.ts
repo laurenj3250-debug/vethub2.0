@@ -33,9 +33,8 @@ export async function POST() {
     for (const patient of patients) {
       const patientStatus = patient.status;
 
-      // Get existing incomplete tasks for this patient
-      const existingIncompleteTasks = patient.tasks.filter(t => !t.completed);
-      const existingTaskTitles = new Set(existingIncompleteTasks.map(t => t.title));
+      // Get ALL existing tasks for this patient (including completed) to prevent duplicates
+      const existingTaskTitles = new Set(patient.tasks.map(t => t.title));
 
       let tasksCreated = 0;
 

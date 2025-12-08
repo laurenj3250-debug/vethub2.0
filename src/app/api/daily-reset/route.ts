@@ -207,14 +207,12 @@ export async function POST(request: Request) {
         stickersReset++;
       }
 
-      // 3b. Create daily patient tasks (only if not already exists as incomplete)
+      // 3b. Create daily patient tasks (only if not already exists - check ALL tasks to prevent duplicates)
       const existingTasks = patient.tasks || [];
-      const existingIncompleteTaskTitles = new Set(
-        existingTasks.filter((t: any) => !t.completed).map((t: any) => t.title)
-      );
+      const existingTaskTitles = new Set(existingTasks.map((t: any) => t.title));
 
       for (const taskTemplate of TASK_CONFIG.dailyRecurring.patient) {
-        if (!existingIncompleteTaskTitles.has(taskTemplate.name)) {
+        if (!existingTaskTitles.has(taskTemplate.name)) {
           await prisma.task.create({
             data: {
               patientId: patient.id,
