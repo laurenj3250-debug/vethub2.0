@@ -2978,10 +2978,10 @@ export default function VetHub() {
                 {patients.filter(p => p.status !== 'Discharging' && (p.tasks?.length || 0) > 0).map(patient => {
                   const today = new Date().toISOString().split('T')[0];
                   const allTasks = patient.tasks || [];
-                  // Only show today's tasks
-                  const todayTasks = allTasks; // No date filtering - tasks don't have date field
-                  // Apply hide completed filter
-                  const tasks = todayTasks.filter((t: any) => !hideCompletedTasks || !t.completed);
+                  // Apply time filter first (same as main task view)
+                  const timeFilteredTasks = filterTasksByTime(allTasks);
+                  // Then apply hide completed filter
+                  const tasks = timeFilteredTasks.filter((t: any) => !hideCompletedTasks || !t.completed);
                   const info = patient.demographics || patient.demographics || {};
                   const emoji = getSpeciesEmoji(info.species);
                   const completedCount = tasks.filter((t: any) => t.completed).length;
@@ -3053,8 +3053,10 @@ export default function VetHub() {
                   const today = new Date().toISOString().split('T')[0];
 
                   patients.filter(p => p.status !== 'Discharging').forEach(patient => {
-                    (patient.tasks || []).forEach((task: any) => {
-                      // Apply hide completed filter (no date filtering - tasks don't have date field)
+                    // Apply time filter first (same as main task view)
+                    const timeFilteredTasks = filterTasksByTime(patient.tasks || []);
+                    timeFilteredTasks.forEach((task: any) => {
+                      // Apply hide completed filter
                       if (!hideCompletedTasks || !task.completed) {
                         const taskName = task.title || task.name;
                         if (!taskGroups[taskName]) {
