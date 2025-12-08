@@ -826,12 +826,33 @@ export default function VetHub() {
       await apiClient.updatePatient(String(patientId), { status: newStatus });
       toast({ title: `✅ Status updated to ${newStatus}` });
 
-      // Auto-create discharge tasks when status changes to "Discharging" using task engine templates
-      if (newStatus === 'Discharging') {
-        // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
-        const freshPatient = await apiClient.getPatient(String(patientId));
-        const existingTasks = freshPatient?.tasks || [];
+      // Auto-create tasks based on status changes
+      const freshPatient = await apiClient.getPatient(String(patientId));
+      const existingTasks = freshPatient?.tasks || [];
 
+      // When MRI patient becomes Hospitalized, add "Look at MRI Sequences" task
+      if (newStatus === 'Hospitalized' && freshPatient?.type === 'MRI') {
+        const taskName = 'Look at MRI Sequences';
+        const hasTask = existingTasks.some((t: any) => (t.title || t.name) === taskName);
+
+        if (!hasTask) {
+          await apiClient.createTask(String(patientId), {
+            title: taskName,
+            description: 'MRI Prep',
+            category: 'MRI Prep',
+            timeOfDay: 'morning',
+            priority: 'high',
+            completed: false,
+          });
+          toast({
+            title: '📋 Added MRI task',
+            description: taskName
+          });
+        }
+      }
+
+      // Auto-create discharge tasks when status changes to "Discharging"
+      if (newStatus === 'Discharging') {
         // Get discharge task templates from task config
         const { getStatusTriggeredTasks } = await import('@/lib/task-config');
         const templates = getStatusTriggeredTasks('Discharging');
@@ -1255,6 +1276,20 @@ export default function VetHub() {
       refetch();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to change patient type' });
+    }
+  };
+
+  const batchChangeStatus = async (newStatus: 'New' | 'Hospitalized' | 'Discharging') => {
+    try {
+      for (const patientId of Array.from(selectedPatientIds)) {
+        await handleStatusChange(patientId, newStatus);
+      }
+
+      toast({ title: `✅ Changed ${selectedPatientIds.size} patient(s) to ${newStatus}` });
+      clearSelection();
+      refetch();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to change patient status' });
     }
   };
 
@@ -3196,7 +3231,7 @@ export default function VetHub() {
                   </tr>
                 </thead>
                 <tbody>
-                  {patients.filter(p => p.type === 'MRI' && p.status === 'New').map((patient, idx) => {
+                  {patients.filter(p => p.type === 'MRI' && (p.status === 'New' || p.status?.toLowerCase() === 'new admit')).map((patient, idx) => {
                     // Helper to render save status indicator
                     const renderSaveStatus = (field: string) => {
                       const status = mriSaveStatus[`${patient.id}-${field}`];
@@ -3287,13 +3322,13 @@ export default function VetHub() {
                 </tbody>
               </table>
             </div>
-            {patients.filter(p => p.type === 'MRI' && p.status === 'New').length === 0 && (
+            {patients.filter(p => p.type === 'MRI' && (p.status === 'New' || p.status?.toLowerCase() === 'new admit')).length === 0 && (
               <div
                 className="text-center py-8 mt-4 rounded-xl"
                 style={{ backgroundColor: NEO_COLORS.cream, border: NEO_BORDER }}
               >
                 <div className="text-4xl mb-2">🧠</div>
-                <p className="text-gray-500 font-bold">No MRI patients with 'New' status</p>
+                <p className="text-gray-500 font-bold">No MRI patients with New/New Admit status</p>
               </div>
             )}
           </div>
@@ -4622,6 +4657,22 @@ Please schedule a recheck appointment with the Neurology department to have stap
                   <option value="Medical">→ Medical</option>
                   <option value="MRI">→ MRI</option>
                   <option value="Surgery">→ Surgery</option>
+                </select>
+
+                {/* Change Status Dropdown */}
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      batchChangeStatus(e.target.value as 'New' | 'Hospitalized' | 'Discharging');
+                      e.target.value = '';
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-sm transition cursor-pointer"
+                >
+                  <option value="">Change Status...</option>
+                  <option value="New">→ New</option>
+                  <option value="Hospitalized">→ Hospitalized</option>
+                  <option value="Discharging">→ Discharging</option>
                 </select>
 
                 {/* Add Task */}
