@@ -59,8 +59,6 @@ export const TASK_CONFIG = {
     'Discharging': [
       { name: 'Finalize Record', category: 'Discharge', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
       { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Discharge Meds Ready', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Owner Pickup Call', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
   } as Record<string, TaskDefinition[]>,
 
@@ -77,6 +75,7 @@ export const TASK_CONFIG = {
       { name: 'Black Book', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
       { name: 'Print 5 Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
       { name: 'Print 1 Sheet Small Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'low' as TaskPriority },
+      { name: 'Look at MRI Sequences', category: 'MRI Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
     ],
     'Surgery': [
       { name: 'Surgery Slip', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },

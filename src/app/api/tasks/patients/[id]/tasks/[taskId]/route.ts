@@ -49,6 +49,8 @@ export async function PATCH(
     // Get today's date in YYYY-MM-DD format in Eastern Time
     const today = getTodayET();
 
+    console.log('[DB DEBUG] Updating task:', taskId, 'for patient:', patientId, 'with:', body);
+
     const updatedTask = await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -64,6 +66,8 @@ export async function PATCH(
         completedDate: body.completed !== undefined ? (body.completed ? today : null) : undefined,
       },
     });
+
+    console.log('[DB DEBUG] Task updated successfully:', updatedTask.id, 'completed:', updatedTask.completed);
 
     return NextResponse.json(updatedTask);
   } catch (error) {
