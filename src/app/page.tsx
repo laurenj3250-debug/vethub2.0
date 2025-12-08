@@ -878,12 +878,14 @@ export default function VetHub() {
       console.log(`[handleTypeChange] API response:`, result);
       toast({ title: `✅ Type updated to ${newType}` });
 
-      // Only auto-create tasks if patient is a "New Admit"
-      // Existing/hospitalized patients switching types shouldn't get new admission tasks
+      // Auto-create tasks for type changes
+      // - New Admits: get all type-specific tasks
+      // - Hospitalized patients switching to MRI: get MRI prep tasks (patient may have been waiting)
       const patient = patients.find(p => p.id === patientId);
       const isNewAdmit = patient?.status?.toLowerCase() === 'new admit';
+      const isSwitchingToMRI = newType === 'MRI';
 
-      if (isNewAdmit && ['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
+      if ((isNewAdmit || isSwitchingToMRI) && ['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
         // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
         const freshPatient = await apiClient.getPatient(String(patientId));
         const patientName = freshPatient?.demographics?.name || 'Unknown Patient';
