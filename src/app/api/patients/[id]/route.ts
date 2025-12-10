@@ -186,9 +186,8 @@ export async function PATCH(
       const statusTasks = getStatusTriggeredTasks(newStatus);
       const today = getTodayET();
 
-      // Get existing incomplete task titles for this patient
-      const existingIncompleteTasks = patient.tasks.filter((t: any) => !t.completed);
-      const existingTaskTitles = new Set(existingIncompleteTasks.map((t: any) => t.title));
+      // Get ALL existing task titles for this patient (completed or not) to prevent duplicates
+      const existingTaskTitles = new Set(patient.tasks.map((t: any) => t.title));
 
       let tasksCreated = 0;
       for (const taskDef of statusTasks) {
