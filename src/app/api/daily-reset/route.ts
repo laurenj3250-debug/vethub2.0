@@ -128,12 +128,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Now check what exists and create if missing
+    // Now check what exists and create if missing (check ALL tasks, not just incomplete, to prevent duplicates)
     const existingGeneralTasks = await prisma.task.findMany({
       where: {
         patientId: null,
         title: { in: DAILY_GENERAL_TASK_NAMES },
-        completed: false, // Only check incomplete tasks
       },
     });
     const existingGeneralTaskTitles = new Set(existingGeneralTasks.map(t => t.title));
