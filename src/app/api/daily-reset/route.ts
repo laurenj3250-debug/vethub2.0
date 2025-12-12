@@ -303,9 +303,174 @@ export async function POST(request: Request) {
   }
 }
 
-// GET endpoint to check reset status (for debugging)
-export async function GET() {
+// GET endpoint - triggers reset when called by cron, or returns status for debugging
+export async function GET(request: Request) {
   try {
+    // Check if this is a cron request (has cron header or trigger=true query param)
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization');
+    const url = new URL(request.url);
+    const triggerParam = url.searchParams.get('trigger');
+
+    const isCronRequest = (cronSecret && authHeader && (
+      authHeader === cronSecret ||
+      authHeader === `Bearer ${cronSecret}`
+    )) || triggerParam === 'true';
+
+    // If cron request, trigger the reset
+    if (isCronRequest) {
+      console.log('[Daily Reset] GET request triggering reset (cron or trigger param)');
+
+      const today = getTodayET();
+
+      // Check if already ran today
+      const lastResetSetting = await prisma.appSetting.findUnique({
+        where: { key: 'lastDailyReset' },
+      });
+
+      if (lastResetSetting?.value === today) {
+        return NextResponse.json({
+          success: true,
+          message: 'Daily reset already completed today',
+          resetDate: today,
+          skipped: true,
+        });
+      }
+
+      // Run the reset - simplified version for cron
+      let stickersReset = 0;
+      let tasksDeleted = 0;
+      let tasksCreated = 0;
+      let generalTasksCreated = 0;
+
+      // Delete completed tasks
+      const deletedTasks = await prisma.task.deleteMany({
+        where: { completed: true },
+      });
+      tasksDeleted = deletedTasks.count;
+
+      // Delete old incomplete daily tasks
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const allDailyTaskNames = [...DAILY_PATIENT_TASK_NAMES, ...DAILY_GENERAL_TASK_NAMES];
+
+      const deletedOldTasks = await prisma.task.deleteMany({
+        where: {
+          createdAt: { lt: todayStart },
+          completed: false,
+          title: { in: allDailyTaskNames },
+        },
+      });
+      tasksDeleted += deletedOldTasks.count;
+
+      // Delete stale non-daily tasks (>7 days)
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const deletedStaleTasks = await prisma.task.deleteMany({
+        where: {
+          createdAt: { lt: sevenDaysAgo },
+          completed: false,
+          title: { notIn: allDailyTaskNames },
+        },
+      });
+      tasksDeleted += deletedStaleTasks.count;
+
+      // Create general tasks
+      const existingGeneralTasks = await prisma.task.findMany({
+        where: {
+          patientId: null,
+          title: { in: DAILY_GENERAL_TASK_NAMES },
+          completed: false,
+        },
+      });
+      const existingGeneralTaskTitles = new Set(existingGeneralTasks.map(t => t.title));
+
+      for (const taskTemplate of TASK_CONFIG.dailyRecurring.general) {
+        if (!existingGeneralTaskTitles.has(taskTemplate.name)) {
+          await prisma.task.create({
+            data: {
+              patientId: null,
+              title: taskTemplate.name,
+              category: taskTemplate.category,
+              timeOfDay: taskTemplate.timeOfDay,
+              priority: taskTemplate.priority,
+              completed: false,
+            },
+          });
+          generalTasksCreated++;
+        }
+      }
+
+      // Process active patients
+      const activePatients = await prisma.patient.findMany({
+        where: {
+          status: { notIn: TASK_CONFIG.dailyRecurring.excludeStatuses },
+        },
+        include: { tasks: true },
+      });
+
+      for (const patient of activePatients) {
+        // Reset sticker data
+        const currentStickerData = (patient.stickerData as any) || {};
+        await prisma.patient.update({
+          where: { id: patient.id },
+          data: {
+            stickerData: {
+              ...currentStickerData,
+              ...BASE_STICKER_DATA,
+              patientId: currentStickerData.patientId,
+              clientId: currentStickerData.clientId,
+              ownerName: currentStickerData.ownerName,
+              phone: currentStickerData.phone,
+            },
+          },
+        });
+        stickersReset++;
+
+        // Create daily patient tasks
+        const existingTaskTitles = new Set((patient.tasks || []).map((t: any) => t.title));
+        for (const taskTemplate of TASK_CONFIG.dailyRecurring.patient) {
+          if (!existingTaskTitles.has(taskTemplate.name)) {
+            await prisma.task.create({
+              data: {
+                patientId: patient.id,
+                title: taskTemplate.name,
+                category: taskTemplate.category,
+                timeOfDay: taskTemplate.timeOfDay,
+                priority: taskTemplate.priority,
+                completed: false,
+              },
+            });
+            tasksCreated++;
+          }
+        }
+      }
+
+      // Save last reset date
+      await prisma.appSetting.upsert({
+        where: { key: 'lastDailyReset' },
+        update: { value: today },
+        create: { key: 'lastDailyReset', value: today },
+      });
+
+      console.log(`[Daily Reset] [cron-GET] Updated ${activePatients.length} patients: ${stickersReset} stickers, ${tasksDeleted} deleted, ${tasksCreated} patient tasks, ${generalTasksCreated} general tasks`);
+
+      return NextResponse.json({
+        success: true,
+        message: `Daily reset complete for ${activePatients.length} patients`,
+        resetDate: today,
+        triggeredBy: 'cron-GET',
+        stats: {
+          patientsUpdated: activePatients.length,
+          stickersReset,
+          tasksDeleted,
+          tasksCreated,
+          generalTasksCreated,
+        },
+      });
+    }
+
+    // Otherwise, return status info (existing behavior)
     // Get general tasks
     const generalTasks = await prisma.task.findMany({
       where: {
