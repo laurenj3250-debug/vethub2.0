@@ -6,13 +6,11 @@
  */
 
 export type TaskTimeOfDay = 'morning' | 'evening' | 'anytime';
-export type TaskPriority = 'high' | 'medium' | 'low';
 
 export interface TaskDefinition {
   name: string;
   category: string;
   timeOfDay?: TaskTimeOfDay;
-  priority: TaskPriority;
 }
 
 /**
@@ -24,19 +22,17 @@ export const TASK_CONFIG = {
    */
   dailyRecurring: {
     // Tasks created for each active patient every day
-    // Morning tasks: Daily SOAP, Check Overnight Notes, Call Owner (per user request)
     patient: [
-      { name: 'Daily SOAP', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Check Overnight Notes', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
-      { name: 'Call Owner', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Rounding Sheet Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Sticker on Daily Sheet', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
+      { name: 'Daily SOAP', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay },
+      { name: 'Call Owner', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay },
+      { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay },
+      { name: 'Rounding Sheet Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay },
     ],
 
     // General team tasks (not tied to any patient)
     general: [
-      { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening' as TaskTimeOfDay },
+      { name: 'Sticker on Daily Sheet', category: 'General', timeOfDay: 'evening' as TaskTimeOfDay },
     ],
 
     // Patient statuses that should NOT get daily recurring tasks
@@ -46,20 +42,12 @@ export const TASK_CONFIG = {
 
   /**
    * Status-triggered tasks - created ONCE when patient status changes
-   * These are workflow tasks, not daily recurring
+   * Currently empty - all status-based workflow tasks removed per user request
    */
   statusTriggered: {
-    'New': [
-      { name: 'Finalize Record', category: 'Admission', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Treatment Sheet Created', category: 'Admission', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-    ],
-    'Hospitalized': [
-      // Daily recurring tasks handle hospitalized patients - no one-time status tasks
-    ],
-    'Discharging': [
-      { name: 'Finalize Record', category: 'Discharge', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-    ],
+    'New': [],
+    'Hospitalized': [],
+    'Discharging': [],
   } as Record<string, TaskDefinition[]>,
 
   /**
@@ -68,25 +56,17 @@ export const TASK_CONFIG = {
    */
   typeSpecific: {
     'MRI': [
-      { name: 'Blood Work', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Chest X-rays', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'NPO Confirmed', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'MRI Anesthesia Sheet', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Black Book', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
-      { name: 'Print 5 Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
-      { name: 'Print 1 Sheet Small Stickers', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay, priority: 'low' as TaskPriority },
-      { name: 'Look at MRI Sequences', category: 'MRI Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
+      { name: 'Blood Work', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay },
+      { name: 'Chest X-rays', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay },
+      { name: 'MRI Anesthesia Sheet', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay },
+      { name: 'Black Book', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay },
     ],
     'Surgery': [
-      { name: 'Surgery Slip', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Written on Board', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Print Surgery Sheet', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'high' as TaskPriority },
-      { name: 'Print 4 Large Stickers', category: 'Admin', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
-      { name: 'Print 2 Sheets Small Stickers', category: 'Admin', timeOfDay: 'morning' as TaskTimeOfDay, priority: 'medium' as TaskPriority },
+      { name: 'Surgery Slip', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay },
+      { name: 'Written on Board', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay },
+      { name: 'Print Surgery Sheet', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay },
     ],
-    'Medical': [
-      // Owner Admission Call removed per user request
-    ],
+    'Medical': [],
   } as Record<string, TaskDefinition[]>,
 };
 

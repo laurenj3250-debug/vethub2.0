@@ -48,7 +48,6 @@ export async function POST() {
                 title: taskDef.name,
                 category: taskDef.category,
                 timeOfDay: taskDef.timeOfDay,
-                priority: taskDef.priority,
                 completed: false,
               },
             });
@@ -67,7 +66,6 @@ export async function POST() {
               title: taskDef.name,
               category: taskDef.category,
               timeOfDay: taskDef.timeOfDay || null,
-              priority: taskDef.priority,
               completed: false,
             },
           });

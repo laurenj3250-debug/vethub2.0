@@ -872,7 +872,6 @@ export default function VetHub() {
               description: template.category,
               category: template.category,
               timeOfDay: template.timeOfDay || 'anytime',
-              priority: template.priority,
               completed: false,
             });
             createdCount++;
@@ -934,7 +933,6 @@ export default function VetHub() {
               description: template.category,
               category: template.category,
               timeOfDay: template.timeOfDay || 'anytime',
-              priority: template.priority,
               completed: false,
             });
             createdCount++;

@@ -178,7 +178,6 @@ export async function POST(request: Request) {
             title: taskTemplate.name,
             category: taskTemplate.category,
             timeOfDay: taskTemplate.timeOfDay,
-            priority: taskTemplate.priority,
             completed: false,
           },
         });
@@ -251,7 +250,6 @@ export async function POST(request: Request) {
               title: taskTemplate.name,
               category: taskTemplate.category,
               timeOfDay: taskTemplate.timeOfDay,
-              priority: taskTemplate.priority,
               completed: false,
             },
           });
@@ -393,7 +391,6 @@ export async function GET(request: Request) {
               title: taskTemplate.name,
               category: taskTemplate.category,
               timeOfDay: taskTemplate.timeOfDay,
-              priority: taskTemplate.priority,
               completed: false,
             },
           });
@@ -437,7 +434,6 @@ export async function GET(request: Request) {
                 title: taskTemplate.name,
                 category: taskTemplate.category,
                 timeOfDay: taskTemplate.timeOfDay,
-                priority: taskTemplate.priority,
                 completed: false,
               },
             });

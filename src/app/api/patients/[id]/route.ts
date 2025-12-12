@@ -199,7 +199,6 @@ export async function PATCH(
               patientId: patientId,
               title: taskDef.name,
               category: taskDef.category,
-              priority: taskDef.priority,
               timeOfDay: taskDef.timeOfDay || null,
               completed: false,
             },

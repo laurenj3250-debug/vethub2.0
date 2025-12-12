@@ -156,7 +156,6 @@ export async function POST(request: NextRequest) {
               description: template.category,
               category: template.category,
               timeOfDay: template.timeOfDay || null,
-              priority: template.priority || null,
               completed: false,
             })),
           });
