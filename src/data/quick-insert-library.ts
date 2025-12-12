@@ -6,7 +6,7 @@
 
 export interface QuickInsertItem {
   id: string;
-  trigger: string;
+  trigger?: string; // Optional - only used for slash commands, user-added items don't need it
   label: string;
   text: string;
   category: 'surgery' | 'seizures' | 'other';

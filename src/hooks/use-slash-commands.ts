@@ -25,16 +25,19 @@ const fieldMapping: Record<string, string> = {
 };
 
 // Convert existing quick-insert library to slash commands
+// Only include items that have a trigger defined (user-added items don't have triggers)
 function getBuiltInCommands(): SlashCommand[] {
-  return quickInsertLibrary.map(item => ({
-    id: item.id,
-    trigger: item.trigger, // Use explicit short trigger from library
-    label: item.label,
-    text: item.text,
-    field: fieldMapping[item.field] || item.field,
-    category: item.category,
-    isCustom: false,
-  }));
+  return quickInsertLibrary
+    .filter(item => item.trigger) // Only items with triggers become slash commands
+    .map(item => ({
+      id: item.id,
+      trigger: item.trigger!, // Safe to use ! since we filtered
+      label: item.label,
+      text: item.text,
+      field: fieldMapping[item.field] || item.field,
+      category: item.category,
+      isCustom: false,
+    }));
 }
 
 export function useSlashCommands() {
