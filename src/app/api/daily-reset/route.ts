@@ -51,19 +51,30 @@ export async function POST(request: Request) {
     // This prevents the bug where opening from different browsers triggers multiple resets
     // ========================================
     if (!forceReset) {
-      const lastResetSetting = await prisma.appSetting.findUnique({
-        where: { key: 'lastDailyReset' },
-      });
-
-      if (lastResetSetting?.value === today) {
-        console.log(`[Daily Reset] Already ran today (${today}), skipping`);
-        return NextResponse.json({
-          success: true,
-          message: 'Daily reset already completed today',
-          resetDate: today,
-          skipped: true,
-          stats: { patientsUpdated: 0, stickersReset: 0, tasksDeleted: 0, tasksCreated: 0, generalTasksCreated: 0 },
+      try {
+        const lastResetSetting = await prisma.appSetting.findUnique({
+          where: { key: 'lastDailyReset' },
         });
+
+        if (lastResetSetting?.value === today) {
+          console.log(`[Daily Reset] Already ran today (${today}), skipping`);
+          return NextResponse.json({
+            success: true,
+            message: 'Daily reset already completed today',
+            resetDate: today,
+            skipped: true,
+            stats: { patientsUpdated: 0, stickersReset: 0, tasksDeleted: 0, tasksCreated: 0, generalTasksCreated: 0 },
+          });
+        }
+      } catch (dbCheckError) {
+        // FAIL SAFE: If we can't check the database, skip the reset to prevent duplicates
+        // Better to miss a reset than to accidentally run it twice and delete tasks
+        console.error('[Daily Reset] Failed to check last reset date, skipping to prevent duplicate:', dbCheckError);
+        return NextResponse.json({
+          success: false,
+          error: 'Cannot verify reset status, skipping to prevent duplicate reset',
+          skipped: true,
+        }, { status: 503 });
       }
     }
 

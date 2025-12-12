@@ -2094,44 +2094,35 @@ export default function VetHub() {
 
   useEffect(() => {
     const autoResetDaily = async () => {
-      if (hasRunDailyReset.current) return; // Prevent duplicate runs
+      if (hasRunDailyReset.current) return; // Prevent duplicate runs in same session
 
-      // Use Eastern Time for date check (not UTC!)
-      const today = new Date().toLocaleDateString('en-CA', {
-        timeZone: 'America/New_York',
-      });
-      const lastCheck = localStorage.getItem('lastDailyReset');
-
-      // Only run if it's a new day in Eastern Time
-      if (lastCheck === today) {
-        hasRunDailyReset.current = true;
-        return;
-      }
-
+      // Always call the API - it checks the DATABASE for last reset date
+      // This ensures consistency across all browsers/devices
+      // The API returns { skipped: true } if reset already ran today
       try {
         const result = await triggerDailyReset();
-
-        // Mark today as checked (in ET)
-        localStorage.setItem('lastDailyReset', today);
         hasRunDailyReset.current = true;
 
-        // Refetch to get updated data (both patients and general tasks)
-        refetch();
-        refetchGeneralTasks();
+        // Only show notification and refetch if reset actually ran (not skipped)
+        if (!result.skipped) {
+          // Refetch to get updated data (both patients and general tasks)
+          refetch();
+          refetchGeneralTasks();
 
-        // Show notification if anything was updated
-        const { stats } = result;
-        if (stats.stickersReset > 0 || stats.tasksDeleted > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
-          const messages = [];
-          if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset`);
-          if (stats.tasksDeleted > 0) messages.push(`${stats.tasksDeleted} completed tasks cleared`);
-          if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} patient tasks added`);
-          if (stats.generalTasksCreated > 0) messages.push(`${stats.generalTasksCreated} general tasks added`);
+          // Show notification if anything was updated
+          const { stats } = result;
+          if (stats.stickersReset > 0 || stats.tasksDeleted > 0 || stats.tasksCreated > 0 || stats.generalTasksCreated > 0) {
+            const messages = [];
+            if (stats.stickersReset > 0) messages.push(`${stats.stickersReset} stickers reset`);
+            if (stats.tasksDeleted > 0) messages.push(`${stats.tasksDeleted} completed tasks cleared`);
+            if (stats.tasksCreated > 0) messages.push(`${stats.tasksCreated} patient tasks added`);
+            if (stats.generalTasksCreated > 0) messages.push(`${stats.generalTasksCreated} general tasks added`);
 
-          toast({
-            title: `🌅 New Day!`,
-            description: messages.join(' • '),
-          });
+            toast({
+              title: `🌅 New Day!`,
+              description: messages.join(' • '),
+            });
+          }
         }
       } catch (error) {
         console.error('Auto daily reset failed:', error);
