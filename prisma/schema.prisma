@@ -239,6 +239,17 @@ model ProblemOption {
   @@index([isDefault])
 }
 
+// App-wide settings stored in database (not localStorage)
+// Used for global state that should persist across all browsers/devices
+model AppSetting {
+  id        String   @id @default("app_settings")
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+}
+
 // ==========================================
 // ACVIM Neurology Residency Tracking Models
 // Matches official ACVIM Credentials Committee forms exactly
