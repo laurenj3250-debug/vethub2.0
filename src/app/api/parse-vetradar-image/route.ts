@@ -170,10 +170,10 @@ Extract MAXIMUM data. If something is not visible in the image, use empty string
       problems: validatedProblems,
       diagnosticFindings: parsed.diagnosticFindings || '',
 
-      // Format medications as single string
-      therapeutics: parsed.medications?.map((med: any) =>
-        `${med.name} ${med.dose} ${med.route} ${med.frequency}`
-      ).join(', ') || '',
+      // Format medications as names only (no doses, routes, or frequencies)
+      therapeutics: parsed.medications?.map((med: any) => med.name)
+        .filter(Boolean)
+        .join(', ') || '',
 
       // IVC/Fluids
       ivc: parsed.ivc?.location || (parsed.fluids?.type ? 'IVC present' : ''),
