@@ -71,7 +71,7 @@ Return ONLY a JSON array like this (no markdown, no \`\`\`json, just raw JSON):
 [{"appointmentTime":"9:00 AM","patientName":"Max Johnson","age":"5y","status":"recheck","whyHereToday":"Seizure recheck","lastVisit":null,"mri":null,"bloodwork":null,"medications":"Gabapentin 100mg","changesSinceLastVisit":null,"otherNotes":null}]`;
 
     const claudeResponse = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       temperature: 0,
       messages: [{

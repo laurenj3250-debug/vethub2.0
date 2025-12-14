@@ -240,7 +240,7 @@ Return ONLY a valid JSON object:
 
     // Use Claude Vision API
     const claudeResponse = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       temperature: 0, // Zero temperature for accuracy on medical data
       messages: [

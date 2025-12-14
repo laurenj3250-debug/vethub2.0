@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       temperature: 0,
       messages: [
