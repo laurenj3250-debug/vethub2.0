@@ -564,7 +564,13 @@ export default function VetHub() {
           microchip: parsed.demographics?.microchip || '',
         },
         roundingData: {
-          signalment: [parsed.demographics?.age, parsed.demographics?.sex, parsed.demographics?.species, parsed.demographics?.breed].filter(Boolean).join(' '),
+          // Clean up age (fix AI typos like "daysy" → "days")
+          signalment: [
+            (parsed.demographics?.age || '').replace(/daysy/gi, 'days').replace(/yearsy/gi, 'years').replace(/monthsy/gi, 'months'),
+            parsed.demographics?.sex,
+            parsed.demographics?.species,
+            parsed.demographics?.breed
+          ].filter(Boolean).join(' '),
           problems: parsed.consultations?.[0]?.chiefComplaint || '',
           diagnosticFindings: parsed.diagnostics?.radiographs || '',
           therapeutics: parsed.medications?.map((med: any) =>

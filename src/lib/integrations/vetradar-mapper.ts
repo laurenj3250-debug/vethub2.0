@@ -26,9 +26,24 @@ export function mapVetRadarToUnifiedPatient(
   console.log('[VetRadar Mapper] Mapping patient:', vetRadarPatient.name, '| VetRadar ID:', vetRadarPatient.id);
 
   // Parse name (VetRadar format: "FirstName LastName")
+  // Add owner last name if available for display consistency
   const nameParts = vetRadarPatient.name.split(' ');
   const firstName = nameParts[0];
   const lastName = nameParts.slice(1).join(' ');
+
+  // Extract owner last name to append to patient name
+  let ownerLastName = '';
+  if (vetRadarPatient.ownerName) {
+    const ownerName = vetRadarPatient.ownerName.trim();
+    if (ownerName.includes(',')) {
+      // Format: "Smith, John" → take first part
+      ownerLastName = ownerName.split(',')[0].trim();
+    } else {
+      // Format: "John Smith" → take last word
+      ownerLastName = ownerName.split(' ').pop()?.trim() || '';
+    }
+  }
+  const fullPatientName = ownerLastName ? `${vetRadarPatient.name} ${ownerLastName}` : vetRadarPatient.name;
 
   // Infer location (IP vs ICU)
   let location = 'IP'; // Default
@@ -189,7 +204,7 @@ export function mapVetRadarToUnifiedPatient(
     mrn: existingPatient?.mrn,
 
     demographics: {
-      name: vetRadarPatient.name,
+      name: fullPatientName,
       age: vetRadarPatient.age,
       sex: vetRadarPatient.sex,
       breed: vetRadarPatient.breed,
