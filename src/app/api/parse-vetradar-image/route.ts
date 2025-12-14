@@ -80,7 +80,7 @@ Return ONLY a JSON object with this exact structure:
   "color": "patient color/markings if visible",
   "signalment": "age sex species breed weight",
   "location": "ward/kennel/cage location",
-  "problems": "primary diagnosis/presenting complaint",
+  "problems": "NEUROLOCALIZATION + clinical status + plan. Examples: 'T3-L3 myelopathy, non-ambulatory, +/- MRI tomorrow' or 'Seizure disorder, cluster seizures, AED loading'. NOT patient name - actual clinical problems only.",
   "medications": [
     {
       "name": "medication name",
