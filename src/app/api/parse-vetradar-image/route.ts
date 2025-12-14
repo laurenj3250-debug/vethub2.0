@@ -143,13 +143,31 @@ Extract MAXIMUM data. If something is not visible in the image, use empty string
 
     const parsed = JSON.parse(jsonText);
 
+    // Validate problems field - don't allow patient name or single words
+    let validatedProblems = parsed.problems || '';
+    const patientName = (parsed.patientName || '').toLowerCase().trim();
+    const problemsLower = validatedProblems.toLowerCase().trim();
+
+    // Clear problems if it's just the patient name
+    if (patientName && problemsLower === patientName) {
+      validatedProblems = '';
+    }
+    // Clear if problems contains the patient name as a substring (e.g., "Wibbly needs care")
+    if (patientName && patientName.length > 2 && problemsLower.includes(patientName)) {
+      validatedProblems = '';
+    }
+    // Clear if it's a single word (likely a name, not a clinical problem)
+    if (validatedProblems && !validatedProblems.includes(' ') && validatedProblems.length < 20) {
+      validatedProblems = '';
+    }
+
     // Transform to rounding sheet format
     const roundingData = {
       signalment: parsed.signalment || '',
       location: parsed.location || '',
       icuCriteria: '', // Manual entry
       code: '', // Manual entry (Green/Yellow/Orange/Red)
-      problems: parsed.problems || '',
+      problems: validatedProblems,
       diagnosticFindings: parsed.diagnosticFindings || '',
 
       // Format medications as single string
