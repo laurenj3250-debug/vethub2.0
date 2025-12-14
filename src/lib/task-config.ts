@@ -47,7 +47,9 @@ export const TASK_CONFIG = {
   statusTriggered: {
     'New': [],
     'Hospitalized': [],
-    'Discharging': [],
+    'Discharging': [
+      { name: 'Discharge Instructions', category: 'Discharge', timeOfDay: 'anytime' as TaskTimeOfDay },
+    ],
   } as Record<string, TaskDefinition[]>,
 
   /**
