@@ -3415,6 +3415,14 @@ export default function VetHub() {
                     handleStatusChange(patient.id, value);
                   } else if (field === 'type') {
                     handleTypeChange(patient.id, value);
+                  } else if (field.startsWith('demographics.')) {
+                    // Handle nested demographics updates (e.g., demographics.name)
+                    const subField = field.replace('demographics.', '');
+                    const updatedDemographics = {
+                      ...(patient.demographics || {}),
+                      [subField]: value
+                    };
+                    apiClient.updatePatient(String(patient.id), { demographics: updatedDemographics }).then(() => refetch());
                   } else {
                     // Handle other patient updates
                     apiClient.updatePatient(String(patient.id), { [field]: value }).then(() => refetch());
