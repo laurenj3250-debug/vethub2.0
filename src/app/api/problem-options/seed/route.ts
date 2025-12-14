@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// Default problem options
+// Default problem options - FULL clinical text (what you actually want inserted)
 const DEFAULT_PROBLEMS = [
-  'Cervical myelopathy',
-  'TL pain',
-  'LS pain',
-  'Plegic',
-  'Vestibular',
-  'Seizures',
-  'FCE',
-  'GME',
-  'MUE',
-  'SRMA',
+  'C1-C5 myelopathy, ambulatory',
+  'C1-C5 myelopathy, non-ambulatory',
+  'T3-L3 myelopathy, ambulatory',
+  'T3-L3 myelopathy, non-ambulatory, DP+',
+  'T3-L3 myelopathy, non-ambulatory, DP-, +/- MRI tomorrow',
+  'L4-S3 myelopathy',
+  'Peripheral vestibular disease',
+  'Central vestibular disease',
+  'Seizure disorder, AED loading',
+  'Seizure disorder, cluster seizures',
+  'FCE, non-ambulatory',
+  'GME/MUE, +/- MRI',
+  'SRMA, CSF pending',
+  'MRI tomorrow',
+  'Hemilaminectomy tomorrow',
+  'Ventral slot tomorrow',
 ];
 
 /**

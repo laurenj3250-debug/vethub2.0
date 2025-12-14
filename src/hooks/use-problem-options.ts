@@ -2,18 +2,24 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-// Default problem options (fallback if API fails)
+// Default problem options - FULL clinical text (what you actually want inserted)
 const DEFAULT_PROBLEMS = [
-  'Cervical myelopathy',
-  'TL pain',
-  'LS pain',
-  'Plegic',
-  'Vestibular',
-  'Seizures',
-  'FCE',
-  'GME',
-  'MUE',
-  'SRMA',
+  'C1-C5 myelopathy, ambulatory',
+  'C1-C5 myelopathy, non-ambulatory',
+  'T3-L3 myelopathy, ambulatory',
+  'T3-L3 myelopathy, non-ambulatory, DP+',
+  'T3-L3 myelopathy, non-ambulatory, DP-, +/- MRI tomorrow',
+  'L4-S3 myelopathy',
+  'Peripheral vestibular disease',
+  'Central vestibular disease',
+  'Seizure disorder, AED loading',
+  'Seizure disorder, cluster seizures',
+  'FCE, non-ambulatory',
+  'GME/MUE, +/- MRI',
+  'SRMA, CSF pending',
+  'MRI tomorrow',
+  'Hemilaminectomy tomorrow',
+  'Ventral slot tomorrow',
 ];
 
 // API response type from database
@@ -245,6 +251,39 @@ export function useProblemOptions() {
     }
   }, [options]);
 
+  // Edit option with optimistic update
+  const editOption = useCallback(async (id: string, newLabel: string) => {
+    // Store original for rollback
+    const original = options.find(o => o.id === id);
+    if (!original) return;
+
+    const trimmedLabel = newLabel.trim();
+    if (!trimmedLabel) return;
+
+    // Optimistic update
+    setOptions(prev => prev.map(o => o.id === id ? { ...o, label: trimmedLabel } : o));
+
+    try {
+      const response = await fetch(`/api/problem-options/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label: trimmedLabel }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update option');
+      }
+
+      const updated: ProblemOptionDB = await response.json();
+      setOptions(prev => prev.map(o => o.id === id ? dbToOption(updated) : o));
+    } catch (e) {
+      // Rollback on error
+      setOptions(prev => prev.map(o => o.id === id ? original : o));
+      console.error('[ProblemOptions] Failed to edit option:', e);
+      throw e;
+    }
+  }, [options]);
+
   // Reset to defaults
   const resetToDefaults = useCallback(async () => {
     try {
@@ -294,6 +333,7 @@ export function useProblemOptions() {
     options,
     addOption,
     deleteOption,
+    editOption,
     resetToDefaults,
     refresh,
     isLoaded,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight } from 'lucide-react';
+import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight, Pencil, Check } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
@@ -36,9 +36,12 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
   const [customInput, setCustomInput] = useState('');
   const [directInput, setDirectInput] = useState(''); // For typing directly in the field
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { options, addOption, deleteOption, resetToDefaults, isLoading } = useProblemOptions();
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const { options, addOption, deleteOption, editOption, resetToDefaults, isLoading } = useProblemOptions();
 
   // Parse comma-separated value into array
   const selectedItems = value ? value.split(', ').filter(Boolean) : [];
@@ -126,6 +129,45 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
     } catch (e) {
       console.error('Failed to delete problem option:', e);
     }
+  };
+
+  const startEditing = (optionId: string, currentLabel: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setEditingId(optionId);
+    setEditingValue(currentLabel);
+    // Focus the input after render
+    setTimeout(() => editInputRef.current?.focus(), 0);
+  };
+
+  const handleEditSave = async (optionId: string) => {
+    const trimmed = editingValue.trim();
+    if (!trimmed) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      // Find the old label to update selected items if needed
+      const oldOption = options.find(o => o.id === optionId);
+      const oldLabel = oldOption?.label;
+
+      await editOption(optionId, trimmed);
+
+      // If this option was selected, update the selection with new label
+      if (oldLabel && selectedItems.includes(oldLabel)) {
+        const newSelected = selectedItems.map(item => item === oldLabel ? trimmed : item);
+        onChange(newSelected.join(', '));
+      }
+
+      setEditingId(null);
+    } catch (e) {
+      console.error('Failed to edit problem option:', e);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingValue('');
   };
 
   // Handle paste - parse comma/newline separated values and select matching options
@@ -231,7 +273,7 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
       {isOpen && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-full left-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[320px] overflow-y-auto min-w-[200px]"
+          className="absolute top-full left-0 mt-0.5 bg-white rounded shadow-lg z-50 max-h-[320px] overflow-y-auto min-w-[320px] max-w-[400px]"
           style={{ border: '1px solid #ccc' }}
         >
           {isLoading ? (
@@ -244,25 +286,71 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
                 key={option.id}
                 className="flex items-center justify-between px-2 py-1 hover:bg-gray-50 text-xs"
               >
-                <label className="flex items-center gap-2 cursor-pointer flex-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.includes(option.label)}
-                    onChange={() => toggleOption(option.label)}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="whitespace-nowrap">{option.label}</span>
-                  {option.isDefault && (
-                    <span className="text-[8px] text-gray-400">(default)</span>
-                  )}
-                </label>
-                <button
-                  onClick={(e) => handleDeleteOption(option.id, e)}
-                  className="p-1 rounded hover:bg-red-100"
-                  title="Delete from list"
-                >
-                  <Trash2 size={10} className="text-gray-400 hover:text-red-500" />
-                </button>
+                {editingId === option.id ? (
+                  // Edit mode - inline input
+                  <div className="flex items-center gap-1 flex-1">
+                    <input
+                      ref={editInputRef}
+                      type="text"
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        e.stopPropagation();
+                        if (e.key === 'Enter') {
+                          handleEditSave(option.id);
+                        }
+                        if (e.key === 'Escape') {
+                          cancelEditing();
+                        }
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 px-1 py-0.5 text-xs rounded border border-purple-400 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                    />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleEditSave(option.id); }}
+                      className="p-1 rounded hover:bg-green-100"
+                      title="Save"
+                    >
+                      <Check size={10} className="text-green-600" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); cancelEditing(); }}
+                      className="p-1 rounded hover:bg-gray-200"
+                      title="Cancel"
+                    >
+                      <X size={10} className="text-gray-500" />
+                    </button>
+                  </div>
+                ) : (
+                  // View mode - checkbox with label
+                  <>
+                    <label className="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(option.label)}
+                        onChange={() => toggleOption(option.label)}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500 shrink-0"
+                      />
+                      <span className="truncate" title={option.label}>{option.label}</span>
+                    </label>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={(e) => startEditing(option.id, option.label, e)}
+                        className="p-1 rounded hover:bg-blue-100"
+                        title="Edit"
+                      >
+                        <Pencil size={10} className="text-gray-400 hover:text-blue-500" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteOption(option.id, e)}
+                        className="p-1 rounded hover:bg-red-100"
+                        title="Delete from list"
+                      >
+                        <Trash2 size={10} className="text-gray-400 hover:text-red-500" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))
           )}
