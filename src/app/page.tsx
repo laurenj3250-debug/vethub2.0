@@ -889,7 +889,7 @@ export default function VetHub() {
 
       }
 
-      refetch();
+      await refetch(); // Await to ensure UI shows new task immediately
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
     }
