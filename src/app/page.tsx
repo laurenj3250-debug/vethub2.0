@@ -887,11 +887,6 @@ export default function VetHub() {
           });
         }
 
-        // Refetch first to get fresh data, then show modal with updated patient info
-        await refetch();
-        setDischargingPatientId(patientId);
-        setShowDischargeInstructions(true);
-        return; // Early return since we already refetched
       }
 
       refetch();
