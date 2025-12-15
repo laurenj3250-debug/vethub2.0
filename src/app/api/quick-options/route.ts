@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
 
     const option = await prisma.quickInsertOption.create({
       data: {
+        trigger: body.trigger || null,
         label: body.label,
         text: body.text,
         category: body.category,

@@ -20,7 +20,7 @@ export async function POST() {
 
       // Create a Set of existing keys for fast lookup
       const existingKeys = new Set(
-        existing.map((e) => `${e.label}|${e.category}|${e.field}`)
+        existing.map((e: { label: string; category: string; field: string }) => `${e.label}|${e.category}|${e.field}`)
       );
 
       // Filter to only new options
@@ -39,6 +39,7 @@ export async function POST() {
       // Add only new options
       const created = await prisma.quickInsertOption.createMany({
         data: newOptions.map((item) => ({
+          trigger: item.trigger || null,
           label: item.label,
           text: item.text,
           category: item.category,
@@ -57,6 +58,7 @@ export async function POST() {
     // First time seeding - add all default options
     const created = await prisma.quickInsertOption.createMany({
       data: quickInsertLibrary.map((item) => ({
+        trigger: item.trigger || null,
         label: item.label,
         text: item.text,
         category: item.category,

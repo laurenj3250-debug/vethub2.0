@@ -216,6 +216,7 @@ model ResiliencyEntry {
 // Synced server-side so options persist across devices/users
 model QuickInsertOption {
   id        String   @id @default(cuid())
+  trigger   String?  // Slash command trigger (e.g., 'gaba' for /gaba)
   label     String   // Button display text
   text      String   // Text inserted into field
   category  String   // 'surgery' | 'seizures' | 'other'
@@ -226,6 +227,7 @@ model QuickInsertOption {
 
   @@index([category])
   @@index([field])
+  @@index([trigger])
 }
 
 // Problem Options for Rounding Sheet Problems column

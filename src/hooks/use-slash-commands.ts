@@ -1,161 +1,374 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { quickInsertLibrary } from '@/data/quick-insert-library';
 
 export interface SlashCommand {
   id: string;
   trigger: string; // What user types after /
   label: string; // Display name
   text: string; // What gets inserted
-  field: string; // Which rounding field
+  field: string; // Which rounding field (mapped for UI)
   category?: string;
   isCustom?: boolean; // User-created vs built-in
   isOverride?: boolean; // Overrides a built-in command
 }
 
-const STORAGE_KEY = 'vethub-slash-commands';
+// API response type from database
+interface QuickInsertOptionDB {
+  id: string;
+  trigger: string | null;
+  label: string;
+  text: string;
+  category: string;
+  field: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Map quick-insert fields to rounding fields
-const fieldMapping: Record<string, string> = {
+const LEGACY_STORAGE_KEY = 'vethub-slash-commands';
+const MIGRATION_FLAG_KEY = 'vethub-slash-commands-migrated-to-db';
+
+// Map database fields to rounding sheet fields
+const fieldToRoundingMap: Record<string, string> = {
   therapeutics: 'therapeutics',
   diagnostics: 'diagnosticFindings',
   concerns: 'comments', // O/N concerns commands go to Comments field
   problems: 'problems',
 };
 
-// Convert existing quick-insert library to slash commands
-// Only include items that have a trigger defined (user-added items don't have triggers)
-function getBuiltInCommands(): SlashCommand[] {
-  return quickInsertLibrary
-    .filter(item => item.trigger) // Only items with triggers become slash commands
-    .map(item => ({
-      id: item.id,
-      trigger: item.trigger!, // Safe to use ! since we filtered
-      label: item.label,
-      text: item.text,
-      field: fieldMapping[item.field] || item.field,
-      category: item.category,
-      isCustom: false,
-    }));
+// Reverse map for saving to database
+const roundingToFieldMap: Record<string, string> = {
+  therapeutics: 'therapeutics',
+  diagnosticFindings: 'diagnostics',
+  comments: 'concerns',
+  problems: 'problems',
+};
+
+// Convert database option to SlashCommand format
+function dbToCommand(option: QuickInsertOptionDB): SlashCommand | null {
+  // Only options with triggers become slash commands
+  if (!option.trigger) return null;
+
+  return {
+    id: option.id,
+    trigger: option.trigger,
+    label: option.label,
+    text: option.text,
+    field: fieldToRoundingMap[option.field] || option.field,
+    category: option.category,
+    isCustom: !option.isDefault,
+    isOverride: false,
+  };
 }
 
 export function useSlashCommands() {
-  const [customCommands, setCustomCommands] = useState<SlashCommand[]>([]);
+  const [commands, setCommands] = useState<SlashCommand[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load custom commands from localStorage
+  // Load commands from API on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setCustomCommands(JSON.parse(stored));
+    async function loadCommands() {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // First, migrate localStorage if needed
+        await migrateLocalStorage();
+
+        // Fetch from API
+        const response = await fetch('/api/quick-options');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch quick options');
+        }
+
+        const data: QuickInsertOptionDB[] = await response.json();
+
+        // If database is empty, seed with defaults
+        if (data.length === 0) {
+          console.log('[SlashCommands] Database empty, seeding defaults...');
+
+          const seedResponse = await fetch('/api/quick-options/seed', {
+            method: 'POST',
+          });
+
+          if (seedResponse.ok) {
+            // Fetch again after seeding
+            const refreshResponse = await fetch('/api/quick-options');
+            if (refreshResponse.ok) {
+              const seededData: QuickInsertOptionDB[] = await refreshResponse.json();
+              const cmds = seededData
+                .map(dbToCommand)
+                .filter((cmd): cmd is SlashCommand => cmd !== null);
+              setCommands(cmds);
+            }
+          }
+        } else {
+          // Convert to SlashCommand format (only items with triggers)
+          const cmds = data
+            .map(dbToCommand)
+            .filter((cmd): cmd is SlashCommand => cmd !== null);
+          setCommands(cmds);
+        }
+
+        setIsLoaded(true);
+      } catch (e) {
+        console.error('[SlashCommands] Error loading:', e);
+        setError(e instanceof Error ? e.message : 'Failed to load commands');
+        setIsLoaded(true);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error('Failed to load slash commands:', e);
     }
-    setIsLoaded(true);
+
+    loadCommands();
   }, []);
 
-  // Save custom commands to localStorage
-  const saveCustomCommands = useCallback((commands: SlashCommand[]) => {
+  // One-time migration from localStorage to database
+  async function migrateLocalStorage() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(commands));
-      setCustomCommands(commands);
+      // Check if already migrated
+      const migrated = localStorage.getItem(MIGRATION_FLAG_KEY);
+      if (migrated === 'true') return;
+
+      // Check for old localStorage data
+      const stored = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (!stored) {
+        localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+        return;
+      }
+
+      const customCommands = JSON.parse(stored) as SlashCommand[];
+
+      if (customCommands.length > 0) {
+        console.log(`[SlashCommands] Migrating ${customCommands.length} custom commands to database...`);
+
+        for (const cmd of customCommands) {
+          try {
+            await fetch('/api/quick-options', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                trigger: cmd.trigger,
+                label: cmd.label,
+                text: cmd.text,
+                category: cmd.category || 'other',
+                field: roundingToFieldMap[cmd.field] || cmd.field,
+                isDefault: false,
+              }),
+            });
+          } catch (e) {
+            console.error('[SlashCommands] Failed to migrate command:', cmd.trigger, e);
+          }
+        }
+
+        console.log('[SlashCommands] Migration complete');
+      }
+
+      // Mark as migrated and clear old data
+      localStorage.setItem(MIGRATION_FLAG_KEY, 'true');
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch (e) {
-      console.error('Failed to save slash commands:', e);
+      console.error('[SlashCommands] Migration error:', e);
     }
-  }, []);
+  }
 
-  // Get all commands - custom commands and overrides take precedence over built-in
-  const allCommands = useMemo(() => {
-    const builtIn = getBuiltInCommands();
-    const customIds = new Set(customCommands.map(c => c.id));
+  // Get custom commands (user-added, not defaults)
+  const customCommands = useMemo(() => {
+    return commands.filter(cmd => cmd.isCustom);
+  }, [commands]);
 
-    // Filter out built-in commands that have been overridden
-    const filteredBuiltIn = builtIn.filter(cmd => !customIds.has(cmd.id));
-
-    return [...filteredBuiltIn, ...customCommands];
-  }, [customCommands]);
+  // Get built-in commands (defaults)
+  const builtInCommands = useMemo(() => {
+    return commands.filter(cmd => !cmd.isCustom);
+  }, [commands]);
 
   // Get commands for a specific field
   const getCommandsForField = useCallback((field: string): SlashCommand[] => {
-    return allCommands.filter(cmd => cmd.field === field);
-  }, [allCommands]);
+    return commands.filter(cmd => cmd.field === field);
+  }, [commands]);
 
   // Add a new custom command
-  const addCommand = useCallback((command: Omit<SlashCommand, 'id' | 'isCustom'>) => {
-    const newCommand: SlashCommand = {
+  const addCommand = useCallback(async (command: Omit<SlashCommand, 'id' | 'isCustom'>) => {
+    // Create temporary command for optimistic update
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const tempCommand: SlashCommand = {
       ...command,
-      id: `custom-${Date.now()}`,
+      id: tempId,
       isCustom: true,
     };
-    saveCustomCommands([...customCommands, newCommand]);
-    return newCommand;
-  }, [customCommands, saveCustomCommands]);
 
-  // Update an existing command (works for both custom and built-in)
-  const updateCommand = useCallback((id: string, updates: Partial<SlashCommand>) => {
-    // Check if this is a built-in command being edited
-    const builtIn = getBuiltInCommands().find(c => c.id === id);
-    const existingCustom = customCommands.find(c => c.id === id);
+    // Optimistic update
+    setCommands(prev => [...prev, tempCommand]);
 
-    if (existingCustom) {
-      // Update existing custom command
-      const updated = customCommands.map(cmd =>
-        cmd.id === id ? { ...cmd, ...updates } : cmd
-      );
-      saveCustomCommands(updated);
-    } else if (builtIn) {
-      // Create an override for the built-in command
-      const override: SlashCommand = {
-        ...builtIn,
-        ...updates,
-        id: id, // Keep the same ID to override
-        isCustom: true,
-        isOverride: true,
-      };
-      saveCustomCommands([...customCommands, override]);
+    try {
+      const response = await fetch('/api/quick-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trigger: command.trigger,
+          label: command.label,
+          text: command.text,
+          category: command.category || 'other',
+          field: roundingToFieldMap[command.field] || command.field,
+          isDefault: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create command');
+      }
+
+      const created: QuickInsertOptionDB = await response.json();
+      const newCommand = dbToCommand(created);
+
+      if (newCommand) {
+        // Replace temp command with real one
+        setCommands(prev => prev.map(cmd =>
+          cmd.id === tempId ? newCommand : cmd
+        ));
+        return newCommand;
+      }
+    } catch (e) {
+      // Rollback on error
+      setCommands(prev => prev.filter(cmd => cmd.id !== tempId));
+      console.error('[SlashCommands] Failed to add command:', e);
+      throw e;
     }
-  }, [customCommands, saveCustomCommands]);
+  }, []);
+
+  // Update an existing command
+  const updateCommand = useCallback(async (id: string, updates: Partial<SlashCommand>) => {
+    // Store original for rollback
+    const original = commands.find(cmd => cmd.id === id);
+    if (!original) return;
+
+    // Optimistic update
+    setCommands(prev => prev.map(cmd =>
+      cmd.id === id ? { ...cmd, ...updates } : cmd
+    ));
+
+    try {
+      const response = await fetch(`/api/quick-options/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(updates.trigger !== undefined && { trigger: updates.trigger }),
+          ...(updates.label !== undefined && { label: updates.label }),
+          ...(updates.text !== undefined && { text: updates.text }),
+          ...(updates.field !== undefined && { field: roundingToFieldMap[updates.field] || updates.field }),
+          ...(updates.category !== undefined && { category: updates.category }),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update command');
+      }
+
+      const updated: QuickInsertOptionDB = await response.json();
+      const updatedCommand = dbToCommand(updated);
+
+      if (updatedCommand) {
+        setCommands(prev => prev.map(cmd =>
+          cmd.id === id ? updatedCommand : cmd
+        ));
+      }
+    } catch (e) {
+      // Rollback on error
+      setCommands(prev => prev.map(cmd =>
+        cmd.id === id ? original : cmd
+      ));
+      console.error('[SlashCommands] Failed to update command:', e);
+      throw e;
+    }
+  }, [commands]);
 
   // Delete a command
-  const deleteCommand = useCallback((id: string) => {
-    const filtered = customCommands.filter(cmd => cmd.id !== id);
-    saveCustomCommands(filtered);
-  }, [customCommands, saveCustomCommands]);
+  const deleteCommand = useCallback(async (id: string) => {
+    // Store original for rollback
+    const original = commands.find(cmd => cmd.id === id);
+    if (!original) return;
 
-  // Reset a built-in command to its original state
-  const resetCommand = useCallback((id: string) => {
-    const filtered = customCommands.filter(cmd => cmd.id !== id);
-    saveCustomCommands(filtered);
-  }, [customCommands, saveCustomCommands]);
+    // Optimistic update
+    setCommands(prev => prev.filter(cmd => cmd.id !== id));
+
+    try {
+      const response = await fetch(`/api/quick-options/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete command');
+      }
+    } catch (e) {
+      // Rollback on error
+      setCommands(prev => [...prev, original]);
+      console.error('[SlashCommands] Failed to delete command:', e);
+      throw e;
+    }
+  }, [commands]);
+
+  // Reset a built-in command to its original state (delete the override)
+  const resetCommand = useCallback(async (id: string) => {
+    await deleteCommand(id);
+  }, [deleteCommand]);
 
   // Check if a command has been modified from its original
   const isModified = useCallback((id: string) => {
-    return customCommands.some(cmd => cmd.id === id && cmd.isOverride);
-  }, [customCommands]);
+    return commands.some(cmd => cmd.id === id && cmd.isOverride);
+  }, [commands]);
 
   // Import commands (for bulk operations)
-  const importCommands = useCallback((commands: SlashCommand[]) => {
-    const withCustomFlag = commands.map(cmd => ({
-      ...cmd,
-      id: cmd.id || `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      isCustom: true,
-    }));
-    saveCustomCommands([...customCommands, ...withCustomFlag]);
-  }, [customCommands, saveCustomCommands]);
+  const importCommands = useCallback(async (commandsToImport: SlashCommand[]) => {
+    for (const cmd of commandsToImport) {
+      try {
+        await addCommand({
+          trigger: cmd.trigger,
+          label: cmd.label,
+          text: cmd.text,
+          field: cmd.field,
+          category: cmd.category,
+        });
+      } catch (e) {
+        console.error('[SlashCommands] Failed to import command:', cmd.trigger, e);
+      }
+    }
+  }, [addCommand]);
 
   // Export custom commands
   const exportCommands = useCallback(() => {
     return JSON.stringify(customCommands, null, 2);
   }, [customCommands]);
 
+  // Refresh from server
+  const refresh = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/quick-options');
+      if (response.ok) {
+        const data: QuickInsertOptionDB[] = await response.json();
+        const cmds = data
+          .map(dbToCommand)
+          .filter((cmd): cmd is SlashCommand => cmd !== null);
+        setCommands(cmds);
+      }
+    } catch (e) {
+      console.error('[SlashCommands] Failed to refresh:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
-    commands: allCommands,
+    commands,
     customCommands,
-    builtInCommands: getBuiltInCommands(),
+    builtInCommands,
     isLoaded,
+    isLoading,
+    error,
     getCommandsForField,
     addCommand,
     updateCommand,
@@ -164,6 +377,7 @@ export function useSlashCommands() {
     isModified,
     importCommands,
     exportCommands,
+    refresh,
   };
 }
 
@@ -171,7 +385,9 @@ export function useSlashCommands() {
 export function useFieldSlashCommands(field: string) {
   const { commands, isLoaded } = useSlashCommands();
 
-  const fieldCommands = commands.filter(cmd => cmd.field === field);
+  const fieldCommands = useMemo(() => {
+    return commands.filter(cmd => cmd.field === field);
+  }, [commands, field]);
 
   return {
     commands: fieldCommands,

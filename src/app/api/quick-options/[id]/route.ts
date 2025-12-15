@@ -48,6 +48,7 @@ export async function PATCH(
     const option = await prisma.quickInsertOption.update({
       where: { id: optionId },
       data: {
+        trigger: body.trigger !== undefined ? body.trigger : undefined,
         label: body.label !== undefined ? body.label : undefined,
         text: body.text !== undefined ? body.text : undefined,
         category: body.category !== undefined ? body.category : undefined,
