@@ -1,110 +1,232 @@
 # Plan: Wire Up Quick Insert to Database Storage
 
-## Goal
-Replace localStorage-based slash commands with the existing database-backed Quick Insert system so user-added items persist across devices and sessions.
+## Context
+
+### Investigation Summary
+- **User Report**: Quick Reference items not storing when added
+- **Root Cause**: Two disconnected systems exist:
+  1. `useSlashCommands()` - uses **localStorage** (what's actually used in the app)
+  2. `useQuickInsert()` - uses **database** (components exist but are orphaned)
+
+### Related Project Context
+- **Rounding Sheet Overhaul Plan** (`.claude/plans/rounding-sheet-overhaul.md`):
+  - Phase 4 mentions revamping QuickInsertPanel to button-triggered
+  - Does NOT address storage issue
+- **Error Log** (`.claude/learnings/error-log.md`):
+  - All field names must be camelCase (Error #1)
+  - Use conditional spread for object merges (Error #5)
+- **`vethub-debug` skill**: Referenced in CLAUDE.md but does not exist
 
 ---
 
-## Current State
+## Current State Analysis
 
-### What exists but is UNUSED:
-- `useQuickInsert()` hook - fully functional, uses PostgreSQL via API
-- `QuickInsertPanel.tsx` - UI for quick insert buttons
-- `QuickOptionsBrowser.tsx` - full modal for browsing/editing all options
-- API routes at `/api/quick-options/` - working CRUD operations
-- Database model `QuickInsertOption` in Prisma schema
+### Database Schema (`QuickInsertOption`)
+```prisma
+model QuickInsertOption {
+  id        String   @id @default(cuid())
+  label     String   // Button display text
+  text      String   // Text inserted into field
+  category  String   // 'surgery' | 'seizures' | 'other'
+  field     String   // 'therapeutics' | 'diagnostics' | 'concerns' | 'problems'
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
 
-### What's currently used (localStorage-based):
-- `useSlashCommands()` hook - stores in localStorage
-- `SlashCommandManager.tsx` - UI at `/slash-commands` page
-- `SlashCommandTextarea.tsx` - textarea with slash command support
+**MISSING**: `trigger` field (needed for `/gaba`, `/kep` slash commands)
+
+### API Routes (working but incomplete)
+| Route | Method | Status |
+|-------|--------|--------|
+| `/api/quick-options` | GET | ✅ Works |
+| `/api/quick-options` | POST | ⚠️ No `trigger` field |
+| `/api/quick-options/[id]` | PATCH | ⚠️ No `trigger` field |
+| `/api/quick-options/[id]` | DELETE | ✅ Works |
+| `/api/quick-options/seed` | POST | ⚠️ Doesn't seed triggers |
+
+### Quick Insert Library (`src/data/quick-insert-library.ts`)
+- 34 built-in items
+- All have `trigger` property defined (e.g., `trigger: 'gaba'`)
+- But triggers are NOT saved to database when seeding
+
+### Components Status
+| Component | Location | Status |
+|-----------|----------|--------|
+| `SlashCommandTextarea` | Used in RoundingSheet | ✅ Works |
+| `SlashCommandMenu` | Used by above | ✅ Works |
+| `SlashCommandManager` | `/slash-commands` page | ❌ Uses localStorage |
+| `QuickInsertPanel` | Orphaned | ❌ Not imported anywhere |
+| `QuickOptionsBrowser` | Orphaned | ❌ Not imported anywhere |
 
 ---
 
 ## Implementation Plan
 
-### Step 1: Update `useSlashCommands` to use database instead of localStorage
-
-**File**: `src/hooks/use-slash-commands.ts`
-
-**Changes**:
-- Remove localStorage read/write logic
-- Import and use the `/api/quick-options` API endpoints
-- Map QuickInsertOption database format to SlashCommand format
-- Keep the same interface (commands, addCommand, updateCommand, deleteCommand)
-- Add `trigger` field to database items when creating slash commands
-
-**Why**: This is the minimal change approach - existing SlashCommandTextarea and SlashCommandManager continue to work, but data flows to/from database.
-
----
-
-### Step 2: Add `trigger` field to QuickInsertOption model
+### Step 1: Add `trigger` field to database schema
 
 **File**: `prisma/schema.prisma`
 
-**Changes**:
-- Add optional `trigger` field to `QuickInsertOption` model
-- Run `npx prisma db push` to update Railway database
+**Change**:
+```prisma
+model QuickInsertOption {
+  id        String   @id @default(cuid())
+  trigger   String?  // Slash command trigger (e.g., 'gaba' for /gaba)
+  label     String   // Button display text
+  text      String   // Text inserted into field
+  category  String   // 'surgery' | 'seizures' | 'other'
+  field     String   // 'therapeutics' | 'diagnostics' | 'concerns' | 'problems'
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-**Why**: Slash commands need a trigger (e.g., "gaba" for `/gaba`). The current QuickInsertOption model doesn't have this field.
+  @@index([category])
+  @@index([field])
+  @@index([trigger])
+}
+```
+
+**Then run**: `npx prisma db push` (Railway will apply on deploy)
 
 ---
 
-### Step 3: Update Quick Insert library to include triggers
-
-**File**: `src/data/quick-insert-library.ts`
-
-**Changes**:
-- Ensure all built-in items have `trigger` field (most already do)
-- Update seed route to include triggers when seeding
-
-**Why**: Database-seeded defaults need triggers for slash command functionality.
-
----
-
-### Step 4: Update API route to handle trigger field
+### Step 2: Update API routes to handle `trigger` field
 
 **File**: `src/app/api/quick-options/route.ts`
 
-**Changes**:
-- Accept `trigger` in POST body
-- Return `trigger` in GET response
+**Changes to POST**:
+- Accept `trigger` in body
 - Validate trigger uniqueness (optional but recommended)
+
+**File**: `src/app/api/quick-options/[id]/route.ts`
+
+**Changes to PATCH**:
+- Accept `trigger` in body for updates
 
 ---
 
-### Step 5: Update SlashCommandManager to use database hook
+### Step 3: Update seed route to include triggers
+
+**File**: `src/app/api/quick-options/seed/route.ts`
+
+**Change**: Include `trigger` field when seeding from `quickInsertLibrary`:
+```typescript
+data: quickInsertLibrary.map((item) => ({
+  trigger: item.trigger || null,  // ADD THIS
+  label: item.label,
+  text: item.text,
+  category: item.category,
+  field: item.field,
+  isDefault: true,
+})),
+```
+
+---
+
+### Step 4: Rewrite `useSlashCommands` to use database API
+
+**File**: `src/hooks/use-slash-commands.ts`
+
+**Current** (localStorage):
+```typescript
+const STORAGE_KEY = 'vethub-slash-commands';
+localStorage.setItem(STORAGE_KEY, JSON.stringify(commands));
+```
+
+**New** (database API):
+```typescript
+// Fetch from API instead of localStorage
+const response = await fetch('/api/quick-options');
+const data = await response.json();
+
+// Filter to items with triggers for slash commands
+const commands = data
+  .filter((item) => item.trigger)
+  .map((item) => ({
+    id: item.id,
+    trigger: item.trigger,
+    label: item.label,
+    text: item.text,
+    field: mapFieldName(item.field),
+    category: item.category,
+    isCustom: !item.isDefault,
+  }));
+```
+
+**Key changes**:
+- Remove localStorage read/write
+- Fetch from `/api/quick-options` on mount
+- POST to API when adding commands
+- PATCH to API when updating
+- DELETE to API when removing
+- Keep same interface for backward compatibility
+
+---
+
+### Step 5: One-time localStorage migration
+
+**File**: `src/hooks/use-slash-commands.ts`
+
+**On first load**:
+1. Check if `vethub-slash-commands` exists in localStorage
+2. If yes, POST each custom command to database
+3. Set migration flag `vethub-slash-commands-migrated`
+4. Clear old localStorage data
+
+```typescript
+async function migrateLocalStorage() {
+  const migrated = localStorage.getItem('vethub-slash-commands-migrated');
+  if (migrated === 'true') return;
+
+  const stored = localStorage.getItem('vethub-slash-commands');
+  if (stored) {
+    const customCommands = JSON.parse(stored);
+    for (const cmd of customCommands) {
+      await fetch('/api/quick-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trigger: cmd.trigger,
+          label: cmd.label,
+          text: cmd.text,
+          category: cmd.category || 'other',
+          field: reverseMapFieldName(cmd.field),
+          isDefault: false,
+        }),
+      });
+    }
+    localStorage.removeItem('vethub-slash-commands');
+  }
+  localStorage.setItem('vethub-slash-commands-migrated', 'true');
+}
+```
+
+---
+
+### Step 6: Update `SlashCommandManager` UI (minimal)
 
 **File**: `src/components/SlashCommandManager.tsx`
 
 **Changes**:
-- Replace `useSlashCommands()` with modified version that uses database
-- No UI changes needed - same form fields work
+- The hook interface stays the same
+- No UI changes required
+- Will automatically use database storage via updated hook
 
 ---
 
-### Step 6: Migrate existing localStorage data (one-time)
+## Files to Modify (6 files)
 
-**File**: `src/hooks/use-slash-commands.ts`
+| File | Change Type | Lines Est. |
+|------|-------------|------------|
+| `prisma/schema.prisma` | Add `trigger` field + index | ~3 |
+| `src/app/api/quick-options/route.ts` | Handle trigger in POST | ~5 |
+| `src/app/api/quick-options/[id]/route.ts` | Handle trigger in PATCH | ~3 |
+| `src/app/api/quick-options/seed/route.ts` | Include triggers when seeding | ~2 |
+| `src/hooks/use-slash-commands.ts` | Replace localStorage with API | ~80 |
+| `src/data/quick-insert-library.ts` | No changes (triggers already exist) | 0 |
 
-**Changes**:
-- On first load, check for localStorage data
-- If found, POST each custom command to database
-- Clear localStorage after successful migration
-- Set migration flag to prevent re-running
-
----
-
-## Files to Modify
-
-| File | Change Type |
-|------|-------------|
-| `prisma/schema.prisma` | Add `trigger` field |
-| `src/hooks/use-slash-commands.ts` | Replace localStorage with API calls |
-| `src/app/api/quick-options/route.ts` | Handle `trigger` field |
-| `src/app/api/quick-options/[id]/route.ts` | Handle `trigger` in updates |
-| `src/app/api/quick-options/seed/route.ts` | Seed triggers |
-| `src/data/quick-insert-library.ts` | Verify all items have triggers |
+**Total**: ~93 lines changed
 
 ---
 
@@ -112,33 +234,88 @@ Replace localStorage-based slash commands with the existing database-backed Quic
 
 - `SlashCommandTextarea.tsx` - works as-is
 - `SlashCommandMenu.tsx` - works as-is
-- `SlashCommandManager.tsx` - minimal changes (hook swap)
-- `QuickInsertPanel.tsx` - remains available for future use
-- `QuickOptionsBrowser.tsx` - remains available for future use
+- `SlashCommandManager.tsx` - UI unchanged (hook swap invisible)
+- `QuickInsertPanel.tsx` - remains for future use
+- `QuickOptionsBrowser.tsx` - remains for future use
+- `useQuickInsert.ts` - remains for Quick Insert button workflow
+
+---
+
+## Field Mapping Reference
+
+Slash commands use different field names than database:
+
+| Database Field | Slash Command Field |
+|----------------|---------------------|
+| `therapeutics` | `therapeutics` |
+| `diagnostics` | `diagnosticFindings` |
+| `concerns` | `comments` |
+| `problems` | `problems` |
+
+The hook must map between these when reading/writing.
 
 ---
 
 ## Testing Plan
 
-1. Add a custom slash command via `/slash-commands` page
-2. Refresh page - command should persist
-3. Open in incognito - command should still appear
-4. Test on production Railway URL after deploy
-5. Verify built-in commands still work
-6. Verify `/gaba`, `/kep`, etc. triggers work in RoundingSheet
+1. **Database migration**
+   - Run `npx prisma db push`
+   - Verify `trigger` column exists
+
+2. **API endpoints**
+   - POST new option with trigger → verify saved
+   - GET options → verify trigger returned
+   - PATCH option trigger → verify updated
+
+3. **Slash commands**
+   - Add custom command via `/slash-commands` page
+   - Refresh page → command persists
+   - Open incognito → command still appears
+   - Test on production Railway URL
+
+4. **Migration**
+   - Add command to localStorage manually
+   - Load app → verify migrated to database
+   - Check localStorage cleared
+
+5. **Built-in commands**
+   - Verify `/gaba`, `/kep`, etc. still work
+   - Verify built-in commands appear in menu
 
 ---
 
 ## Rollback Plan
 
 If issues occur:
-- Revert `use-slash-commands.ts` to localStorage version
-- Database changes are additive (new field), no data loss
+1. Revert `use-slash-commands.ts` to localStorage version
+2. Database changes are additive (new `trigger` field) - no data loss
+3. Users would lose custom commands added during failed period
 
 ---
 
-## Questions for User
+## Questions Resolved
 
-1. Should custom triggers be validated for uniqueness?
-2. Should there be a max length for triggers?
-3. Do you want to keep the `/slash-commands` page or replace it with QuickOptionsBrowser modal?
+1. **Trigger uniqueness**: Not enforced at DB level (allows same trigger in different fields)
+2. **Page preference**: Keep `/slash-commands` page (minimal change approach)
+3. **QuickInsertPanel**: Not wired up in this plan - separate enhancement
+
+---
+
+## Alignment with Existing Plans
+
+This plan complements **Rounding Sheet Overhaul Phase 4**:
+- Phase 4 makes QuickInsert button-triggered (UX change)
+- This plan makes data persist to database (storage change)
+- Both can be implemented independently
+
+---
+
+## Success Criteria
+
+- [ ] Custom slash commands persist across page refreshes
+- [ ] Custom slash commands persist across browser sessions
+- [ ] Custom slash commands persist across devices
+- [ ] Built-in commands (`/gaba`, `/kep`, etc.) still work
+- [ ] Existing localStorage commands migrated
+- [ ] No console errors
+- [ ] Railway production deployment works
