@@ -310,6 +310,40 @@ This plan complements **Rounding Sheet Overhaul Phase 4**:
 
 ---
 
+## Visual Consistency: Neo-Pop Design System
+
+All UI must match VetHub's neo-pop design system:
+
+### Required Styling Constants
+```typescript
+const NEO_BORDER = '2px solid #000';
+const NEO_SHADOW = '4px 4px 0 #000';
+const NEO_SHADOW_SM = '2px 2px 0 #000';
+
+const COLORS = {
+  lavender: '#DCC4F5',  // Category tabs, selected states
+  mint: '#B8E6D4',      // Success, add buttons
+  pink: '#FFBDBD',      // Warnings, errors
+  cream: '#FFF8F0',     // Background, forms
+};
+```
+
+### UI Components Must Include
+- **Cards/Modals**: `border: NEO_BORDER`, `boxShadow: NEO_SHADOW`
+- **Buttons**: `border: NEO_BORDER`, hover effect `-translate-y-0.5`
+- **Inputs**: `border: NEO_BORDER`, focus ring `focus:ring-[#6BB89D]`
+- **Interactive elements**: Shadow offset `2px 2px 0 #000` or `3px 3px 0 #000`
+
+### SlashCommandManager Already Compliant
+Current `/slash-commands` page uses neo-pop styling correctly:
+- `src/components/SlashCommandManager.tsx` lines 19-20, 152, 165, etc.
+
+### No Visual Changes Required
+This plan only changes data storage (localStorage → database).
+The existing UI components already match the system theme.
+
+---
+
 ## Success Criteria
 
 - [ ] Custom slash commands persist across page refreshes
@@ -319,3 +353,4 @@ This plan complements **Rounding Sheet Overhaul Phase 4**:
 - [ ] Existing localStorage commands migrated
 - [ ] No console errors
 - [ ] Railway production deployment works
+- [ ] UI unchanged (already matches neo-pop design system)
