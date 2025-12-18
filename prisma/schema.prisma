@@ -250,6 +250,17 @@ model AppSetting {
   @@index([key])
 }
 
+// Learning Notes - Questions to clarify (e.g., with Glass)
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([completed])
+  @@index([createdAt])
+}
+
 // ==========================================
 // ACVIM Neurology Residency Tracking Models
 // Matches official ACVIM Credentials Committee forms exactly

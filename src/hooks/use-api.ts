@@ -212,3 +212,49 @@ export function useCommonItems() {
 
   return { problems, comments, medications, isLoading, refetch: fetchAll };
 }
+
+export function useNotes() {
+  const [notes, setNotes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchNotes = async () => {
+    try {
+      setIsLoading(true);
+      const data = await apiClient.getNotes();
+      setNotes(data);
+      setError(null);
+    } catch (err) {
+      console.error('Fetch notes error:', err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotes();
+
+    if (typeof window === 'undefined') return;
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchNotes();
+      }
+    }, 30000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotes();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  return { notes, setNotes, isLoading, error, refetch: fetchNotes };
+}
