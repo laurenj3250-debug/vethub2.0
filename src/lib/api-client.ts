@@ -191,6 +191,39 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Notes (Learning questions)
+  async getNotes() {
+    return this.request<any[]>('/api/notes');
+  }
+
+  async createNote(content: string) {
+    return this.request<any>('/api/notes', {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async updateNote(id: string, data: { content?: string; completed?: boolean }) {
+    return this.request<any>('/api/notes', {
+      method: 'PATCH',
+      body: JSON.stringify({ id, ...data }),
+    });
+  }
+
+  async deleteNote(id: string) {
+    return this.request<void>('/api/notes', {
+      method: 'DELETE',
+      body: JSON.stringify({ id }),
+    });
+  }
+
+  async clearCompletedNotes() {
+    return this.request<{ success: boolean; deleted: number }>('/api/notes', {
+      method: 'DELETE',
+      body: JSON.stringify({ clearCompleted: true }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

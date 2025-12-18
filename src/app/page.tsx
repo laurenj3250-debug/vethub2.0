@@ -69,6 +69,10 @@ export default function VetHub() {
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
 
+  // Quick note input state
+  const [showQuickNoteInput, setShowQuickNoteInput] = useState(false);
+  const [quickNoteContent, setQuickNoteContent] = useState('');
+
   // Individual sticker picker state (for choosing big vs tiny when clicking sticker button)
   const [stickerPickerPatientId, setStickerPickerPatientId] = useState<number | null>(null);
   const [stickerPickerCount, setStickerPickerCount] = useState<number>(2);
@@ -1769,6 +1773,21 @@ export default function VetHub() {
     }
   };
 
+  // Quick Note Handler
+  const handleAddQuickNote = async () => {
+    if (!quickNoteContent.trim()) return;
+
+    try {
+      await apiClient.createNote(quickNoteContent.trim());
+      setQuickNoteContent('');
+      setShowQuickNoteInput(false);
+      toast({ title: 'Note added' });
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast({ variant: 'destructive', title: 'Failed to add note' });
+    }
+  };
+
   // Sticker Print Handlers
   const handlePrintBigLabels = async () => {
     try {
@@ -2555,6 +2574,56 @@ export default function VetHub() {
                     <Award size={16} />
                     Residency Tracker
                   </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Note Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowQuickNoteInput(!showQuickNoteInput)}
+                className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-gray-900 hover:-translate-y-1 transition-transform"
+                style={{ backgroundColor: NEO_COLORS.pink, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
+                title="Add learning note"
+              >
+                <Plus size={20} />
+              </button>
+              {showQuickNoteInput && (
+                <div
+                  className="absolute right-0 mt-2 w-72 bg-white rounded-2xl p-4 z-[100]"
+                  style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+                >
+                  <div className="flex flex-col gap-3">
+                    <input
+                      type="text"
+                      value={quickNoteContent}
+                      onChange={(e) => setQuickNoteContent(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddQuickNote();
+                        if (e.key === 'Escape') setShowQuickNoteInput(false);
+                      }}
+                      placeholder="Question to clarify..."
+                      className="w-full px-3 py-2 rounded-xl text-gray-900"
+                      style={{ border: NEO_BORDER }}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddQuickNote}
+                        className="flex-1 px-3 py-2 rounded-xl font-bold text-gray-900 hover:-translate-y-0.5 transition-transform"
+                        style={{ backgroundColor: NEO_COLORS.mint, border: NEO_BORDER }}
+                      >
+                        Add
+                      </button>
+                      <Link
+                        href="/notes"
+                        className="px-3 py-2 rounded-xl font-medium text-gray-600 hover:-translate-y-0.5 transition-transform text-center"
+                        style={{ border: NEO_BORDER }}
+                      >
+                        View All
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
