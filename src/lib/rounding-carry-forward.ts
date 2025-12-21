@@ -58,15 +58,16 @@ export function carryForwardRoundingData(
     };
   }
 
-  // Fields to carry forward (everything except concerns by default)
+  // Fields to carry forward (everything except concerns, problems, and therapeutics by default)
+  // Problems and therapeutics are NOT carried forward - user fills fresh each day
   const fieldsToCarry: (keyof RoundingData)[] = [
     'signalment',
     'location',
     'icuCriteria',
     'code',
-    'problems',
+    // 'problems', - NOT carried forward, user fills fresh
     'diagnosticFindings',
-    'therapeutics',
+    // 'therapeutics', - NOT carried forward, user fills fresh
     'ivc',
     'fluids',
     'cri',
