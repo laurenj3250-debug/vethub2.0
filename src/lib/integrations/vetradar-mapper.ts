@@ -119,21 +119,13 @@ export function mapVetRadarToUnifiedPatient(
           })
         : treatmentSummaries.some(t => t.toLowerCase().includes('cri') || t.toLowerCase().includes('infusion')));
 
-  // Format therapeutics (medications list or treatment summaries)
-  // Clean formatting - remove "undefined" values and extra spaces
-  const therapeutics = hasMedications
-    ? medications.map(med => {
-        const parts = [med.name, med.dose, med.route, med.frequency]
-          .filter(p => p && p !== 'undefined' && String(p).trim() !== '')
-          .map(p => String(p).trim());
-        return parts.join(' ');
-      }).filter(Boolean).join('\n')
-    : treatmentSummaries.join('\n');
+  // Therapeutics are NOT auto-populated - user fills fresh each day
+  // (Previously pulled from VetRadar medications list or treatment summaries)
+  const therapeutics = '';
 
-  // Format problems from VetRadar issues or critical notes
-  const problems = (vetRadarPatient.issues || []).length > 0
-    ? (vetRadarPatient.issues || []).join('\n')
-    : (vetRadarPatient.criticalNotes || []).join('\n');
+  // Problems are NOT auto-populated - user fills fresh each day
+  // (Previously pulled from VetRadar issues or critical notes)
+  const problems = '';
 
   // Build signalment
   const signalment = [
@@ -325,14 +317,15 @@ export function mapTreatmentSheetToUnifiedPatient(
   ].filter(Boolean).join(' ');
 
   // Create rounding data
+  // Problems and therapeutics are NOT auto-populated - user fills fresh each day
   const roundingData: RoundingData = {
     signalment,
     location: treatmentSheet.location,
     icuCriteria: treatmentSheet.location.toLowerCase().includes('icu') ? 'Yes' : '',
     codeStatus: 'Yellow', // Default
-    problems: '',
+    problems: '', // NOT auto-populated
     diagnosticFindings: '',
-    therapeutics: medications.map(m => `${m.name} ${m.dose} ${m.route} ${m.frequency}`.trim()).join('\n'),
+    therapeutics: '', // NOT auto-populated
     ivc: fluidsText ? 'Y' : 'N',
     fluids: fluidsText,
     cri: hasCRI ? 'Y' : 'N',
