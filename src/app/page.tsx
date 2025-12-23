@@ -129,6 +129,9 @@ export default function VetHub() {
   const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', index: number} | null>(null);
   const [newReferenceItem, setNewReferenceItem] = useState<any>({});
   const [cocktailWeight, setCocktailWeight] = useState('');
+  const [pillCalcDays, setPillCalcDays] = useState(7);
+  const [pillCalcFreq, setPillCalcFreq] = useState('bid');
+  const [pillCalcDose, setPillCalcDose] = useState(1);
 
   // SOAP Builder state
   const [showSOAPBuilder, setShowSOAPBuilder] = useState(false);
@@ -4676,6 +4679,143 @@ Please schedule a recheck appointment with the Neurology department to have stap
                             </button>
                           </div>
                           <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans overflow-y-auto max-h-96">{protocol}</pre>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                {/* Pill Calculator Section */}
+                <div>
+                  <h4 className="text-xl font-bold text-blue-400 flex items-center gap-2 mb-3">
+                    💊 Pill Calculator
+                  </h4>
+                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {/* Days */}
+                      <div>
+                        <label className="block text-sm font-bold text-slate-300 mb-2">Days</label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setPillCalcDays(Math.max(1, pillCalcDays - 1))}
+                            className="w-10 h-10 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            value={pillCalcDays}
+                            onChange={(e) => setPillCalcDays(Math.max(1, Math.min(365, parseInt(e.target.value) || 1)))}
+                            className="flex-1 h-10 text-center text-lg font-bold bg-slate-800 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={() => setPillCalcDays(Math.min(365, pillCalcDays + 1))}
+                            className="w-10 h-10 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center justify-center"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className="flex gap-1 mt-2">
+                          {[5, 7, 10, 14, 21, 30].map(d => (
+                            <button
+                              key={d}
+                              onClick={() => setPillCalcDays(d)}
+                              className={`flex-1 py-1 rounded text-xs font-medium transition-colors ${
+                                pillCalcDays === d
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Frequency */}
+                      <div>
+                        <label className="block text-sm font-bold text-slate-300 mb-2">Frequency</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'sid', label: 'SID', sub: 'q24h' },
+                            { id: 'bid', label: 'BID', sub: 'q12h' },
+                            { id: 'tid', label: 'TID', sub: 'q8h' },
+                            { id: 'eod', label: 'EOD', sub: 'q48h' },
+                          ].map(freq => (
+                            <button
+                              key={freq.id}
+                              onClick={() => setPillCalcFreq(freq.id)}
+                              className={`py-2 rounded-lg text-center transition-colors ${
+                                pillCalcFreq === freq.id
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              <div className="text-sm font-bold">{freq.label}</div>
+                              <div className="text-xs opacity-70">{freq.sub}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Tablets per dose */}
+                      <div>
+                        <label className="block text-sm font-bold text-slate-300 mb-2">Tablets/dose</label>
+                        <div className="flex flex-wrap gap-1">
+                          {[0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5].map(amt => (
+                            <button
+                              key={amt}
+                              onClick={() => setPillCalcDose(amt)}
+                              className={`px-2 py-1.5 rounded text-sm font-medium transition-colors ${
+                                pillCalcDose === amt
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                              }`}
+                            >
+                              {amt === 0.25 ? '¼' : amt === 0.5 ? '½' : amt === 0.75 ? '¾' : amt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Result */}
+                    {(() => {
+                      const freqMultiplier = pillCalcFreq === 'sid' ? 1 : pillCalcFreq === 'bid' ? 2 : pillCalcFreq === 'tid' ? 3 : 0.5;
+                      const totalDoses = pillCalcFreq === 'eod' ? Math.ceil(pillCalcDays / 2) : pillCalcDays * freqMultiplier;
+                      const totalPills = totalDoses * pillCalcDose;
+                      const isWhole = totalPills === Math.floor(totalPills);
+                      const formatPills = (n: number) => {
+                        if (n === Math.floor(n)) return n.toString();
+                        const whole = Math.floor(n);
+                        const frac = n - whole;
+                        if (frac === 0.25) return whole > 0 ? `${whole}¼` : '¼';
+                        if (frac === 0.5) return whole > 0 ? `${whole}½` : '½';
+                        if (frac === 0.75) return whole > 0 ? `${whole}¾` : '¾';
+                        return n.toFixed(2);
+                      };
+                      const freqLabel = pillCalcFreq === 'sid' ? 'SID (q24h)' : pillCalcFreq === 'bid' ? 'BID (q12h)' : pillCalcFreq === 'tid' ? 'TID (q8h)' : 'EOD (q48h)';
+                      const copyText = `${totalPills} pills total (${formatPills(pillCalcDose)} tab ${freqLabel} × ${pillCalcDays} days)`;
+
+                      return (
+                        <div className={`p-4 rounded-lg text-center ${isWhole ? 'bg-emerald-900/40 border border-emerald-700/50' : 'bg-amber-900/30 border border-amber-700/50'}`}>
+                          <div className="text-sm text-slate-400 mb-1">Total Pills Needed</div>
+                          <div className={`text-4xl font-bold mb-1 ${isWhole ? 'text-emerald-300' : 'text-amber-300'}`}>
+                            {formatPills(totalPills)}
+                          </div>
+                          <div className="text-sm text-slate-400 mb-2">
+                            {formatPills(pillCalcDose)} {pillCalcDose === 1 ? 'tablet' : 'tablets'} × {totalDoses} doses
+                          </div>
+                          {!isWhole && <div className="text-xs text-amber-400 mb-2">Fractional tablets required</div>}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(copyText);
+                              toast({ title: '✅ Copied to clipboard!' });
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition"
+                          >
+                            📋 Copy Result
+                          </button>
                         </div>
                       );
                     })()}
