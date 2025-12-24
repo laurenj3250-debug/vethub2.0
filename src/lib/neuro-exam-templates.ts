@@ -23,40 +23,133 @@ export const NEURO_EXAM_TEMPLATES: NeuroExamTemplate[] = [
   {
     id: 't3-l3-ivdd',
     name: 'T3-L3 IVDD',
-    description: 'Non-ambulatory paraparesis, UMN pelvic',
+    description: 'Non-ambulatory paraparesis with pelvic limb deficits',
     icon: '🦴',
     sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { nonAmbPara: true, propAtaxia: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { absentLH: true, absentRH: true } },
-      13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { increasedL: true, increasedR: true } },
-      15: { status: 'normal', data: {} },
-      16: { status: 'abnormal', data: { thoracicPain: true, lumbarPain: true } },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
+      // 1. Mentation & Behavior - Normal
+      1: {
+        status: 'normal',
+        data: {}
+      },
+      // 2. Posture & Position at Rest - Normal
+      2: {
+        status: 'normal',
+        data: {}
+      },
+      // 3. Gait - ABNORMAL (non-ambulatory paraparesis)
+      3: {
+        status: 'abnormal',
+        data: {
+          ambulatoryStatus: 'Non-ambulatory paraparesis',
+          paresis: ['LH', 'RH'],
+          ataxiaType: 'General proprioceptive'
+        }
+      },
+      // 4. Menace Response - Normal
+      4: {
+        status: 'normal',
+        data: {}
+      },
+      // 5. Pupil Evaluation - Normal
+      5: {
+        status: 'normal',
+        data: {}
+      },
+      // 6. Eye Position & Nystagmus - Normal
+      6: {
+        status: 'normal',
+        data: {}
+      },
+      // 7. Palpebral Reflex - Normal
+      7: {
+        status: 'normal',
+        data: {}
+      },
+      // 8. Facial Sensation - Normal
+      8: {
+        status: 'normal',
+        data: {}
+      },
+      // 9. Jaw & Facial Motor - Normal
+      9: {
+        status: 'normal',
+        data: {}
+      },
+      // 10. Tongue Assessment - Normal
+      10: {
+        status: 'normal',
+        data: {}
+      },
+      // 11. Gag Reflex - Normal
+      11: {
+        status: 'normal',
+        data: {}
+      },
+      // 12. Postural Reactions - ABNORMAL (pelvic limbs)
+      12: {
+        status: 'abnormal',
+        data: {
+          affectedLimbs: ['LH', 'RH'],
+          severity: 'Absent'
+        }
+      },
+      // 13. Thoracic Limb Reflexes - Normal
+      13: {
+        status: 'normal',
+        data: {}
+      },
+      // 14. Pelvic Limb Reflexes - ABNORMAL (increased)
+      14: {
+        status: 'abnormal',
+        data: {
+          leftHindlimb: 'Increased',
+          rightHindlimb: 'Increased'
+        }
+      },
+      // 15. Perineal & Anal Tone - Normal
+      15: {
+        status: 'normal',
+        data: {}
+      },
+      // 16. Palpation - Spine - ABNORMAL (thoracolumbar pain)
+      16: {
+        status: 'abnormal',
+        data: {
+          thoracicPain: true,
+          lumbarPain: true
+        }
+      },
+      // 17. Palpation - Limbs - Normal
+      17: {
+        status: 'normal',
+        data: {}
+      },
+      // 18. Nociception - Normal (deep pain present)
+      18: {
+        status: 'normal',
+        data: {}
+      }
     }
   },
 
-  // Template 2: C1-C5 Myelopathy
+  // Template 2: C1-C5 Myelopathy (Cervical IVDD)
   {
     id: 'c1-c5-myelopathy',
-    name: 'C1-C5',
-    description: 'Ambulatory tetraparesis, UMN all 4',
+    name: 'C1-C5 Myelopathy',
+    description: 'Tetraparesis with all four limbs affected',
     icon: '🔝',
     sections: {
       1: { status: 'normal', data: {} },
       2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambTetra: true, propAtaxia: true } },
+      // Gait - tetraparesis
+      3: {
+        status: 'abnormal',
+        data: {
+          ambulatoryStatus: 'Ambulatory tetraparesis',
+          paresis: ['LF', 'RF', 'LH', 'RH'],
+          ataxiaType: 'General proprioceptive'
+        }
+      },
       4: { status: 'normal', data: {} },
       5: { status: 'normal', data: {} },
       6: { status: 'normal', data: {} },
@@ -65,54 +158,60 @@ export const NEURO_EXAM_TEMPLATES: NeuroExamTemplate[] = [
       9: { status: 'normal', data: {} },
       10: { status: 'normal', data: {} },
       11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLF: true, delayedRF: true, delayedLH: true, delayedRH: true } },
-      13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { increasedL: true, increasedR: true } },
+      // Postural reactions - all four limbs
+      12: {
+        status: 'abnormal',
+        data: {
+          affectedLimbs: ['LF', 'RF', 'LH', 'RH'],
+          severity: 'Delayed'
+        }
+      },
+      // Thoracic limb reflexes - normal or increased
+      13: {
+        status: 'abnormal',
+        data: {
+          leftForelimb: 'Normal',
+          rightForelimb: 'Normal'
+        }
+      },
+      // Pelvic limb reflexes - increased
+      14: {
+        status: 'abnormal',
+        data: {
+          leftHindlimb: 'Increased',
+          rightHindlimb: 'Increased'
+        }
+      },
       15: { status: 'normal', data: {} },
-      16: { status: 'abnormal', data: { cervicalPain: true } },
+      // Cervical pain
+      16: {
+        status: 'abnormal',
+        data: {
+          cervicalPain: true
+        }
+      },
       17: { status: 'normal', data: {} },
       18: { status: 'normal', data: {} }
     }
   },
 
-  // Template 3: C6-T2 Myelopathy (cervicothoracic)
-  {
-    id: 'c6-t2-myelopathy',
-    name: 'C6-T2',
-    description: 'LMN thoracic, UMN pelvic',
-    icon: '⬇️',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambTetra: true, propAtaxia: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLF: true, delayedRF: true, absentLH: true, absentRH: true } },
-      13: { status: 'abnormal', data: { decreasedL: true, decreasedR: true } },
-      14: { status: 'abnormal', data: { increasedL: true, increasedR: true } },
-      15: { status: 'normal', data: {} },
-      16: { status: 'abnormal', data: { cervicalPain: true } },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 4: L4-S3 Lesion (Lower Motor Neuron)
+  // Template 3: L4-S3 Lesion (Lower Motor Neuron)
   {
     id: 'l4-s3-lesion',
-    name: 'L4-S3',
-    description: 'LMN pelvic, decreased reflexes',
+    name: 'L4-S3 Lesion',
+    description: 'Lower motor neuron signs, decreased reflexes',
     icon: '⬇️',
     sections: {
       1: { status: 'normal', data: {} },
       2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambPara: true } },
+      // Gait - non-ambulatory or ambulatory paraparesis
+      3: {
+        status: 'abnormal',
+        data: {
+          ambulatoryStatus: 'Ambulatory paraparesis',
+          paresis: ['LH', 'RH']
+        }
+      },
       4: { status: 'normal', data: {} },
       5: { status: 'normal', data: {} },
       6: { status: 'normal', data: {} },
@@ -121,281 +220,78 @@ export const NEURO_EXAM_TEMPLATES: NeuroExamTemplate[] = [
       9: { status: 'normal', data: {} },
       10: { status: 'normal', data: {} },
       11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { absentLH: true, absentRH: true } },
+      // Postural reactions - pelvic limbs
+      12: {
+        status: 'abnormal',
+        data: {
+          affectedLimbs: ['LH', 'RH'],
+          severity: 'Absent'
+        }
+      },
       13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { decreasedL: true, decreasedR: true } },
-      15: { status: 'abnormal', data: { decreased: true } },
-      16: { status: 'abnormal', data: { lumbarPain: true, lsPain: true } },
+      // Pelvic limb reflexes - DECREASED/ABSENT (LMN)
+      14: {
+        status: 'abnormal',
+        data: {
+          leftHindlimb: 'Decreased',
+          rightHindlimb: 'Decreased'
+        }
+      },
+      // Perineal/anal tone may be decreased
+      15: {
+        status: 'abnormal',
+        data: {
+          perinealReflex: 'Decreased',
+          analTone: 'Decreased'
+        }
+      },
+      // Lumbosacral pain
+      16: {
+        status: 'abnormal',
+        data: {
+          lumbarPain: true,
+          lumbosacralPain: true
+        }
+      },
       17: { status: 'normal', data: {} },
       18: { status: 'normal', data: {} }
     }
   },
 
-  // Template 5: FCE (Fibrocartilaginous Embolism)
+  // Template 4: Vestibular Disease
   {
-    id: 'fce',
-    name: 'FCE',
-    description: 'Hyperacute, asymmetric, non-painful',
-    icon: '⚡',
+    id: 'vestibular',
+    name: 'Vestibular Disease',
+    description: 'Head tilt, nystagmus, circling, normal strength',
+    icon: '🔄',
     sections: {
       1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { nonAmbPara: true, propAtaxia: true } },
+      // Posture - head tilt
+      2: {
+        status: 'abnormal',
+        data: {
+          headTilt: 'L' // Can be customized to R
+        }
+      },
+      // Gait - circling, wide-based
+      3: {
+        status: 'abnormal',
+        data: {
+          ambulatoryStatus: 'Ambulatory',
+          circlingL: true,
+          wideBasedStance: true,
+          ataxiaType: 'Vestibular'
+        }
+      },
       4: { status: 'normal', data: {} },
       5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { absentLH: true, delayedRH: true } }, // Asymmetric
-      13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { increasedL: true } }, // Asymmetric
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} }, // NON-PAINFUL - key differentiator from IVDD
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 6: Peripheral Vestibular
-  {
-    id: 'peripheral-vestibular',
-    name: 'Periph Vestib',
-    description: 'Head tilt, horizontal nystagmus, normal strength',
-    icon: '👂',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'abnormal', data: { headTiltL: true } },
-      3: { status: 'abnormal', data: { vestAtaxia: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'abnormal', data: { horizNystagmus: true } },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'normal', data: {} }, // NORMAL - key differentiator
-      13: { status: 'normal', data: {} },
-      14: { status: 'normal', data: {} },
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 7: Central Vestibular
-  {
-    id: 'central-vestibular',
-    name: 'Central Vestib',
-    description: 'Head tilt, vertical nystagmus, postural deficits',
-    icon: '🧠',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'abnormal', data: { headTiltL: true } },
-      3: { status: 'abnormal', data: { vestAtaxia: true, propAtaxia: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'abnormal', data: { vertNystagmus: true, positionalNystagmus: true } },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLF: true, delayedLH: true } }, // ABNORMAL - key differentiator
-      13: { status: 'normal', data: {} },
-      14: { status: 'normal', data: {} },
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 8: Wobbler Syndrome / CCSM
-  {
-    id: 'wobbler',
-    name: 'Wobbler',
-    description: 'Amb tetra, worse pelvic, two-engine gait',
-    icon: '🐕',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambTetra: true, propAtaxia: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLF: true, delayedRF: true, absentLH: true, absentRH: true } },
-      13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { increasedL: true, increasedR: true } },
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} }, // Usually non-painful
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 9: Degenerative Myelopathy
-  {
-    id: 'dm',
-    name: 'DM',
-    description: 'Progressive paraparesis, non-painful, older dog',
-    icon: '📉',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambPara: true, propAtaxia: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLH: true, delayedRH: true } },
-      13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { increasedL: true, increasedR: true } }, // Or normal in early stages
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} }, // NON-PAINFUL - hallmark
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 10: Polyneuropathy
-  {
-    id: 'polyneuropathy',
-    name: 'Polyneuropathy',
-    description: 'LMN all 4, decreased reflexes, hypotonia',
-    icon: '🔌',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambTetra: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLF: true, delayedRF: true, delayedLH: true, delayedRH: true } },
-      13: { status: 'abnormal', data: { decreasedL: true, decreasedR: true } },
-      14: { status: 'abnormal', data: { decreasedL: true, decreasedR: true } },
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 11: Myasthenia Gravis
-  {
-    id: 'myasthenia',
-    name: 'Myasthenia',
-    description: 'Exercise-induced weakness, normal reflexes',
-    icon: '💪',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambTetra: true } }, // Weakness but can walk
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'abnormal', data: { decreased: true } }, // Decreased gag reflex common
-      12: { status: 'normal', data: {} }, // NORMAL - key differentiator from polyneuropathy
-      13: { status: 'normal', data: {} }, // NORMAL reflexes
-      14: { status: 'normal', data: {} }, // NORMAL reflexes
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 12: Cauda Equina / LS Disease
-  {
-    id: 'cauda-equina',
-    name: 'Cauda Equina',
-    description: 'LMN pelvic, tail paralysis, incontinence',
-    icon: '🐴',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambPara: true } },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedLH: true, delayedRH: true } },
-      13: { status: 'normal', data: {} },
-      14: { status: 'abnormal', data: { decreasedL: true, decreasedR: true } },
-      15: { status: 'abnormal', data: { decreased: true, toneLoss: true } }, // Key finding
-      16: { status: 'abnormal', data: { lsPain: true } },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 13: Brain Disease / Forebrain
-  {
-    id: 'forebrain',
-    name: 'Forebrain',
-    description: 'Altered mentation, seizures, circling',
-    icon: '🧠',
-    sections: {
-      1: { status: 'abnormal', data: { obtunded: true, circlingL: true } },
-      2: { status: 'normal', data: {} },
-      3: { status: 'normal', data: {} }, // Normal gait typically
-      4: { status: 'abnormal', data: { absentR: true } }, // Contralateral menace deficit
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'abnormal', data: { delayedRF: true, delayedRH: true } }, // Contralateral deficits
-      13: { status: 'normal', data: {} },
-      14: { status: 'normal', data: {} },
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 14: Post-ictal
-  {
-    id: 'post-ictal',
-    name: 'Post-ictal',
-    description: 'Obtunded, blind, resolving deficits',
-    icon: '⚡',
-    sections: {
-      1: { status: 'abnormal', data: { obtunded: true, disorientation: true } },
-      2: { status: 'normal', data: {} },
-      3: { status: 'normal', data: {} },
-      4: { status: 'abnormal', data: { absentBilat: true } }, // Temporary blindness
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
+      // Eye position - nystagmus
+      6: {
+        status: 'abnormal',
+        data: {
+          horizontalNystagmus: true
+        }
+      },
       7: { status: 'normal', data: {} },
       8: { status: 'normal', data: {} },
       9: { status: 'normal', data: {} },
@@ -411,46 +307,31 @@ export const NEURO_EXAM_TEMPLATES: NeuroExamTemplate[] = [
     }
   },
 
-  // Template 15: Meningitis
+  // Template 5: Brain Disease / Seizures
   {
-    id: 'meningitis',
-    name: 'Meningitis',
-    description: 'Cervical pain+++, stiff gait, fever',
-    icon: '🤒',
+    id: 'brain-seizures',
+    name: 'Brain/Seizures',
+    description: 'Altered mentation, possible seizures, CN deficits',
+    icon: '🧠',
     sections: {
-      1: { status: 'abnormal', data: { depressed: true } },
-      2: { status: 'normal', data: {} },
-      3: { status: 'abnormal', data: { ambTetra: true } }, // Stiff gait
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'normal', data: {} },
-      8: { status: 'normal', data: {} },
-      9: { status: 'normal', data: {} },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'normal', data: {} },
-      13: { status: 'normal', data: {} },
-      14: { status: 'normal', data: {} },
-      15: { status: 'normal', data: {} },
-      16: { status: 'abnormal', data: { cervicalPain: true, thoracicPain: true, lumbarPain: true } }, // Severe multifocal pain
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 16: Horner's Syndrome
-  {
-    id: 'horners',
-    name: "Horner's",
-    description: 'Miosis, ptosis, enophthalmos',
-    icon: '👁️',
-    sections: {
-      1: { status: 'normal', data: {} },
+      // Mentation - altered
+      1: {
+        status: 'abnormal',
+        data: {
+          mentation: 'Obtunded',
+          disorientation: true
+        }
+      },
       2: { status: 'normal', data: {} },
       3: { status: 'normal', data: {} },
-      4: { status: 'normal', data: {} },
-      5: { status: 'abnormal', data: { miosisL: true } }, // Unilateral miosis
+      // Menace - may be absent
+      4: {
+        status: 'abnormal',
+        data: {
+          affectedSide: 'Bilateral'
+        }
+      },
+      5: { status: 'normal', data: {} },
       6: { status: 'normal', data: {} },
       7: { status: 'normal', data: {} },
       8: { status: 'normal', data: {} },
@@ -467,38 +348,10 @@ export const NEURO_EXAM_TEMPLATES: NeuroExamTemplate[] = [
     }
   },
 
-  // Template 17: Facial Nerve Paralysis
-  {
-    id: 'facial-paralysis',
-    name: 'CN VII Paralysis',
-    description: 'Facial droop, absent palpebral, ear droop',
-    icon: '😐',
-    sections: {
-      1: { status: 'normal', data: {} },
-      2: { status: 'normal', data: {} },
-      3: { status: 'normal', data: {} },
-      4: { status: 'normal', data: {} },
-      5: { status: 'normal', data: {} },
-      6: { status: 'normal', data: {} },
-      7: { status: 'abnormal', data: { absentL: true } },
-      8: { status: 'normal', data: {} },
-      9: { status: 'abnormal', data: { facialParL: true, lipDroopL: true } },
-      10: { status: 'normal', data: {} },
-      11: { status: 'normal', data: {} },
-      12: { status: 'normal', data: {} },
-      13: { status: 'normal', data: {} },
-      14: { status: 'normal', data: {} },
-      15: { status: 'normal', data: {} },
-      16: { status: 'normal', data: {} },
-      17: { status: 'normal', data: {} },
-      18: { status: 'normal', data: {} }
-    }
-  },
-
-  // Template 18: Normal Exam
+  // Template 6: Normal Exam (for quick documentation)
   {
     id: 'normal-exam',
-    name: 'Normal',
+    name: 'Normal Exam',
     description: 'All sections within normal limits',
     icon: '✅',
     sections: {
@@ -558,7 +411,7 @@ export function applyTemplateToSections(
       ...newSections[id],
       status: sectionData.status,
       data: { ...sectionData.data },
-      expanded: false
+      expanded: false // Collapse all sections initially
     };
   });
 
