@@ -19,6 +19,7 @@ const DEFAULT_PROBLEMS = [
   'MRI tomorrow',
   'Hemilaminectomy tomorrow',
   'Ventral slot tomorrow',
+  'Boarding',
 ];
 
 /**

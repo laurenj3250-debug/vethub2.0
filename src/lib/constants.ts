@@ -47,7 +47,7 @@ export const ROUNDING_DROPDOWN_OPTIONS = {
   code: ['Green', 'Yellow', 'Orange', 'Red'] as const,
   ivc: ['Yes', 'No'] as const,
   fluids: ['Yes', 'No', 'n/a'] as const,
-  cri: ['Yes', 'No', 'No but...', 'Yes but...'] as const,
+  cri: ['Yes', 'No', 'No but...', 'Yes but...', 'n/a'] as const,
 } as const;
 
 // Field order for paste operations (matches Google Sheets columns)

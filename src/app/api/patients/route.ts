@@ -89,12 +89,14 @@ export async function POST(request: NextRequest) {
     const patientType = body.type || 'Medical';
 
     // Set default rounding data with location=IP, icuCriteria=N, code=Yellow
-    // MRI patients get additional defaults: ivc=yes, fluids=n/a, cri=n/a
+    // All patients get defaults: ivc=Yes, fluids=n/a, cri=n/a
     const defaultRoundingData = {
       location: 'IP',
       icuCriteria: 'N',
       code: 'Yellow',
-      ...(patientType === 'MRI' ? { ivc: 'yes', fluids: 'n/a', cri: 'n/a' } : {}),
+      ivc: 'Yes',
+      fluids: 'n/a',
+      cri: 'n/a',
       ...(body.roundingData || {}),
     };
 
