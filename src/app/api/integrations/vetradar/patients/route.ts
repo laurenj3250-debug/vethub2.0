@@ -149,10 +149,13 @@ export async function POST(request: Request) {
             // Create new patient
             console.log(`[VetRadar API] Creating new patient: ${patient.demographics.name}`);
 
-            // Set default rounding data with location=IP and icuCriteria=N/A
+            // Set default rounding data with location=IP, icuCriteria=N/A, ivc=Yes, fluids=n/a, cri=n/a
             const defaultRoundingData = {
               location: 'IP',
               icuCriteria: 'N/A',
+              ivc: 'Yes',
+              fluids: 'n/a',
+              cri: 'n/a',
               ...(patient.roundingData as any || {}),
             };
 
