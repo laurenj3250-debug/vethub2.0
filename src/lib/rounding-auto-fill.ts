@@ -55,8 +55,10 @@ export function generateSignalment(demographics: Demographics): string {
   // Age (format: "5y" or "8m" or "2.5y")
   if (demographics.age) {
     const age = demographics.age.trim();
-    // If already has 'y' or 'm', use as-is, otherwise append 'y'
-    parts.push(age.match(/[ym]$/i) ? age : `${age}y`);
+    // Check if age already contains time units (years, months, days, yr, mo, etc.)
+    // If so, use as-is. If it's just a number, append 'y'
+    const hasTimeUnit = /\b(years?|yrs?|months?|mos?|days?|weeks?|wks?|[ym])\b/i.test(age) || /[ym]$/i.test(age);
+    parts.push(hasTimeUnit ? age : `${age}y`);
   }
 
   // Sex (common abbreviations: FS, MN, F, M, MC, SF)
