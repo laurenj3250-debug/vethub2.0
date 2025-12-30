@@ -1004,19 +1004,19 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Behavior Abnormalities
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'circlingL', label: 'Circling Left' },
-                  { id: 'circlingR', label: 'Circling Right' },
+                  { id: 'circlingL', label: 'Circling L' },
+                  { id: 'circlingR', label: 'Circling R' },
                   { id: 'headPressing', label: 'Head Pressing' },
                   { id: 'aggression', label: 'Aggression' },
-                  { id: 'disorientation', label: 'Disorientation' },
+                  { id: 'disorientation', label: 'Disoriented' },
                   { id: 'vocalization', label: 'Vocalization' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(1, item.id, !sections[1].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[1].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1113,20 +1113,20 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Other Findings
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'ventroflexion', label: 'Ventroflexion' },
-                  { id: 'wideExcursionTremor', label: 'Wide Excursion Head Tremor' },
-                  { id: 'fineIntentionTremor', label: 'Fine Intention Tremor' },
-                  { id: 'facialAsymmetryL', label: 'Facial Asymmetry - Left' },
-                  { id: 'facialAsymmetryR', label: 'Facial Asymmetry - Right' },
-                  { id: 'earAbnormalL', label: 'Ear Position Abnormal - Left' },
-                  { id: 'earAbnormalR', label: 'Ear Position Abnormal - Right' },
+                  { id: 'wideExcursionTremor', label: 'Wide Head Tremor' },
+                  { id: 'fineIntentionTremor', label: 'Intention Tremor' },
+                  { id: 'facialAsymmetryL', label: 'Facial Asym L' },
+                  { id: 'facialAsymmetryR', label: 'Facial Asym R' },
+                  { id: 'earAbnormalL', label: 'Ear Abnl L' },
+                  { id: 'earAbnormalR', label: 'Ear Abnl R' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(2, item.id, !sections[2].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[2].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1167,24 +1167,24 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Ambulatory Status
               </label>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  'Ambulatory',
-                  'Non-ambulatory paraparesis',
-                  'Non-ambulatory tetraparesis',
-                  'Paraplegia',
-                  'Tetraplegia'
+                  { value: 'Ambulatory', label: 'Ambulatory' },
+                  { value: 'Non-ambulatory paraparesis', label: 'Non-amb Para' },
+                  { value: 'Non-ambulatory tetraparesis', label: 'Non-amb Tetra' },
+                  { value: 'Paraplegia', label: 'Paraplegia' },
+                  { value: 'Tetraplegia', label: 'Tetraplegia' }
                 ].map(status => (
                   <button
-                    key={status}
-                    onClick={() => updateData(3, 'ambulatoryStatus', status)}
-                    className={`py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
-                      sections[3].data.ambulatoryStatus === status
+                    key={status.value}
+                    onClick={() => updateData(3, 'ambulatoryStatus', status.value)}
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                      sections[3].data.ambulatoryStatus === status.value
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
                     }`}
                   >
-                    {status}
+                    {status.label}
                   </button>
                 ))}
               </div>
@@ -1242,20 +1242,20 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Other Abnormalities
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'hypermetria', label: 'Hypermetria' },
                   { id: 'hypometria', label: 'Hypometria' },
-                  { id: 'circlingL', label: 'Circling Left' },
-                  { id: 'circlingR', label: 'Circling Right' },
-                  { id: 'wideBasedStance', label: 'Wide-based Stance' },
-                  { id: 'bunnyHopping', label: 'Bunny Hopping' },
+                  { id: 'circlingL', label: 'Circling L' },
+                  { id: 'circlingR', label: 'Circling R' },
+                  { id: 'wideBasedStance', label: 'Wide Stance' },
+                  { id: 'bunnyHopping', label: 'Bunny Hop' },
                   { id: 'dysmetria', label: 'Dysmetria' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(3, item.id, !sections[3].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[3].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1345,20 +1345,20 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Pupil Findings
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'anisocoria', label: 'Anisocoria (unequal pupils)' },
-                  { id: 'mydriasisL', label: 'Mydriasis - Left (dilated)' },
-                  { id: 'mydriasisR', label: 'Mydriasis - Right (dilated)' },
-                  { id: 'miosisL', label: 'Miosis - Left (constricted)' },
-                  { id: 'miosisR', label: 'Miosis - Right (constricted)' },
-                  { id: 'poorPLRL', label: 'Poor PLR - Left' },
-                  { id: 'poorPLRR', label: 'Poor PLR - Right' },
+                  { id: 'anisocoria', label: 'Anisocoria' },
+                  { id: 'mydriasisL', label: 'Mydriasis L' },
+                  { id: 'mydriasisR', label: 'Mydriasis R' },
+                  { id: 'miosisL', label: 'Miosis L' },
+                  { id: 'miosisR', label: 'Miosis R' },
+                  { id: 'poorPLRL', label: 'Poor PLR L' },
+                  { id: 'poorPLRR', label: 'Poor PLR R' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(5, item.id, !sections[5].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[5].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1398,17 +1398,17 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Eye Position
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'strabismusL', label: 'Strabismus - Left' },
-                  { id: 'strabismusR', label: 'Strabismus - Right' },
-                  { id: 'ventrolateralL', label: 'Ventrolateral - Left' },
-                  { id: 'ventrolateralR', label: 'Ventrolateral - Right' },
+                  { id: 'strabismusL', label: 'Strabismus L' },
+                  { id: 'strabismusR', label: 'Strabismus R' },
+                  { id: 'ventrolateralL', label: 'Ventrolat L' },
+                  { id: 'ventrolateralR', label: 'Ventrolat R' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(6, item.id, !sections[6].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[6].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1423,17 +1423,17 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Nystagmus
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'horizontalNystagmus', label: 'Horizontal Nystagmus' },
-                  { id: 'verticalNystagmus', label: 'Vertical Nystagmus' },
-                  { id: 'rotaryNystagmus', label: 'Rotary Nystagmus' },
-                  { id: 'positionalNystagmus', label: 'Positional Nystagmus' },
+                  { id: 'horizontalNystagmus', label: 'Horizontal' },
+                  { id: 'verticalNystagmus', label: 'Vertical' },
+                  { id: 'rotaryNystagmus', label: 'Rotary' },
+                  { id: 'positionalNystagmus', label: 'Positional' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(6, item.id, !sections[6].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[6].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1473,12 +1473,12 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Affected Side
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {['Left', 'Right', 'Both'].map(side => (
                   <button
                     key={side}
                     onClick={() => updateData(7, 'affectedSide', side)}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
+                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[7].data.affectedSide === side
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1518,12 +1518,12 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Affected Side
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {['Left', 'Right', 'Both'].map(side => (
                   <button
                     key={side}
                     onClick={() => updateData(8, 'affectedSide', side)}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
+                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[8].data.affectedSide === side
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1563,19 +1563,19 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Findings
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'droppedJaw', label: 'Dropped Jaw' },
-                  { id: 'reducedJawTone', label: 'Reduced Jaw Tone' },
-                  { id: 'facialParalysisL', label: 'Facial Paralysis - Left' },
-                  { id: 'facialParalysisR', label: 'Facial Paralysis - Right' },
-                  { id: 'lipDroopL', label: 'Lip Droop - Left' },
-                  { id: 'lipDroopR', label: 'Lip Droop - Right' },
+                  { id: 'reducedJawTone', label: 'Low Jaw Tone' },
+                  { id: 'facialParalysisL', label: 'Facial Paralysis L' },
+                  { id: 'facialParalysisR', label: 'Facial Paralysis R' },
+                  { id: 'lipDroopL', label: 'Lip Droop L' },
+                  { id: 'lipDroopR', label: 'Lip Droop R' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(9, item.id, !sections[9].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[9].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1615,17 +1615,17 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Findings
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'deviationL', label: 'Deviation to Left' },
-                  { id: 'deviationR', label: 'Deviation to Right' },
+                  { id: 'deviationL', label: 'Deviation L' },
+                  { id: 'deviationR', label: 'Deviation R' },
                   { id: 'atrophy', label: 'Atrophy' },
                   { id: 'weakness', label: 'Weakness' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(10, item.id, !sections[10].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[10].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1665,12 +1665,12 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Response Level
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {['Absent', 'Decreased', 'Hyperactive'].map(level => (
                   <button
                     key={level}
                     onClick={() => updateData(11, 'responseLevel', level)}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
+                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[11].data.responseLevel === level
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1740,18 +1740,23 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Severity
               </label>
-              <div className="space-y-2">
-                {['Mild delay', 'Moderate delay', 'Severe delay', 'Absent'].map(severity => (
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'Mild delay', label: 'Mild' },
+                  { value: 'Moderate delay', label: 'Moderate' },
+                  { value: 'Severe delay', label: 'Severe' },
+                  { value: 'Absent', label: 'Absent' }
+                ].map(severity => (
                   <button
-                    key={severity}
-                    onClick={() => updateData(12, 'severity', severity)}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
-                      sections[12].data.severity === severity
+                    key={severity.value}
+                    onClick={() => updateData(12, 'severity', severity.value)}
+                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
+                      sections[12].data.severity === severity.value
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
                     }`}
                   >
-                    {severity}
+                    {severity.label}
                   </button>
                 ))}
               </div>
@@ -1923,16 +1928,16 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Findings
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'decreased', label: 'Decreased Reflex' },
-                  { id: 'absent', label: 'Absent Reflex' },
-                  { id: 'toneLoss', label: 'Loss of Anal Tone' },
+                  { id: 'decreased', label: 'Decreased' },
+                  { id: 'absent', label: 'Absent' },
+                  { id: 'toneLoss', label: 'Loss of Tone' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(15, item.id, !sections[15].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[15].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1972,18 +1977,18 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Pain Location
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'cervicalPain', label: 'Cervical Pain' },
-                  { id: 'thoracicPain', label: 'Thoracic Pain' },
-                  { id: 'lumbarPain', label: 'Lumbar Pain' },
-                  { id: 'lumbosacralPain', label: 'Lumbosacral Pain' },
-                  { id: 'paraspinalPain', label: 'Paraspinal Muscle Pain' },
+                  { id: 'cervicalPain', label: 'Cervical' },
+                  { id: 'thoracicPain', label: 'Thoracic' },
+                  { id: 'lumbarPain', label: 'Lumbar' },
+                  { id: 'lumbosacralPain', label: 'Lumbosacral' },
+                  { id: 'paraspinalPain', label: 'Paraspinal' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(16, item.id, !sections[16].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[16].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -2053,16 +2058,16 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Other Findings
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
                   { id: 'jointSwelling', label: 'Joint Swelling' },
-                  { id: 'painOnPalpation', label: 'Pain on Palpation' },
-                  { id: 'decreasedROM', label: 'Decreased Range of Motion' },
+                  { id: 'painOnPalpation', label: 'Pain' },
+                  { id: 'decreasedROM', label: 'Decreased ROM' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(17, item.id, !sections[17].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[17].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -2111,19 +2116,19 @@ export default function NeuroExamMobile() {
               <label className="block text-sm font-medium text-purple-200 mb-2">
                 Affected Limbs/Areas
               </label>
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {[
-                  { id: 'lf', label: 'LF - Absent' },
-                  { id: 'rf', label: 'RF - Absent' },
-                  { id: 'lh', label: 'LH - Absent' },
-                  { id: 'rh', label: 'RH - Absent' },
-                  { id: 'tail', label: 'Tail - Absent' },
-                  { id: 'perineum', label: 'Perineum - Absent' },
+                  { id: 'lf', label: 'LF' },
+                  { id: 'rf', label: 'RF' },
+                  { id: 'lh', label: 'LH' },
+                  { id: 'rh', label: 'RH' },
+                  { id: 'tail', label: 'Tail' },
+                  { id: 'perineum', label: 'Perineum' },
                 ].map(item => (
                   <button
                     key={item.id}
                     onClick={() => updateData(18, item.id, !sections[18].data[item.id])}
-                    className={`w-full py-3 px-3 rounded-lg text-sm font-medium text-left active:scale-95 transition ${
+                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[18].data[item.id]
                         ? 'bg-red-600 text-white'
                         : 'bg-gray-100 text-gray-700'
