@@ -1016,7 +1016,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(1, item.id, !sections[1].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[1].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1126,7 +1126,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(2, item.id, !sections[2].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[2].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1178,7 +1178,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={status.value}
                     onClick={() => updateData(3, 'ambulatoryStatus', status.value)}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[3].data.ambulatoryStatus === status.value
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1255,7 +1255,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(3, item.id, !sections[3].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[3].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1358,7 +1358,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(5, item.id, !sections[5].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[5].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1408,7 +1408,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(6, item.id, !sections[6].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[6].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1433,7 +1433,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(6, item.id, !sections[6].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[6].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1478,7 +1478,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={side}
                     onClick={() => updateData(7, 'affectedSide', side)}
-                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[7].data.affectedSide === side
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1523,7 +1523,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={side}
                     onClick={() => updateData(8, 'affectedSide', side)}
-                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[8].data.affectedSide === side
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1575,7 +1575,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(9, item.id, !sections[9].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[9].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1625,7 +1625,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(10, item.id, !sections[10].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[10].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1670,7 +1670,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={level}
                     onClick={() => updateData(11, 'responseLevel', level)}
-                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[11].data.responseLevel === level
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1750,7 +1750,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={severity.value}
                     onClick={() => updateData(12, 'severity', severity.value)}
-                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[12].data.severity === severity.value
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1937,7 +1937,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(15, item.id, !sections[15].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[15].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -1988,7 +1988,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(16, item.id, !sections[16].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[16].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -2067,7 +2067,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(17, item.id, !sections[17].data[item.id])}
-                    className={`py-1.5 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-3 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[17].data[item.id]
                         ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
                         : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
@@ -2114,7 +2114,7 @@ export default function NeuroExamMobile() {
 
             <div>
               <label className="block text-sm font-medium text-purple-200 mb-2">
-                Affected Limbs/Areas
+                Absent Deep Pain (select affected)
               </label>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -2128,7 +2128,7 @@ export default function NeuroExamMobile() {
                   <button
                     key={item.id}
                     onClick={() => updateData(18, item.id, !sections[18].data[item.id])}
-                    className={`py-1.5 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
+                    className={`py-2 px-4 rounded-full text-sm font-medium active:scale-95 transition ${
                       sections[18].data[item.id]
                         ? 'bg-red-600 text-white'
                         : 'bg-gray-100 text-gray-700'
