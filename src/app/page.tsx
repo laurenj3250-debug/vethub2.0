@@ -112,20 +112,12 @@ export default function VetHub() {
     priority?: string;
   }>({});
 
+  // Quick Reference data - persisted to database
   const [referenceData, setReferenceData] = useState<any>({
-    medications: [
-      { name: 'Gabapentin', dose: '10-20 mg/kg PO q8-12h', notes: 'Neuropathic pain, seizures' },
-      { name: 'Metronidazole', dose: '15 mg/kg PO BID', notes: 'GI, anaerobic infections' },
-      { name: 'Maropitant (Cerenia)', dose: '1 mg/kg SQ/PO SID', notes: 'Anti-emetic' },
-      { name: 'Fentanyl CRI', dose: '3-5 mcg/kg/hr', notes: 'Severe pain management' },
-      { name: 'Levetiracetam (Keppra)', dose: '20 mg/kg PO/IV TID', notes: 'Seizure control' },
-    ],
-    protocols: [
-      { name: 'Status Epilepticus', content: '1. Diazepam 0.5-1mg/kg IV\n2. If continues: Levetiracetam 60mg/kg IV over 15min\n3. CRI: Levetiracetam 2-4mg/kg/hr + Propofol 0.1-0.6mg/kg/min' },
-      { name: 'MRI Pre-op', content: '1. NPO 12 hours\n2. Pre-med: Acepromazine + Butorphanol\n3. Propofol induction\n4. Sevoflurane maintenance' },
-      { name: 'IVDD Medical Management', content: '1. Strict cage rest 4-6 weeks\n2. NSAIDs (Carprofen 2.2mg/kg BID)\n3. Gabapentin 10mg/kg TID\n4. Consider steroids if acute' },
-    ]
+    medications: [],
+    protocols: []
   });
+  const [referenceDataLoading, setReferenceDataLoading] = useState(true);
   const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', index: number} | null>(null);
   const [newReferenceItem, setNewReferenceItem] = useState<any>({});
   const [cocktailWeight, setCocktailWeight] = useState('');
@@ -2104,6 +2096,59 @@ export default function VetHub() {
       localStorage.setItem('hideCompletedTasks', String(hideCompletedTasks));
     }
   }, [hideCompletedTasks, mounted]);
+
+  // Load Quick Reference data from database
+  useEffect(() => {
+    const loadQuickReferences = async () => {
+      try {
+        setReferenceDataLoading(true);
+
+        // First, check if defaults are seeded
+        const seedStatus = await fetch('/api/quick-references/seed');
+        const seedData = await seedStatus.json();
+
+        // If not seeded, seed defaults first
+        if (!seedData.seeded) {
+          await fetch('/api/quick-references/seed', { method: 'POST' });
+        }
+
+        // Then load all references
+        const response = await fetch('/api/quick-references');
+        if (response.ok) {
+          const references = await response.json();
+
+          // Transform database format to component format
+          const medications = references
+            .filter((ref: any) => ref.type === 'medication')
+            .map((ref: any) => ({
+              id: ref.id,
+              name: ref.name,
+              dose: ref.content,
+              notes: ref.notes || '',
+              isDefault: ref.isDefault,
+            }));
+
+          const protocols = references
+            .filter((ref: any) => ref.type === 'protocol')
+            .map((ref: any) => ({
+              id: ref.id,
+              name: ref.name,
+              content: ref.content,
+              isDefault: ref.isDefault,
+            }));
+
+          setReferenceData({ medications, protocols });
+        }
+      } catch (error) {
+        console.error('Failed to load quick references:', error);
+        // Fallback to empty arrays on error
+      } finally {
+        setReferenceDataLoading(false);
+      }
+    };
+
+    loadQuickReferences();
+  }, []);
 
   // One-time task migration to add status fields
   useEffect(() => {
@@ -4270,7 +4315,7 @@ export default function VetHub() {
                     </h4>
                     <button
                       onClick={() => {
-                        const newMeds = [...referenceData.medications, { name: '', dose: '', notes: '' }];
+                        const newMeds = [...referenceData.medications, { name: '', dose: '', notes: '', isNew: true }];
                         setReferenceData({ ...referenceData, medications: newMeds });
                         setEditingReference({ type: 'medications', index: newMeds.length - 1 });
                       }}
@@ -4280,16 +4325,18 @@ export default function VetHub() {
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {referenceData.medications
+                    {referenceDataLoading ? (
+                      <div className="col-span-2 text-center py-4 text-slate-400">Loading medications...</div>
+                    ) : referenceData.medications
                       .filter((med: any) =>
                         !referenceSearch ||
                         med.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
                         med.dose.toLowerCase().includes(referenceSearch.toLowerCase()) ||
-                        med.notes.toLowerCase().includes(referenceSearch.toLowerCase())
+                        (med.notes || '').toLowerCase().includes(referenceSearch.toLowerCase())
                       )
                       .map((med: any, idx: number) => (
                         <div
-                          key={idx}
+                          key={med.id || idx}
                           className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/50 transition"
                         >
                           {editingReference?.type === 'medications' && editingReference.index === idx ? (
@@ -4318,7 +4365,7 @@ export default function VetHub() {
                               />
                               <input
                                 type="text"
-                                value={med.notes}
+                                value={med.notes || ''}
                                 onChange={(e) => {
                                   const updated = [...referenceData.medications];
                                   updated[idx].notes = e.target.value;
@@ -4329,15 +4376,64 @@ export default function VetHub() {
                               />
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => setEditingReference(null)}
+                                  onClick={async () => {
+                                    try {
+                                      if (med.isNew) {
+                                        // Create new medication
+                                        const response = await fetch('/api/quick-references', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            type: 'medication',
+                                            name: med.name,
+                                            content: med.dose,
+                                            notes: med.notes,
+                                          }),
+                                        });
+                                        if (response.ok) {
+                                          const newRef = await response.json();
+                                          const updated = [...referenceData.medications];
+                                          updated[idx] = { id: newRef.id, name: newRef.name, dose: newRef.content, notes: newRef.notes };
+                                          setReferenceData({ ...referenceData, medications: updated });
+                                          toast({ title: 'Medication saved' });
+                                        }
+                                      } else {
+                                        // Update existing medication
+                                        const response = await fetch(`/api/quick-references/${med.id}`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            name: med.name,
+                                            content: med.dose,
+                                            notes: med.notes,
+                                          }),
+                                        });
+                                        if (response.ok) {
+                                          toast({ title: 'Medication updated' });
+                                        }
+                                      }
+                                    } catch (error) {
+                                      console.error('Failed to save medication:', error);
+                                      toast({ title: 'Failed to save', variant: 'destructive' });
+                                    }
+                                    setEditingReference(null);
+                                  }}
                                   className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold transition"
                                 >
                                   Save
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    const updated = referenceData.medications.filter((_: any, i: number) => i !== idx);
-                                    setReferenceData({ ...referenceData, medications: updated });
+                                  onClick={async () => {
+                                    try {
+                                      if (med.id) {
+                                        await fetch(`/api/quick-references/${med.id}`, { method: 'DELETE' });
+                                      }
+                                      const updated = referenceData.medications.filter((_: any, i: number) => i !== idx);
+                                      setReferenceData({ ...referenceData, medications: updated });
+                                      toast({ title: 'Medication deleted' });
+                                    } catch (error) {
+                                      console.error('Failed to delete medication:', error);
+                                    }
                                     setEditingReference(null);
                                   }}
                                   className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
@@ -4369,7 +4465,7 @@ export default function VetHub() {
                     </h4>
                     <button
                       onClick={() => {
-                        const newProtocols = [...referenceData.protocols, { name: '', content: '' }];
+                        const newProtocols = [...referenceData.protocols, { name: '', content: '', isNew: true }];
                         setReferenceData({ ...referenceData, protocols: newProtocols });
                         setEditingReference({ type: 'protocols', index: newProtocols.length - 1 });
                       }}
@@ -4379,7 +4475,9 @@ export default function VetHub() {
                     </button>
                   </div>
                   <div className="space-y-2">
-                    {referenceData.protocols
+                    {referenceDataLoading ? (
+                      <div className="text-center py-4 text-slate-400">Loading protocols...</div>
+                    ) : referenceData.protocols
                       .filter((protocol: any) =>
                         !referenceSearch ||
                         protocol.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
@@ -4387,7 +4485,7 @@ export default function VetHub() {
                       )
                       .map((protocol: any, idx: number) => (
                         <div
-                          key={idx}
+                          key={protocol.id || idx}
                           className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-cyan-500/50 transition"
                         >
                           {editingReference?.type === 'protocols' && editingReference.index === idx ? (
@@ -4416,15 +4514,62 @@ export default function VetHub() {
                               />
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => setEditingReference(null)}
+                                  onClick={async () => {
+                                    try {
+                                      if (protocol.isNew) {
+                                        // Create new protocol
+                                        const response = await fetch('/api/quick-references', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            type: 'protocol',
+                                            name: protocol.name,
+                                            content: protocol.content,
+                                          }),
+                                        });
+                                        if (response.ok) {
+                                          const newRef = await response.json();
+                                          const updated = [...referenceData.protocols];
+                                          updated[idx] = { id: newRef.id, name: newRef.name, content: newRef.content };
+                                          setReferenceData({ ...referenceData, protocols: updated });
+                                          toast({ title: 'Protocol saved' });
+                                        }
+                                      } else {
+                                        // Update existing protocol
+                                        const response = await fetch(`/api/quick-references/${protocol.id}`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            name: protocol.name,
+                                            content: protocol.content,
+                                          }),
+                                        });
+                                        if (response.ok) {
+                                          toast({ title: 'Protocol updated' });
+                                        }
+                                      }
+                                    } catch (error) {
+                                      console.error('Failed to save protocol:', error);
+                                      toast({ title: 'Failed to save', variant: 'destructive' });
+                                    }
+                                    setEditingReference(null);
+                                  }}
                                   className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-sm font-bold transition"
                                 >
                                   Save
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    const updated = referenceData.protocols.filter((_: any, i: number) => i !== idx);
-                                    setReferenceData({ ...referenceData, protocols: updated });
+                                  onClick={async () => {
+                                    try {
+                                      if (protocol.id) {
+                                        await fetch(`/api/quick-references/${protocol.id}`, { method: 'DELETE' });
+                                      }
+                                      const updated = referenceData.protocols.filter((_: any, i: number) => i !== idx);
+                                      setReferenceData({ ...referenceData, protocols: updated });
+                                      toast({ title: 'Protocol deleted' });
+                                    } catch (error) {
+                                      console.error('Failed to delete protocol:', error);
+                                    }
                                     setEditingReference(null);
                                   }}
                                   className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"

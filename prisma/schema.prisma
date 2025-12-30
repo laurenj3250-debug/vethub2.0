@@ -261,6 +261,23 @@ model Note {
   @@index([createdAt])
 }
 
+// Quick Reference - Medications, protocols, and diagnostic workups
+// Persisted to database so they sync across all browsers/devices
+model QuickReference {
+  id        String   @id @default(cuid())
+  type      String   // 'medication' | 'protocol'
+  name      String   // Display name (e.g., "Gabapentin", "Stroke Work Up")
+  content   String   @db.Text // For medications: dose info; for protocols: full content
+  notes     String?  // Additional notes (mainly for medications)
+  isDefault Boolean  @default(false) // true = system default, false = user-added
+  sortOrder Int      @default(0) // For custom ordering
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([isDefault])
+}
+
 // ==========================================
 // ACVIM Neurology Residency Tracking Models
 // Matches official ACVIM Credentials Committee forms exactly
