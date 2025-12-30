@@ -52,6 +52,7 @@ interface TaskChecklistProps {
   onDeleteTask?: (patientId: number, taskId: string) => void;
   onDeleteGeneralTask?: (taskId: string) => void;
   onDeleteAllTasks?: () => void;
+  onCompleteAllForTaskName?: (taskName: string) => void;
 }
 
 // Deduplicate general tasks by title - keep only one per unique title
@@ -76,6 +77,7 @@ export function TaskChecklist({
   onDeleteTask,
   onDeleteGeneralTask,
   onDeleteAllTasks,
+  onCompleteAllForTaskName,
 }: TaskChecklistProps) {
   // Deduplicate general tasks to ensure each shows only once
   const generalTasks = useMemo(() => deduplicateGeneralTasks(rawGeneralTasks), [rawGeneralTasks]);
@@ -360,14 +362,34 @@ export function TaskChecklist({
                     {/* Task Header */}
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-bold text-gray-900 truncate">{taskName}</span>
-                      {totalCount > 0 && (
-                        <span
-                          className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
-                          style={{ border: '1.5px solid #2D3436' }}
-                        >
-                          {doneCount}/{totalCount}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {/* Complete All button - only show for patient tasks with incomplete items */}
+                        {!isGeneral && onCompleteAllForTaskName && doneCount < totalCount && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCompleteAllForTaskName(taskName);
+                            }}
+                            className="px-2 py-0.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1"
+                            style={{
+                              backgroundColor: COLORS.mint,
+                              border: '1.5px solid #2D3436',
+                            }}
+                            title="Complete all"
+                          >
+                            <Check size={10} />
+                            All
+                          </button>
+                        )}
+                        {totalCount > 0 && (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-xs font-black bg-white text-gray-800"
+                            style={{ border: '1.5px solid #2D3436' }}
+                          >
+                            {doneCount}/{totalCount}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Patient Chips */}

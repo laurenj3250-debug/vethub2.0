@@ -734,6 +734,60 @@ export default function VetHub() {
     }
   };
 
+  // Complete all tasks with a given name for all patients (wrapper for TaskChecklist)
+  const handleCompleteAllForTaskName = async (taskName: string) => {
+    // Find all patients that have this task
+    const items: Array<{ patient: any; task: any }> = [];
+
+    filteredPatients.forEach(patient => {
+      const task = (patient.tasks || []).find(
+        (t: any) => (t.title || t.name) === taskName
+      );
+      if (task && !task.completed) {
+        items.push({ patient, task });
+      }
+    });
+
+    if (items.length === 0) {
+      toast({
+        title: 'All tasks already completed',
+        description: `"${taskName}" is already completed for all patients.`
+      });
+      return;
+    }
+
+    // Optimistic update
+    setPatients(prev => prev.map(p => ({
+      ...p,
+      tasks: (p.tasks || []).map((t: any) =>
+        (t.title || t.name) === taskName ? { ...t, completed: true } : t
+      ),
+    })));
+
+    try {
+      // Update all incomplete tasks in parallel
+      await Promise.all(
+        items.map(({ patient, task }) =>
+          apiClient.updateTask(String(patient.id), String(task.id), { completed: true })
+        )
+      );
+
+      toast({
+        title: 'Tasks completed',
+        description: `Marked "${taskName}" as complete for ${items.length} patient(s).`
+      });
+    } catch (error: any) {
+      // Rollback on error
+      refetch();
+      console.error(`Complete all error for ${taskName}:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to complete tasks',
+        description: `Could not complete "${taskName}" for all patients. ${error.message || 'Try again.'}`
+      });
+    }
+  };
+
   const handleDeleteTask = async (patientId: number, taskId: string) => {
     try {
       await apiClient.deleteTask(String(patientId), String(taskId));
@@ -2673,6 +2727,7 @@ export default function VetHub() {
           onDeleteTask={handleDeleteTask}
           onDeleteGeneralTask={handleDeleteGeneralTask}
           onDeleteAllTasks={handleDeleteAllTasks}
+          onCompleteAllForTaskName={handleCompleteAllForTaskName}
         />
 
         {/* OLD Task Overview - DISABLED */}
