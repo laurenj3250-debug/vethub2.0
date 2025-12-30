@@ -980,22 +980,21 @@ export default function NeuroExamMobile() {
         >
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Mentation Level
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-x-2 gap-y-1">
                 {['Alert', 'Depressed', 'Obtunded', 'Stuporous', 'Comatose'].map(level => (
-                  <button
-                    key={level}
-                    onClick={() => updateData(1, 'mentation', level)}
-                    className={`py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
-                      sections[1].data.mentation === level
-                        ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
-                        : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
-                    }`}
-                  >
-                    {level}
-                  </button>
+                  <label key={level} className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]">
+                    <input
+                      type="radio"
+                      name="mentationLevel"
+                      checked={sections[1].data.mentation === level}
+                      onChange={() => updateData(1, 'mentation', level)}
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
+                    />
+                    <span className="text-xs text-purple-200">{level}</span>
+                  </label>
                 ))}
               </div>
             </div>
@@ -1015,13 +1014,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[1].data[item.id]}
                       onChange={() => updateData(1, item.id, !sections[1].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1030,7 +1029,7 @@ export default function NeuroExamMobile() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1054,59 +1053,44 @@ export default function NeuroExamMobile() {
           getStatusIcon={getStatusIcon}
         >
           <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
-                Head Tilt
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => updateData(2, 'headTilt', sections[2].data.headTilt === 'L' ? null : 'L')}
-                  className={`flex-1 py-3 rounded-lg font-medium active:scale-95 transition ${
-                    sections[2].data.headTilt === 'L'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  Left
-                </button>
-                <button
-                  onClick={() => updateData(2, 'headTilt', sections[2].data.headTilt === 'R' ? null : 'R')}
-                  className={`flex-1 py-3 rounded-lg font-medium active:scale-95 transition ${
-                    sections[2].data.headTilt === 'R'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  Right
-                </button>
+            <div className="grid grid-cols-2 gap-x-4">
+              <div>
+                <label className="block text-xs font-medium text-purple-200 mb-1.5">
+                  Head Tilt
+                </label>
+                <div className="flex gap-3">
+                  {['L', 'R'].map(side => (
+                    <label key={side} className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]">
+                      <input
+                        type="radio"
+                        name="headTilt"
+                        checked={sections[2].data.headTilt === side}
+                        onChange={() => updateData(2, 'headTilt', sections[2].data.headTilt === side ? null : side)}
+                        className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
+                      />
+                      <span className="text-xs text-purple-200">{side === 'L' ? 'Left' : 'Right'}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
-                Head Turn
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => updateData(2, 'headTurn', sections[2].data.headTurn === 'L' ? null : 'L')}
-                  className={`flex-1 py-3 rounded-lg font-medium active:scale-95 transition ${
-                    sections[2].data.headTurn === 'L'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  Left
-                </button>
-                <button
-                  onClick={() => updateData(2, 'headTurn', sections[2].data.headTurn === 'R' ? null : 'R')}
-                  className={`flex-1 py-3 rounded-lg font-medium active:scale-95 transition ${
-                    sections[2].data.headTurn === 'R'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  Right
-                </button>
+              <div>
+                <label className="block text-xs font-medium text-purple-200 mb-1.5">
+                  Head Turn
+                </label>
+                <div className="flex gap-3">
+                  {['L', 'R'].map(side => (
+                    <label key={side} className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]">
+                      <input
+                        type="radio"
+                        name="headTurn"
+                        checked={sections[2].data.headTurn === side}
+                        onChange={() => updateData(2, 'headTurn', sections[2].data.headTurn === side ? null : side)}
+                        className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
+                      />
+                      <span className="text-xs text-purple-200">{side === 'L' ? 'Left' : 'Right'}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -1126,13 +1110,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[2].data[item.id]}
                       onChange={() => updateData(2, item.id, !sections[2].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1141,7 +1125,7 @@ export default function NeuroExamMobile() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1179,14 +1163,14 @@ export default function NeuroExamMobile() {
                 ].map(status => (
                   <label
                     key={status.value}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="radio"
                       name="ambulatoryStatus"
                       checked={sections[3].data.ambulatoryStatus === status.value}
                       onChange={() => updateData(3, 'ambulatoryStatus', status.value)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{status.label}</span>
                   </label>
@@ -1202,7 +1186,7 @@ export default function NeuroExamMobile() {
                 {['LF', 'RF', 'LH', 'RH'].map(limb => (
                   <label
                     key={limb}
-                    className="flex items-center gap-1.5 py-1 cursor-pointer"
+                    className="flex items-center gap-1.5 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
@@ -1214,7 +1198,7 @@ export default function NeuroExamMobile() {
                           : [...paresis, limb];
                         updateData(3, 'paresis', newParesis);
                       }}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{limb}</span>
                   </label>
@@ -1230,14 +1214,14 @@ export default function NeuroExamMobile() {
                 {['Proprioceptive', 'Vestibular', 'Cerebellar', 'General'].map(type => (
                   <label
                     key={type}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="radio"
                       name="ataxiaType"
                       checked={sections[3].data.ataxiaType === type}
                       onChange={() => updateData(3, 'ataxiaType', type)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{type}</span>
                   </label>
@@ -1261,13 +1245,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[3].data[item.id]}
                       onChange={() => updateData(3, item.id, !sections[3].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1276,7 +1260,7 @@ export default function NeuroExamMobile() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1305,27 +1289,30 @@ export default function NeuroExamMobile() {
         >
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Affected Side
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                {['Left Eye', 'Right Eye', 'Both Eyes'].map(side => (
-                  <button
-                    key={side}
-                    onClick={() => updateData(4, 'affectedSide', side)}
-                    className={`py-3 px-3 rounded-lg text-sm font-medium active:scale-95 transition ${
-                      sections[4].data.affectedSide === side
-                        ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white shadow-lg shadow-purple-500/50'
-                        : 'bg-slate-800/50 text-purple-200 border border-purple-500/30'
-                    }`}
-                  >
-                    {side}
-                  </button>
+              <div className="flex gap-4">
+                {[
+                  { value: 'Left Eye', label: 'L Eye' },
+                  { value: 'Right Eye', label: 'R Eye' },
+                  { value: 'Both Eyes', label: 'Both' }
+                ].map(side => (
+                  <label key={side.value} className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]">
+                    <input
+                      type="radio"
+                      name="menaceAffectedSide"
+                      checked={sections[4].data.affectedSide === side.value}
+                      onChange={() => updateData(4, 'affectedSide', side.value)}
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
+                    />
+                    <span className="text-xs text-purple-200">{side.label}</span>
+                  </label>
                 ))}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1365,13 +1352,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[5].data[item.id]}
                       onChange={() => updateData(5, item.id, !sections[5].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1379,7 +1366,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1416,13 +1403,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[6].data[item.id]}
                       onChange={() => updateData(6, item.id, !sections[6].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1442,13 +1429,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[6].data[item.id]}
                       onChange={() => updateData(6, item.id, !sections[6].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1456,7 +1443,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1492,7 +1479,7 @@ export default function NeuroExamMobile() {
                       name="palpebralSide"
                       checked={sections[7].data.affectedSide === side}
                       onChange={() => updateData(7, 'affectedSide', side)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{side}</span>
                   </label>
@@ -1500,7 +1487,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1536,7 +1523,7 @@ export default function NeuroExamMobile() {
                       name="facialSensationSide"
                       checked={sections[8].data.affectedSide === side}
                       onChange={() => updateData(8, 'affectedSide', side)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{side}</span>
                   </label>
@@ -1544,7 +1531,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1583,13 +1570,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[9].data[item.id]}
                       onChange={() => updateData(9, item.id, !sections[9].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1597,7 +1584,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1634,13 +1621,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[10].data[item.id]}
                       onChange={() => updateData(10, item.id, !sections[10].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1648,7 +1635,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1684,7 +1671,7 @@ export default function NeuroExamMobile() {
                       name="gagResponseLevel"
                       checked={sections[11].data.responseLevel === level}
                       onChange={() => updateData(11, 'responseLevel', level)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{level}</span>
                   </label>
@@ -1692,7 +1679,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1726,7 +1713,7 @@ export default function NeuroExamMobile() {
               </label>
               <div className="grid grid-cols-4 gap-x-2">
                 {['LF', 'RF', 'LH', 'RH'].map(limb => (
-                  <label key={limb} className="flex items-center gap-1.5 py-1 cursor-pointer">
+                  <label key={limb} className="flex items-center gap-1.5 py-2.5 cursor-pointer min-h-[44px]">
                     <input
                       type="checkbox"
                       checked={(sections[12].data.affectedLimbs || []).includes(limb)}
@@ -1737,7 +1724,7 @@ export default function NeuroExamMobile() {
                           : [...affected, limb];
                         updateData(12, 'affectedLimbs', newAffected);
                       }}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{limb}</span>
                   </label>
@@ -1761,7 +1748,7 @@ export default function NeuroExamMobile() {
                       name="prSeverity"
                       checked={sections[12].data.severity === severity.value}
                       onChange={() => updateData(12, 'severity', severity.value)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{severity.label}</span>
                   </label>
@@ -1769,7 +1756,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1809,7 +1796,7 @@ export default function NeuroExamMobile() {
                       name="tlrLeftForelimb"
                       checked={sections[13].data.leftForelimb === level}
                       onChange={() => updateData(13, 'leftForelimb', level)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{level}</span>
                   </label>
@@ -1828,7 +1815,7 @@ export default function NeuroExamMobile() {
                       name="tlrRightForelimb"
                       checked={sections[13].data.rightForelimb === level}
                       onChange={() => updateData(13, 'rightForelimb', level)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{level}</span>
                   </label>
@@ -1836,7 +1823,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1872,7 +1859,7 @@ export default function NeuroExamMobile() {
                       name="plrLeftHindlimb"
                       checked={sections[14].data.leftHindlimb === level}
                       onChange={() => updateData(14, 'leftHindlimb', level)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{level}</span>
                   </label>
@@ -1891,7 +1878,7 @@ export default function NeuroExamMobile() {
                       name="plrRightHindlimb"
                       checked={sections[14].data.rightHindlimb === level}
                       onChange={() => updateData(14, 'rightHindlimb', level)}
-                      className="w-4 h-4 border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{level}</span>
                   </label>
@@ -1899,7 +1886,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1939,13 +1926,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[15].data[item.id]}
                       onChange={() => updateData(15, item.id, !sections[15].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -1953,7 +1940,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -1991,13 +1978,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[16].data[item.id]}
                       onChange={() => updateData(16, item.id, !sections[16].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -2005,7 +1992,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -2039,7 +2026,7 @@ export default function NeuroExamMobile() {
               </label>
               <div className="grid grid-cols-4 gap-x-2">
                 {['LF', 'RF', 'LH', 'RH'].map(limb => (
-                  <label key={limb} className="flex items-center gap-1.5 py-1 cursor-pointer">
+                  <label key={limb} className="flex items-center gap-1.5 py-2.5 cursor-pointer min-h-[44px]">
                     <input
                       type="checkbox"
                       checked={(sections[17].data.muscleAtrophy || []).includes(limb)}
@@ -2050,7 +2037,7 @@ export default function NeuroExamMobile() {
                           : [...atrophy, limb];
                         updateData(17, 'muscleAtrophy', newAtrophy);
                       }}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{limb}</span>
                   </label>
@@ -2069,13 +2056,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[17].data[item.id]}
                       onChange={() => updateData(17, item.id, !sections[17].data[item.id])}
-                      className="w-4 h-4 rounded border-purple-500/50 bg-slate-800/50 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-purple-400 bg-slate-700 text-purple-500 focus:ring-purple-500 focus:ring-offset-0 checked:bg-purple-600 checked:border-purple-600"
                     />
                     <span className="text-xs text-purple-200">{item.label}</span>
                   </label>
@@ -2083,7 +2070,7 @@ export default function NeuroExamMobile() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
@@ -2131,13 +2118,13 @@ export default function NeuroExamMobile() {
                 ].map(item => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 py-1 cursor-pointer"
+                    className="flex items-center gap-2 py-2.5 cursor-pointer min-h-[44px]"
                   >
                     <input
                       type="checkbox"
                       checked={!!sections[18].data[item.id]}
                       onChange={() => updateData(18, item.id, !sections[18].data[item.id])}
-                      className="w-4 h-4 rounded border-red-500/50 bg-slate-800/50 text-red-600 focus:ring-red-500 focus:ring-offset-0"
+                      className="w-5 h-5 rounded border-2 border-red-400 bg-slate-700 text-red-500 focus:ring-red-500 focus:ring-offset-0 checked:bg-red-600 checked:border-red-600"
                     />
                     <span className="text-xs text-red-200">{item.label}</span>
                   </label>
@@ -2146,7 +2133,7 @@ export default function NeuroExamMobile() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-purple-200 mb-2">
+              <label className="block text-xs font-medium text-purple-200 mb-1.5">
                 Notes (optional)
               </label>
               <textarea
