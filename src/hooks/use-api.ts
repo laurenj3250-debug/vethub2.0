@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 
 export function useAuth() {
@@ -62,7 +62,16 @@ export function usePatients() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchPatients = async (showLoading = false) => {
+  // Ref to track if polling should be paused (during optimistic updates)
+  const pollingPausedRef = useRef(false);
+
+  const fetchPatients = useCallback(async (showLoading = false, force = false) => {
+    // Skip polling if paused (during in-flight task updates) unless forced
+    if (pollingPausedRef.current && !force && !showLoading) {
+      console.log('[POLLING] Skipped fetch - polling paused during task update');
+      return;
+    }
+
     try {
       if (showLoading) {
         setIsLoading(true);
@@ -78,7 +87,19 @@ export function usePatients() {
         setIsLoading(false);
       }
     }
-  };
+  }, []);
+
+  // Pause polling during optimistic updates to prevent race conditions
+  const pausePolling = useCallback(() => {
+    pollingPausedRef.current = true;
+    console.log('[POLLING] Paused - task update in progress');
+  }, []);
+
+  // Resume polling after optimistic update API call completes
+  const resumePolling = useCallback(() => {
+    pollingPausedRef.current = false;
+    console.log('[POLLING] Resumed - task update complete');
+  }, []);
 
   useEffect(() => {
     fetchPatients(true); // Show loading on initial fetch
@@ -105,9 +126,17 @@ export function usePatients() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchPatients]);
 
-  return { patients, setPatients, isLoading, error, refetch: () => fetchPatients(true) };
+  return {
+    patients,
+    setPatients,
+    isLoading,
+    error,
+    refetch: () => fetchPatients(true, true),
+    pausePolling,
+    resumePolling
+  };
 }
 
 export function useGeneralTasks() {
@@ -115,9 +144,20 @@ export function useGeneralTasks() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchTasks = async () => {
+  // Ref to track if polling should be paused (during optimistic updates)
+  const pollingPausedRef = useRef(false);
+
+  const fetchTasks = useCallback(async (showLoading = true, force = false) => {
+    // Skip polling if paused (during in-flight task updates) unless forced
+    if (pollingPausedRef.current && !force && !showLoading) {
+      console.log('[POLLING] Skipped general tasks fetch - polling paused during task update');
+      return;
+    }
+
     try {
-      setIsLoading(true);
+      if (showLoading) {
+        setIsLoading(true);
+      }
       const data = await apiClient.getGeneralTasks();
       setTasks(data);
       setError(null);
@@ -125,9 +165,23 @@ export function useGeneralTasks() {
       console.error('Fetch general tasks error:', err);
       setError(err as Error);
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, []);
+
+  // Pause polling during optimistic updates to prevent race conditions
+  const pausePolling = useCallback(() => {
+    pollingPausedRef.current = true;
+    console.log('[POLLING] General tasks polling paused');
+  }, []);
+
+  // Resume polling after optimistic update API call completes
+  const resumePolling = useCallback(() => {
+    pollingPausedRef.current = false;
+    console.log('[POLLING] General tasks polling resumed');
+  }, []);
 
   useEffect(() => {
     fetchTasks();
@@ -138,14 +192,14 @@ export function useGeneralTasks() {
     // Poll for updates every 30 seconds for cross-device sync
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        fetchTasks();
+        fetchTasks(false);
       }
     }, 30000);
 
     // Fetch when tab becomes visible again
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchTasks();
+        fetchTasks(false);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -154,9 +208,17 @@ export function useGeneralTasks() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [fetchTasks]);
 
-  return { tasks, setTasks, isLoading, error, refetch: fetchTasks };
+  return {
+    tasks,
+    setTasks,
+    isLoading,
+    error,
+    refetch: () => fetchTasks(true, true),
+    pausePolling,
+    resumePolling
+  };
 }
 
 export function useCommonItems() {

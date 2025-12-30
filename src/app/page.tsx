@@ -25,8 +25,8 @@ import { calculateStickerCounts } from '@/lib/sticker-calculator';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
-  const { patients, setPatients, isLoading: patientsLoading, refetch } = usePatients();
-  const { tasks: generalTasks, setTasks: setGeneralTasks, refetch: refetchGeneralTasks } = useGeneralTasks();
+  const { patients, setPatients, isLoading: patientsLoading, refetch, pausePolling, resumePolling } = usePatients();
+  const { tasks: generalTasks, setTasks: setGeneralTasks, refetch: refetchGeneralTasks, pausePolling: pauseGeneralTasksPolling, resumePolling: resumeGeneralTasksPolling } = useGeneralTasks();
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
@@ -614,6 +614,9 @@ export default function VetHub() {
   };
 
   const handleToggleTask = async (patientId: number, taskId: string, currentStatus: boolean) => {
+    // Pause polling to prevent race conditions with optimistic updates
+    pausePolling();
+
     // Optimistic update: update local state immediately to prevent reordering
     const newStatus = !currentStatus;
     console.log('[TASK DEBUG] Toggle request:', { patientId, taskId, currentStatus, newStatus });
@@ -660,6 +663,9 @@ export default function VetHub() {
         title: 'Failed to update task',
         description: `Could not toggle "${taskTitle}" for ${patientName}. ${error.message || 'Check console for details.'}`
       });
+    } finally {
+      // Resume polling after API call completes (success or error)
+      resumePolling();
     }
   };
 
@@ -699,18 +705,33 @@ export default function VetHub() {
   };
 
   const handleBulkCompleteTask = async (taskName: string, items: Array<{ patient: any; task: any }>) => {
+    // Filter to only incomplete tasks
+    const incompleteTasks = items.filter(({ task }) => !task.completed);
+
+    if (incompleteTasks.length === 0) {
+      toast({
+        title: 'All tasks already completed',
+        description: `"${taskName}" is already completed for all patients.`
+      });
+      return;
+    }
+
+    // Pause polling to prevent race conditions with optimistic updates
+    pausePolling();
+
+    // Optimistic update
+    setPatients(prev => prev.map(p => {
+      const taskToComplete = incompleteTasks.find(({ patient }) => patient.id === p.id);
+      if (!taskToComplete) return p;
+      return {
+        ...p,
+        tasks: (p.tasks || []).map((t: any) =>
+          t.id === taskToComplete.task.id ? { ...t, completed: true } : t
+        ),
+      };
+    }));
+
     try {
-      // Filter to only incomplete tasks
-      const incompleteTasks = items.filter(({ task }) => !task.completed);
-
-      if (incompleteTasks.length === 0) {
-        toast({
-          title: 'All tasks already completed',
-          description: `"${taskName}" is already completed for all patients.`
-        });
-        return;
-      }
-
       // Update all incomplete tasks in parallel
       await Promise.all(
         incompleteTasks.map(({ patient, task }) =>
@@ -722,15 +743,18 @@ export default function VetHub() {
         title: 'Tasks completed',
         description: `Marked "${taskName}" as complete for ${incompleteTasks.length} patient(s).`
       });
-
-      refetch();
     } catch (error: any) {
       console.error(`Bulk complete error for ${taskName}:`, error);
+      // Rollback on error
+      refetch();
       toast({
         variant: 'destructive',
         title: 'Failed to complete tasks',
         description: `Could not complete "${taskName}" for all patients. ${error.message || 'Try again.'}`
       });
+    } finally {
+      // Resume polling after API call completes
+      resumePolling();
     }
   };
 
@@ -755,6 +779,9 @@ export default function VetHub() {
       });
       return;
     }
+
+    // Pause polling to prevent race conditions with optimistic updates
+    pausePolling();
 
     // Optimistic update
     setPatients(prev => prev.map(p => ({
@@ -785,6 +812,9 @@ export default function VetHub() {
         title: 'Failed to complete tasks',
         description: `Could not complete "${taskName}" for all patients. ${error.message || 'Try again.'}`
       });
+    } finally {
+      // Resume polling after API call completes
+      resumePolling();
     }
   };
 
@@ -1379,6 +1409,9 @@ export default function VetHub() {
   };
 
   const handleToggleGeneralTask = async (taskId: string, currentStatus: boolean) => {
+    // Pause polling to prevent race conditions with optimistic updates
+    pauseGeneralTasksPolling();
+
     // Optimistic update: update local state immediately to prevent reordering
     const newStatus = !currentStatus;
     setGeneralTasks(prev => prev.map(t =>
@@ -1394,6 +1427,9 @@ export default function VetHub() {
         t.id === taskId ? { ...t, completed: currentStatus } : t
       ));
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
+    } finally {
+      // Resume polling after API call completes (success or error)
+      resumeGeneralTasksPolling();
     }
   };
 
