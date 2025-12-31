@@ -112,21 +112,16 @@ export default function VetHub() {
     priority?: string;
   }>({});
 
-  const [referenceData, setReferenceData] = useState<any>({
-    medications: [
-      { name: 'Gabapentin', dose: '10-20 mg/kg PO q8-12h', notes: 'Neuropathic pain, seizures' },
-      { name: 'Metronidazole', dose: '15 mg/kg PO BID', notes: 'GI, anaerobic infections' },
-      { name: 'Maropitant (Cerenia)', dose: '1 mg/kg SQ/PO SID', notes: 'Anti-emetic' },
-      { name: 'Fentanyl CRI', dose: '3-5 mcg/kg/hr', notes: 'Severe pain management' },
-      { name: 'Levetiracetam (Keppra)', dose: '20 mg/kg PO/IV TID', notes: 'Seizure control' },
-    ],
-    protocols: [
-      { name: 'Status Epilepticus', content: '1. Diazepam 0.5-1mg/kg IV\n2. If continues: Levetiracetam 60mg/kg IV over 15min\n3. CRI: Levetiracetam 2-4mg/kg/hr + Propofol 0.1-0.6mg/kg/min' },
-      { name: 'MRI Pre-op', content: '1. NPO 12 hours\n2. Pre-med: Acepromazine + Butorphanol\n3. Propofol induction\n4. Sevoflurane maintenance' },
-      { name: 'IVDD Medical Management', content: '1. Strict cage rest 4-6 weeks\n2. NSAIDs (Carprofen 2.2mg/kg BID)\n3. Gabapentin 10mg/kg TID\n4. Consider steroids if acute' },
-    ]
+  const [referenceData, setReferenceData] = useState<{
+    medications: Array<{ id: string; name: string; dose: string; notes?: string }>;
+    protocols: Array<{ id: string; name: string; content: string }>;
+  }>({
+    medications: [],
+    protocols: [],
   });
-  const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', index: number} | null>(null);
+  const [referenceLoading, setReferenceLoading] = useState(false);
+  const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', id: string} | null>(null);
+  const [editingReferenceData, setEditingReferenceData] = useState<any>(null);
   const [newReferenceItem, setNewReferenceItem] = useState<any>({});
   const [cocktailWeight, setCocktailWeight] = useState('');
 
@@ -2074,6 +2069,112 @@ export default function VetHub() {
       }
     }
   }, [showSOAPBuilder]);
+
+  // Fetch reference data when Quick Reference modal opens
+  const fetchReferenceData = async () => {
+    setReferenceLoading(true);
+    try {
+      // First try to seed defaults if tables are empty
+      await fetch('/api/reference/seed', { method: 'POST' });
+
+      // Then fetch all data
+      const [medsRes, protosRes] = await Promise.all([
+        fetch('/api/reference/medications'),
+        fetch('/api/reference/protocols'),
+      ]);
+
+      const medications = await medsRes.json();
+      const protocols = await protosRes.json();
+
+      setReferenceData({
+        medications: Array.isArray(medications) ? medications : [],
+        protocols: Array.isArray(protocols) ? protocols : [],
+      });
+    } catch (error) {
+      console.error('Failed to fetch reference data:', error);
+    } finally {
+      setReferenceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showQuickReference) {
+      fetchReferenceData();
+    }
+  }, [showQuickReference]);
+
+  // Reference data CRUD helpers
+  const saveReferenceMedication = async (med: { id?: string; name: string; dose: string; notes?: string }) => {
+    try {
+      if (med.id) {
+        // Update existing
+        await fetch(`/api/reference/medications/${med.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(med),
+        });
+      } else {
+        // Create new
+        await fetch('/api/reference/medications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(med),
+        });
+      }
+      await fetchReferenceData();
+      setEditingReference(null);
+      setEditingReferenceData(null);
+    } catch (error) {
+      console.error('Failed to save medication:', error);
+    }
+  };
+
+  const deleteReferenceMedication = async (id: string) => {
+    try {
+      await fetch(`/api/reference/medications/${id}`, { method: 'DELETE' });
+      await fetchReferenceData();
+      setEditingReference(null);
+      setEditingReferenceData(null);
+    } catch (error) {
+      console.error('Failed to delete medication:', error);
+    }
+  };
+
+  const saveReferenceProtocol = async (proto: { id?: string; name: string; content: string }) => {
+    try {
+      if (proto.id) {
+        // Update existing
+        await fetch(`/api/reference/protocols/${proto.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(proto),
+        });
+      } else {
+        // Create new
+        await fetch('/api/reference/protocols', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(proto),
+        });
+      }
+      await fetchReferenceData();
+      setEditingReference(null);
+      setEditingReferenceData(null);
+    } catch (error) {
+      console.error('Failed to save protocol:', error);
+    }
+  };
+
+  const deleteReferenceProtocol = async (id: string) => {
+    try {
+      await fetch(`/api/reference/protocols/${id}`, { method: 'DELETE' });
+      await fetchReferenceData();
+      setEditingReference(null);
+      setEditingReferenceData(null);
+    } catch (error) {
+      console.error('Failed to delete protocol:', error);
+    }
+  };
 
   // Initialize mounted and load hideCompletedTasks from localStorage
   useEffect(() => {
@@ -4262,6 +4363,13 @@ export default function VetHub() {
               </div>
 
               <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                {referenceLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                    <span className="ml-3 text-slate-400">Loading reference data...</span>
+                  </div>
+                ) : (
+                  <>
                 {/* Medications Section */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -4270,85 +4378,117 @@ export default function VetHub() {
                     </h4>
                     <button
                       onClick={() => {
-                        const newMeds = [...referenceData.medications, { name: '', dose: '', notes: '' }];
-                        setReferenceData({ ...referenceData, medications: newMeds });
-                        setEditingReference({ type: 'medications', index: newMeds.length - 1 });
+                        setEditingReference({ type: 'medications', id: 'new' });
+                        setEditingReferenceData({ name: '', dose: '', notes: '' });
                       }}
                       className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition"
                     >
                       + Add Medication
                     </button>
                   </div>
+                  {/* Add new medication form */}
+                  {editingReference?.type === 'medications' && editingReference.id === 'new' && (
+                    <div className="bg-slate-900/50 border border-emerald-500 rounded-lg p-3 mb-3">
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editingReferenceData?.name || ''}
+                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
+                          placeholder="Medication name"
+                          className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <input
+                          type="text"
+                          value={editingReferenceData?.dose || ''}
+                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, dose: e.target.value })}
+                          placeholder="Dose (e.g., 10-20 mg/kg PO BID)"
+                          className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <input
+                          type="text"
+                          value={editingReferenceData?.notes || ''}
+                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, notes: e.target.value })}
+                          placeholder="Notes/indications"
+                          className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveReferenceMedication(editingReferenceData)}
+                            disabled={!editingReferenceData?.name || !editingReferenceData?.dose}
+                            className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-bold transition"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
+                            className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {referenceData.medications
-                      .filter((med: any) =>
+                      .filter((med) =>
                         !referenceSearch ||
                         med.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
                         med.dose.toLowerCase().includes(referenceSearch.toLowerCase()) ||
-                        med.notes.toLowerCase().includes(referenceSearch.toLowerCase())
+                        (med.notes || '').toLowerCase().includes(referenceSearch.toLowerCase())
                       )
-                      .map((med: any, idx: number) => (
+                      .map((med) => (
                         <div
-                          key={idx}
+                          key={med.id}
                           className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/50 transition"
                         >
-                          {editingReference?.type === 'medications' && editingReference.index === idx ? (
+                          {editingReference?.type === 'medications' && editingReference.id === med.id ? (
                             <div className="space-y-2">
                               <input
                                 type="text"
-                                value={med.name}
-                                onChange={(e) => {
-                                  const updated = [...referenceData.medications];
-                                  updated[idx].name = e.target.value;
-                                  setReferenceData({ ...referenceData, medications: updated });
-                                }}
+                                value={editingReferenceData?.name || ''}
+                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
                                 placeholder="Medication name"
                                 className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
                               />
                               <input
                                 type="text"
-                                value={med.dose}
-                                onChange={(e) => {
-                                  const updated = [...referenceData.medications];
-                                  updated[idx].dose = e.target.value;
-                                  setReferenceData({ ...referenceData, medications: updated });
-                                }}
+                                value={editingReferenceData?.dose || ''}
+                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, dose: e.target.value })}
                                 placeholder="Dose (e.g., 10-20 mg/kg PO BID)"
                                 className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
                               />
                               <input
                                 type="text"
-                                value={med.notes}
-                                onChange={(e) => {
-                                  const updated = [...referenceData.medications];
-                                  updated[idx].notes = e.target.value;
-                                  setReferenceData({ ...referenceData, medications: updated });
-                                }}
+                                value={editingReferenceData?.notes || ''}
+                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, notes: e.target.value })}
                                 placeholder="Notes/indications"
                                 className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
                               />
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => setEditingReference(null)}
+                                  onClick={() => saveReferenceMedication({ ...editingReferenceData, id: med.id })}
                                   className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold transition"
                                 >
                                   Save
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    const updated = referenceData.medications.filter((_: any, i: number) => i !== idx);
-                                    setReferenceData({ ...referenceData, medications: updated });
-                                    setEditingReference(null);
-                                  }}
+                                  onClick={() => deleteReferenceMedication(med.id)}
                                   className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
                                 >
                                   Delete
+                                </button>
+                                <button
+                                  onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
+                                  className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
+                                >
+                                  Cancel
                                 </button>
                               </div>
                             </div>
                           ) : (
                             <div
-                              onClick={() => setEditingReference({ type: 'medications', index: idx })}
+                              onClick={() => { setEditingReference({ type: 'medications', id: med.id }); setEditingReferenceData({ ...med }); }}
                               className="cursor-pointer"
                             >
                               <h5 className="font-bold text-white text-sm mb-1">{med.name}</h5>
@@ -4369,73 +4509,102 @@ export default function VetHub() {
                     </h4>
                     <button
                       onClick={() => {
-                        const newProtocols = [...referenceData.protocols, { name: '', content: '' }];
-                        setReferenceData({ ...referenceData, protocols: newProtocols });
-                        setEditingReference({ type: 'protocols', index: newProtocols.length - 1 });
+                        setEditingReference({ type: 'protocols', id: 'new' });
+                        setEditingReferenceData({ name: '', content: '' });
                       }}
                       className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold transition"
                     >
                       + Add Protocol
                     </button>
                   </div>
+                  {/* Add new protocol form */}
+                  {editingReference?.type === 'protocols' && editingReference.id === 'new' && (
+                    <div className="bg-slate-900/50 border border-cyan-500 rounded-lg p-4 mb-3">
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editingReferenceData?.name || ''}
+                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
+                          placeholder="Protocol name"
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500"
+                        />
+                        <textarea
+                          value={editingReferenceData?.content || ''}
+                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, content: e.target.value })}
+                          placeholder="Protocol steps/details..."
+                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
+                          rows={6}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => saveReferenceProtocol(editingReferenceData)}
+                            disabled={!editingReferenceData?.name || !editingReferenceData?.content}
+                            className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-bold transition"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
+                            className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     {referenceData.protocols
-                      .filter((protocol: any) =>
+                      .filter((protocol) =>
                         !referenceSearch ||
                         protocol.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
                         protocol.content.toLowerCase().includes(referenceSearch.toLowerCase())
                       )
-                      .map((protocol: any, idx: number) => (
+                      .map((protocol) => (
                         <div
-                          key={idx}
+                          key={protocol.id}
                           className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-cyan-500/50 transition"
                         >
-                          {editingReference?.type === 'protocols' && editingReference.index === idx ? (
+                          {editingReference?.type === 'protocols' && editingReference.id === protocol.id ? (
                             <div className="space-y-2">
                               <input
                                 type="text"
-                                value={protocol.name}
-                                onChange={(e) => {
-                                  const updated = [...referenceData.protocols];
-                                  updated[idx].name = e.target.value;
-                                  setReferenceData({ ...referenceData, protocols: updated });
-                                }}
+                                value={editingReferenceData?.name || ''}
+                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
                                 placeholder="Protocol name"
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500"
                               />
                               <textarea
-                                value={protocol.content}
-                                onChange={(e) => {
-                                  const updated = [...referenceData.protocols];
-                                  updated[idx].content = e.target.value;
-                                  setReferenceData({ ...referenceData, protocols: updated });
-                                }}
+                                value={editingReferenceData?.content || ''}
+                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, content: e.target.value })}
                                 placeholder="Protocol steps/details..."
                                 className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
                                 rows={6}
                               />
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => setEditingReference(null)}
+                                  onClick={() => saveReferenceProtocol({ ...editingReferenceData, id: protocol.id })}
                                   className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-sm font-bold transition"
                                 >
                                   Save
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    const updated = referenceData.protocols.filter((_: any, i: number) => i !== idx);
-                                    setReferenceData({ ...referenceData, protocols: updated });
-                                    setEditingReference(null);
-                                  }}
+                                  onClick={() => deleteReferenceProtocol(protocol.id)}
                                   className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
                                 >
                                   Delete
+                                </button>
+                                <button
+                                  onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
+                                  className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
+                                >
+                                  Cancel
                                 </button>
                               </div>
                             </div>
                           ) : (
                             <div
-                              onClick={() => setEditingReference({ type: 'protocols', index: idx })}
+                              onClick={() => { setEditingReference({ type: 'protocols', id: protocol.id }); setEditingReferenceData({ ...protocol }); }}
                               className="cursor-pointer"
                             >
                               <h5 className="font-bold text-white text-base mb-2">{protocol.name}</h5>
@@ -4736,6 +4905,8 @@ Please schedule a recheck appointment with the Neurology department to have stap
                     })()}
                   </div>
                 </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
