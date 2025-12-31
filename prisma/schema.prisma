@@ -250,6 +250,33 @@ model AppSetting {
   @@index([key])
 }
 
+// Quick Reference Medications - persisted across all devices
+model ReferenceMedication {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  dose      String
+  notes     String?
+  isDefault Boolean  @default(false) // true = system default, false = user-added
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+// Quick Reference Protocols - persisted across all devices
+model ReferenceProtocol {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  content   String   @db.Text // Protocol steps/content
+  isDefault Boolean  @default(false) // true = system default, false = user-added
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
 // Learning Notes - Questions to clarify (e.g., with Glass)
 model Note {
   id        String   @id @default(cuid())
