@@ -2096,17 +2096,6 @@ export default function VetHub() {
       setHideCompletedTasks(true);
       localStorage.setItem('hideCompletedTasks', 'true');
     }
-
-    // Load referenceData from localStorage
-    const savedReferenceData = localStorage.getItem('vethub_referenceData');
-    if (savedReferenceData) {
-      try {
-        const parsed = JSON.parse(savedReferenceData);
-        setReferenceData(parsed);
-      } catch (e) {
-        console.error('Failed to parse saved reference data:', e);
-      }
-    }
   }, []);
 
   // Persist hideCompletedTasks preference to localStorage
@@ -2115,13 +2104,6 @@ export default function VetHub() {
       localStorage.setItem('hideCompletedTasks', String(hideCompletedTasks));
     }
   }, [hideCompletedTasks, mounted]);
-
-  // Persist referenceData (medications & protocols) to localStorage
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem('vethub_referenceData', JSON.stringify(referenceData));
-    }
-  }, [referenceData, mounted]);
 
   // One-time task migration to add status fields
   useEffect(() => {
