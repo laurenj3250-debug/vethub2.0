@@ -589,7 +589,15 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     // Otherwise, use the saved data from API (camelCase) or legacy format (snake_case)
     const patient = patients.find(p => p.id === patientId);
-    return (patient as any)?.roundingData || patient?.rounding_data || {};
+    const savedData = (patient as any)?.roundingData || patient?.rounding_data || {};
+
+    // CRITICAL: Clear problems and therapeutics - user must fill fresh each day
+    // These are NOT carried forward and should never be pre-populated
+    return {
+      ...savedData,
+      problems: '',
+      therapeutics: '',
+    };
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
