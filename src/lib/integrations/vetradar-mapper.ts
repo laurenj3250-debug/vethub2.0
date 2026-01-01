@@ -127,6 +127,14 @@ export function mapVetRadarToUnifiedPatient(
   // (Previously pulled from VetRadar issues or critical notes)
   const problems = '';
 
+  // Diagnostic findings - NOT auto-populated EXCEPT for MRI admits
+  // MRI admits get default: "CBC/Chem: pending, CXR: pending"
+  const inferredType = inferPatientType(vetRadarPatient);
+  const isMRIAdmit = inferredType === 'MRI' ||
+    (vetRadarPatient.location || '').toLowerCase().includes('mri') ||
+    (vetRadarPatient.status || '').toLowerCase().includes('mri');
+  const diagnosticFindings = isMRIAdmit ? 'CBC/Chem: pending, CXR: pending' : '';
+
   // Build signalment
   const signalment = [
     vetRadarPatient.age,
@@ -165,7 +173,7 @@ export function mapVetRadarToUnifiedPatient(
     code: codeStatus, // Maps to 'code' field in rounding sheet
     codeStatus, // Keep for backwards compatibility
     problems,
-    diagnosticFindings: vetRadarPatient.diagnosticFindings || '', // From vision extraction or manual entry
+    diagnosticFindings, // Empty unless MRI admit (then: CBC/Chem: pending, CXR: pending)
     therapeutics,
     ivc: fluidsText ? 'Y' : 'N',
     fluids: fluidsText,

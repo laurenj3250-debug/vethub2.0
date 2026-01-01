@@ -50,6 +50,113 @@ export const ROUNDING_DROPDOWN_OPTIONS = {
   cri: ['Yes', 'No', 'No but...', 'Yes but...', 'n/a'] as const,
 } as const;
 
+// Multi-select dropdown options for clinical fields (allow multiple selections)
+export const ROUNDING_MULTISELECT_OPTIONS = {
+  // Common neuro problems/diagnoses
+  problems: [
+    'IVDD',
+    'FCE',
+    'Seizures',
+    'Vestibular',
+    'GME/MUO',
+    'Diskospondylitis',
+    'Neoplasia',
+    'Head trauma',
+    'Spinal trauma',
+    'Myasthenia gravis',
+    'Polyneuropathy',
+    'Polyradiculoneuritis',
+    'Megaesophagus',
+    'Paresis',
+    'Paralysis',
+    'Ataxia',
+  ] as const,
+
+  // Common diagnostic tests
+  diagnosticFindings: [
+    'CBC: pending',
+    'CBC: WNL',
+    'CBC: abnl',
+    'Chem: pending',
+    'Chem: WNL',
+    'Chem: abnl',
+    'UA: pending',
+    'UA: WNL',
+    'UA: abnl',
+    'CXR: pending',
+    'CXR: NSF',
+    'CXR: abnl',
+    'MRI: pending',
+    'MRI: completed',
+    'CT: pending',
+    'CT: completed',
+    'CSF: pending',
+    'CSF: WNL',
+    'CSF: abnl',
+    'EMG: pending',
+    'EMG: completed',
+  ] as const,
+
+  // Common therapeutics/medications
+  therapeutics: [
+    'Gabapentin',
+    'Methocarbamol',
+    'Tramadol',
+    'Meloxicam',
+    'Carprofen',
+    'Prednisone',
+    'Dexamethasone',
+    'Phenobarbital',
+    'Levetiracetam (Keppra)',
+    'Zonisamide',
+    'KBr',
+    'Diazepam',
+    'Omeprazole',
+    'Sucralfate',
+    'Maropitant',
+    'Ondansetron',
+    'Metoclopramide',
+    'Famotidine',
+    'Ampicillin',
+    'Enrofloxacin',
+    'Metronidazole',
+    'Clindamycin',
+    'Cefpodoxime',
+    'Fentanyl CRI',
+    'Lidocaine CRI',
+    'Ketamine CRI',
+    'MLK CRI',
+  ] as const,
+
+  // Overnight diagnostics
+  overnightDx: [
+    'Neuro checks q4h',
+    'Neuro checks q2h',
+    'Vitals q4h',
+    'Vitals q2h',
+    'Blood glucose q4h',
+    'PCV/TS q6h',
+    'Lactate q6h',
+    'AM bloods',
+    'Repeat CXR',
+    'Call if changes',
+  ] as const,
+
+  // Overnight concerns
+  concerns: [
+    'Monitor resp effort',
+    'Aspiration risk',
+    'Seizure precautions',
+    'Call if neuro declines',
+    'Call if temp >103',
+    'Call if vomiting',
+    'Call if not eating',
+    'Watch for regurg',
+    'Fall risk',
+    'May need catheter',
+  ] as const,
+} as const;
+
 // Field order for paste operations (matches Google Sheets columns)
 export const ROUNDING_FIELD_ORDER = [
   'signalment',

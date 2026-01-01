@@ -14,10 +14,12 @@ import {
   ROUNDING_STORAGE_KEYS,
   ROUNDING_AUTO_SAVE_DELAY,
   ROUNDING_DROPDOWN_OPTIONS,
+  ROUNDING_MULTISELECT_OPTIONS,
   ROUNDING_FIELD_ORDER,
   ROUNDING_TSV_HEADERS,
   NEO_POP_STYLES,
 } from '@/lib/constants';
+import { FieldMultiSelect } from './FieldMultiSelect';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
 
 // Local Patient interface for component props (uses RoundingPatient pattern)
@@ -1416,28 +1418,24 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     {/* Dx Findings */}
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase">Diagnostic Findings</label>
-                      <SlashCommandTextarea
+                      <FieldMultiSelect
                         value={data.diagnosticFindings || ''}
                         onChange={(val) => handleFieldChange(patient.id, 'diagnosticFindings', val)}
-                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' })}
-                        field="diagnosticFindings"
-                        rows={3}
+                        options={ROUNDING_MULTISELECT_OPTIONS.diagnosticFindings}
+                        placeholder="Select diagnostics..."
                         aria-label={`Diagnostic findings for ${patientName}`}
-                        className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
                       />
                     </div>
 
                     {/* Therapeutics */}
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase">Therapeutics</label>
-                      <SlashCommandTextarea
+                      <FieldMultiSelect
                         value={data.therapeutics || ''}
                         onChange={(val) => handleFieldChange(patient.id, 'therapeutics', val)}
-                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'therapeutics' })}
-                        field="therapeutics"
-                        rows={3}
+                        options={ROUNDING_MULTISELECT_OPTIONS.therapeutics}
+                        placeholder="Select therapeutics..."
                         aria-label={`Therapeutics for ${patientName}`}
-                        className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
                       />
                     </div>
 
@@ -1488,15 +1486,12 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     {/* Overnight Concerns */}
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase">Overnight Concerns</label>
-                      <SlashCommandTextarea
+                      <FieldMultiSelect
                         value={data.concerns || ''}
                         onChange={(val) => handleFieldChange(patient.id, 'concerns', val)}
-                        onFocus={() => setFocusedField({ patientId: patient.id, field: 'concerns' })}
-                        field="concerns"
-                        rows={2}
-                        placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
+                        options={ROUNDING_MULTISELECT_OPTIONS.concerns}
+                        placeholder={carryForward?.carriedForward ? "Today's concerns..." : "Select concerns..."}
                         aria-label={`Concerns for ${patientName}`}
-                        className="w-full px-2 py-1.5 rounded text-sm border border-gray-300 bg-gray-50"
                       />
                     </div>
 
@@ -1651,29 +1646,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <SlashCommandTextarea
+                    <FieldMultiSelect
                       value={data.diagnosticFindings || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'diagnosticFindings', val)}
-                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'diagnosticFindings' })}
-                      onPaste={(e) => handleFieldPaste(e, patient.id, 'diagnosticFindings')}
-                      field="diagnosticFindings"
-                      rows={2}
+                      options={ROUNDING_MULTISELECT_OPTIONS.diagnosticFindings}
+                      placeholder="Select diagnostics..."
                       aria-label={`Diagnostic findings for ${patientName}`}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <SlashCommandTextarea
+                    <FieldMultiSelect
                       value={data.therapeutics || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'therapeutics', val)}
-                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'therapeutics' })}
-                      onPaste={(e) => handleFieldPaste(e, patient.id, 'therapeutics')}
-                      field="therapeutics"
-                      rows={2}
+                      options={ROUNDING_MULTISELECT_OPTIONS.therapeutics}
+                      placeholder="Select therapeutics..."
                       aria-label={`Therapeutics for ${patientName}`}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
@@ -1722,30 +1709,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     </select>
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <SlashCommandTextarea
+                    <FieldMultiSelect
                       value={data.overnightDx || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'overnightDx', val)}
-                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'overnightDx' })}
-                      onPaste={(e) => handleFieldPaste(e, patient.id, 'overnightDx')}
-                      field="overnightDx"
-                      rows={2}
+                      options={ROUNDING_MULTISELECT_OPTIONS.overnightDx}
+                      placeholder="O/N diagnostics..."
                       aria-label={`Overnight diagnostics for ${patientName}`}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <SlashCommandTextarea
+                    <FieldMultiSelect
                       value={data.concerns || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'concerns', val)}
-                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'concerns' })}
-                      onPaste={(e) => handleFieldPaste(e, patient.id, 'concerns')}
-                      field="concerns"
-                      rows={2}
-                      placeholder={carryForward?.carriedForward ? "Today's concerns..." : ""}
+                      options={ROUNDING_MULTISELECT_OPTIONS.concerns}
+                      placeholder={carryForward?.carriedForward ? "Today's concerns..." : "O/N concerns..."}
                       aria-label={`Concerns for ${patientName}`}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
