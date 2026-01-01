@@ -52,27 +52,30 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
   // Show disabled state if no weight
   if (weight <= 0) {
     return (
-      <span
-        className="cursor-not-allowed opacity-50 text-base p-1"
+      <button
+        className="p-1.5 rounded-lg opacity-50 cursor-not-allowed"
+        style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #000' }}
         title="No weight recorded - add weight to enable"
+        disabled
       >
-        🍽️
-      </span>
+        <span className="text-sm">🍽️</span>
+      </button>
     );
   }
 
   return (
-    <div className="relative inline-block" ref={popoverRef}>
+    <div className="relative inline-block z-10" ref={popoverRef}>
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="text-base hover:scale-110 transition-transform cursor-pointer p-1"
+        className="p-1.5 rounded-lg transition hover:-translate-y-0.5"
+        style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #000' }}
         title={`Food calculator for ${patientName || 'patient'}`}
       >
-        🍽️
+        <span className="text-sm">🍽️</span>
       </button>
 
       {isOpen && (
