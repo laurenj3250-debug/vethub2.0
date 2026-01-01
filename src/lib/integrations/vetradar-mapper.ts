@@ -190,10 +190,15 @@ export function mapVetRadarToUnifiedPatient(
     tinySheetCount: 0,
   };
 
+  // Infer patient type from VetRadar data
+  const patientType = inferPatientType(vetRadarPatient);
+  console.log(`[VetRadar Mapper] Inferred type for ${vetRadarPatient.name}: ${patientType}`);
+
   // Build unified patient object
   const unifiedPatient: UnifiedPatient = {
     id: existingPatient?.id || Number(vetRadarPatient.id) || Date.now(),
     mrn: existingPatient?.mrn,
+    type: patientType, // Inferred from VetRadar data
 
     demographics: {
       name: fullPatientName,
@@ -264,16 +269,67 @@ export function mapVetRadarToUnifiedPatient(
  * Map VetRadar status to VetHub patient status
  */
 function mapVetRadarStatusToPatientStatus(vetRadarStatus?: string): UnifiedPatient['status'] {
-  if (!vetRadarStatus) return 'New';
+  if (!vetRadarStatus) return 'Active';
 
   const statusLower = vetRadarStatus.toLowerCase();
 
   if (statusLower.includes('discharg')) {
-    return 'Discharging';
+    return 'Discharged';
   } else {
-    // Default to New for active patients
-    return 'New';
+    // Default to Active for active patients
+    return 'Active';
   }
+}
+
+/**
+ * Infer patient type (Surgery | MRI | Medical) from VetRadar data
+ * Analyzes procedures, treatments, and location to determine type
+ */
+function inferPatientType(vetRadarPatient: VetRadarPatient): 'Surgery' | 'Medical' | 'MRI' {
+  const treatments = (vetRadarPatient.treatments || []).map(t => t.toLowerCase());
+  const medications = (vetRadarPatient.medications || []).map(m => m.medication.toLowerCase());
+  const location = (vetRadarPatient.location || '').toLowerCase();
+  const concerns = (vetRadarPatient.concerns || '').toLowerCase();
+  const status = (vetRadarPatient.status || '').toLowerCase();
+
+  // Surgical procedure keywords
+  const surgicalKeywords = [
+    'laminectomy', 'hemilaminectomy', 'ventral slot', 'diskectomy', 'discectomy',
+    'tplo', 'ablation', 'craniotomy', 'surgery', 'surgical', 'surg',
+    'excision', 'resection', 'decompression', 'stabilization', 'repair',
+    'corpectomy', 'fenestration', 'durotomy', 'myelotomy'
+  ];
+
+  // Check treatments for surgical keywords
+  if (treatments.some(t => surgicalKeywords.some(k => t.includes(k)))) {
+    return 'Surgery';
+  }
+
+  // Check concerns for surgical keywords
+  if (surgicalKeywords.some(k => concerns.includes(k))) {
+    return 'Surgery';
+  }
+
+  // Anesthetic drugs often indicate surgery
+  const anestheticDrugs = ['propofol', 'isoflurane', 'sevoflurane', 'alfaxalone'];
+  if (medications.some(m => anestheticDrugs.some(d => m.includes(d)))) {
+    return 'Surgery';
+  }
+
+  // Post-operative indicators
+  const postOpKeywords = ['post-op', 'postop', 'post op', 'post-surgical', 'recovery'];
+  if (treatments.some(t => postOpKeywords.some(k => t.includes(k))) ||
+      concerns.includes('post-op') || concerns.includes('postop')) {
+    return 'Surgery';
+  }
+
+  // MRI location or status
+  if (location.includes('mri') || status.includes('mri')) {
+    return 'MRI';
+  }
+
+  // Default to Medical
+  return 'Medical';
 }
 
 /**

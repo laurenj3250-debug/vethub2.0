@@ -2,10 +2,11 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useAuth as useApiAuth, useCommonItems } from '@/hooks/use-api';
+import { useAuth as useApiAuth } from '@/hooks/use-api';
 import {
   usePatientsQuery,
   useGeneralTasksQuery,
+  useCommonItemsQuery,
   useTogglePatientTask,
   useToggleGeneralTask,
   useAddPatientTask,
@@ -50,7 +51,8 @@ export default function VetHub() {
   const addGeneralTaskMutation = useAddGeneralTask();
   const deleteGeneralTaskMutation = useDeleteGeneralTask();
 
-  const { medications: commonMedications } = useCommonItems();
+  const { data: commonItemsData } = useCommonItemsQuery();
+  const commonMedications = commonItemsData?.medications ?? [];
   const { toast } = useToast();
 
   // Auth state

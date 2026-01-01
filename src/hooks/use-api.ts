@@ -117,6 +117,10 @@ export function useGeneralTasks() {
   return { tasks, setTasks, isLoading, error, refetch: fetchTasks };
 }
 
+/**
+ * @deprecated Use useCommonItemsQuery from '@/hooks/use-patients-query' instead.
+ * This hook is kept for backwards compatibility but polling is now handled by React Query.
+ */
 export function useCommonItems() {
   const [problems, setProblems] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
@@ -171,6 +175,10 @@ export function useCommonItems() {
   return { problems, comments, medications, isLoading, refetch: fetchAll };
 }
 
+/**
+ * @deprecated Use useNotesQuery from '@/hooks/use-patients-query' instead.
+ * This hook is kept for backwards compatibility but polling is now handled by React Query.
+ */
 export function useNotes() {
   const [notes, setNotes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

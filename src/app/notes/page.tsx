@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Check, Circle, Loader2 } from 'lucide-react';
-import { useNotes } from '@/hooks/use-api';
+import { useNotesQuery, useRefreshAllData } from '@/hooks/use-patients-query';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,7 +19,8 @@ const NEO_COLORS = {
 };
 
 export default function NotesPage() {
-  const { notes, setNotes, isLoading, refetch } = useNotes();
+  const { data: notes = [], isLoading } = useNotesQuery();
+  const { refreshNotes } = useRefreshAllData();
   const { toast } = useToast();
   const [newNoteContent, setNewNoteContent] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -29,8 +30,8 @@ export default function NotesPage() {
 
     setIsAdding(true);
     try {
-      const note = await apiClient.createNote(newNoteContent.trim());
-      setNotes([note, ...notes]);
+      await apiClient.createNote(newNoteContent.trim());
+      refreshNotes();
       setNewNoteContent('');
       toast({ title: 'Note added' });
     } catch (error) {
@@ -43,8 +44,8 @@ export default function NotesPage() {
 
   const handleToggleComplete = async (id: string, currentCompleted: boolean) => {
     try {
-      const updated = await apiClient.updateNote(id, { completed: !currentCompleted });
-      setNotes(notes.map(n => n.id === id ? updated : n));
+      await apiClient.updateNote(id, { completed: !currentCompleted });
+      refreshNotes();
     } catch (error) {
       console.error('Error updating note:', error);
       toast({ variant: 'destructive', title: 'Failed to update note' });
@@ -54,7 +55,7 @@ export default function NotesPage() {
   const handleDeleteNote = async (id: string) => {
     try {
       await apiClient.deleteNote(id);
-      setNotes(notes.filter(n => n.id !== id));
+      refreshNotes();
       toast({ title: 'Note deleted' });
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -71,7 +72,7 @@ export default function NotesPage() {
 
     try {
       await apiClient.clearCompletedNotes();
-      setNotes(notes.filter(n => !n.completed));
+      refreshNotes();
       toast({ title: `Cleared ${completedCount} completed note${completedCount > 1 ? 's' : ''}` });
     } catch (error) {
       console.error('Error clearing notes:', error);

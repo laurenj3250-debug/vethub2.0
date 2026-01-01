@@ -5,7 +5,7 @@ import { ArrowLeft, FileSpreadsheet } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { usePatientContext } from '@/contexts/PatientContext';
-import { useCommonItems } from '@/hooks/use-api';
+import { useCommonItemsQuery } from '@/hooks/use-patients-query';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ROUNDING_STORAGE_KEYS } from '@/lib/constants';
@@ -24,7 +24,8 @@ const GlobalKeyboardHandler = dynamic(() => import('@/components/GlobalKeyboardH
 export function RoundingPageClient() {
   const [mounted, setMounted] = useState(false);
   const { patients, loadPatients } = usePatientContext();
-  const { medications: commonMedications } = useCommonItems();
+  const { data: commonItemsData } = useCommonItemsQuery();
+  const commonMedications = commonItemsData?.medications ?? [];
   const { toast } = useToast();
 
   // Check for unsaved changes by looking at localStorage backup

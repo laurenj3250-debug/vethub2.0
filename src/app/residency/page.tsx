@@ -679,6 +679,18 @@ export default function ACVIMResidencyTrackerPage() {
         {/* Case Log Tab */}
         {activeTab === 'cases' && (
           <div>
+            {/* No Surgery Patients Warning */}
+            {patients.length === 0 && (
+              <div className={`${neoCard} mb-4 p-4 flex items-center gap-3`} style={{ backgroundColor: NEO_POP.colors.yellow, borderLeftWidth: '4px', borderLeftColor: '#F59E0B' }}>
+                <AlertCircle className="text-amber-600 shrink-0" size={20} />
+                <div>
+                  <p className="font-semibold text-amber-900">No Surgery Patients Found</p>
+                  <p className="text-sm text-amber-800">
+                    Import patients with Surgery type from VetRadar, or manually create patients with type "Surgery" to link cases.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-bold text-gray-900">
                 Neurosurgery Case Log - Year {selectedYear}

@@ -7,6 +7,8 @@ import { apiClient } from '@/lib/api-client';
 export const queryKeys = {
   patients: ['patients'] as const,
   generalTasks: ['generalTasks'] as const,
+  commonItems: ['commonItems'] as const,
+  notes: ['notes'] as const,
 };
 
 /**
@@ -170,7 +172,7 @@ export function useAddPatientTask() {
       patientId: number;
       task: { title: string; category?: string; timeOfDay?: string };
     }) => {
-      const result = await apiClient.addPatientTask(String(patientId), task);
+      const result = await apiClient.createTask(String(patientId), task);
       return result;
     },
     onSuccess: () => {
@@ -194,7 +196,7 @@ export function useDeletePatientTask() {
       patientId: number;
       taskId: string;
     }) => {
-      await apiClient.deletePatientTask(String(patientId), taskId);
+      await apiClient.deleteTask(String(patientId), taskId);
     },
     onMutate: async ({ patientId, taskId }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.patients });
@@ -241,7 +243,7 @@ export function useAddGeneralTask() {
       category?: string;
       timeOfDay?: string;
     }) => {
-      const result = await apiClient.addGeneralTask(task);
+      const result = await apiClient.createGeneralTask(task);
       return result;
     },
     onSuccess: () => {
@@ -285,6 +287,35 @@ export function useDeleteGeneralTask() {
 }
 
 /**
+ * React Query hook for fetching common items (problems, comments, medications)
+ * Replaces the old useCommonItems() hook from use-api.ts
+ */
+export function useCommonItemsQuery() {
+  return useQuery({
+    queryKey: queryKeys.commonItems,
+    queryFn: async () => {
+      const [problems, comments, medications] = await Promise.all([
+        apiClient.getCommonProblems(),
+        apiClient.getCommonComments(),
+        apiClient.getCommonMedications(),
+      ]);
+      return { problems, comments, medications };
+    },
+  });
+}
+
+/**
+ * React Query hook for fetching notes
+ * Replaces the old useNotes() hook from use-api.ts
+ */
+export function useNotesQuery() {
+  return useQuery({
+    queryKey: queryKeys.notes,
+    queryFn: () => apiClient.getNotes(),
+  });
+}
+
+/**
  * Hook to manually invalidate and refetch all data
  * Useful for force-refresh scenarios
  */
@@ -296,9 +327,15 @@ export function useRefreshAllData() {
       queryClient.invalidateQueries({ queryKey: queryKeys.patients }),
     refreshGeneralTasks: () =>
       queryClient.invalidateQueries({ queryKey: queryKeys.generalTasks }),
+    refreshCommonItems: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.commonItems }),
+    refreshNotes: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes }),
     refreshAll: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.patients });
       queryClient.invalidateQueries({ queryKey: queryKeys.generalTasks });
+      queryClient.invalidateQueries({ queryKey: queryKeys.commonItems });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notes });
     },
   };
 }

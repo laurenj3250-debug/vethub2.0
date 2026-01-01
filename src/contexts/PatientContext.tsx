@@ -13,6 +13,7 @@ export interface UnifiedPatient {
   id: number;
   mrn?: string; // Medical Record Number (from practice management system)
   status: 'Active' | 'Discharged' | 'MRI' | 'Surgery';
+  type?: 'Medical' | 'MRI' | 'Surgery'; // Patient type for categorization
 
   // Demographics (shared across ALL features)
   demographics: {
