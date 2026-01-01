@@ -1410,9 +1410,11 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     {/* Problems */}
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase">Problems</label>
-                      <div className="text-sm p-2 bg-gray-50 rounded border border-gray-300 min-h-[40px]">
-                        {data.problems || <span className="text-gray-400">No problems listed</span>}
-                      </div>
+                      <ProblemsMultiSelect
+                        value={data.problems || ''}
+                        onChange={(val) => handleFieldChange(patient.id, 'problems', val)}
+                        aria-label={`Problems for ${patientName}`}
+                      />
                     </div>
 
                     {/* Dx Findings */}
@@ -1483,6 +1485,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       </div>
                     </div>
 
+                    {/* Overnight Diagnostics */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Overnight Diagnostics</label>
+                      <FieldMultiSelect
+                        value={data.overnightDx || ''}
+                        onChange={(val) => handleFieldChange(patient.id, 'overnightDx', val)}
+                        options={ROUNDING_MULTISELECT_OPTIONS.overnightDx}
+                        placeholder="O/N diagnostics..."
+                        aria-label={`Overnight diagnostics for ${patientName}`}
+                      />
+                    </div>
+
                     {/* Overnight Concerns */}
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase">Overnight Concerns</label>
@@ -1492,6 +1506,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                         options={ROUNDING_MULTISELECT_OPTIONS.concerns}
                         placeholder={carryForward?.carriedForward ? "Today's concerns..." : "Select concerns..."}
                         aria-label={`Concerns for ${patientName}`}
+                      />
+                    </div>
+
+                    {/* Extra Notes */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase">Extra Notes</label>
+                      <FieldMultiSelect
+                        value={data.comments || ''}
+                        onChange={(val) => handleFieldChange(patient.id, 'comments', val)}
+                        options={ROUNDING_MULTISELECT_OPTIONS.comments}
+                        placeholder="Extra notes..."
+                        aria-label={`Comments for ${patientName}`}
                       />
                     </div>
 
@@ -1727,16 +1753,12 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <SlashCommandTextarea
+                    <FieldMultiSelect
                       value={data.comments || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'comments', val)}
-                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'comments' })}
-                      onPaste={(e) => handleFieldPaste(e, patient.id, 'comments')}
-                      field="comments"
-                      rows={2}
+                      options={ROUNDING_MULTISELECT_OPTIONS.comments}
+                      placeholder="Extra notes..."
                       aria-label={`Comments for ${patientName}`}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50 resize-none overflow-auto"
-                      style={{ border: '1px solid #ccc' }}
                     />
                   </td>
                   <td className="p-1 text-center sticky right-0 z-10" style={{ backgroundColor: rowBg, borderLeft: NEO_BORDER, borderBottom: '1px solid #000' }}>

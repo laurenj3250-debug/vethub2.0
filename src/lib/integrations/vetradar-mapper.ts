@@ -129,11 +129,9 @@ export function mapVetRadarToUnifiedPatient(
 
   // Diagnostic findings - NOT auto-populated EXCEPT for MRI admits
   // MRI admits get default: "CBC/Chem: pending, CXR: pending"
-  const inferredType = inferPatientType(vetRadarPatient);
-  const isMRIAdmit = inferredType === 'MRI' ||
-    (vetRadarPatient.location || '').toLowerCase().includes('mri') ||
-    (vetRadarPatient.status || '').toLowerCase().includes('mri');
-  const diagnosticFindings = isMRIAdmit ? 'CBC/Chem: pending, CXR: pending' : '';
+  // inferPatientType already checks location/status for MRI, no need to check again
+  const isMRIAdmit = inferPatientType(vetRadarPatient) === 'MRI';
+  const diagnosticFindings = isMRIAdmit ? 'CBC: pending, Chem: pending, CXR: pending' : '';
 
   // Build signalment
   const signalment = [
