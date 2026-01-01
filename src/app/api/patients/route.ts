@@ -9,9 +9,19 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
+    const type = searchParams.get('type');
+
+    // Build where clause dynamically
+    const where: any = {};
+    if (status) {
+      where.status = status;
+    }
+    if (type) {
+      where.type = type;
+    }
 
     const patients = await prisma.patient.findMany({
-      where: status ? { status } : undefined,
+      where: Object.keys(where).length > 0 ? where : undefined,
       include: {
         soapNotes: {
           orderBy: { createdAt: 'desc' },

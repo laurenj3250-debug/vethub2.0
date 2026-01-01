@@ -57,12 +57,22 @@ export function useAuth() {
   return { user, isLoading, error, login, register, logout };
 }
 
+// Track if we're in the middle of an optimistic update to prevent polling from overwriting it
+let isOptimisticUpdatePending = false;
+let optimisticUpdateTimeout: NodeJS.Timeout | null = null;
+
 export function usePatients() {
   const [patients, setPatients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchPatients = async (showLoading = false) => {
+  const fetchPatients = async (showLoading = false, force = false) => {
+    // Skip polling if an optimistic update is pending (unless forced)
+    if (!force && isOptimisticUpdatePending) {
+      console.log('[usePatients] Skipping fetch - optimistic update pending');
+      return;
+    }
+
     try {
       if (showLoading) {
         setIsLoading(true);
@@ -80,6 +90,24 @@ export function usePatients() {
     }
   };
 
+  // Wrap setPatients to track optimistic updates
+  const setOptimisticPatients = (updater: React.SetStateAction<any[]>) => {
+    // Mark that an optimistic update is in progress
+    isOptimisticUpdatePending = true;
+
+    // Clear any existing timeout
+    if (optimisticUpdateTimeout) {
+      clearTimeout(optimisticUpdateTimeout);
+    }
+
+    // Clear the flag after 5 seconds (enough time for API to complete)
+    optimisticUpdateTimeout = setTimeout(() => {
+      isOptimisticUpdatePending = false;
+    }, 5000);
+
+    setPatients(updater);
+  };
+
   useEffect(() => {
     fetchPatients(true); // Show loading on initial fetch
 
@@ -93,10 +121,13 @@ export function usePatients() {
       }
     }, 30000);
 
-    // Fetch when tab becomes visible again
+    // Fetch when tab becomes visible again (after a short delay to avoid conflicts)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchPatients(false);
+        // Wait 500ms before fetching to allow any pending API calls to complete
+        setTimeout(() => {
+          fetchPatients(false);
+        }, 500);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -104,10 +135,19 @@ export function usePatients() {
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (optimisticUpdateTimeout) {
+        clearTimeout(optimisticUpdateTimeout);
+      }
     };
   }, []);
 
-  return { patients, setPatients, isLoading, error, refetch: () => fetchPatients(true) };
+  return {
+    patients,
+    setPatients: setOptimisticPatients,
+    isLoading,
+    error,
+    refetch: () => fetchPatients(true, true) // Force refetch bypasses optimistic guard
+  };
 }
 
 export function useGeneralTasks() {
