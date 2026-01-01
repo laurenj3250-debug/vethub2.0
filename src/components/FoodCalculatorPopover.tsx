@@ -18,8 +18,9 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Only show for dogs
-  const isCanine = species?.toLowerCase()?.includes('canine') || species?.toLowerCase()?.includes('dog');
+  // Hide for cats only (show for dogs and when species is unknown/not set)
+  const speciesLower = species?.toLowerCase() || '';
+  const isCat = speciesLower.includes('feline') || speciesLower.includes('cat');
 
   // Parse weight
   const weight = typeof weightKg === 'string'
@@ -43,8 +44,8 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Don't render for non-dogs
-  if (!isCanine) {
+  // Don't render for cats
+  if (isCat) {
     return null;
   }
 
