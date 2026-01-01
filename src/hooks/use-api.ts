@@ -57,26 +57,18 @@ export function useAuth() {
   return { user, isLoading, error, login, register, logout };
 }
 
-// Track if we're in the middle of an optimistic update to prevent polling from overwriting it
-let isOptimisticUpdatePending = false;
-let optimisticUpdateTimeout: NodeJS.Timeout | null = null;
-
+/**
+ * @deprecated Use usePatientsQuery from '@/hooks/use-patients-query' instead.
+ * This hook is kept for backwards compatibility but polling is now handled by React Query.
+ */
 export function usePatients() {
   const [patients, setPatients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchPatients = async (showLoading = false, force = false) => {
-    // Skip polling if an optimistic update is pending (unless forced)
-    if (!force && isOptimisticUpdatePending) {
-      console.log('[usePatients] Skipping fetch - optimistic update pending');
-      return;
-    }
-
+  const fetchPatients = async () => {
     try {
-      if (showLoading) {
-        setIsLoading(true);
-      }
+      setIsLoading(true);
       const data = await apiClient.getPatients();
       setPatients(data);
       setError(null);
@@ -84,72 +76,21 @@ export function usePatients() {
       console.error('Fetch patients error:', err);
       setError(err as Error);
     } finally {
-      if (showLoading) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
-  };
-
-  // Wrap setPatients to track optimistic updates
-  const setOptimisticPatients = (updater: React.SetStateAction<any[]>) => {
-    // Mark that an optimistic update is in progress
-    isOptimisticUpdatePending = true;
-
-    // Clear any existing timeout
-    if (optimisticUpdateTimeout) {
-      clearTimeout(optimisticUpdateTimeout);
-    }
-
-    // Clear the flag after 5 seconds (enough time for API to complete)
-    optimisticUpdateTimeout = setTimeout(() => {
-      isOptimisticUpdatePending = false;
-    }, 5000);
-
-    setPatients(updater);
   };
 
   useEffect(() => {
-    fetchPatients(true); // Show loading on initial fetch
-
-    // Only set up polling on client side
-    if (typeof window === 'undefined') return;
-
-    // Poll for updates every 30 seconds for cross-device sync
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchPatients(false);
-      }
-    }, 30000);
-
-    // Fetch when tab becomes visible again (after a short delay to avoid conflicts)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // Wait 500ms before fetching to allow any pending API calls to complete
-        setTimeout(() => {
-          fetchPatients(false);
-        }, 500);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (optimisticUpdateTimeout) {
-        clearTimeout(optimisticUpdateTimeout);
-      }
-    };
+    fetchPatients();
   }, []);
 
-  return {
-    patients,
-    setPatients: setOptimisticPatients,
-    isLoading,
-    error,
-    refetch: () => fetchPatients(true, true) // Force refetch bypasses optimistic guard
-  };
+  return { patients, setPatients, isLoading, error, refetch: fetchPatients };
 }
 
+/**
+ * @deprecated Use useGeneralTasksQuery from '@/hooks/use-patients-query' instead.
+ * This hook is kept for backwards compatibility but polling is now handled by React Query.
+ */
 export function useGeneralTasks() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -171,29 +112,6 @@ export function useGeneralTasks() {
 
   useEffect(() => {
     fetchTasks();
-
-    // Only set up polling on client side
-    if (typeof window === 'undefined') return;
-
-    // Poll for updates every 30 seconds for cross-device sync
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        fetchTasks();
-      }
-    }, 30000);
-
-    // Fetch when tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        fetchTasks();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
   }, []);
 
   return { tasks, setTasks, isLoading, error, refetch: fetchTasks };

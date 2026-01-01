@@ -2,7 +2,18 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useAuth as useApiAuth, usePatients, useGeneralTasks, useCommonItems } from '@/hooks/use-api';
+import { useAuth as useApiAuth, useCommonItems } from '@/hooks/use-api';
+import {
+  usePatientsQuery,
+  useGeneralTasksQuery,
+  useTogglePatientTask,
+  useToggleGeneralTask,
+  useAddPatientTask,
+  useDeletePatientTask,
+  useAddGeneralTask,
+  useDeleteGeneralTask,
+  useRefreshAllData,
+} from '@/hooks/use-patients-query';
 import { apiClient } from '@/lib/api-client';
 import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications, parseEzyVetBlock, determineScanType } from '@/lib/ai-parser';
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw, Sunrise } from 'lucide-react';
@@ -25,8 +36,20 @@ import { calculateStickerCounts } from '@/lib/sticker-calculator';
 
 export default function VetHub() {
   const { user, isLoading: authLoading, login, register, logout } = useApiAuth();
-  const { patients, setPatients, isLoading: patientsLoading, refetch } = usePatients();
-  const { tasks: generalTasks, setTasks: setGeneralTasks, refetch: refetchGeneralTasks } = useGeneralTasks();
+
+  // React Query hooks for data fetching with automatic polling
+  const { data: patients = [], isLoading: patientsLoading, refetch } = usePatientsQuery();
+  const { data: generalTasks = [], refetch: refetchGeneralTasks } = useGeneralTasksQuery();
+  const { refreshAll } = useRefreshAllData();
+
+  // React Query mutations for task operations (with optimistic updates + rollback)
+  const togglePatientTaskMutation = useTogglePatientTask();
+  const toggleGeneralTaskMutation = useToggleGeneralTask();
+  const addPatientTaskMutation = useAddPatientTask();
+  const deletePatientTaskMutation = useDeletePatientTask();
+  const addGeneralTaskMutation = useAddGeneralTask();
+  const deleteGeneralTaskMutation = useDeleteGeneralTask();
+
   const { medications: commonMedications } = useCommonItems();
   const { toast } = useToast();
 
@@ -608,54 +631,31 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleTask = async (patientId: number, taskId: string, currentStatus: boolean) => {
-    // Optimistic update: update local state immediately to prevent reordering
+  const handleToggleTask = (patientId: number, taskId: string, currentStatus: boolean) => {
+    // React Query mutation handles optimistic update + rollback automatically
     const newStatus = !currentStatus;
     console.log('[TASK DEBUG] Toggle request:', { patientId, taskId, currentStatus, newStatus });
 
-    setPatients(prev => prev.map(p =>
-      p.id === patientId
-        ? {
-            ...p,
-            tasks: (p.tasks || []).map((t: any) =>
-              t.id === taskId ? { ...t, completed: newStatus } : t
-            ),
-          }
-        : p
-    ));
+    togglePatientTaskMutation.mutate(
+      { patientId, taskId, completed: newStatus },
+      {
+        onError: (error: any) => {
+          // Find patient and task for detailed error message
+          const patient = patients.find(p => p.id === patientId);
+          const task = patient?.tasks?.find((t: any) => t.id === taskId);
+          const patientName = patient?.demographics?.name || patient?.name || `Patient ${patientId}`;
+          const taskTitle = task?.title || `Task ${taskId}`;
 
-    try {
-      const result = await apiClient.updateTask(String(patientId), String(taskId), { completed: newStatus });
-      console.log('[TASK DEBUG] API response:', result);
-      // Success - no refetch needed, local state is already updated
-    } catch (error: any) {
-      // Rollback optimistic update on error
-      setPatients(prev => prev.map(p =>
-        p.id === patientId
-          ? {
-              ...p,
-              tasks: (p.tasks || []).map((t: any) =>
-                t.id === taskId ? { ...t, completed: currentStatus } : t
-              ),
-            }
-          : p
-      ));
+          console.error(`Task toggle error for ${patientName} - ${taskTitle}:`, error);
 
-      // Find patient and task for detailed error message
-      const patient = patients.find(p => p.id === patientId);
-      const task = patient?.tasks?.find((t: any) => t.id === taskId);
-
-      const patientName = patient?.demographics?.name || patient?.name || `Patient ${patientId}`;
-      const taskTitle = task?.title || `Task ${taskId}`;
-
-      console.error(`Task toggle error for ${patientName} - ${taskTitle}:`, error);
-
-      toast({
-        variant: 'destructive',
-        title: 'Failed to update task',
-        description: `Could not toggle "${taskTitle}" for ${patientName}. ${error.message || 'Check console for details.'}`
-      });
-    }
+          toast({
+            variant: 'destructive',
+            title: 'Failed to update task',
+            description: `Could not toggle "${taskTitle}" for ${patientName}. ${error.message || 'Check console for details.'}`
+          });
+        },
+      }
+    );
   };
 
   // Refresh all tasks - regenerate based on patient status
@@ -751,14 +751,6 @@ export default function VetHub() {
       return;
     }
 
-    // Optimistic update
-    setPatients(prev => prev.map(p => ({
-      ...p,
-      tasks: (p.tasks || []).map((t: any) =>
-        (t.title || t.name) === taskName ? { ...t, completed: true } : t
-      ),
-    })));
-
     try {
       // Update all incomplete tasks in parallel
       await Promise.all(
@@ -771,15 +763,18 @@ export default function VetHub() {
         title: 'Tasks completed',
         description: `Marked "${taskName}" as complete for ${items.length} patient(s).`
       });
-    } catch (error: any) {
-      // Rollback on error
+
+      // Refetch to show updated state
       refetch();
+    } catch (error: any) {
       console.error(`Complete all error for ${taskName}:`, error);
       toast({
         variant: 'destructive',
         title: 'Failed to complete tasks',
         description: `Could not complete "${taskName}" for all patients. ${error.message || 'Try again.'}`
       });
+      // Refetch to get correct state
+      refetch();
     }
   };
 
@@ -1373,33 +1368,28 @@ export default function VetHub() {
     }
   };
 
-  const handleToggleGeneralTask = async (taskId: string, currentStatus: boolean) => {
-    // Optimistic update: update local state immediately to prevent reordering
+  const handleToggleGeneralTask = (taskId: string, currentStatus: boolean) => {
+    // React Query mutation handles optimistic update + rollback automatically
     const newStatus = !currentStatus;
-    setGeneralTasks(prev => prev.map(t =>
-      t.id === taskId ? { ...t, completed: newStatus } : t
-    ));
-
-    try {
-      await apiClient.updateGeneralTask(String(taskId), { completed: newStatus });
-      // Success - no refetch needed, local state is already updated
-    } catch (error) {
-      // Rollback optimistic update on error
-      setGeneralTasks(prev => prev.map(t =>
-        t.id === taskId ? { ...t, completed: currentStatus } : t
-      ));
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
-    }
+    toggleGeneralTaskMutation.mutate(
+      { taskId, completed: newStatus },
+      {
+        onError: () => {
+          toast({ variant: 'destructive', title: 'Error', description: 'Failed to update task' });
+        },
+      }
+    );
   };
 
-  const handleDeleteGeneralTask = async (taskId: string) => {
-    try {
-      await apiClient.deleteGeneralTask(String(taskId));
-      toast({ title: '🗑️ General task deleted' });
-      refetchGeneralTasks();
-    } catch (error) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
-    }
+  const handleDeleteGeneralTask = (taskId: string) => {
+    deleteGeneralTaskMutation.mutate(taskId, {
+      onSuccess: () => {
+        toast({ title: '🗑️ General task deleted' });
+      },
+      onError: () => {
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete task' });
+      },
+    });
   };
 
   const handleDeleteAllTasks = async () => {

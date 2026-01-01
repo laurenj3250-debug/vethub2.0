@@ -162,6 +162,7 @@ export async function POST(request: Request) {
             const created = await prisma.patient.create({
               data: {
                 status: patient.status || 'Active',
+                type: patient.type || 'Medical', // Allow type to be set from import, default to Medical
                 demographics: patient.demographics,
                 medicalHistory: patient.medicalHistory || {},
                 currentStay: patient.currentStay,
