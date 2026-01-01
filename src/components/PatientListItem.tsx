@@ -188,8 +188,8 @@ export function PatientListItem({
 
         {/* Food Calculator (dogs only) */}
         <FoodCalculatorPopover
-          weightKg={patient.demographics?.weight}
-          species={patient.demographics?.species}
+          weightKg={patient.demographics?.weight || patient.patient_info?.weight}
+          species={patient.demographics?.species || patient.patient_info?.species}
           patientName={patient.demographics?.name || patient.name}
         />
 
