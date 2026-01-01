@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 
 interface FoodCalculatorPopoverProps {
   weightKg: number | string | undefined;
+  species: string | undefined;
   patientName?: string;
 }
 
@@ -13,9 +14,12 @@ const FOOD_OPTIONS = [
   { name: 'RC GI LF Dry', kcalPer100g: 321, emoji: '🥣' },
 ] as const;
 
-export function FoodCalculatorPopover({ weightKg, patientName }: FoodCalculatorPopoverProps) {
+export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCalculatorPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Only show for dogs
+  const isCanine = species?.toLowerCase()?.includes('canine') || species?.toLowerCase()?.includes('dog');
 
   // Parse weight
   const weight = typeof weightKg === 'string'
@@ -39,10 +43,16 @@ export function FoodCalculatorPopover({ weightKg, patientName }: FoodCalculatorP
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
+  // Don't render for non-dogs
+  if (!isCanine) {
+    return null;
+  }
+
+  // Show disabled state if no weight
   if (weight <= 0) {
     return (
       <span
-        className="cursor-not-allowed opacity-50"
+        className="cursor-not-allowed opacity-40 text-sm"
         title="No weight recorded"
       >
         🍽️
@@ -53,8 +63,12 @@ export function FoodCalculatorPopover({ weightKg, patientName }: FoodCalculatorP
   return (
     <div className="relative inline-block" ref={popoverRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="text-lg hover:scale-110 transition-transform cursor-pointer"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className="text-sm hover:scale-110 transition-transform cursor-pointer"
         title={`Food calculator for ${patientName || 'patient'}`}
       >
         🍽️
@@ -64,6 +78,7 @@ export function FoodCalculatorPopover({ weightKg, patientName }: FoodCalculatorP
         <div
           className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 p-3"
           style={{ minWidth: '220px' }}
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Arrow */}
           <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white" />

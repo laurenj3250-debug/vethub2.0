@@ -1348,7 +1348,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       <div className="font-bold text-gray-900 flex items-center gap-2">
                         {patientName}
                         <FoodCalculatorPopover
-                          weightKg={patient.demographics?.weight}
+                          weightKg={(patient as any)?.demographics?.weight}
+                          species={(patient as any)?.demographics?.species}
                           patientName={patientName}
                         />
                       </div>
@@ -1620,7 +1621,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                         </div>
                       </Link>
                       <FoodCalculatorPopover
-                        weightKg={patient.demographics?.weight}
+                        weightKg={(patient as any)?.demographics?.weight}
+                        species={(patient as any)?.demographics?.species}
                         patientName={patientName}
                       />
                     </div>
