@@ -673,9 +673,10 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
       padding: 0;
       box-sizing: border-box;
     }
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      width: 70mm;
     }
     .page {
       width: 70mm;
@@ -684,11 +685,13 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
       font-family: Arial, Helvetica, sans-serif;
       font-size: 9pt;
       line-height: 1.3;
-      page-break-after: always;
       display: block;
+      overflow: hidden;
+      break-after: page;
+      break-inside: avoid;
     }
     .page:last-child {
-      page-break-after: auto;
+      break-after: auto;
     }
     .line {
       margin: 0;
@@ -702,9 +705,9 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
       font-weight: bold;
     }
     @media print {
-      body { margin: 0; padding: 0; }
-      .page { page-break-after: always; }
-      .page:last-child { page-break-after: auto; }
+      html, body { margin: 0; padding: 0; width: 70mm; }
+      .page { break-after: page; break-inside: avoid; }
+      .page:last-child { break-after: auto; }
     }
   </style>
 </head>
@@ -776,9 +779,10 @@ export function printSinglePatientBigLabels(patient: UnifiedPatient, count?: num
       padding: 0;
       box-sizing: border-box;
     }
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      width: 70mm;
     }
     .page {
       width: 70mm;
@@ -787,11 +791,13 @@ export function printSinglePatientBigLabels(patient: UnifiedPatient, count?: num
       font-family: Arial, Helvetica, sans-serif;
       font-size: 9pt;
       line-height: 1.3;
-      page-break-after: always;
       display: block;
+      overflow: hidden;
+      break-after: page;
+      break-inside: avoid;
     }
     .page:last-child {
-      page-break-after: auto;
+      break-after: auto;
     }
     .line {
       margin: 0;
@@ -805,9 +811,9 @@ export function printSinglePatientBigLabels(patient: UnifiedPatient, count?: num
       font-weight: bold;
     }
     @media print {
-      body { margin: 0; padding: 0; }
-      .page { page-break-after: always; }
-      .page:last-child { page-break-after: auto; }
+      html, body { margin: 0; padding: 0; width: 70mm; }
+      .page { break-after: page; break-inside: avoid; }
+      .page:last-child { break-after: auto; }
     }
   </style>
 </head>
@@ -859,10 +865,11 @@ export function printSinglePatientTinyLabels(patient: UnifiedPatient, count?: nu
       margin: 0;
     }
 
-    body {
+    html, body {
       font-family: Georgia, serif;
       margin: 0;
       padding: 0;
+      width: 50mm;
       background-color: #f0f0f0;
     }
 
@@ -881,11 +888,12 @@ export function printSinglePatientTinyLabels(patient: UnifiedPatient, count?: nu
       justify-content: center;
       align-items: center;
       overflow: hidden;
-      page-break-after: always;
+      break-after: page;
+      break-inside: avoid;
     }
 
     .tiny-label:last-child {
-      page-break-after: auto;
+      break-after: auto;
     }
 
     .line {
@@ -905,7 +913,9 @@ export function printSinglePatientTinyLabels(patient: UnifiedPatient, count?: nu
     .extrabold { font-weight: 800; }
 
     @media print {
-      body { margin: 0; background: white; }
+      html, body { margin: 0; padding: 0; width: 50mm; background: white; }
+      .tiny-label { break-after: page; break-inside: avoid; }
+      .tiny-label:last-child { break-after: auto; }
     }
   </style>
 </head>
@@ -974,26 +984,26 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
   <title>Tiny Labels - Consolidated</title>
   <style>
     @page {
-      size: 50mm 35mm; /* Match tiny label dimensions */
+      size: 50mm 35mm;
       margin: 0;
     }
 
-    body {
-      font-family: Georgia, serif; /* Georgia font as specified */
+    html, body {
+      font-family: Georgia, serif;
       margin: 0;
       padding: 0;
+      width: 50mm;
       background-color: #f0f0f0;
     }
 
     .label-container {
-      /* No flex - allows page-break-after to work */
     }
 
     .tiny-label {
-      width: 50mm;  /* Exact dimensions from template */
+      width: 50mm;
       height: 35mm;
       border: 1px solid black;
-      padding: 0.1mm; /* Internal margin as specified */
+      padding: 0.1mm;
       box-sizing: border-box;
       background: white;
       display: flex;
@@ -1001,52 +1011,34 @@ export async function printConsolidatedTinyLabels(patients: UnifiedPatient[]) {
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      break-after: page;
+      break-inside: avoid;
+    }
+
+    .tiny-label:last-child {
+      break-after: auto;
     }
 
     .line {
       text-align: center;
-      font-size: 10px; /* text-xxs = 10px as specified */
-      line-height: 1.1; /* Tight line height */
+      font-size: 10px;
+      line-height: 1.1;
     }
 
-    /* Specific margin for each line matching template */
-    .date-line {
-      margin-bottom: 0; /* mb-0 */
-    }
+    .date-line { margin-bottom: 0; }
+    .name-line { margin-bottom: 0; }
+    .owner-line { margin-bottom: 1px; }
+    .breed-line { margin-bottom: 0; }
+    .sex-age-line { margin-bottom: 1px; }
+    .id-line { margin-bottom: 0; }
 
-    .name-line {
-      margin-bottom: 0; /* mb-0 */
-    }
-
-    .owner-line {
-      margin-bottom: 1px; /* mb-px for main section break */
-    }
-
-    .breed-line {
-      margin-bottom: 0; /* mb-0 */
-    }
-
-    .sex-age-line {
-      margin-bottom: 1px; /* mb-px for small separator */
-    }
-
-    .id-line {
-      margin-bottom: 0; /* mb-0 */
-    }
-
-    .bold {
-      font-weight: bold;
-    }
-
-    .extrabold {
-      font-weight: 800; /* font-extrabold */
-    }
+    .bold { font-weight: bold; }
+    .extrabold { font-weight: 800; }
 
     @media print {
-      body {
-        margin: 0;
-        background: white;
-      }
+      html, body { margin: 0; padding: 0; width: 50mm; background: white; }
+      .tiny-label { break-after: page; break-inside: avoid; }
+      .tiny-label:last-child { break-after: auto; }
     }
   </style>
 </head>
