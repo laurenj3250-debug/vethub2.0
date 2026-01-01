@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Trash2, Tag } from 'lucide-react';
+import { FoodCalculatorPopover } from './FoodCalculatorPopover';
 
 // Neo-pop styling constants
 const NEO_SHADOW = '6px 6px 0 #000';
@@ -184,6 +185,13 @@ export function PatientListItem({
             <Tag size={16} className="text-gray-900" />
           </button>
         )}
+
+        {/* Food Calculator (dogs only) */}
+        <FoodCalculatorPopover
+          weightKg={patient.demographics?.weight}
+          species={patient.demographics?.species}
+          patientName={patient.demographics?.name || patient.name}
+        />
 
         {/* Delete button */}
         <button

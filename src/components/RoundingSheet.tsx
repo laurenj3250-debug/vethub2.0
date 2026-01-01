@@ -20,7 +20,6 @@ import {
   NEO_POP_STYLES,
 } from '@/lib/constants';
 import { FieldMultiSelect } from './FieldMultiSelect';
-import { FoodCalculatorPopover } from './FoodCalculatorPopover';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
 
 // Local Patient interface for component props (uses RoundingPatient pattern)
@@ -412,14 +411,24 @@ function getPatientName(patient: Patient): string {
  * 1. savedData - Data from API (baseline)
  * 2. existingEdits - User's unsaved edits from this session
  * 3. updates - New changes being applied
+ *
+ * CRITICAL: Problems and therapeutics are NEVER auto-populated from savedData.
+ * Users must fill these fresh each day. They are only preserved if already in existingEdits.
  */
 function mergePatientRoundingData(
   savedData: RoundingData,
   existingEdits: RoundingData,
   updates: Partial<RoundingData>
 ): RoundingData {
+  // Strip problems and therapeutics from savedData - these should never auto-populate
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { problems: _savedProblems, therapeutics: _savedTherapeutics, ...cleanSavedData } = savedData;
+
   return {
-    ...savedData,
+    ...cleanSavedData,
+    // Only include problems/therapeutics if they exist in existingEdits
+    problems: existingEdits.problems ?? '',
+    therapeutics: existingEdits.therapeutics ?? '',
     ...existingEdits,
     ...updates,
   };
@@ -1345,14 +1354,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       title={`Code: ${data.code || 'None'}`}
                     />
                     <div>
-                      <div className="font-bold text-gray-900 flex items-center gap-2">
-                        {patientName}
-                        <FoodCalculatorPopover
-                          weightKg={(patient as any)?.demographics?.weight}
-                          species={(patient as any)?.demographics?.species}
-                          patientName={patientName}
-                        />
-                      </div>
+                      <div className="font-bold text-gray-900">{patientName}</div>
                       <div className="text-xs text-gray-600">{data.signalment || 'No signalment'}</div>
                     </div>
                   </div>
@@ -1620,11 +1622,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                           {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
                         </div>
                       </Link>
-                      <FoodCalculatorPopover
-                        weightKg={(patient as any)?.demographics?.weight}
-                        species={(patient as any)?.demographics?.species}
-                        patientName={patientName}
-                      />
                     </div>
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>

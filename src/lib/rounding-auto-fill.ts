@@ -54,9 +54,17 @@ export function generateSignalment(demographics: Demographics): string {
 
   // Age (format: "5y" or "8m" or "2.5y")
   if (demographics.age) {
-    const age = demographics.age.trim();
-    // If already has 'y' or 'm', use as-is, otherwise append 'y'
-    parts.push(age.match(/[ym]$/i) ? age : `${age}y`);
+    let age = demographics.age.trim();
+
+    // If age contains full words like "years", "months", "days", abbreviate them
+    age = age
+      .replace(/\s*years?/gi, 'y')
+      .replace(/\s*months?/gi, 'm')
+      .replace(/\s*days?/gi, 'd')
+      .replace(/\s*weeks?/gi, 'w');
+
+    // If already has abbreviated suffix 'y', 'm', 'd', 'w', use as-is, otherwise append 'y'
+    parts.push(age.match(/[ymdw]$/i) ? age : `${age}y`);
   }
 
   // Sex (common abbreviations: FS, MN, F, M, MC, SF)
