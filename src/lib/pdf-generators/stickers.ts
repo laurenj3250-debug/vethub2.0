@@ -681,10 +681,10 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
     .page {
       width: 70mm;
       height: 45mm;
-      padding: 3mm 4mm;
+      padding: 2.5mm 3mm;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 9pt;
-      line-height: 1.3;
+      font-size: 8.7pt;
+      line-height: 1.15;
       display: block;
       overflow: hidden;
       break-after: page;
@@ -696,13 +696,17 @@ export async function printConsolidatedBigLabels(patients: UnifiedPatient[]) {
     .line {
       margin: 0;
       padding: 0;
-      margin-bottom: 0.3mm;
+      margin-bottom: 0.15mm;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
     }
     .line.top {
-      margin-bottom: 0.3mm;
+      font-size: 9.6pt;
+      line-height: 1.1;
     }
     .bold {
-      font-weight: bold;
+      font-weight: 700;
     }
     @media print {
       html, body { margin: 0; padding: 0; width: 70mm; }
@@ -787,10 +791,10 @@ export function printSinglePatientBigLabels(patient: UnifiedPatient, count?: num
     .page {
       width: 70mm;
       height: 45mm;
-      padding: 3mm 4mm;
+      padding: 2.5mm 3mm;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 9pt;
-      line-height: 1.3;
+      font-size: 8.7pt;
+      line-height: 1.15;
       display: block;
       overflow: hidden;
       break-after: page;
@@ -802,13 +806,17 @@ export function printSinglePatientBigLabels(patient: UnifiedPatient, count?: num
     .line {
       margin: 0;
       padding: 0;
-      margin-bottom: 0.3mm;
+      margin-bottom: 0.15mm;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
     }
     .line.top {
-      margin-bottom: 0.3mm;
+      font-size: 9.6pt;
+      line-height: 1.1;
     }
     .bold {
-      font-weight: bold;
+      font-weight: 700;
     }
     @media print {
       html, body { margin: 0; padding: 0; width: 70mm; }
