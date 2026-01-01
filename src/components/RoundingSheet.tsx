@@ -20,6 +20,7 @@ import {
   NEO_POP_STYLES,
 } from '@/lib/constants';
 import { FieldMultiSelect } from './FieldMultiSelect';
+import { FoodCalculatorPopover } from './FoodCalculatorPopover';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
 
 // Local Patient interface for component props (uses RoundingPatient pattern)
@@ -1344,7 +1345,13 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       title={`Code: ${data.code || 'None'}`}
                     />
                     <div>
-                      <div className="font-bold text-gray-900">{patientName}</div>
+                      <div className="font-bold text-gray-900 flex items-center gap-2">
+                        {patientName}
+                        <FoodCalculatorPopover
+                          weightKg={patient.demographics?.weight}
+                          patientName={patientName}
+                        />
+                      </div>
                       <div className="text-xs text-gray-600">{data.signalment || 'No signalment'}</div>
                     </div>
                   </div>
@@ -1602,15 +1609,21 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                   onPaste={(e) => handleRowPaste(e, patient.id)}
                 >
                   <td className="p-1 sticky left-0 z-10" style={{ backgroundColor: rowBg, borderRight: NEO_BORDER, borderBottom: '1px solid #000' }}>
-                    <Link
-                      href={`/?patient=${patient.id}`}
-                      className="group flex flex-col hover:text-[#6BB89D] transition"
-                    >
-                      <div className="font-bold text-xs text-gray-900 group-hover:text-[#6BB89D] truncate">{patientName}</div>
-                      <div className="text-[10px] text-gray-500 truncate">
-                        {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
-                      </div>
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/?patient=${patient.id}`}
+                        className="group flex flex-col hover:text-[#6BB89D] transition flex-1 min-w-0"
+                      >
+                        <div className="font-bold text-xs text-gray-900 group-hover:text-[#6BB89D] truncate">{patientName}</div>
+                        <div className="text-[10px] text-gray-500 truncate">
+                          {(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}
+                        </div>
+                      </Link>
+                      <FoodCalculatorPopover
+                        weightKg={patient.demographics?.weight}
+                        patientName={patientName}
+                      />
+                    </div>
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
                     <input
