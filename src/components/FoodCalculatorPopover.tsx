@@ -53,8 +53,8 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
   if (weight <= 0) {
     return (
       <span
-        className="cursor-not-allowed opacity-40 text-sm"
-        title="No weight recorded"
+        className="cursor-not-allowed opacity-50 text-base p-1"
+        title="No weight recorded - add weight to enable"
       >
         🍽️
       </span>
@@ -69,7 +69,7 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="text-sm hover:scale-110 transition-transform cursor-pointer"
+        className="text-base hover:scale-110 transition-transform cursor-pointer p-1"
         title={`Food calculator for ${patientName || 'patient'}`}
       >
         🍽️
