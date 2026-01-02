@@ -11,23 +11,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { useMilestones, useCelebrateMilestone } from '@/hooks/useResidencyStats';
 import { Trophy, Brain, Users, Scissors, Target, PartyPopper } from 'lucide-react';
+import { CSSConfetti } from './CSSConfetti';
+import {
+  MILESTONE_CONFIG as CENTRALIZED_CONFIG,
+  getRandomCelebrationMessage,
+} from '@/lib/residency-milestones';
 
-const MILESTONE_CONFIG: Record<string, { icon: typeof Trophy; color: string; emoji: string }> = {
-  mri: { icon: Brain, color: 'text-purple-500', emoji: '🧠' },
-  appointment: { icon: Users, color: 'text-blue-500', emoji: '👥' },
-  surgery: { icon: Scissors, color: 'text-red-500', emoji: '✂️' },
-  case: { icon: Target, color: 'text-green-500', emoji: '🎯' },
+const ICON_MAP: Record<string, typeof Trophy> = {
+  mri: Brain,
+  appointment: Users,
+  surgery: Scissors,
+  case: Target,
 };
-
-const CELEBRATION_MESSAGES = [
-  "You're crushing it!",
-  "Look at you go!",
-  "Neuro superstar!",
-  "Keep that momentum!",
-  "One step closer to freedom!",
-  "The spinal cord would be proud!",
-  "Your neurons are firing!",
-];
 
 interface MilestoneData {
   uncelebrated: Array<{ id: string; type: string; count: number }>;
@@ -41,9 +36,8 @@ export function MilestoneCelebration() {
     type: string;
     count: number;
   } | null>(null);
-  const [message] = useState(() =>
-    CELEBRATION_MESSAGES[Math.floor(Math.random() * CELEBRATION_MESSAGES.length)]
-  );
+  const [message] = useState(() => getRandomCelebrationMessage());
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (milestoneData?.uncelebrated?.length && milestoneData.uncelebrated.length > 0) {
@@ -53,34 +47,9 @@ export function MilestoneCelebration() {
 
   useEffect(() => {
     if (currentMilestone) {
-      // Dynamic import for canvas-confetti to avoid SSR issues
-      import('canvas-confetti').then((confettiModule) => {
-        const confetti = confettiModule.default;
-        const duration = 3000;
-        const end = Date.now() + duration;
-
-        const frame = () => {
-          confetti({
-            particleCount: 3,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0 },
-            colors: ['#6366f1', '#8b5cf6', '#ec4899'],
-          });
-          confetti({
-            particleCount: 3,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1 },
-            colors: ['#6366f1', '#8b5cf6', '#ec4899'],
-          });
-
-          if (Date.now() < end) {
-            requestAnimationFrame(frame);
-          }
-        };
-        frame();
-      });
+      setShowConfetti(true);
+    } else {
+      setShowConfetti(false);
     }
   }, [currentMilestone]);
 
@@ -93,11 +62,13 @@ export function MilestoneCelebration() {
 
   if (!currentMilestone) return null;
 
-  const config = MILESTONE_CONFIG[currentMilestone.type];
-  const Icon = config?.icon || Trophy;
+  const config = CENTRALIZED_CONFIG[currentMilestone.type as keyof typeof CENTRALIZED_CONFIG];
+  const Icon = ICON_MAP[currentMilestone.type] || Trophy;
 
   return (
-    <Dialog open={!!currentMilestone} onOpenChange={() => handleCelebrate()}>
+    <>
+      <CSSConfetti active={showConfetti} duration={3000} />
+      <Dialog open={!!currentMilestone} onOpenChange={() => handleCelebrate()}>
       <DialogContent className="sm:max-w-md text-center">
         <DialogHeader>
           <DialogTitle className="text-center">
@@ -122,7 +93,7 @@ export function MilestoneCelebration() {
             <Icon className={`h-12 w-12 ${config?.color || 'text-primary'}`} />
             <div className="text-left">
               <p className="text-4xl font-bold">{currentMilestone.count}</p>
-              <p className="text-muted-foreground capitalize">{currentMilestone.type}s</p>
+              <p className="text-muted-foreground capitalize">{config?.label || currentMilestone.type}</p>
             </div>
           </div>
 
@@ -131,11 +102,12 @@ export function MilestoneCelebration() {
           <div className="text-6xl">{config?.emoji || '🏆'}</div>
         </motion.div>
 
-        <Button onClick={handleCelebrate} size="lg" className="w-full">
+        <Button onClick={handleCelebrate} size="lg" className="w-full min-h-[44px]">
           <Trophy className="mr-2 h-5 w-5" />
           Celebrate!
         </Button>
       </DialogContent>
     </Dialog>
+    </>
   );
 }

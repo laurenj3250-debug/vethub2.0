@@ -13,19 +13,14 @@ import {
   Legend,
 } from 'recharts';
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
-import { TrendingUp, Loader2 } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
+import { WeeklyChartSkeleton } from './StatsOverviewSkeleton';
 
 export function WeeklyChart() {
   const { data: stats, isLoading } = useResidencyStats();
 
   if (isLoading || !stats) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
+    return <WeeklyChartSkeleton />;
   }
 
   // Group data by week for last 8 weeks

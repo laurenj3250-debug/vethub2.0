@@ -29,6 +29,7 @@ import { SurgeryTracker } from '@/components/residency/SurgeryTracker';
 import { StatsOverview } from '@/components/residency/StatsOverview';
 import { WeeklyChart } from '@/components/residency/WeeklyChart';
 import { MilestoneCelebration } from '@/components/residency/MilestoneCelebration';
+import { StatsErrorBoundary } from '@/components/residency/StatsErrorBoundary';
 import { useDailyEntry } from '@/hooks/useResidencyStats';
 import { format } from 'date-fns';
 import { useDebouncedCallback, useSaveStatus, SaveStatus } from '@/hooks/useDebounce';
@@ -67,22 +68,24 @@ function StatsTabContent() {
   const { data: todayEntry } = useDailyEntry(today);
 
   return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <StatsOverview />
+    <StatsErrorBoundary>
+      <div className="space-y-6">
+        {/* Stats Overview */}
+        <StatsOverview />
 
-      {/* Weekly Chart */}
-      <WeeklyChart />
+        {/* Weekly Chart */}
+        <WeeklyChart />
 
-      {/* Two-column layout for daily entry + surgeries */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DailyEntryForm selectedDate={today} />
-        <SurgeryTracker
-          dailyEntryId={todayEntry?.id || null}
-          surgeries={todayEntry?.surgeries || []}
-        />
+        {/* Two-column layout for daily entry + surgeries */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <DailyEntryForm selectedDate={today} />
+          <SurgeryTracker
+            dailyEntryId={todayEntry?.id || null}
+            surgeries={todayEntry?.surgeries || []}
+          />
+        </div>
       </div>
-    </div>
+    </StatsErrorBoundary>
   );
 }
 

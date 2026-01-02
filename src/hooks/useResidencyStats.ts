@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 
 interface Surgery {
   id: string;
@@ -107,6 +108,17 @@ export function useSaveDailyEntry() {
       queryClient.invalidateQueries({ queryKey: ['daily-entry', variables.date] });
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
       queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      toast({
+        title: 'Entry saved',
+        description: 'Your daily entry has been updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to save',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
     },
   });
 }
@@ -130,10 +142,21 @@ export function useAddSurgery() {
       if (!res.ok) throw new Error('Failed to add surgery');
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
       queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      toast({
+        title: 'Surgery logged',
+        description: `${variables.procedureName} added successfully.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to add surgery',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
     },
   });
 }
@@ -152,6 +175,17 @@ export function useDeleteSurgery() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+      toast({
+        title: 'Surgery removed',
+        description: 'The surgery has been deleted.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to delete',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
     },
   });
 }

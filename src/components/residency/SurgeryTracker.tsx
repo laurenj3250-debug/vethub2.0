@@ -15,33 +15,13 @@ import {
 import { useAddSurgery, useDeleteSurgery, type Surgery } from '@/hooks/useResidencyStats';
 import { Scissors, Plus, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
 
 interface SurgeryTrackerProps {
   dailyEntryId: string | null;
   surgeries: Surgery[];
   onNeedsDailyEntry?: () => void;
 }
-
-const PARTICIPATION_LABELS: Record<string, { label: string; description: string; color: string }> = {
-  S: { label: 'Surgeon', description: 'Primary surgeon', color: 'bg-green-500' },
-  O: { label: 'Observer', description: 'Observing only', color: 'bg-gray-400' },
-  C: { label: 'Circulator', description: 'Circulating/assisting', color: 'bg-blue-400' },
-  D: { label: 'Dissector', description: 'Dissecting/exposing', color: 'bg-yellow-500' },
-  K: { label: 'Knife', description: 'Cutting/suturing assistant', color: 'bg-orange-500' },
-};
-
-const COMMON_PROCEDURES = [
-  'Hemilaminectomy',
-  'Ventral Slot',
-  'Craniotomy',
-  'Foramen Magnum Decompression',
-  'Atlantoaxial Stabilization',
-  'Lumbosacral Dorsal Laminectomy',
-  'Lateral Corpectomy',
-  'VP Shunt',
-  'Peripheral Nerve Biopsy',
-  'Muscle Biopsy',
-];
 
 export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: SurgeryTrackerProps) {
   const addMutation = useAddSurgery();
@@ -125,19 +105,18 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
             <div className="space-y-2">
               <Label>Your Role</Label>
               <div className="grid grid-cols-5 gap-2">
-                {Object.entries(PARTICIPATION_LABELS).map(([key, { label, color }]) => (
+                {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
                   <Button
                     key={key}
                     variant={newSurgery.participation === key ? 'default' : 'outline'}
-                    size="sm"
                     className={cn(
-                      'flex flex-col h-auto py-2',
+                      'flex flex-col h-auto min-h-[44px] py-3 px-1',
                       newSurgery.participation === key && color
                     )}
                     onClick={() => setNewSurgery((s) => ({ ...s, participation: key as Surgery['participation'] }))}
                   >
-                    <span className="font-bold">{key}</span>
-                    <span className="text-xs opacity-80">{label}</span>
+                    <span className="font-bold text-base">{key}</span>
+                    <span className="text-[10px] sm:text-xs opacity-80 leading-tight">{label}</span>
                   </Button>
                 ))}
               </div>
@@ -153,11 +132,19 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleAdd} disabled={!newSurgery.procedureName || addMutation.isPending}>
+              <Button
+                onClick={handleAdd}
+                disabled={!newSurgery.procedureName || addMutation.isPending}
+                className="h-11 min-h-[44px] px-6"
+              >
                 {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Add Surgery
               </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>
+              <Button
+                variant="ghost"
+                onClick={() => setShowForm(false)}
+                className="h-11 min-h-[44px]"
+              >
                 Cancel
               </Button>
             </div>
@@ -180,7 +167,7 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
                   <div
                     className={cn(
                       'w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm',
-                      PARTICIPATION_LABELS[surgery.participation]?.color || 'bg-gray-500'
+                      PARTICIPATION_LEVELS[surgery.participation as keyof typeof PARTICIPATION_LEVELS]?.color || 'bg-gray-500'
                     )}
                   >
                     {surgery.participation}
@@ -188,7 +175,7 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
                   <div>
                     <p className="font-medium">{surgery.procedureName}</p>
                     <p className="text-sm text-muted-foreground">
-                      {PARTICIPATION_LABELS[surgery.participation]?.description || surgery.participation}
+                      {PARTICIPATION_LEVELS[surgery.participation as keyof typeof PARTICIPATION_LEVELS]?.description || surgery.participation}
                       {surgery.patientName && ` • ${surgery.patientName}`}
                     </p>
                   </div>

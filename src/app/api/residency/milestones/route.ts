@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-// Milestone thresholds
-const MILESTONES = {
-  mri: [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
-  appointment: [25, 50, 75, 100, 150, 200, 250, 300, 400, 500],
-  surgery: [10, 25, 50, 75, 100, 150, 200],
-  case: [100, 250, 500, 750, 1000, 1500, 2000],
-};
+import { MILESTONE_THRESHOLDS } from '@/lib/residency-milestones';
 
 // GET - Check for new milestones and return uncelebrated ones
 export async function GET() {
@@ -31,7 +24,7 @@ export async function GET() {
     // Check each milestone type
     const newMilestones: Array<{ type: string; count: number }> = [];
 
-    for (const [type, thresholds] of Object.entries(MILESTONES)) {
+    for (const [type, thresholds] of Object.entries(MILESTONE_THRESHOLDS)) {
       const currentCount = type === 'surgery' ? surgeryTotal : totals[type as keyof typeof totals];
 
       for (const threshold of thresholds) {

@@ -75,10 +75,11 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
             <Brain className="h-4 w-4 text-purple-500" />
             MRIs
           </Label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 min-h-[44px] min-w-[44px] text-xl font-bold"
               onClick={() => setFormData((d) => ({ ...d, mriCount: Math.max(0, d.mriCount - 1) }))}
             >
               -
@@ -88,11 +89,12 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
               min={0}
               value={formData.mriCount}
               onChange={(e) => setFormData((d) => ({ ...d, mriCount: parseInt(e.target.value) || 0 }))}
-              className="w-20 text-center"
+              className="w-20 h-12 text-center text-lg font-semibold"
             />
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 min-h-[44px] min-w-[44px] text-xl font-bold"
               onClick={() => setFormData((d) => ({ ...d, mriCount: d.mriCount + 1 }))}
             >
               +
@@ -106,10 +108,11 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
             <Users className="h-4 w-4 text-blue-500" />
             Recheck Appointments
           </Label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 min-h-[44px] min-w-[44px] text-xl font-bold"
               onClick={() => setFormData((d) => ({ ...d, recheckCount: Math.max(0, d.recheckCount - 1) }))}
             >
               -
@@ -119,11 +122,12 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
               min={0}
               value={formData.recheckCount}
               onChange={(e) => setFormData((d) => ({ ...d, recheckCount: parseInt(e.target.value) || 0 }))}
-              className="w-20 text-center"
+              className="w-20 h-12 text-center text-lg font-semibold"
             />
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 min-h-[44px] min-w-[44px] text-xl font-bold"
               onClick={() => setFormData((d) => ({ ...d, recheckCount: d.recheckCount + 1 }))}
             >
               +
@@ -137,10 +141,11 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
             <Stethoscope className="h-4 w-4 text-green-500" />
             New Appointments
           </Label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 min-h-[44px] min-w-[44px] text-xl font-bold"
               onClick={() => setFormData((d) => ({ ...d, newCount: Math.max(0, d.newCount - 1) }))}
             >
               -
@@ -150,11 +155,12 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
               min={0}
               value={formData.newCount}
               onChange={(e) => setFormData((d) => ({ ...d, newCount: parseInt(e.target.value) || 0 }))}
-              className="w-20 text-center"
+              className="w-20 h-12 text-center text-lg font-semibold"
             />
             <Button
               variant="outline"
-              size="sm"
+              size="lg"
+              className="h-12 w-12 min-h-[44px] min-w-[44px] text-xl font-bold"
               onClick={() => setFormData((d) => ({ ...d, newCount: d.newCount + 1 }))}
             >
               +
