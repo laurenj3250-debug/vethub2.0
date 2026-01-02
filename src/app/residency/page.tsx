@@ -22,7 +22,15 @@ import {
   Loader2,
   AlertCircle,
   Pencil,
+  BarChart3,
 } from 'lucide-react';
+import { DailyEntryForm } from '@/components/residency/DailyEntryForm';
+import { SurgeryTracker } from '@/components/residency/SurgeryTracker';
+import { StatsOverview } from '@/components/residency/StatsOverview';
+import { WeeklyChart } from '@/components/residency/WeeklyChart';
+import { MilestoneCelebration } from '@/components/residency/MilestoneCelebration';
+import { useDailyEntry } from '@/hooks/useResidencyStats';
+import { format } from 'date-fns';
 import { useDebouncedCallback, useSaveStatus, SaveStatus } from '@/hooks/useDebounce';
 import { generateACVIMWordDocument } from '@/lib/acvim-word-export';
 import {
@@ -35,7 +43,7 @@ import {
 import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
 import { NEO_POP } from '@/lib/neo-pop-styles';
 
-type TabType = 'cases' | 'journal' | 'schedule' | 'summary';
+type TabType = 'cases' | 'journal' | 'schedule' | 'summary' | 'stats';
 
 // Neo-Pop styled components
 const neoCard = "bg-white border-2 border-black shadow-[4px_4px_0_#000] rounded-2xl";
@@ -51,6 +59,31 @@ function getCurrentWeekInfo(startDate: string): { monthNumber: number; weekNumbe
   const monthNumber = Math.floor(weeksSinceStart / 4) + 1;
   const weekInMonth = (weeksSinceStart % 4) + 1;
   return { monthNumber: Math.min(12, Math.max(1, monthNumber)), weekNumber: Math.min(5, weekInMonth) };
+}
+
+// Stats Tab Content Component
+function StatsTabContent() {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: todayEntry } = useDailyEntry(today);
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Overview */}
+      <StatsOverview />
+
+      {/* Weekly Chart */}
+      <WeeklyChart />
+
+      {/* Two-column layout for daily entry + surgeries */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DailyEntryForm selectedDate={today} />
+        <SurgeryTracker
+          dailyEntryId={todayEntry?.id || null}
+          surgeries={todayEntry?.surgeries || []}
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function ACVIMResidencyTrackerPage() {
@@ -656,6 +689,7 @@ export default function ACVIMResidencyTrackerPage() {
                 { id: 'journal' as TabType, label: 'Journal', icon: BookOpen, color: NEO_POP.colors.lavender },
                 { id: 'schedule' as TabType, label: 'Schedule', icon: Calendar, color: NEO_POP.colors.yellow },
                 { id: 'summary' as TabType, label: 'Summary', icon: TrendingUp, color: NEO_POP.colors.pink },
+                { id: 'stats' as TabType, label: 'Stats', icon: BarChart3, color: '#a78bfa' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1303,7 +1337,15 @@ export default function ACVIMResidencyTrackerPage() {
             </div>
           </div>
         )}
+
+        {/* Stats Tab - Gamification & Daily Tracking */}
+        {activeTab === 'stats' && (
+          <StatsTabContent />
+        )}
       </div>
+
+      {/* Milestone Celebration Modal */}
+      <MilestoneCelebration />
 
       {/* Add Case Dialog */}
       {showCaseDialog && (

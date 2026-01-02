@@ -1,0 +1,191 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+interface Surgery {
+  id: string;
+  dailyEntryId: string;
+  procedureName: string;
+  participation: 'S' | 'O' | 'C' | 'D' | 'K';
+  patientName?: string;
+  notes?: string;
+}
+
+interface LMRIEntry {
+  id: string;
+  dailyEntryId: string;
+  predictedLocalization: string;
+  actualLocalization: string;
+  localizationCorrect: boolean;
+  lateralityCorrect?: boolean;
+  bonusFind: boolean;
+}
+
+interface DailyEntry {
+  id: string;
+  date: string;
+  mriCount: number;
+  recheckCount: number;
+  newCount: number;
+  totalCases: number;
+  notes?: string;
+  surgeries: Surgery[];
+  lmriEntries: LMRIEntry[];
+}
+
+interface Stats {
+  totals: {
+    mriCount: number;
+    recheckCount: number;
+    newCount: number;
+    totalCases: number;
+    totalAppointments: number;
+  };
+  surgeryBreakdown: {
+    S: number;
+    O: number;
+    C: number;
+    D: number;
+    K: number;
+    total: number;
+  };
+  lmriStats: {
+    total: number;
+    localizationCorrect: number;
+    lateralityCorrect: number;
+    bonusFinds: number;
+    accuracy: number;
+  };
+  weeklyData: DailyEntry[];
+  milestones: Array<{ id: string; type: string; count: number; achievedAt: string }>;
+  badges: Array<{ id: string; badgeId: string; name: string; description: string; icon?: string }>;
+  daysUntilFreedom: number | null;
+  daysLogged: number;
+}
+
+export function useResidencyStats() {
+  return useQuery<Stats>({
+    queryKey: ['residency-stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/residency/stats');
+      if (!res.ok) throw new Error('Failed to fetch stats');
+      return res.json();
+    },
+  });
+}
+
+export function useDailyEntry(date: string) {
+  return useQuery<DailyEntry | null>({
+    queryKey: ['daily-entry', date],
+    queryFn: async () => {
+      const res = await fetch(`/api/residency/daily-entry?date=${date}`);
+      if (!res.ok) throw new Error('Failed to fetch daily entry');
+      return res.json();
+    },
+    enabled: !!date,
+  });
+}
+
+export function useSaveDailyEntry() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      date: string;
+      mriCount: number;
+      recheckCount: number;
+      newCount: number;
+      notes?: string;
+    }) => {
+      const res = await fetch('/api/residency/daily-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to save daily entry');
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['daily-entry', variables.date] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+    },
+  });
+}
+
+export function useAddSurgery() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      dailyEntryId: string;
+      procedureName: string;
+      participation: 'S' | 'O' | 'C' | 'D' | 'K';
+      patientName?: string;
+      notes?: string;
+    }) => {
+      const res = await fetch('/api/residency/surgery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to add surgery');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+    },
+  });
+}
+
+export function useDeleteSurgery() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/residency/surgery?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete surgery');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+    },
+  });
+}
+
+export function useMilestones() {
+  return useQuery({
+    queryKey: ['milestones'],
+    queryFn: async () => {
+      const res = await fetch('/api/residency/milestones');
+      if (!res.ok) throw new Error('Failed to fetch milestones');
+      return res.json();
+    },
+  });
+}
+
+export function useCelebrateMilestone() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (milestoneId: string) => {
+      const res = await fetch('/api/residency/milestones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestoneId }),
+      });
+      if (!res.ok) throw new Error('Failed to celebrate milestone');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+    },
+  });
+}
+
+// Export types for use in components
+export type { DailyEntry, Surgery, LMRIEntry, Stats };

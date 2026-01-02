@@ -378,3 +378,142 @@ model ACVIMWeeklySchedule {
   @@index([residencyYear])
   @@index([monthNumber])
 }
+
+// ==========================================
+// Residency Stats Tracker & Gamification
+// ==========================================
+
+// Daily Entry - tracks MRIs, appointments, and surgeries for a single day
+model DailyEntry {
+  id            String   @id @default(cuid())
+  date          String   @unique // ISO date (YYYY-MM-DD) - one entry per day
+
+  // MRI counts
+  mriCount      Int      @default(0)
+
+  // Appointment counts
+  recheckCount  Int      @default(0)
+  newCount      Int      @default(0)
+
+  // Calculated totals (denormalized for quick queries)
+  totalCases    Int      @default(0) // mri + recheck + new
+
+  // Notes for the day
+  notes         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  surgeries     Surgery[]
+  lmriEntries   LMRIEntry[]
+
+  @@index([date])
+}
+
+// Surgery - individual surgery with participation level
+// S = Surgeon (primary), O = Observer, C = Circulator, D = Dissector, K = Knife (cutting/suturing assistant)
+model Surgery {
+  id              String     @id @default(cuid())
+  dailyEntryId    String
+  dailyEntry      DailyEntry @relation(fields: [dailyEntryId], references: [id], onDelete: Cascade)
+
+  procedureName   String     // e.g., "hemilaminectomy", "ventral slot", "craniotomy"
+  participation   String     // "S" | "O" | "C" | "D" | "K"
+
+  // Optional details
+  patientName     String?
+  notes           String?
+
+  createdAt       DateTime   @default(now())
+
+  @@index([dailyEntryId])
+  @@index([participation])
+}
+
+// LMRI+ Entry - tracks neuro exam localization accuracy vs MRI findings
+// L = Localized correctly, M = Missed (wrong localization), R = Right side correct
+// I = Incorrect side, + = bonus (caught subtle finding)
+model LMRIEntry {
+  id              String     @id @default(cuid())
+  dailyEntryId    String
+  dailyEntry      DailyEntry @relation(fields: [dailyEntryId], references: [id], onDelete: Cascade)
+
+  // Pre-MRI prediction
+  predictedLocalization String  // e.g., "C2-C5 myelopathy", "L4-S3 LMN"
+  predictedLaterality   String? // "Left" | "Right" | "Bilateral" | "Midline"
+
+  // Post-MRI actual findings
+  actualLocalization    String  // What MRI showed
+  actualLaterality      String? // Actual side affected
+
+  // Scoring
+  localizationCorrect   Boolean // Was the spinal segment/region correct?
+  lateralityCorrect     Boolean? // Was the side correct? (null if N/A)
+  bonusFind             Boolean @default(false) // Caught something subtle
+
+  // Patient reference (optional)
+  patientName           String?
+  notes                 String?
+
+  createdAt             DateTime @default(now())
+
+  @@index([dailyEntryId])
+}
+
+// Milestone - tracks when user hits case count milestones
+model Milestone {
+  id          String   @id @default(cuid())
+  type        String   // "mri" | "appointment" | "surgery" | "case"
+  count       Int      // The milestone number (50, 100, 150, etc.)
+  achievedAt  DateTime @default(now())
+
+  // Celebration tracking
+  celebrated  Boolean  @default(false) // Has user seen the celebration?
+
+  @@unique([type, count])
+  @@index([type])
+}
+
+// Badge - gamification achievements
+model Badge {
+  id          String   @id @default(cuid())
+  badgeId     String   @unique // e.g., "first_surgery", "mri_century", "streak_7"
+  name        String   // Display name
+  description String   // How it was earned
+  icon        String?  // Emoji or icon identifier
+  earnedAt    DateTime @default(now())
+
+  // Celebration tracking
+  celebrated  Boolean  @default(false)
+
+  @@index([earnedAt])
+}
+
+// BingoCard - weekly rotating or permanent rare diagnosis cards
+model BingoCard {
+  id          String        @id @default(cuid())
+  type        String        // "weekly" | "rare"
+  weekStart   String?       // ISO date for weekly cards (null for rare)
+  createdAt   DateTime      @default(now())
+  completedAt DateTime?     // When all squares were completed
+
+  squares     BingoSquare[]
+
+  @@index([type])
+  @@index([weekStart])
+}
+
+// BingoSquare - individual square on a bingo card
+model BingoSquare {
+  id          String    @id @default(cuid())
+  cardId      String
+  card        BingoCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  position    Int       // 0-24 for 5x5 grid
+  text        String    // The bingo item text
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  @@index([cardId])
+}
