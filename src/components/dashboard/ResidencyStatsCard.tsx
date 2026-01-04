@@ -72,7 +72,7 @@ function QuickCounter({
         <span className="text-xs font-medium text-muted-foreground">{label}</span>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-5">
         <CounterButton
           variant="decrement"
           onClick={onDecrement}
@@ -80,8 +80,10 @@ function QuickCounter({
           isPending={isPending}
         />
 
-        <div className="w-16 text-center">
+        <div className="w-20 text-center">
           <span
+            aria-live="polite"
+            aria-atomic="true"
             className={cn(
               'text-3xl font-bold tabular-nums transition-transform duration-200',
               animateValue && 'animate-bounce-once'
@@ -108,21 +110,21 @@ export function ResidencyStatsCard() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingField, setAnimatingField] = useState<string | null>(null);
 
-  const { data: stats, isLoading } = useResidencyStats();
+  const { data: stats, isLoading, error } = useResidencyStats();
   const { data: todayEntry } = useTodayEntry();
-  const quickIncrement = useQuickIncrement();
+  const { mutate: quickIncrementMutate, isPending } = useQuickIncrement();
 
   const handleIncrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
     setAnimatingField(field);
-    quickIncrement.mutate({ field, delta: 1 });
+    quickIncrementMutate({ field, delta: 1 });
     setTimeout(() => setAnimatingField(null), 300);
-  }, [quickIncrement]);
+  }, [quickIncrementMutate]);
 
   const handleDecrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
     setAnimatingField(field);
-    quickIncrement.mutate({ field, delta: -1 });
+    quickIncrementMutate({ field, delta: -1 });
     setTimeout(() => setAnimatingField(null), 300);
-  }, [quickIncrement]);
+  }, [quickIncrementMutate]);
 
   if (isLoading) {
     return (
@@ -142,6 +144,25 @@ export function ResidencyStatsCard() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Error state - show graceful fallback
+  if (error) {
+    return (
+      <Card className="transition-shadow border-destructive/50">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-muted-foreground" />
+            Residency Stats
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            Unable to load stats. Please refresh the page.
+          </p>
         </CardContent>
       </Card>
     );
@@ -178,7 +199,7 @@ export function ResidencyStatsCard() {
             )}
           </span>
           <div className="flex items-center gap-2">
-            {quickIncrement.isPending && (
+            {isPending && (
               <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
             )}
             {isExpanded ? (
@@ -250,7 +271,7 @@ export function ResidencyStatsCard() {
                 iconColor="text-purple-500"
                 onIncrement={() => handleIncrement('mriCount')}
                 onDecrement={() => handleDecrement('mriCount')}
-                isPending={quickIncrement.isPending}
+                isPending={isPending}
                 animateValue={animatingField === 'mriCount'}
               />
 
@@ -262,7 +283,7 @@ export function ResidencyStatsCard() {
                 iconColor="text-blue-500"
                 onIncrement={() => handleIncrement('recheckCount')}
                 onDecrement={() => handleDecrement('recheckCount')}
-                isPending={quickIncrement.isPending}
+                isPending={isPending}
                 animateValue={animatingField === 'recheckCount'}
               />
 
@@ -274,7 +295,7 @@ export function ResidencyStatsCard() {
                 iconColor="text-emerald-500"
                 onIncrement={() => handleIncrement('newCount')}
                 onDecrement={() => handleDecrement('newCount')}
-                isPending={quickIncrement.isPending}
+                isPending={isPending}
                 animateValue={animatingField === 'newCount'}
               />
             </div>

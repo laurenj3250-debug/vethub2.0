@@ -4,7 +4,17 @@ import { z } from 'zod';
 
 // Validation schema for quick increment
 const quickIncrementSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format'),
+  date: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+    .refine((date) => {
+      const targetDate = new Date(date + 'T00:00:00Z');
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(today.getDate() - 7);
+      // Allow dates from 7 days ago up to today (not future)
+      return targetDate <= today && targetDate >= sevenDaysAgo;
+    }, 'Date must be within the past 7 days'),
   field: z.enum(['mriCount', 'recheckCount', 'newCount']),
   delta: z.number().int().min(-1).max(1), // Only allow +1 or -1
 });

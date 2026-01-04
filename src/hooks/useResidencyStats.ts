@@ -296,17 +296,23 @@ export function useQuickIncrement() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // Mutation key prevents concurrent mutations (race condition prevention)
+    mutationKey: ['quick-increment'],
     mutationFn: async (data: {
       field: 'mriCount' | 'recheckCount' | 'newCount';
       delta: number; // +1 or -1
     }) => {
+      // Use UTC date to match server timezone
       const today = new Date().toISOString().split('T')[0];
       const res = await fetch('/api/residency/quick-increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date: today, ...data }),
       });
-      if (!res.ok) throw new Error('Failed to update');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update');
+      }
       return res.json();
     },
     onMutate: async ({ field, delta }) => {
