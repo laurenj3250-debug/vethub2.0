@@ -2788,6 +2788,9 @@ export default function VetHub() {
       </header>
 
       <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6 scroll-mt-20">
+        {/* Residency Stats Card - Dashboard Overview */}
+        <ResidencyStatsCard />
+
         {/* Task Header with Refresh */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -3561,16 +3564,6 @@ export default function VetHub() {
           <Plus size={24} />
           <span>Add Patient</span>
         </button>
-
-        {/* Simple Date Line */}
-        <p className="text-gray-500 text-sm font-medium">
-          {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-        </p>
-
-        {/* Residency Stats Card - Quick Overview */}
-        <div className="max-w-sm">
-          <ResidencyStatsCard />
-        </div>
 
         {/* All Tasks Complete Celebration */}
         {taskStats.allComplete && (
