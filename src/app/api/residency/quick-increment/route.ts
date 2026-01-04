@@ -2,41 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-// Validation schema for quick increment
+// Validation schema for quick increment - date is now server-determined
 const quickIncrementSchema = z.object({
-  date: z.string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
-    .refine((date) => {
-      const targetDate = new Date(date + 'T00:00:00Z');
-      const today = new Date();
-      today.setUTCHours(0, 0, 0, 0);
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 7);
-      // Allow dates from 7 days ago up to today (not future)
-      return targetDate <= today && targetDate >= sevenDaysAgo;
-    }, 'Date must be within the past 7 days'),
   field: z.enum(['mriCount', 'recheckCount', 'newCount']),
   delta: z.number().int().min(-1).max(1), // Only allow +1 or -1
 });
 
-// POST - Atomically increment/decrement a field for a given date
+// Get today's date in UTC (server-side, avoids timezone mismatch)
+function getServerToday(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+// POST - Atomically increment/decrement a field for today
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = quickIncrementSchema.parse(body);
 
+    // Server determines "today" to avoid client timezone issues
+    const today = getServerToday();
+
     // Use a transaction to ensure atomic read-modify-write
     const entry = await prisma.$transaction(async (tx) => {
-      // Get or create the entry for this date
+      // Get or create the entry for today
       let existing = await tx.dailyEntry.findUnique({
-        where: { date: validated.date },
+        where: { date: today },
       });
 
       if (!existing) {
         // Create new entry with initial values
         existing = await tx.dailyEntry.create({
           data: {
-            date: validated.date,
+            date: today,
             mriCount: 0,
             recheckCount: 0,
             newCount: 0,
@@ -55,21 +52,22 @@ export async function POST(request: NextRequest) {
       const newNew = validated.field === 'newCount' ? newValue : existing.newCount;
       const totalCases = newMri + newRecheck + newNew;
 
-      // Update the entry
+      // Update the entry (without unnecessary includes for performance)
       return tx.dailyEntry.update({
-        where: { date: validated.date },
+        where: { date: today },
         data: {
           [validated.field]: newValue,
           totalCases,
         },
-        include: {
-          surgeries: true,
-          lmriEntries: true,
-        },
       });
     });
 
-    return NextResponse.json(entry);
+    // Return entry with date for client cache update
+    return NextResponse.json({
+      ...entry,
+      surgeries: [],
+      lmriEntries: [],
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -296,18 +296,15 @@ export function useQuickIncrement() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    // Mutation key prevents concurrent mutations (race condition prevention)
-    mutationKey: ['quick-increment'],
     mutationFn: async (data: {
       field: 'mriCount' | 'recheckCount' | 'newCount';
       delta: number; // +1 or -1
     }) => {
-      // Use UTC date to match server timezone
-      const today = new Date().toISOString().split('T')[0];
+      // Let server determine "today" to avoid timezone mismatch
       const res = await fetch('/api/residency/quick-increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today, ...data }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -320,33 +317,91 @@ export function useQuickIncrement() {
       await queryClient.cancelQueries({ queryKey: ['residency-stats'] });
       await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
 
-      // Snapshot previous stats
+      // Snapshot previous values for rollback
       const previousStats = queryClient.getQueryData<Stats>(['residency-stats']);
 
-      // Optimistically update stats
+      // Get today's date for the daily-entry query key (use local date for query matching)
+      const todayKey = new Date().toISOString().split('T')[0];
+      const previousDailyEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', todayKey]);
+
+      // Get today's current values to check if decrement is valid
+      const todayMri = previousDailyEntry?.mriCount ?? 0;
+      const todayRecheck = previousDailyEntry?.recheckCount ?? 0;
+      const todayNew = previousDailyEntry?.newCount ?? 0;
+
+      // Calculate the actual delta (can't go below 0 for TODAY's values)
+      let actualDelta = delta;
+      if (delta < 0) {
+        const currentTodayValue = field === 'mriCount' ? todayMri
+          : field === 'recheckCount' ? todayRecheck
+          : todayNew;
+        if (currentTodayValue <= 0) {
+          // Can't decrement - today's value is already 0
+          actualDelta = 0;
+        }
+      }
+
+      // Only update if there's an actual change
+      if (actualDelta === 0 && delta < 0) {
+        // Decrement was blocked - don't update anything
+        return { previousStats, previousDailyEntry, blocked: true };
+      }
+
+      // Optimistically update global stats
       queryClient.setQueryData<Stats>(['residency-stats'], (old) => {
         if (!old) return old;
         const newTotals = { ...old.totals };
 
         if (field === 'mriCount') {
-          newTotals.mriCount = Math.max(0, newTotals.mriCount + delta);
+          newTotals.mriCount = Math.max(0, newTotals.mriCount + actualDelta);
         } else if (field === 'recheckCount') {
-          newTotals.recheckCount = Math.max(0, newTotals.recheckCount + delta);
+          newTotals.recheckCount = Math.max(0, newTotals.recheckCount + actualDelta);
           newTotals.totalAppointments = newTotals.recheckCount + newTotals.newCount;
         } else if (field === 'newCount') {
-          newTotals.newCount = Math.max(0, newTotals.newCount + delta);
+          newTotals.newCount = Math.max(0, newTotals.newCount + actualDelta);
           newTotals.totalAppointments = newTotals.recheckCount + newTotals.newCount;
         }
 
         return { ...old, totals: newTotals };
       });
 
-      return { previousStats };
+      // Optimistically update today's daily entry
+      queryClient.setQueryData<DailyEntry | null>(['daily-entry', todayKey], (old) => {
+        if (!old) {
+          // Create a new entry optimistically
+          return {
+            id: 'temp-' + Date.now(),
+            date: todayKey,
+            mriCount: field === 'mriCount' ? Math.max(0, actualDelta) : 0,
+            recheckCount: field === 'recheckCount' ? Math.max(0, actualDelta) : 0,
+            newCount: field === 'newCount' ? Math.max(0, actualDelta) : 0,
+            totalCases: Math.max(0, actualDelta),
+            surgeries: [],
+            lmriEntries: [],
+          };
+        }
+
+        const newValue = Math.max(0, (old[field] as number) + actualDelta);
+        const newMri = field === 'mriCount' ? newValue : old.mriCount;
+        const newRecheck = field === 'recheckCount' ? newValue : old.recheckCount;
+        const newNew = field === 'newCount' ? newValue : old.newCount;
+
+        return {
+          ...old,
+          [field]: newValue,
+          totalCases: newMri + newRecheck + newNew,
+        };
+      });
+
+      return { previousStats, previousDailyEntry, todayKey };
     },
     onError: (error, _, context) => {
       // Rollback on error
       if (context?.previousStats) {
         queryClient.setQueryData(['residency-stats'], context.previousStats);
+      }
+      if (context?.todayKey && context?.previousDailyEntry !== undefined) {
+        queryClient.setQueryData(['daily-entry', context.todayKey], context.previousDailyEntry);
       }
       toast({
         title: 'Failed to update',
@@ -354,7 +409,16 @@ export function useQuickIncrement() {
         variant: 'destructive',
       });
     },
-    onSettled: () => {
+    onSuccess: (data) => {
+      // Update with server response to ensure consistency
+      if (data?.date) {
+        queryClient.setQueryData(['daily-entry', data.date], data);
+      }
+    },
+    onSettled: (_, __, ___, context) => {
+      // Don't refetch if mutation was blocked
+      if (context?.blocked) return;
+
       // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });

@@ -1,12 +1,17 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Brain, Users, Scissors, ChevronRight, ChevronDown, Calendar, Plus, Minus, RefreshCw } from 'lucide-react';
+import { Brain, Users, Scissors, ChevronRight, ChevronDown, Calendar, Plus, Minus, Check } from 'lucide-react';
 import { useResidencyStats, useQuickIncrement, useTodayEntry } from '@/hooks/useResidencyStats';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+
+// Memoized icons to prevent re-renders
+const MemoizedBrain = <Brain className="h-4 w-4" />;
+const MemoizedUsers = <Users className="h-4 w-4" />;
 
 interface CounterButtonProps {
   onClick: () => void;
@@ -33,6 +38,8 @@ function CounterButton({ onClick, disabled, variant, isPending }: CounterButtonP
         'transition-all duration-150',
         'active:scale-90',
         'disabled:opacity-50 disabled:cursor-not-allowed',
+        'focus:outline-none focus:ring-2 focus:ring-offset-2',
+        variant === 'increment' ? 'focus:ring-emerald-500' : 'focus:ring-rose-500',
         bgColor
       )}
       aria-label={variant === 'increment' ? 'Add one' : 'Remove one'}
@@ -52,6 +59,7 @@ interface QuickCounterProps {
   onDecrement: () => void;
   isPending?: boolean;
   animateValue?: boolean;
+  isLoading?: boolean;
 }
 
 function QuickCounter({
@@ -64,6 +72,7 @@ function QuickCounter({
   onDecrement,
   isPending,
   animateValue,
+  isLoading,
 }: QuickCounterProps) {
   return (
     <div className="flex flex-col items-center gap-2">
@@ -92,7 +101,11 @@ function QuickCounter({
             {value}
           </span>
           <p className="text-xs text-muted-foreground">
-            +{todayValue} today
+            {isLoading ? (
+              <Skeleton className="h-3 w-12 mx-auto" />
+            ) : (
+              `+${todayValue} today`
+            )}
           </p>
         </div>
 
@@ -109,22 +122,123 @@ function QuickCounter({
 export function ResidencyStatsCard() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingField, setAnimatingField] = useState<string | null>(null);
+  const [showSaved, setShowSaved] = useState(false);
+  const { toast } = useToast();
+
+  // Refs for cleanup and debouncing
+  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMutationRef = useRef<{ field: string; delta: number; time: number } | null>(null);
 
   const { data: stats, isLoading, error } = useResidencyStats();
-  const { data: todayEntry } = useTodayEntry();
+  const { data: todayEntry, isLoading: todayLoading } = useTodayEntry();
   const { mutate: quickIncrementMutate, isPending } = useQuickIncrement();
 
-  const handleIncrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      if (savedTimeoutRef.current) {
+        clearTimeout(savedTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Debounced mutation handler to prevent rapid-fire requests
+  const handleMutation = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount', delta: number) => {
+    const now = Date.now();
+    const last = lastMutationRef.current;
+
+    // Debounce: ignore if same field/delta within 300ms
+    if (last && last.field === field && last.delta === delta && now - last.time < 300) {
+      return;
+    }
+
+    lastMutationRef.current = { field, delta, time: now };
+
+    // Clear previous animation timeout
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+
     setAnimatingField(field);
-    quickIncrementMutate({ field, delta: 1 });
-    setTimeout(() => setAnimatingField(null), 300);
-  }, [quickIncrementMutate]);
+    quickIncrementMutate(
+      { field, delta },
+      {
+        onSuccess: () => {
+          // Show saved indicator
+          setShowSaved(true);
+          if (savedTimeoutRef.current) {
+            clearTimeout(savedTimeoutRef.current);
+          }
+          savedTimeoutRef.current = setTimeout(() => {
+            setShowSaved(false);
+          }, 1500);
+
+          // Show undo toast for changes
+          const fieldLabel = field === 'mriCount' ? 'MRI' : field === 'recheckCount' ? 'Recheck' : 'New Patient';
+          const action = delta > 0 ? 'added' : 'removed';
+          toast({
+            title: `${fieldLabel} ${action}`,
+            description: 'Tap undo to revert',
+            action: (
+              <button
+                onClick={() => {
+                  // Reverse the action
+                  quickIncrementMutate({ field, delta: -delta });
+                }}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Undo
+              </button>
+            ),
+            duration: 5000,
+          });
+        },
+      }
+    );
+
+    // Clear animation after duration
+    animationTimeoutRef.current = setTimeout(() => {
+      setAnimatingField(null);
+    }, 300);
+  }, [quickIncrementMutate, toast]);
+
+  const handleIncrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
+    handleMutation(field, 1);
+  }, [handleMutation]);
 
   const handleDecrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
-    setAnimatingField(field);
-    quickIncrementMutate({ field, delta: -1 });
-    setTimeout(() => setAnimatingField(null), 300);
-  }, [quickIncrementMutate]);
+    handleMutation(field, -1);
+  }, [handleMutation]);
+
+  // Keyboard handler for accessibility
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsExpanded(prev => !prev);
+    }
+  }, []);
+
+  // Memoized values
+  const totals = useMemo(() =>
+    stats?.totals ?? { mriCount: 0, recheckCount: 0, newCount: 0, totalAppointments: 0 },
+    [stats?.totals]
+  );
+
+  const surgeryBreakdown = useMemo(() =>
+    stats?.surgeryBreakdown ?? { total: 0 },
+    [stats?.surgeryBreakdown]
+  );
+
+  const daysUntilFreedom = stats?.daysUntilFreedom ?? null;
+
+  // Today's entry values for showing "+X today"
+  const todayMri = todayEntry?.mriCount ?? 0;
+  const todayRecheck = todayEntry?.recheckCount ?? 0;
+  const todayNew = todayEntry?.newCount ?? 0;
 
   if (isLoading) {
     return (
@@ -168,15 +282,6 @@ export function ResidencyStatsCard() {
     );
   }
 
-  const totals = stats?.totals ?? { mriCount: 0, recheckCount: 0, newCount: 0, totalAppointments: 0 };
-  const surgeryBreakdown = stats?.surgeryBreakdown ?? { total: 0 };
-  const daysUntilFreedom = stats?.daysUntilFreedom ?? null;
-
-  // Today's entry values for showing "+X today"
-  const todayMri = todayEntry?.mriCount ?? 0;
-  const todayRecheck = todayEntry?.recheckCount ?? 0;
-  const todayNew = todayEntry?.newCount ?? 0;
-
   return (
     <Card
       className={cn(
@@ -187,6 +292,11 @@ export function ResidencyStatsCard() {
       <CardHeader
         className="pb-2 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="button"
+        aria-expanded={isExpanded}
+        aria-label={isExpanded ? 'Collapse quick entry' : 'Expand quick entry'}
       >
         <CardTitle className="text-lg flex items-center justify-between">
           <span className="flex items-center gap-2">
@@ -199,8 +309,11 @@ export function ResidencyStatsCard() {
             )}
           </span>
           <div className="flex items-center gap-2">
-            {isPending && (
-              <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin" />
+            {showSaved && (
+              <span className="flex items-center gap-1 text-xs text-emerald-600 animate-in fade-in duration-200">
+                <Check className="h-3 w-3" />
+                Saved
+              </span>
             )}
             {isExpanded ? (
               <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform" />
@@ -267,36 +380,39 @@ export function ResidencyStatsCard() {
                 label="MRIs"
                 value={totals.mriCount}
                 todayValue={todayMri}
-                icon={<Brain className="h-4 w-4" />}
+                icon={MemoizedBrain}
                 iconColor="text-purple-500"
                 onIncrement={() => handleIncrement('mriCount')}
                 onDecrement={() => handleDecrement('mriCount')}
                 isPending={isPending}
                 animateValue={animatingField === 'mriCount'}
+                isLoading={todayLoading}
               />
 
               <QuickCounter
                 label="Rechecks"
                 value={totals.recheckCount}
                 todayValue={todayRecheck}
-                icon={<Users className="h-4 w-4" />}
+                icon={MemoizedUsers}
                 iconColor="text-blue-500"
                 onIncrement={() => handleIncrement('recheckCount')}
                 onDecrement={() => handleDecrement('recheckCount')}
                 isPending={isPending}
                 animateValue={animatingField === 'recheckCount'}
+                isLoading={todayLoading}
               />
 
               <QuickCounter
                 label="New Patients"
                 value={totals.newCount}
                 todayValue={todayNew}
-                icon={<Users className="h-4 w-4" />}
+                icon={MemoizedUsers}
                 iconColor="text-emerald-500"
                 onIncrement={() => handleIncrement('newCount')}
                 onDecrement={() => handleDecrement('newCount')}
                 isPending={isPending}
                 animateValue={animatingField === 'newCount'}
+                isLoading={todayLoading}
               />
             </div>
 
@@ -320,9 +436,12 @@ export function ResidencyStatsCard() {
                 e.stopPropagation();
                 setIsExpanded(false);
               }}
-              className="w-full mt-4 py-2 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+              className={cn(
+                'w-full mt-4 py-2 text-sm font-medium transition-colors rounded-lg',
+                'bg-muted/50 hover:bg-muted text-foreground'
+              )}
             >
-              Done
+              Collapse
             </button>
           </div>
         )}
