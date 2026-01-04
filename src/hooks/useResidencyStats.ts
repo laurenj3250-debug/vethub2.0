@@ -142,21 +142,61 @@ export function useAddSurgery() {
       if (!res.ok) throw new Error('Failed to add surgery');
       return res.json();
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
-      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['milestones'] });
-      toast({
-        title: 'Surgery logged',
-        description: `${variables.procedureName} added successfully.`,
-      });
+    onMutate: async (newSurgery) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueriesData({ queryKey: ['daily-entry'] });
+
+      // Optimistically update the cache
+      queryClient.setQueriesData<DailyEntry | null>(
+        { queryKey: ['daily-entry'] },
+        (old) => {
+          if (!old || old.id !== newSurgery.dailyEntryId) return old;
+          return {
+            ...old,
+            surgeries: [
+              ...old.surgeries,
+              {
+                id: `temp-${Date.now()}`, // Temporary ID until server responds
+                dailyEntryId: newSurgery.dailyEntryId,
+                procedureName: newSurgery.procedureName,
+                participation: newSurgery.participation,
+                patientName: newSurgery.patientName,
+                notes: newSurgery.notes,
+              },
+            ],
+          };
+        }
+      );
+
+      return { previousEntries };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback on error
+      if (context?.previousEntries) {
+        context.previousEntries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       toast({
         title: 'Failed to add surgery',
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: 'Surgery logged',
+        description: `${variables.procedureName} added successfully.`,
+      });
+    },
+    onSettled: () => {
+      // Always refetch after mutation settles
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
     },
   });
 }
@@ -172,20 +212,50 @@ export function useDeleteSurgery() {
       if (!res.ok) throw new Error('Failed to delete surgery');
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
-      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
-      toast({
-        title: 'Surgery removed',
-        description: 'The surgery has been deleted.',
-      });
+    onMutate: async (surgeryId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueriesData({ queryKey: ['daily-entry'] });
+
+      // Optimistically remove the surgery from cache
+      queryClient.setQueriesData<DailyEntry | null>(
+        { queryKey: ['daily-entry'] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            surgeries: old.surgeries.filter((s) => s.id !== surgeryId),
+          };
+        }
+      );
+
+      return { previousEntries };
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback on error
+      if (context?.previousEntries) {
+        context.previousEntries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
       toast({
         title: 'Failed to delete',
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Surgery removed',
+        description: 'The surgery has been deleted.',
+      });
+    },
+    onSettled: () => {
+      // Always refetch after mutation settles
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
     },
   });
 }

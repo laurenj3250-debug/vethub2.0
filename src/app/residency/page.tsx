@@ -30,7 +30,8 @@ import { StatsOverview } from '@/components/residency/StatsOverview';
 import { WeeklyChart } from '@/components/residency/WeeklyChart';
 import { MilestoneCelebration } from '@/components/residency/MilestoneCelebration';
 import { StatsErrorBoundary } from '@/components/residency/StatsErrorBoundary';
-import { useDailyEntry } from '@/hooks/useResidencyStats';
+import { ProfileSetupPrompt } from '@/components/residency/ProfileSetupPrompt';
+import { useDailyEntry, useResidencyStats } from '@/hooks/useResidencyStats';
 import { format } from 'date-fns';
 import { useDebouncedCallback, useSaveStatus, SaveStatus } from '@/hooks/useDebounce';
 import { generateACVIMWordDocument } from '@/lib/acvim-word-export';
@@ -66,10 +67,26 @@ function getCurrentWeekInfo(startDate: string): { monthNumber: number; weekNumbe
 function StatsTabContent() {
   const today = format(new Date(), 'yyyy-MM-dd');
   const { data: todayEntry } = useDailyEntry(today);
+  const { data: stats } = useResidencyStats();
+  const [showSetupPrompt, setShowSetupPrompt] = useState(true);
+
+  // Show setup prompt if no profile configured (daysUntilFreedom is null)
+  const hasProfile = stats?.daysUntilFreedom !== null;
+
+  const handleSetupClick = () => {
+    // Scroll to top where the profile settings would be (in the Overview tab)
+    setShowSetupPrompt(false);
+    // For now, just dismiss the prompt - could navigate to profile settings
+  };
 
   return (
     <StatsErrorBoundary>
       <div className="space-y-6">
+        {/* Profile Setup Prompt - show only if no profile and hasn't been dismissed */}
+        {!hasProfile && showSetupPrompt && stats && (
+          <ProfileSetupPrompt onSetupClick={handleSetupClick} />
+        )}
+
         {/* Stats Overview */}
         <StatsOverview />
 
