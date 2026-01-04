@@ -391,12 +391,23 @@ model DailyEntry {
   // MRI counts
   mriCount      Int      @default(0)
 
-  // Appointment counts
-  recheckCount  Int      @default(0)
+  // Appointment counts by type
+  recheckCount    Int      @default(0)  // Follow-up appointments
+  newConsultCount Int      @default(0)  // First-time consultations
+  emergencyCount  Int      @default(0)  // Emergency cases
+
+  // Legacy field (kept for backward compatibility, = newConsultCount)
   newCount      Int      @default(0)
 
+  // Communications count (emails, EzyVet notes, etc.)
+  commsCount    Int      @default(0)
+
+  // Shift tracking (clock in/out times in ISO format)
+  shiftStartTime  String?  // e.g., "08:30" or ISO datetime
+  shiftEndTime    String?  // e.g., "17:45" or ISO datetime
+
   // Calculated totals (denormalized for quick queries)
-  totalCases    Int      @default(0) // mri + recheck + new
+  totalCases    Int      @default(0) // mri + all appointments
 
   // Notes for the day
   notes         String?

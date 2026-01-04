@@ -25,7 +25,12 @@ interface DailyEntry {
   date: string;
   mriCount: number;
   recheckCount: number;
-  newCount: number;
+  newConsultCount: number;
+  emergencyCount: number;
+  newCount: number; // Legacy, = newConsultCount
+  commsCount: number;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
   totalCases: number;
   notes?: string;
   surgeries: Surgery[];
@@ -36,7 +41,10 @@ interface Stats {
   totals: {
     mriCount: number;
     recheckCount: number;
-    newCount: number;
+    newConsultCount: number;
+    emergencyCount: number;
+    commsCount: number;
+    newCount: number; // Legacy
     totalCases: number;
     totalAppointments: number;
   };
@@ -291,13 +299,16 @@ export function useCelebrateMilestone() {
   });
 }
 
+// Counter field types
+type CounterField = 'mriCount' | 'recheckCount' | 'newConsultCount' | 'emergencyCount' | 'commsCount';
+
 // Quick increment for dashboard card - optimistic updates for instant feedback
 export function useQuickIncrement() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: {
-      field: 'mriCount' | 'recheckCount' | 'newCount';
+      field: CounterField;
       delta: number; // +1 or -1
     }) => {
       // Let server determine "today" to avoid timezone mismatch
@@ -324,21 +335,14 @@ export function useQuickIncrement() {
       const todayKey = new Date().toISOString().split('T')[0];
       const previousDailyEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', todayKey]);
 
-      // Get today's current values to check if decrement is valid
-      const todayMri = previousDailyEntry?.mriCount ?? 0;
-      const todayRecheck = previousDailyEntry?.recheckCount ?? 0;
-      const todayNew = previousDailyEntry?.newCount ?? 0;
+      // Get today's current value for the field
+      const currentTodayValue = (previousDailyEntry?.[field] as number) ?? 0;
 
       // Calculate the actual delta (can't go below 0 for TODAY's values)
       let actualDelta = delta;
-      if (delta < 0) {
-        const currentTodayValue = field === 'mriCount' ? todayMri
-          : field === 'recheckCount' ? todayRecheck
-          : todayNew;
-        if (currentTodayValue <= 0) {
-          // Can't decrement - today's value is already 0
-          actualDelta = 0;
-        }
+      if (delta < 0 && currentTodayValue <= 0) {
+        // Can't decrement - today's value is already 0
+        actualDelta = 0;
       }
 
       // Only update if there's an actual change
@@ -351,46 +355,54 @@ export function useQuickIncrement() {
       queryClient.setQueryData<Stats>(['residency-stats'], (old) => {
         if (!old) return old;
         const newTotals = { ...old.totals };
+        const fieldValue = (newTotals[field] as number) ?? 0;
+        newTotals[field] = Math.max(0, fieldValue + actualDelta);
 
-        if (field === 'mriCount') {
-          newTotals.mriCount = Math.max(0, newTotals.mriCount + actualDelta);
-        } else if (field === 'recheckCount') {
-          newTotals.recheckCount = Math.max(0, newTotals.recheckCount + actualDelta);
-          newTotals.totalAppointments = newTotals.recheckCount + newTotals.newCount;
-        } else if (field === 'newCount') {
-          newTotals.newCount = Math.max(0, newTotals.newCount + actualDelta);
-          newTotals.totalAppointments = newTotals.recheckCount + newTotals.newCount;
+        // Update calculated fields
+        if (field === 'newConsultCount') {
+          newTotals.newCount = newTotals.newConsultCount; // Keep legacy field in sync
         }
+        // Recalculate totalAppointments
+        newTotals.totalAppointments = (newTotals.recheckCount ?? 0) +
+          (newTotals.newConsultCount ?? 0) + (newTotals.emergencyCount ?? 0);
 
         return { ...old, totals: newTotals };
       });
 
       // Optimistically update today's daily entry
       queryClient.setQueryData<DailyEntry | null>(['daily-entry', todayKey], (old) => {
-        if (!old) {
-          // Create a new entry optimistically
-          return {
-            id: 'temp-' + Date.now(),
-            date: todayKey,
-            mriCount: field === 'mriCount' ? Math.max(0, actualDelta) : 0,
-            recheckCount: field === 'recheckCount' ? Math.max(0, actualDelta) : 0,
-            newCount: field === 'newCount' ? Math.max(0, actualDelta) : 0,
-            totalCases: Math.max(0, actualDelta),
-            surgeries: [],
-            lmriEntries: [],
-          };
+        const baseEntry: DailyEntry = old ?? {
+          id: 'temp-' + Date.now(),
+          date: todayKey,
+          mriCount: 0,
+          recheckCount: 0,
+          newConsultCount: 0,
+          emergencyCount: 0,
+          newCount: 0,
+          commsCount: 0,
+          totalCases: 0,
+          surgeries: [],
+          lmriEntries: [],
+        };
+
+        const currentValue = (baseEntry[field] as number) ?? 0;
+        const newValue = Math.max(0, currentValue + actualDelta);
+
+        const updated = {
+          ...baseEntry,
+          [field]: newValue,
+        };
+
+        // Keep newCount in sync with newConsultCount
+        if (field === 'newConsultCount') {
+          updated.newCount = newValue;
         }
 
-        const newValue = Math.max(0, (old[field] as number) + actualDelta);
-        const newMri = field === 'mriCount' ? newValue : old.mriCount;
-        const newRecheck = field === 'recheckCount' ? newValue : old.recheckCount;
-        const newNew = field === 'newCount' ? newValue : old.newCount;
+        // Recalculate totalCases
+        updated.totalCases = updated.mriCount + updated.recheckCount +
+          updated.newConsultCount + updated.emergencyCount;
 
-        return {
-          ...old,
-          [field]: newValue,
-          totalCases: newMri + newRecheck + newNew,
-        };
+        return updated;
       });
 
       return { previousStats, previousDailyEntry, todayKey };
@@ -433,5 +445,48 @@ export function useTodayEntry() {
   return useDailyEntry(today);
 }
 
+// Clock in/out mutation
+export function useClockInOut() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (action: 'clockIn' | 'clockOut') => {
+      const res = await fetch('/api/residency/quick-increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to clock');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Update today's entry cache
+      if (data?.date) {
+        queryClient.setQueryData(['daily-entry', data.date], data);
+      }
+      toast({
+        title: data.shiftEndTime ? 'Clocked Out' : 'Clocked In',
+        description: data.shiftEndTime
+          ? `Shift ended at ${data.shiftEndTime}`
+          : `Shift started at ${data.shiftStartTime}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to clock',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+    },
+  });
+}
+
 // Export types for use in components
-export type { DailyEntry, Surgery, LMRIEntry, Stats };
+export type { DailyEntry, Surgery, LMRIEntry, Stats, CounterField };

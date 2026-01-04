@@ -2,24 +2,74 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-// Validation schema for quick increment - date is now server-determined
+// All trackable fields
+const COUNTER_FIELDS = [
+  'mriCount',
+  'recheckCount',
+  'newConsultCount',
+  'emergencyCount',
+  'commsCount',
+] as const;
+
+type CounterField = typeof COUNTER_FIELDS[number];
+
+// Validation schema for quick increment
 const quickIncrementSchema = z.object({
-  field: z.enum(['mriCount', 'recheckCount', 'newCount']),
+  field: z.enum(COUNTER_FIELDS),
   delta: z.number().int().min(-1).max(1), // Only allow +1 or -1
 });
 
-// Get today's date in UTC (server-side, avoids timezone mismatch)
+// Validation schema for clock in/out
+const clockSchema = z.object({
+  action: z.enum(['clockIn', 'clockOut']),
+  time: z.string().optional(), // If not provided, use current time
+});
+
+// Get today's date in UTC (server-side)
 function getServerToday(): string {
   return new Date().toISOString().split('T')[0];
+}
+
+// Get current time in HH:MM format
+function getCurrentTime(): string {
+  return new Date().toISOString().split('T')[1].slice(0, 5);
 }
 
 // POST - Atomically increment/decrement a field for today
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const validated = quickIncrementSchema.parse(body);
 
-    // Server determines "today" to avoid client timezone issues
+    // Check if this is a clock action
+    if (body.action) {
+      const validated = clockSchema.parse(body);
+      const today = getServerToday();
+      const time = validated.time || getCurrentTime();
+
+      const entry = await prisma.dailyEntry.upsert({
+        where: { date: today },
+        create: {
+          date: today,
+          mriCount: 0,
+          recheckCount: 0,
+          newConsultCount: 0,
+          newCount: 0,
+          emergencyCount: 0,
+          commsCount: 0,
+          totalCases: 0,
+          shiftStartTime: validated.action === 'clockIn' ? time : null,
+          shiftEndTime: validated.action === 'clockOut' ? time : null,
+        },
+        update: {
+          [validated.action === 'clockIn' ? 'shiftStartTime' : 'shiftEndTime']: time,
+        },
+      });
+
+      return NextResponse.json(entry);
+    }
+
+    // Counter increment
+    const validated = quickIncrementSchema.parse(body);
     const today = getServerToday();
 
     // Use a transaction to ensure atomic read-modify-write
@@ -30,44 +80,49 @@ export async function POST(request: NextRequest) {
       });
 
       if (!existing) {
-        // Create new entry with initial values
         existing = await tx.dailyEntry.create({
           data: {
             date: today,
             mriCount: 0,
             recheckCount: 0,
+            newConsultCount: 0,
             newCount: 0,
+            emergencyCount: 0,
+            commsCount: 0,
             totalCases: 0,
           },
         });
       }
 
       // Calculate new value (don't go below 0)
-      const currentValue = existing[validated.field] as number;
+      const currentValue = (existing[validated.field] as number) || 0;
       const newValue = Math.max(0, currentValue + validated.delta);
 
-      // Calculate new total
+      // Calculate new totals
+      const updates: Record<string, number> = {
+        [validated.field]: newValue,
+      };
+
+      // Keep newCount in sync with newConsultCount for backward compatibility
+      if (validated.field === 'newConsultCount') {
+        updates.newCount = newValue;
+      }
+
+      // Calculate total cases (MRI + all appointment types)
       const newMri = validated.field === 'mriCount' ? newValue : existing.mriCount;
       const newRecheck = validated.field === 'recheckCount' ? newValue : existing.recheckCount;
-      const newNew = validated.field === 'newCount' ? newValue : existing.newCount;
-      const totalCases = newMri + newRecheck + newNew;
+      const newConsult = validated.field === 'newConsultCount' ? newValue : existing.newConsultCount;
+      const newEmergency = validated.field === 'emergencyCount' ? newValue : existing.emergencyCount;
+      updates.totalCases = newMri + newRecheck + newConsult + newEmergency;
 
-      // Update the entry (without unnecessary includes for performance)
+      // Update the entry
       return tx.dailyEntry.update({
         where: { date: today },
-        data: {
-          [validated.field]: newValue,
-          totalCases,
-        },
+        data: updates,
       });
     });
 
-    // Return entry with date for client cache update
-    return NextResponse.json({
-      ...entry,
-      surgeries: [],
-      lmriEntries: [],
-    });
+    return NextResponse.json(entry);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

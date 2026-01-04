@@ -19,11 +19,24 @@ export async function GET() {
       (acc, entry) => ({
         mriCount: acc.mriCount + entry.mriCount,
         recheckCount: acc.recheckCount + entry.recheckCount,
-        newCount: acc.newCount + entry.newCount,
+        newConsultCount: acc.newConsultCount + (entry.newConsultCount ?? entry.newCount ?? 0),
+        emergencyCount: acc.emergencyCount + (entry.emergencyCount ?? 0),
+        commsCount: acc.commsCount + (entry.commsCount ?? 0),
+        newCount: acc.newCount + entry.newCount, // Legacy field
         totalCases: acc.totalCases + entry.totalCases,
-        totalAppointments: acc.totalAppointments + entry.recheckCount + entry.newCount,
+        totalAppointments: acc.totalAppointments + entry.recheckCount +
+          (entry.newConsultCount ?? entry.newCount ?? 0) + (entry.emergencyCount ?? 0),
       }),
-      { mriCount: 0, recheckCount: 0, newCount: 0, totalCases: 0, totalAppointments: 0 }
+      {
+        mriCount: 0,
+        recheckCount: 0,
+        newConsultCount: 0,
+        emergencyCount: 0,
+        commsCount: 0,
+        newCount: 0,
+        totalCases: 0,
+        totalAppointments: 0
+      }
     );
 
     // Surgery participation breakdown

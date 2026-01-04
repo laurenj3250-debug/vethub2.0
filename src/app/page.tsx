@@ -20,7 +20,7 @@ import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw, Sunrise } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
-import { ResidencyStatsCard } from '@/components/dashboard/ResidencyStatsCard';
+import { ResidencyTracker } from '@/components/dashboard/ResidencyTracker';
 import { TaskChecklist } from '@/components/TaskChecklist';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
@@ -2788,9 +2788,6 @@ export default function VetHub() {
       </header>
 
       <main className="relative max-w-7xl mx-auto px-4 py-8 space-y-6 scroll-mt-20">
-        {/* Residency Stats Card - Dashboard Overview */}
-        <ResidencyStatsCard />
-
         {/* Task Header with Refresh */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -5124,6 +5121,9 @@ Please schedule a recheck appointment with the Neurology department to have stap
         )}
 
       </main>
+
+      {/* Floating Residency Tracker - hover to expand */}
+      <ResidencyTracker />
     </div>
   );
 }
