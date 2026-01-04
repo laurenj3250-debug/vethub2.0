@@ -291,5 +291,77 @@ export function useCelebrateMilestone() {
   });
 }
 
+// Quick increment for dashboard card - optimistic updates for instant feedback
+export function useQuickIncrement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      field: 'mriCount' | 'recheckCount' | 'newCount';
+      delta: number; // +1 or -1
+    }) => {
+      const today = new Date().toISOString().split('T')[0];
+      const res = await fetch('/api/residency/quick-increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: today, ...data }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
+      return res.json();
+    },
+    onMutate: async ({ field, delta }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['residency-stats'] });
+      await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
+
+      // Snapshot previous stats
+      const previousStats = queryClient.getQueryData<Stats>(['residency-stats']);
+
+      // Optimistically update stats
+      queryClient.setQueryData<Stats>(['residency-stats'], (old) => {
+        if (!old) return old;
+        const newTotals = { ...old.totals };
+
+        if (field === 'mriCount') {
+          newTotals.mriCount = Math.max(0, newTotals.mriCount + delta);
+        } else if (field === 'recheckCount') {
+          newTotals.recheckCount = Math.max(0, newTotals.recheckCount + delta);
+          newTotals.totalAppointments = newTotals.recheckCount + newTotals.newCount;
+        } else if (field === 'newCount') {
+          newTotals.newCount = Math.max(0, newTotals.newCount + delta);
+          newTotals.totalAppointments = newTotals.recheckCount + newTotals.newCount;
+        }
+
+        return { ...old, totals: newTotals };
+      });
+
+      return { previousStats };
+    },
+    onError: (error, _, context) => {
+      // Rollback on error
+      if (context?.previousStats) {
+        queryClient.setQueryData(['residency-stats'], context.previousStats);
+      }
+      toast({
+        title: 'Failed to update',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+    },
+  });
+}
+
+// Get today's entry for quick view
+export function useTodayEntry() {
+  const today = new Date().toISOString().split('T')[0];
+  return useDailyEntry(today);
+}
+
 // Export types for use in components
 export type { DailyEntry, Surgery, LMRIEntry, Stats };
