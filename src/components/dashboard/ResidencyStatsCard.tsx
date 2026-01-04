@@ -32,9 +32,10 @@ export function ResidencyStatsCard() {
     );
   }
 
-  if (!stats) return null;
-
-  const { totals, surgeryBreakdown, daysUntilFreedom } = stats;
+  // Show card even with no data - encourage user to start tracking
+  const totals = stats?.totals ?? { mriCount: 0, totalAppointments: 0 };
+  const surgeryBreakdown = stats?.surgeryBreakdown ?? { total: 0 };
+  const daysUntilFreedom = stats?.daysUntilFreedom ?? null;
 
   return (
     <Link href="/residency?tab=stats">
