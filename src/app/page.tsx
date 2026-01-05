@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { ResidencyTracker } from '@/components/dashboard/ResidencyTracker';
 import { TaskChecklist } from '@/components/TaskChecklist';
+import { FeedingDashboardWidget } from '@/components/FeedingScheduleWidget';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
 import {
@@ -2823,6 +2824,9 @@ export default function VetHub() {
           onDeleteAllTasks={handleDeleteAllTasks}
           onCompleteAllForTaskName={handleCompleteAllForTaskName}
         />
+
+        {/* Feeding Schedule Dashboard Widget */}
+        <FeedingDashboardWidget />
 
         {/* OLD Task Overview - DISABLED */}
         {false && showTaskOverview && (

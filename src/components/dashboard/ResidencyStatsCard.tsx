@@ -147,7 +147,7 @@ export function ResidencyStatsCard() {
   }, []);
 
   // Debounced mutation handler to prevent rapid-fire requests
-  const handleMutation = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount', delta: number) => {
+  const handleMutation = useCallback((field: 'mriCount' | 'recheckCount' | 'newConsultCount', delta: number) => {
     const now = Date.now();
     const last = lastMutationRef.current;
 
@@ -206,11 +206,11 @@ export function ResidencyStatsCard() {
     }, 300);
   }, [quickIncrementMutate, toast]);
 
-  const handleIncrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
+  const handleIncrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newConsultCount') => {
     handleMutation(field, 1);
   }, [handleMutation]);
 
-  const handleDecrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newCount') => {
+  const handleDecrement = useCallback((field: 'mriCount' | 'recheckCount' | 'newConsultCount') => {
     handleMutation(field, -1);
   }, [handleMutation]);
 
@@ -224,7 +224,7 @@ export function ResidencyStatsCard() {
 
   // Memoized values
   const totals = useMemo(() =>
-    stats?.totals ?? { mriCount: 0, recheckCount: 0, newCount: 0, totalAppointments: 0 },
+    stats?.totals ?? { mriCount: 0, recheckCount: 0, newConsultCount: 0, totalAppointments: 0 },
     [stats?.totals]
   );
 
@@ -238,7 +238,7 @@ export function ResidencyStatsCard() {
   // Today's entry values for showing "+X today"
   const todayMri = todayEntry?.mriCount ?? 0;
   const todayRecheck = todayEntry?.recheckCount ?? 0;
-  const todayNew = todayEntry?.newCount ?? 0;
+  const todayNew = todayEntry?.newConsultCount ?? 0;
 
   if (isLoading) {
     return (
@@ -404,14 +404,14 @@ export function ResidencyStatsCard() {
 
               <QuickCounter
                 label="New Patients"
-                value={totals.newCount}
+                value={totals.newConsultCount}
                 todayValue={todayNew}
                 icon={MemoizedUsers}
                 iconColor="text-emerald-500"
-                onIncrement={() => handleIncrement('newCount')}
-                onDecrement={() => handleDecrement('newCount')}
+                onIncrement={() => handleIncrement('newConsultCount')}
+                onDecrement={() => handleDecrement('newConsultCount')}
                 isPending={isPending}
-                animateValue={animatingField === 'newCount'}
+                animateValue={animatingField === 'newConsultCount'}
                 isLoading={todayLoading}
               />
             </div>
