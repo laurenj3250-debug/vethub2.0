@@ -78,7 +78,8 @@
     "recharts": "^2.15.1",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "prisma": "^6.19.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -89,7 +90,6 @@
     "@types/react-dom": "^18",
     "playwright": "^1.56.1",
     "postcss": "^8",
-    "prisma": "^6.19.0",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.20.6",
     "typescript": "^5"
