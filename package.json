@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && prisma db push --skip-generate && NODE_ENV=production next build",
+    "build": "prisma generate && (prisma db push --skip-generate || echo 'DB push skipped') && NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
