@@ -39,20 +39,79 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new surgery
+// Helper: Calculate residency year based on program start date
+async function getResidencyYear(): Promise<number> {
+  const profile = await prisma.aCVIMProfile.findFirst();
+  if (!profile?.programStartDate) return 1;
+
+  const start = new Date(profile.programStartDate);
+  const now = new Date();
+  const monthsDiff = (now.getFullYear() - start.getFullYear()) * 12 +
+                     (now.getMonth() - start.getMonth());
+
+  if (monthsDiff < 12) return 1;
+  if (monthsDiff < 24) return 2;
+  return 3;
+}
+
+// Helper: Map participation level to ACVIM role
+function mapParticipationToRole(participation: string): 'Primary' | 'Assistant' {
+  return participation === 'S' ? 'Primary' : 'Assistant';
+}
+
+// POST - Create new surgery (also creates ACVIM case log entry)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = surgerySchema.parse(body);
+    const skipAcvim = body.skipAcvim === true; // Allow opting out
 
-    const surgery = await prisma.surgery.create({
-      data: validated,
-      include: {
-        dailyEntry: true,
-      },
+    // Get the daily entry to get the date
+    const dailyEntry = await prisma.dailyEntry.findUnique({
+      where: { id: validated.dailyEntryId },
     });
 
-    return NextResponse.json(surgery);
+    if (!dailyEntry) {
+      return NextResponse.json(
+        { error: 'Daily entry not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get residency year upfront (before transaction)
+    const residencyYear = skipAcvim ? 1 : await getResidencyYear();
+
+    // Create both in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Create the daily stats surgery
+      const surgery = await tx.surgery.create({
+        data: validated,
+        include: {
+          dailyEntry: true,
+        },
+      });
+
+      // 2. Also create ACVIM case log entry (unless skipped)
+      let acvimCase = null;
+      if (!skipAcvim) {
+        acvimCase = await tx.aCVIMNeurosurgeryCase.create({
+          data: {
+            procedureName: validated.procedureName,
+            dateCompleted: dailyEntry.date,
+            caseIdNumber: validated.patientName || 'N/A', // Use patient name as case ID fallback
+            role: mapParticipationToRole(validated.participation),
+            hours: 1.0, // Default 1 hour - can be edited later on full page
+            residencyYear,
+            patientName: validated.patientName,
+            notes: validated.notes,
+          },
+        });
+      }
+
+      return { surgery, acvimCase };
+    });
+
+    return NextResponse.json(result.surgery);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
