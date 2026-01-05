@@ -450,11 +450,11 @@ export function useClockInOut() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (action: 'clockIn' | 'clockOut') => {
+    mutationFn: async (data: { action: 'clockIn' | 'clockOut'; time?: string }) => {
       const res = await fetch('/api/residency/quick-increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(data),
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));

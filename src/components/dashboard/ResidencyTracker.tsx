@@ -14,16 +14,20 @@ import {
   AlertCircle,
   UserPlus,
   RefreshCw,
+  X,
+  Pencil,
 } from 'lucide-react';
 import {
   useResidencyStats,
   useQuickIncrement,
   useTodayEntry,
   useClockInOut,
+  useAddSurgery,
   type CounterField,
 } from '@/hooks/useResidencyStats';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
 
 // Counter button component
 function CounterBtn({
@@ -94,12 +98,18 @@ function CounterRow({
 export function ResidencyTracker() {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const [showSurgeryForm, setShowSurgeryForm] = useState(false);
+  const [surgeryProcedure, setSurgeryProcedure] = useState('');
+  const [surgeryRole, setSurgeryRole] = useState<'S' | 'O' | 'C' | 'D' | 'K'>('O');
+  const [editingClockIn, setEditingClockIn] = useState(false);
+  const [clockInTime, setClockInTime] = useState('');
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: stats, isLoading } = useResidencyStats();
   const { data: todayEntry, isLoading: todayLoading } = useTodayEntry();
   const { mutate: increment, isPending } = useQuickIncrement();
   const { mutate: clockAction, isPending: clockPending } = useClockInOut();
+  const { mutateAsync: addSurgery, isPending: surgeryPending } = useAddSurgery();
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -127,6 +137,20 @@ export function ResidencyTracker() {
   const handleDecrement = useCallback((field: CounterField) => {
     increment({ field, delta: -1 });
   }, [increment]);
+
+  // Handle adding surgery quickly
+  const handleAddSurgery = useCallback(async () => {
+    if (!surgeryProcedure || !todayEntry?.id) return;
+
+    await addSurgery({
+      dailyEntryId: todayEntry.id,
+      procedureName: surgeryProcedure,
+      participation: surgeryRole,
+    });
+
+    setSurgeryProcedure('');
+    setShowSurgeryForm(false);
+  }, [surgeryProcedure, surgeryRole, todayEntry?.id, addSurgery]);
 
   // Get values
   const totals = stats?.totals ?? {
@@ -195,12 +219,46 @@ export function ResidencyTracker() {
 
           {/* Clock In/Out */}
           <div className="flex items-center justify-between py-2 mb-2 bg-slate-50 dark:bg-slate-800 rounded-lg px-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1">
               <Clock className="w-4 h-4 text-blue-500" />
-              <div className="text-xs">
-                {shiftStart ? (
-                  <span>
+              <div className="text-xs flex-1">
+                {editingClockIn ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="time"
+                      value={clockInTime}
+                      onChange={(e) => setClockInTime(e.target.value)}
+                      className="w-20 px-1 py-0.5 text-xs rounded border bg-white dark:bg-slate-900"
+                    />
+                    <button
+                      onClick={() => {
+                        clockAction({ action: 'clockIn', time: clockInTime });
+                        setEditingClockIn(false);
+                      }}
+                      className="text-emerald-500 hover:text-emerald-600"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => setEditingClockIn(false)}
+                      className="text-rose-500 hover:text-rose-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : shiftStart ? (
+                  <span className="flex items-center gap-1">
                     In: <span className="font-mono">{shiftStart}</span>
+                    <button
+                      onClick={() => {
+                        setClockInTime(shiftStart);
+                        setEditingClockIn(true);
+                      }}
+                      className="text-muted-foreground hover:text-primary ml-1"
+                      title="Edit time"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
                     {shiftEnd && (
                       <> → Out: <span className="font-mono">{shiftEnd}</span></>
                     )}
@@ -211,14 +269,14 @@ export function ResidencyTracker() {
               </div>
             </div>
             <button
-              onClick={() => clockAction(shiftStart && !shiftEnd ? 'clockOut' : 'clockIn')}
-              disabled={isClockingIn || (shiftStart && shiftEnd)}
+              onClick={() => clockAction({ action: shiftStart && !shiftEnd ? 'clockOut' : 'clockIn' })}
+              disabled={isClockingIn || !!(shiftStart && shiftEnd) || editingClockIn}
               className={cn(
                 'px-2 py-1 text-xs font-medium rounded-md transition-colors',
                 shiftStart && !shiftEnd
                   ? 'bg-rose-500 hover:bg-rose-600 text-white'
                   : 'bg-emerald-500 hover:bg-emerald-600 text-white',
-                (isClockingIn || (shiftStart && shiftEnd)) && 'opacity-50 cursor-not-allowed'
+                (isClockingIn || !!(shiftStart && shiftEnd) || editingClockIn) && 'opacity-50 cursor-not-allowed'
               )}
             >
               {isClockingIn ? '...' : shiftStart && !shiftEnd ? 'Out' : 'In'}
@@ -294,17 +352,80 @@ export function ResidencyTracker() {
             />
           </div>
 
-          {/* Surgeries link */}
-          <Link
-            href="/residency?tab=stats"
-            className="flex items-center justify-between mt-3 pt-2 border-t text-xs text-muted-foreground hover:text-primary"
-          >
-            <span className="flex items-center gap-2">
-              <Scissors className="w-4 h-4 text-red-500" />
-              Surgeries: {stats?.surgeryBreakdown?.total ?? 0}
-            </span>
-            <span>Log on full page →</span>
-          </Link>
+          {/* Quick Surgery Add */}
+          <div className="mt-3 pt-2 border-t">
+            <div className="flex items-center justify-between mb-2">
+              <span className="flex items-center gap-2 text-xs">
+                <Scissors className="w-4 h-4 text-red-500" />
+                Surgeries: {stats?.surgeryBreakdown?.total ?? 0}
+                {todayEntry?.surgeries?.length ? ` (+${todayEntry.surgeries.length} today)` : ''}
+              </span>
+              <button
+                onClick={() => setShowSurgeryForm(!showSurgeryForm)}
+                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                {showSurgeryForm ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                {showSurgeryForm ? 'Cancel' : 'Quick Add'}
+              </button>
+            </div>
+
+            {/* Quick Surgery Form */}
+            {showSurgeryForm && (
+              <div className="space-y-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <select
+                  value={surgeryProcedure}
+                  onChange={(e) => setSurgeryProcedure(e.target.value)}
+                  className="w-full text-xs p-1.5 rounded border bg-white dark:bg-slate-900"
+                >
+                  <option value="">Select procedure...</option>
+                  {COMMON_PROCEDURES.map((proc) => (
+                    <option key={proc} value={proc}>{proc}</option>
+                  ))}
+                </select>
+
+                <div className="flex gap-1">
+                  {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSurgeryRole(key as 'S' | 'O' | 'C' | 'D' | 'K')}
+                      className={cn(
+                        'flex-1 py-1 text-[10px] font-medium rounded transition-colors',
+                        surgeryRole === key ? `${color} text-white` : 'bg-slate-200 dark:bg-slate-700'
+                      )}
+                      title={label}
+                    >
+                      {key}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleAddSurgery}
+                  disabled={!surgeryProcedure || !todayEntry?.id || surgeryPending}
+                  className={cn(
+                    'w-full py-1.5 text-xs font-medium rounded transition-colors',
+                    'bg-red-500 hover:bg-red-600 text-white',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                  )}
+                >
+                  {surgeryPending ? 'Adding...' : 'Add Surgery'}
+                </button>
+
+                {!todayEntry?.id && (
+                  <p className="text-[10px] text-amber-600 text-center">
+                    Log a case first to add surgeries
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Link
+              href="/residency?tab=stats"
+              className="block text-center text-[10px] text-muted-foreground hover:text-primary mt-2"
+            >
+              View full stats →
+            </Link>
+          </div>
         </div>
       </div>
 
