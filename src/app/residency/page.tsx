@@ -175,6 +175,7 @@ export default function ACVIMResidencyTrackerPage() {
     acvimCandidateId: '',
     trainingFacility: '',
     programStartDate: '2025-07-14',
+    programEndDate: '2028-07-15',
     supervisingDiplomateNames: '',
   });
 
@@ -201,6 +202,7 @@ export default function ACVIMResidencyTrackerPage() {
           acvimCandidateId: profileData.acvimCandidateId || '',
           trainingFacility: profileData.trainingFacility || '',
           programStartDate: profileData.programStartDate || '2025-07-14',
+          programEndDate: profileData.programEndDate || '2028-07-15',
           supervisingDiplomateNames: (profileData.supervisingDiplomateNames || []).join(', '),
         });
       }
@@ -266,6 +268,7 @@ export default function ACVIMResidencyTrackerPage() {
           acvimCandidateId: profileForm.acvimCandidateId,
           trainingFacility: profileForm.trainingFacility,
           programStartDate: profileForm.programStartDate,
+          programEndDate: profileForm.programEndDate,
           supervisingDiplomateNames: profileForm.supervisingDiplomateNames
             .split(',')
             .map((s) => s.trim())
@@ -1653,6 +1656,23 @@ export default function ACVIMResidencyTrackerPage() {
                   }
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Program End Date (for countdown)
+                </label>
+                <input
+                  type="date"
+                  value={profileForm.programEndDate}
+                  onChange={(e) =>
+                    setProfileForm({ ...profileForm, programEndDate: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  When does residency end? Used for "Days Until Freedom" countdown.
+                </p>
               </div>
 
               <div>

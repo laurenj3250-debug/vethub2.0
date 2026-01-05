@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         acvimCandidateId: data.acvimCandidateId,
         trainingFacility: data.trainingFacility,
         programStartDate: data.programStartDate || '2025-07-14',
+        programEndDate: data.programEndDate,
         supervisingDiplomateNames: data.supervisingDiplomateNames || [],
       },
     });
@@ -63,6 +64,7 @@ export async function PUT(request: NextRequest) {
           acvimCandidateId: data.acvimCandidateId,
           trainingFacility: data.trainingFacility,
           programStartDate: data.programStartDate || '2025-07-14',
+          programEndDate: data.programEndDate,
           supervisingDiplomateNames: data.supervisingDiplomateNames || [],
         },
       });
@@ -74,6 +76,7 @@ export async function PUT(request: NextRequest) {
           acvimCandidateId: data.acvimCandidateId,
           trainingFacility: data.trainingFacility,
           programStartDate: data.programStartDate,
+          programEndDate: data.programEndDate,
           supervisingDiplomateNames: data.supervisingDiplomateNames || [],
         },
       });

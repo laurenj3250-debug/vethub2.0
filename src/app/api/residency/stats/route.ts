@@ -81,10 +81,18 @@ export async function GET() {
     // Get resident profile for program dates
     const profile = await prisma.aCVIMProfile.findFirst();
     const programStartDate = profile?.programStartDate;
+    const programEndDate = profile?.programEndDate;
 
-    // Calculate days until freedom (assuming 3-year residency)
+    // Calculate days until freedom
+    // Use explicit end date if set, otherwise calculate 3 years from start
     let daysUntilFreedom = null;
-    if (programStartDate) {
+    if (programEndDate) {
+      // Use explicit end date
+      const endDate = new Date(programEndDate);
+      const today = new Date();
+      daysUntilFreedom = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    } else if (programStartDate) {
+      // Fall back to 3-year calculation
       const endDate = new Date(programStartDate);
       endDate.setFullYear(endDate.getFullYear() + 3);
       const today = new Date();

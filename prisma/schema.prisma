@@ -300,6 +300,7 @@ model ACVIMProfile {
   acvimCandidateId          String?
   trainingFacility          String?
   programStartDate          String?  // ISO date - when residency started (e.g., "2025-07-14")
+  programEndDate            String?  // ISO date - explicit end date (e.g., "2028-07-15") - overrides 3-year calc
   supervisingDiplomateNames String[] // Default diplomates for quick fill
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
