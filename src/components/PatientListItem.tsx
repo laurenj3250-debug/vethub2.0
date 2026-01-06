@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Trash2, Tag } from 'lucide-react';
 import { FoodCalculatorPopover } from './FoodCalculatorPopover';
-import { PatientFeedingSchedule } from './FeedingScheduleWidget';
 
 // Neo-pop styling constants
 const NEO_SHADOW = '6px 6px 0 #000';
@@ -262,18 +261,6 @@ export function PatientListItem({
               ✏️ Edit Info
             </button>
           </div>
-
-          {/* Feeding Schedule (for hospitalized patients) */}
-          {(patient.status === 'Hospitalized' || patient.status === 'New Admit') && patient.id && (
-            <div className="mb-3">
-              <PatientFeedingSchedule
-                patientId={patient.id}
-                patientName={patient.demographics?.name || patient.name}
-                weightKg={parseFloat(String(patient.demographics?.weight || patient.patient_info?.weight || '0').replace(/[^\d.]/g, ''))}
-                species={patient.demographics?.species || patient.patient_info?.species}
-              />
-            </div>
-          )}
 
           {/* Edit Demographics Form */}
           {showEditDemographics && (

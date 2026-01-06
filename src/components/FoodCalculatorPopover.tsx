@@ -64,7 +64,7 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
   }
 
   return (
-    <div className="relative inline-block z-10" ref={popoverRef}>
+    <div className="relative inline-block z-[100]" ref={popoverRef}>
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -80,7 +80,7 @@ export function FoodCalculatorPopover({ weightKg, species, patientName }: FoodCa
 
       {isOpen && (
         <div
-          className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 p-3"
+          className="absolute z-[9999] bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 p-3"
           style={{ minWidth: '220px' }}
           onClick={(e) => e.stopPropagation()}
         >

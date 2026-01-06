@@ -47,7 +47,6 @@ model Patient {
   tasks             Task[]
   neuroExams        NeuroExam[]
   resiliencyEntries ResiliencyEntry[]
-  feedingSchedules  FeedingSchedule[]
 
   @@index([status])
   @@index([createdAt])
@@ -532,63 +531,3 @@ model BingoSquare {
 }
 
 // ==========================================
-// Patient Feeding Schedule
-// Track feeding times and completion for hospitalized patients
-// ==========================================
-
-model FeedingSchedule {
-  id          String    @id @default(cuid())
-  patientId   Int
-  patient     Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
-
-  // Food details
-  foodType    String    // e.g., "Chicken & Rice", "RC GI LF Dry", "Hill's i/d"
-  amountGrams Int       // Amount per feeding in grams
-  kcalPerDay  Float?    // Target kcal/day (calculated from RER)
-
-  // Feeding frequency
-  frequency   String    // "q4h" | "q6h" | "q8h" | "q12h" | "tid" | "bid"
-  feedingTimes String[] // Array of scheduled times ["06:00", "12:00", "18:00", "00:00"]
-
-  // Additional instructions
-  notes       String?   // Special instructions (e.g., "warm food", "elevated bowl")
-  waterOnly   Boolean   @default(false) // NPO except water
-
-  // Status
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Feeding records
-  feedingRecords FeedingRecord[]
-
-  @@index([patientId])
-  @@index([isActive])
-}
-
-// Individual feeding record - tracks each meal given
-model FeedingRecord {
-  id              String          @id @default(cuid())
-  scheduleId      String
-  schedule        FeedingSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
-
-  // When feeding was scheduled vs completed
-  scheduledTime   String          // Expected time (e.g., "06:00")
-  scheduledDate   String          // Date (YYYY-MM-DD)
-  completedAt     DateTime?       // When actually given
-  completedBy     String?         // Staff member name
-
-  // What was given
-  amountGiven     Int?            // Actual grams given (may differ from scheduled)
-  percentEaten    Int?            // 0-100% consumed
-  vomited         Boolean         @default(false)
-  refused         Boolean         @default(false)
-
-  notes           String?         // Per-feeding notes
-
-  createdAt       DateTime        @default(now())
-
-  @@unique([scheduleId, scheduledDate, scheduledTime])
-  @@index([scheduleId])
-  @@index([scheduledDate])
-}
