@@ -2099,73 +2099,103 @@ export default function VetHub() {
   // Reference data CRUD helpers
   const saveReferenceMedication = async (med: { id?: string; name: string; dose: string; notes?: string }) => {
     try {
+      let response: Response;
       if (med.id) {
         // Update existing
-        await fetch(`/api/reference/medications/${med.id}`, {
+        response = await fetch(`/api/reference/medications/${med.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(med),
         });
       } else {
         // Create new
-        await fetch('/api/reference/medications', {
+        response = await fetch('/api/reference/medications', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(med),
         });
       }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to save (${response.status})`);
+      }
+
       await fetchReferenceData();
       setEditingReference(null);
       setEditingReferenceData(null);
-    } catch (error) {
+      toast({ title: '✅ Medication saved!' });
+    } catch (error: any) {
       console.error('Failed to save medication:', error);
+      toast({ variant: 'destructive', title: 'Error saving medication', description: error.message || 'Please try again' });
     }
   };
 
   const deleteReferenceMedication = async (id: string) => {
     try {
-      await fetch(`/api/reference/medications/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/reference/medications/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to delete (${response.status})`);
+      }
       await fetchReferenceData();
       setEditingReference(null);
       setEditingReferenceData(null);
-    } catch (error) {
+      toast({ title: '🗑️ Medication deleted' });
+    } catch (error: any) {
       console.error('Failed to delete medication:', error);
+      toast({ variant: 'destructive', title: 'Error deleting medication', description: error.message || 'Please try again' });
     }
   };
 
   const saveReferenceProtocol = async (proto: { id?: string; name: string; content: string }) => {
     try {
+      let response: Response;
       if (proto.id) {
         // Update existing
-        await fetch(`/api/reference/protocols/${proto.id}`, {
+        response = await fetch(`/api/reference/protocols/${proto.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(proto),
         });
       } else {
         // Create new
-        await fetch('/api/reference/protocols', {
+        response = await fetch('/api/reference/protocols', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(proto),
         });
       }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to save (${response.status})`);
+      }
+
       await fetchReferenceData();
       setEditingReference(null);
       setEditingReferenceData(null);
-    } catch (error) {
+      toast({ title: '✅ Protocol saved!' });
+    } catch (error: any) {
       console.error('Failed to save protocol:', error);
+      toast({ variant: 'destructive', title: 'Error saving protocol', description: error.message || 'Please try again' });
     }
   };
 
   const deleteReferenceProtocol = async (id: string) => {
     try {
-      await fetch(`/api/reference/protocols/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/reference/protocols/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to delete (${response.status})`);
+      }
       await fetchReferenceData();
       setEditingReference(null);
       setEditingReferenceData(null);
-    } catch (error) {
+      toast({ title: '🗑️ Protocol deleted' });
+    } catch (error: any) {
       console.error('Failed to delete protocol:', error);
+      toast({ variant: 'destructive', title: 'Error deleting protocol', description: error.message || 'Please try again' });
     }
   };
 
