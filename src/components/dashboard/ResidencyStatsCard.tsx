@@ -4,14 +4,13 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Brain, Users, Scissors, ChevronRight, ChevronDown, Calendar, Plus, Minus, Check } from 'lucide-react';
+import { Brain, Scissors, ChevronRight, ChevronDown, Calendar, Plus, Minus, Check } from 'lucide-react';
 import { useResidencyStats, useQuickIncrement, useTodayEntry } from '@/hooks/useResidencyStats';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 // Memoized icons to prevent re-renders
 const MemoizedBrain = <Brain className="h-4 w-4" />;
-const MemoizedUsers = <Users className="h-4 w-4" />;
 
 interface CounterButtonProps {
   onClick: () => void;
@@ -237,8 +236,6 @@ export function ResidencyStatsCard() {
 
   // Today's entry values for showing "+X today"
   const todayMri = todayEntry?.mriCount ?? 0;
-  const todayRecheck = todayEntry?.recheckCount ?? 0;
-  const todayNew = todayEntry?.newConsultCount ?? 0;
 
   if (isLoading) {
     return (
@@ -338,20 +335,13 @@ export function ResidencyStatsCard() {
         {/* Collapsed View - Quick Stats */}
         {!isExpanded && (
           <>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Brain className="h-4 w-4 text-purple-500" />
                   <span className="text-2xl font-bold">{totals.mriCount}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">MRIs</p>
-              </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  <span className="text-2xl font-bold">{totals.totalAppointments}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Appointments</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
@@ -363,7 +353,7 @@ export function ResidencyStatsCard() {
             </div>
 
             <p className="text-xs text-center text-muted-foreground mt-3">
-              Tap to log today&apos;s cases
+              Tap to log today&apos;s MRIs
             </p>
           </>
         )}
@@ -375,7 +365,7 @@ export function ResidencyStatsCard() {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="flex justify-center">
               <QuickCounter
                 label="MRIs"
                 value={totals.mriCount}
@@ -386,32 +376,6 @@ export function ResidencyStatsCard() {
                 onDecrement={() => handleDecrement('mriCount')}
                 isPending={isPending}
                 animateValue={animatingField === 'mriCount'}
-                isLoading={todayLoading}
-              />
-
-              <QuickCounter
-                label="Rechecks"
-                value={totals.recheckCount}
-                todayValue={todayRecheck}
-                icon={MemoizedUsers}
-                iconColor="text-blue-500"
-                onIncrement={() => handleIncrement('recheckCount')}
-                onDecrement={() => handleDecrement('recheckCount')}
-                isPending={isPending}
-                animateValue={animatingField === 'recheckCount'}
-                isLoading={todayLoading}
-              />
-
-              <QuickCounter
-                label="New Patients"
-                value={totals.newConsultCount}
-                todayValue={todayNew}
-                icon={MemoizedUsers}
-                iconColor="text-emerald-500"
-                onIncrement={() => handleIncrement('newConsultCount')}
-                onDecrement={() => handleDecrement('newConsultCount')}
-                isPending={isPending}
-                animateValue={animatingField === 'newConsultCount'}
                 isLoading={todayLoading}
               />
             </div>
