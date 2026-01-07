@@ -421,7 +421,11 @@ function TemplateSelector({
   return (
     <div ref={dropdownRef} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
         className="p-1 rounded hover:bg-gray-100 transition-colors"
         title={`Apply template to ${patientName}`}
         aria-label={`Apply template to ${patientName}`}
@@ -445,7 +449,9 @@ function TemplateSelector({
               {templates.map(template => (
                 <button
                   key={template.id}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onSelect(template);
                     setIsOpen(false);
                   }}
