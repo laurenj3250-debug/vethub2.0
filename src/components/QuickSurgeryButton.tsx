@@ -6,6 +6,7 @@ import { Scissors } from 'lucide-react';
 interface QuickSurgeryButtonProps {
   patientName: string;
   patientType: string;
+  caseId?: string; // Patient ID or case number for ACVIM tracking
   onSurgeryAdded?: () => void;
 }
 
@@ -28,7 +29,7 @@ const PARTICIPATION_OPTIONS = [
   { code: 'K', label: 'Knew About', color: '#6B7280' },
 ] as const;
 
-export function QuickSurgeryButton({ patientName, patientType, onSurgeryAdded }: QuickSurgeryButtonProps) {
+export function QuickSurgeryButton({ patientName, patientType, caseId, onSurgeryAdded }: QuickSurgeryButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedSurgery, setSelectedSurgery] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,7 +84,7 @@ export function QuickSurgeryButton({ patientName, patientType, onSurgeryAdded }:
 
       const dailyEntry = await entryRes.json();
 
-      // 2. Create the surgery
+      // 2. Create the surgery with case ID for ACVIM tracking
       const surgeryRes = await fetch('/api/residency/surgery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,7 +92,7 @@ export function QuickSurgeryButton({ patientName, patientType, onSurgeryAdded }:
           dailyEntryId: dailyEntry.id,
           procedureName: selectedSurgery,
           participation,
-          patientName,
+          patientName: caseId ? `${patientName} (${caseId})` : patientName,
         }),
       });
 
