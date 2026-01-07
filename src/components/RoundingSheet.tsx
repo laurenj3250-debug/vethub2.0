@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight, Pencil, Check } from 'lucide-react';
+import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight, Pencil, Check, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
@@ -21,6 +21,7 @@ import {
 } from '@/lib/constants';
 import { FieldMultiSelect } from './FieldMultiSelect';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
+import { roundingTemplates, getTemplateCategories, type RoundingTemplate } from '@/data/rounding-templates';
 
 // Local Patient interface for component props (uses RoundingPatient pattern)
 type Patient = RoundingPatient;
@@ -386,6 +387,75 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
               Reset to defaults
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Template Selector - Dropdown to apply rounding templates to a patient
+ */
+function TemplateSelector({
+  onSelect,
+  patientName
+}: {
+  onSelect: (template: RoundingTemplate) => void;
+  patientName: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const categories = getTemplateCategories();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 rounded hover:bg-gray-100 transition-colors"
+        title={`Apply template to ${patientName}`}
+        aria-label={`Apply template to ${patientName}`}
+      >
+        <FileText size={14} className="text-gray-500 hover:text-purple-600" />
+      </button>
+
+      {isOpen && (
+        <div
+          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg z-50 min-w-[200px] max-h-[320px] overflow-y-auto"
+          style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+        >
+          <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
+            <span className="text-xs font-bold text-gray-700">Apply Template</span>
+          </div>
+          {categories.map(({ category, label, templates }) => (
+            <div key={category}>
+              <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-200">
+                <span className="text-[10px] font-bold text-gray-500 uppercase">{label}</span>
+              </div>
+              {templates.map(template => (
+                <button
+                  key={template.id}
+                  onClick={() => {
+                    onSelect(template);
+                    setIsOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs hover:bg-purple-50 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+                >
+                  <span className="font-medium text-gray-900">{template.name}</span>
+                </button>
+              ))}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1080,6 +1150,27 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     setPendingPasteData([]);
   }, [pendingPasteData, patients, toast]);
 
+  // Apply a rounding template to a patient - replaces all fields
+  const applyTemplate = useCallback((patientId: number, template: RoundingTemplate) => {
+    const patient = patients.find(p => p.id === patientId);
+    const patientName = patient ? getPatientName(patient) : 'patient';
+
+    // Apply template data to patient's editing data (replaces all fields)
+    setEditingData(prev => ({
+      ...prev,
+      [patientId]: {
+        ...template.data,
+        // Keep signalment if it exists (patient-specific)
+        signalment: prev[patientId]?.signalment || '',
+      } as RoundingData,
+    }));
+
+    toast({
+      title: 'Template Applied',
+      description: `"${template.name}" applied to ${patientName}`,
+    });
+  }, [patients, toast]);
+
   const handleSave = async (patientId: number) => {
     try {
       setIsSaving(true);
@@ -1342,23 +1433,34 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                 style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW, backgroundColor: 'white' }}
               >
                 {/* Card Header - Always Visible */}
-                <button
-                  onClick={() => toggleCardExpanded(patient.id)}
+                <div
                   className="w-full p-4 flex items-center justify-between text-left"
                   style={{ backgroundColor: COLORS.mint, borderBottom: NEO_BORDER }}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: codeColor, border: '1px solid #000' }}
-                      title={`Code: ${data.code || 'None'}`}
+                    <TemplateSelector
+                      patientName={patientName}
+                      onSelect={(template) => applyTemplate(patient.id, template)}
                     />
-                    <div>
-                      <div className="font-bold text-gray-900">{patientName}</div>
-                      <div className="text-xs text-gray-600">{data.signalment || 'No signalment'}</div>
-                    </div>
+                    <button
+                      onClick={() => toggleCardExpanded(patient.id)}
+                      className="flex items-center gap-3 flex-1"
+                    >
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: codeColor, border: '1px solid #000' }}
+                        title={`Code: ${data.code || 'None'}`}
+                      />
+                      <div>
+                        <div className="font-bold text-gray-900">{patientName}</div>
+                        <div className="text-xs text-gray-600">{data.signalment || 'No signalment'}</div>
+                      </div>
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toggleCardExpanded(patient.id)}
+                    className="flex items-center gap-2"
+                  >
                     {status === 'saving' && (
                       <span className="text-xs text-blue-600 font-medium">Saving...</span>
                     )}
@@ -1372,8 +1474,8 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       size={20}
                       className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                     />
-                  </div>
-                </button>
+                  </button>
+                </div>
 
                 {/* Expanded Content */}
                 {isExpanded && (
@@ -1613,6 +1715,10 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                 >
                   <td className="p-1 sticky left-0 z-10" style={{ backgroundColor: rowBg, borderRight: NEO_BORDER, borderBottom: '1px solid #000' }}>
                     <div className="flex items-center gap-1">
+                      <TemplateSelector
+                        patientName={patientName}
+                        onSelect={(template) => applyTemplate(patient.id, template)}
+                      />
                       <Link
                         href={`/?patient=${patient.id}`}
                         className="group flex flex-col hover:text-[#6BB89D] transition flex-1 min-w-0"
