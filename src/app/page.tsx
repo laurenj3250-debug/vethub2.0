@@ -21,6 +21,7 @@ import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, 
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
 import { ResidencyTracker } from '@/components/dashboard/ResidencyTracker';
+import { useResidencyStats } from '@/hooks/useResidencyStats';
 import { TaskChecklist } from '@/components/TaskChecklist';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
@@ -55,6 +56,10 @@ export default function VetHub() {
   const { data: commonItemsData } = useCommonItemsQuery();
   const commonMedications = commonItemsData?.medications ?? [];
   const { toast } = useToast();
+
+  // Residency stats for days-til-freedom counter
+  const { data: residencyStats } = useResidencyStats();
+  const daysUntilFreedom = residencyStats?.daysUntilFreedom ?? null;
 
   // Auth state
   const [email, setEmail] = useState('');
@@ -2618,6 +2623,18 @@ export default function VetHub() {
             <h1 className="text-2xl font-black text-gray-900">
               VetHub
             </h1>
+            {/* Days til freedom mini counter */}
+            {daysUntilFreedom !== null && daysUntilFreedom > 0 && (
+              <Link
+                href="/residency"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold text-purple-700 hover:bg-purple-100 transition"
+                style={{ backgroundColor: '#F3E8FF' }}
+                title="Days until residency complete"
+              >
+                <span className="text-base">🎓</span>
+                <span>{daysUntilFreedom}d</span>
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

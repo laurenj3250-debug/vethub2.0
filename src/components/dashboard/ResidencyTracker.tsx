@@ -285,7 +285,7 @@ export function ResidencyTracker() {
             </button>
           </div>
 
-          {/* Counters */}
+          {/* MRI Counter Only */}
           <div className="space-y-0.5">
             <CounterRow
               icon={<Brain className="w-4 h-4" />}
@@ -297,60 +297,6 @@ export function ResidencyTracker() {
               onDecrement={() => handleDecrement('mriCount')}
               isPending={isPending}
               color="text-purple-500"
-            />
-
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2 mb-1">
-              Appointments
-            </div>
-
-            <CounterRow
-              icon={<RefreshCw className="w-4 h-4" />}
-              label="Rechecks"
-              value={totals.recheckCount}
-              todayValue={today.recheckCount}
-              field="recheckCount"
-              onIncrement={() => handleIncrement('recheckCount')}
-              onDecrement={() => handleDecrement('recheckCount')}
-              isPending={isPending}
-              color="text-blue-500"
-            />
-
-            <CounterRow
-              icon={<UserPlus className="w-4 h-4" />}
-              label="New Consults"
-              value={totals.newConsultCount}
-              todayValue={today.newConsultCount}
-              field="newConsultCount"
-              onIncrement={() => handleIncrement('newConsultCount')}
-              onDecrement={() => handleDecrement('newConsultCount')}
-              isPending={isPending}
-              color="text-emerald-500"
-            />
-
-            <CounterRow
-              icon={<AlertCircle className="w-4 h-4" />}
-              label="Emergency"
-              value={totals.emergencyCount}
-              todayValue={today.emergencyCount}
-              field="emergencyCount"
-              onIncrement={() => handleIncrement('emergencyCount')}
-              onDecrement={() => handleDecrement('emergencyCount')}
-              isPending={isPending}
-              color="text-red-500"
-            />
-
-            <div className="border-t my-2" />
-
-            <CounterRow
-              icon={<MessageSquare className="w-4 h-4" />}
-              label="Comms"
-              value={totals.commsCount}
-              todayValue={today.commsCount}
-              field="commsCount"
-              onIncrement={() => handleIncrement('commsCount')}
-              onDecrement={() => handleDecrement('commsCount')}
-              isPending={isPending}
-              color="text-amber-500"
             />
           </div>
 
