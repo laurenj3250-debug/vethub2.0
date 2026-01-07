@@ -14,6 +14,17 @@ export const statusColors: Record<PatientStatus, string> = {
   'Discharging': 'bg-green-100 text-green-800 border-green-300',
 };
 
+// ============================================================================
+// MRI PATIENT DEFAULTS
+// ============================================================================
+
+/**
+ * Default diagnosticFindings for new MRI admits
+ * Used in patient creation and VetRadar imports
+ * Do not import external diagnostic data - just use this pending checklist
+ */
+export const MRI_DEFAULT_DIAGNOSTICS = 'CXR: pending | CBC/Chem: pending';
+
 // NOTE: Task definitions have been centralized in src/lib/task-definitions.ts
 // Import COMMON_GENERAL_TASKS, DAILY_TASKS, MORNING_TASK_NAMES, etc. from there
 
