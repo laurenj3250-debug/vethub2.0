@@ -100,13 +100,24 @@ export async function POST(request: NextRequest) {
 
     // Set default rounding data with location=IP, icuCriteria=N, code=Yellow
     // All patients get defaults: ivc=Yes, fluids=n/a, cri=n/a
-    const defaultRoundingData = {
+    // MRI patients get default diagnosticFindings for pre-MRI workup
+    const defaultRoundingData: Record<string, any> = {
       location: 'IP',
       icuCriteria: 'N',
       code: 'Yellow',
       ivc: 'Yes',
       fluids: 'n/a',
       cri: 'n/a',
+    };
+
+    // Set default diagnosticFindings for MRI admits (don't import, just use defaults)
+    if (patientType === 'MRI') {
+      defaultRoundingData.diagnosticFindings = 'CXR: pending | CBC/Chem: Pending';
+    }
+
+    // Merge with any provided rounding data (but for MRI, don't override diagnosticFindings unless explicitly set)
+    const finalRoundingData = {
+      ...defaultRoundingData,
       ...(body.roundingData || {}),
     };
 
@@ -117,7 +128,7 @@ export async function POST(request: NextRequest) {
         demographics: body.demographics || { name: 'Unnamed Patient' },
         medicalHistory: body.medicalHistory || {},
         currentStay: body.currentStay || undefined,
-        roundingData: defaultRoundingData,
+        roundingData: finalRoundingData,
         mriData: body.mriData || undefined,
         stickerData: body.stickerData || undefined,
         appointmentInfo: body.appointmentInfo || undefined,
