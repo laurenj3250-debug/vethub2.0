@@ -21,7 +21,7 @@ import {
 } from '@/lib/constants';
 import { FieldMultiSelect } from './FieldMultiSelect';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
-import { roundingTemplates, getTemplateCategories, type RoundingTemplate } from '@/data/rounding-templates';
+import { getTemplateCategories, type RoundingTemplate } from '@/data/rounding-templates';
 
 // Local Patient interface for component props (uses RoundingPatient pattern)
 type Patient = RoundingPatient;
@@ -1150,10 +1150,27 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     setPendingPasteData([]);
   }, [pendingPasteData, patients, toast]);
 
+  // Check if patient has existing rounding data worth preserving
+  const hasExistingData = useCallback((patientId: number): boolean => {
+    const data = editingData[patientId];
+    if (!data) return false;
+    // Check if any clinical fields have content
+    return !!(data.problems || data.therapeutics || data.diagnosticFindings ||
+              data.concerns || data.comments || data.overnightDx);
+  }, [editingData]);
+
   // Apply a rounding template to a patient - replaces all fields
   const applyTemplate = useCallback((patientId: number, template: RoundingTemplate) => {
     const patient = patients.find(p => p.id === patientId);
     const patientName = patient ? getPatientName(patient) : 'patient';
+
+    // Confirm if patient has existing data
+    if (hasExistingData(patientId)) {
+      const confirmed = window.confirm(
+        `This will replace all existing data for ${patientName}. Continue?`
+      );
+      if (!confirmed) return;
+    }
 
     // Apply template data to patient's editing data (replaces all fields)
     setEditingData(prev => ({
@@ -1162,14 +1179,14 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         ...template.data,
         // Keep signalment if it exists (patient-specific)
         signalment: prev[patientId]?.signalment || '',
-      } as RoundingData,
+      },
     }));
 
     toast({
       title: 'Template Applied',
       description: `"${template.name}" applied to ${patientName}`,
     });
-  }, [patients, toast]);
+  }, [patients, toast, hasExistingData]);
 
   const handleSave = async (patientId: number) => {
     try {
