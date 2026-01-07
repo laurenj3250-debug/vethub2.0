@@ -220,6 +220,7 @@ export default function ACVIMResidencyTrackerPage() {
             age: p.demographics?.age,
             sex: p.demographics?.sex,
             weight: p.demographics?.weight,
+            caseId: p.demographics?.patientId || String(p.id), // VetRadar patient ID or DB id as fallback
           }))
         );
       }
@@ -526,6 +527,7 @@ export default function ACVIMResidencyTrackerPage() {
       patientId: typeof patient.id === 'number' ? patient.id : parseInt(patient.id as string),
       patientName: patient.name,
       patientInfo: `${patient.age || ''} ${patient.sex || ''} ${patient.breed || patient.species || ''}`.trim(),
+      caseIdNumber: patient.caseId || String(patient.id), // Auto-fill case ID from VetRadar patient ID
     });
   }
 

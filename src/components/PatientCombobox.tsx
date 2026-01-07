@@ -27,6 +27,7 @@ export interface PatientOption {
   age?: string
   sex?: string
   weight?: string
+  caseId?: string  // VetRadar patient/consult ID for ACVIM case tracking
 }
 
 interface PatientComboboxProps {
