@@ -395,6 +395,7 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
 
 /**
  * Template Selector - Dropdown to apply rounding templates to a patient
+ * Uses fixed positioning to escape table stacking context
  */
 function TemplateSelector({
   onSelect,
@@ -421,7 +422,11 @@ function TemplateSelector({
   return (
     <div ref={dropdownRef} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
         className="p-1 rounded hover:bg-gray-100 transition-colors"
         title={`Apply template to ${patientName}`}
         aria-label={`Apply template to ${patientName}`}
@@ -431,27 +436,35 @@ function TemplateSelector({
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg z-50 min-w-[200px] max-h-[320px] overflow-y-auto"
-          style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+          className="fixed bg-white rounded-lg min-w-[220px] max-h-[320px] overflow-y-auto"
+          style={{
+            border: '3px solid #000',
+            boxShadow: '8px 8px 0 #000',
+            zIndex: 9999,
+            top: dropdownRef.current?.getBoundingClientRect().top ?? 0,
+            left: (dropdownRef.current?.getBoundingClientRect().right ?? 0) + 8,
+          }}
         >
-          <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
-            <span className="text-xs font-bold text-gray-700">Apply Template</span>
+          <div className="px-3 py-2 border-b-2 border-black bg-purple-200">
+            <span className="text-sm font-bold text-gray-900">Apply Template</span>
           </div>
           {categories.map(({ category, label, templates }) => (
             <div key={category}>
-              <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-200">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">{label}</span>
+              <div className="px-3 py-1.5 bg-gray-200 border-b border-gray-400">
+                <span className="text-[10px] font-bold text-gray-700 uppercase tracking-wide">{label}</span>
               </div>
               {templates.map(template => (
                 <button
                   key={template.id}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     onSelect(template);
                     setIsOpen(false);
                   }}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-purple-50 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+                  className="w-full px-3 py-2.5 text-left text-sm bg-white hover:bg-purple-100 transition-colors border-b border-gray-200 last:border-b-0"
                 >
-                  <span className="font-medium text-gray-900">{template.name}</span>
+                  <span className="font-semibold text-gray-900">{template.name}</span>
                 </button>
               ))}
             </div>
