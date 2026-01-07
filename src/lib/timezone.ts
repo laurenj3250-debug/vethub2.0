@@ -1,18 +1,62 @@
 /**
  * Timezone utilities for VetHub
  * All dates in the app should use Eastern Time (ET)
+ *
+ * Note: We use manual offset calculation because Node.js on some cloud
+ * providers (like Railway) doesn't fully support Intl timezone options.
  */
 
 export const APP_TIMEZONE = 'America/New_York';
+
+/**
+ * Check if a date is in US Daylight Saving Time
+ * DST starts: 2nd Sunday in March at 2am
+ * DST ends: 1st Sunday in November at 2am
+ */
+function isDST(date: Date): boolean {
+  const year = date.getUTCFullYear();
+
+  // Find 2nd Sunday in March (DST starts)
+  const march = new Date(Date.UTC(year, 2, 1)); // March 1
+  let secondSunday = 1;
+  while (march.getUTCDay() !== 0) {
+    march.setUTCDate(march.getUTCDate() + 1);
+  }
+  secondSunday = march.getUTCDate() + 7; // 2nd Sunday
+  const dstStart = new Date(Date.UTC(year, 2, secondSunday, 7)); // 2am ET = 7am UTC
+
+  // Find 1st Sunday in November (DST ends)
+  const november = new Date(Date.UTC(year, 10, 1)); // November 1
+  while (november.getUTCDay() !== 0) {
+    november.setUTCDate(november.getUTCDate() + 1);
+  }
+  const dstEnd = new Date(Date.UTC(year, 10, november.getUTCDate(), 6)); // 2am ET = 6am UTC (still in DST)
+
+  return date >= dstStart && date < dstEnd;
+}
+
+/**
+ * Get the UTC offset for Eastern Time (returns -4 for EDT, -5 for EST)
+ */
+function getETOffset(date: Date = new Date()): number {
+  return isDST(date) ? -4 : -5;
+}
+
+/**
+ * Convert a UTC date to Eastern Time
+ */
+function toEasternTime(date: Date): Date {
+  const offset = getETOffset(date);
+  return new Date(date.getTime() + offset * 60 * 60 * 1000);
+}
 
 /**
  * Get today's date in YYYY-MM-DD format in Eastern Time
  * Use this instead of new Date().toISOString().split('T')[0]
  */
 export function getTodayET(): string {
-  return new Date().toLocaleDateString('en-CA', {
-    timeZone: APP_TIMEZONE,
-  });
+  const et = toEasternTime(new Date());
+  return et.toISOString().split('T')[0];
 }
 
 /**
@@ -28,9 +72,8 @@ export function getNowET(): Date {
  * Format a date to YYYY-MM-DD in Eastern Time
  */
 export function formatDateET(date: Date): string {
-  return date.toLocaleDateString('en-CA', {
-    timeZone: APP_TIMEZONE,
-  });
+  const et = toEasternTime(date);
+  return et.toISOString().split('T')[0];
 }
 
 /**
@@ -45,12 +88,8 @@ export function isTodayET(dateStr: string): boolean {
  * Useful for determining morning vs evening
  */
 export function getCurrentHourET(): number {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: APP_TIMEZONE,
-    hour: 'numeric',
-    hour12: false,
-  });
-  return parseInt(formatter.format(new Date()), 10);
+  const et = toEasternTime(new Date());
+  return et.getUTCHours();
 }
 
 /**
@@ -75,12 +114,10 @@ export function isNewDayET(lastResetDate: string | null): boolean {
  * Use this for clock in/out times instead of UTC
  */
 export function getCurrentTimeET(): string {
-  return new Date().toLocaleTimeString('en-US', {
-    timeZone: APP_TIMEZONE,
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const et = toEasternTime(new Date());
+  const hours = et.getUTCHours().toString().padStart(2, '0');
+  const minutes = et.getUTCMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
 }
 
 /**
