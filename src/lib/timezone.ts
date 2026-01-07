@@ -69,3 +69,34 @@ export function isNewDayET(lastResetDate: string | null): boolean {
   if (!lastResetDate) return true;
   return getTodayET() !== lastResetDate;
 }
+
+/**
+ * Get current time in HH:MM format in Eastern Time
+ * Use this for clock in/out times instead of UTC
+ */
+export function getCurrentTimeET(): string {
+  return new Date().toLocaleTimeString('en-US', {
+    timeZone: APP_TIMEZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+/**
+ * Format a time string for display with AM/PM
+ * Converts HH:MM to h:MM AM/PM format
+ */
+export function formatTimeForDisplay(time: string | null | undefined): string {
+  if (!time) return '';
+  // Parse HH:MM format
+  const match = time.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return time;
+
+  const hours = parseInt(match[1], 10);
+  const minutes = match[2];
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+
+  return `${displayHours}:${minutes} ${period}`;
+}

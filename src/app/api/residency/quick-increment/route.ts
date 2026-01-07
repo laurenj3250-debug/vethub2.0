@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { getTodayET, getCurrentTimeET } from '@/lib/timezone';
 
 // All trackable fields
 const COUNTER_FIELDS = [
@@ -22,18 +23,8 @@ const quickIncrementSchema = z.object({
 // Validation schema for clock in/out
 const clockSchema = z.object({
   action: z.enum(['clockIn', 'clockOut']),
-  time: z.string().optional(), // If not provided, use current time
+  time: z.string().optional(), // If not provided, use current time in ET
 });
-
-// Get today's date in UTC (server-side)
-function getServerToday(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-// Get current time in HH:MM format
-function getCurrentTime(): string {
-  return new Date().toISOString().split('T')[1].slice(0, 5);
-}
 
 // POST - Atomically increment/decrement a field for today
 export async function POST(request: NextRequest) {
@@ -43,8 +34,8 @@ export async function POST(request: NextRequest) {
     // Check if this is a clock action
     if (body.action) {
       const validated = clockSchema.parse(body);
-      const today = getServerToday();
-      const time = validated.time || getCurrentTime();
+      const today = getTodayET();
+      const time = validated.time || getCurrentTimeET();
 
       const entry = await prisma.dailyEntry.upsert({
         where: { date: today },
@@ -70,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Counter increment
     const validated = quickIncrementSchema.parse(body);
-    const today = getServerToday();
+    const today = getTodayET();
 
     // Use a transaction to ensure atomic read-modify-write
     const entry = await prisma.$transaction(async (tx) => {

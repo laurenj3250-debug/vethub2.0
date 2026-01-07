@@ -272,14 +272,16 @@ export function ResidencyTracker() {
               onClick={() => clockAction({ action: shiftStart && !shiftEnd ? 'clockOut' : 'clockIn' })}
               disabled={isClockingIn || !!(shiftStart && shiftEnd) || editingClockIn}
               className={cn(
-                'px-2 py-1 text-xs font-medium rounded-md transition-colors',
+                'px-2 py-1 text-xs font-medium rounded-md transition-colors min-w-[40px]',
                 shiftStart && !shiftEnd
                   ? 'bg-rose-500 hover:bg-rose-600 text-white'
                   : 'bg-emerald-500 hover:bg-emerald-600 text-white',
                 (isClockingIn || !!(shiftStart && shiftEnd) || editingClockIn) && 'opacity-50 cursor-not-allowed'
               )}
             >
-              {isClockingIn ? '...' : shiftStart && !shiftEnd ? 'Out' : 'In'}
+              {isClockingIn ? (
+                <RefreshCw className="w-3 h-3 animate-spin mx-auto" />
+              ) : shiftStart && !shiftEnd ? 'Out' : 'In'}
             </button>
           </div>
 

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { getTodayET, getCurrentTimeET } from '@/lib/timezone';
 
 interface Surgery {
   id: string;
@@ -331,8 +332,8 @@ export function useQuickIncrement() {
       // Snapshot previous values for rollback
       const previousStats = queryClient.getQueryData<Stats>(['residency-stats']);
 
-      // Get today's date for the daily-entry query key (use local date for query matching)
-      const todayKey = new Date().toISOString().split('T')[0];
+      // Get today's date in Eastern Time for query key matching
+      const todayKey = getTodayET();
       const previousDailyEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', todayKey]);
 
       // Get today's current value for the field
@@ -439,13 +440,13 @@ export function useQuickIncrement() {
   });
 }
 
-// Get today's entry for quick view
+// Get today's entry for quick view (uses Eastern Time)
 export function useTodayEntry() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayET();
   return useDailyEntry(today);
 }
 
-// Clock in/out mutation
+// Clock in/out mutation with optimistic updates
 export function useClockInOut() {
   const queryClient = useQueryClient();
 
@@ -462,10 +463,50 @@ export function useClockInOut() {
       }
       return res.json();
     },
-    onSuccess: (data) => {
-      // Update today's entry cache
+    onMutate: async ({ action, time }) => {
+      const todayKey = getTodayET();
+      const clockTime = time || getCurrentTimeET();
+
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: ['daily-entry', todayKey] });
+
+      // Snapshot previous value for rollback
+      const previousEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', todayKey]);
+
+      // Optimistically update the cache
+      queryClient.setQueryData<DailyEntry | null>(['daily-entry', todayKey], (old) => {
+        const base: DailyEntry = old ?? {
+          id: 'temp-' + Date.now(),
+          date: todayKey,
+          mriCount: 0,
+          recheckCount: 0,
+          newConsultCount: 0,
+          emergencyCount: 0,
+          newCount: 0,
+          commsCount: 0,
+          totalCases: 0,
+          surgeries: [],
+          lmriEntries: [],
+        };
+
+        return {
+          ...base,
+          shiftStartTime: action === 'clockIn' ? clockTime : base.shiftStartTime,
+          shiftEndTime: action === 'clockOut' ? clockTime : base.shiftEndTime,
+        };
+      });
+
+      return { previousEntry, todayKey };
+    },
+    onSuccess: (data, _, context) => {
+      // Update with server response to ensure consistency
+      const todayKey = context?.todayKey || getTodayET();
       if (data?.date) {
         queryClient.setQueryData(['daily-entry', data.date], data);
+        // Also update today's key if different
+        if (data.date !== todayKey) {
+          queryClient.setQueryData(['daily-entry', todayKey], data);
+        }
       }
       toast({
         title: data.shiftEndTime ? 'Clocked Out' : 'Clocked In',
@@ -474,7 +515,11 @@ export function useClockInOut() {
           : `Shift started at ${data.shiftStartTime}`,
       });
     },
-    onError: (error) => {
+    onError: (error, _, context) => {
+      // Rollback optimistic update on error
+      if (context?.todayKey && context?.previousEntry !== undefined) {
+        queryClient.setQueryData(['daily-entry', context.todayKey], context.previousEntry);
+      }
       toast({
         title: 'Failed to clock',
         description: error instanceof Error ? error.message : 'Please try again.',
