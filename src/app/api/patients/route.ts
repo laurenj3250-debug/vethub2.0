@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { MRI_DEFAULT_DIAGNOSTICS } from '@/lib/constants';
 
 /**
  * GET /api/patients
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
 
     // Set default diagnosticFindings for MRI admits (don't import, just use defaults)
     if (patientType === 'MRI') {
-      defaultRoundingData.diagnosticFindings = 'CXR: pending | CBC/Chem: Pending';
+      defaultRoundingData.diagnosticFindings = MRI_DEFAULT_DIAGNOSTICS;
     }
 
     // Merge with any provided rounding data (but for MRI, don't override diagnosticFindings unless explicitly set)

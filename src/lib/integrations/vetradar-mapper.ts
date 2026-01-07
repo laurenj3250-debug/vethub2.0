@@ -7,6 +7,7 @@
 
 import { UnifiedPatient, RoundingData, StickerData } from '@/contexts/PatientContext';
 import { VetRadarPatient, VetRadarTreatmentSheet } from './vetradar-scraper';
+import { MRI_DEFAULT_DIAGNOSTICS } from '@/lib/constants';
 
 /**
  * Map VetRadar patient to UnifiedPatient structure
@@ -131,7 +132,7 @@ export function mapVetRadarToUnifiedPatient(
   // MRI admits get default pre-MRI workup checklist (don't import any external data)
   // inferPatientType already checks location/status for MRI, no need to check again
   const isMRIAdmit = inferPatientType(vetRadarPatient) === 'MRI';
-  const diagnosticFindings = isMRIAdmit ? 'CXR: pending | CBC/Chem: Pending' : '';
+  const diagnosticFindings = isMRIAdmit ? MRI_DEFAULT_DIAGNOSTICS : '';
 
   // Build signalment
   const signalment = [
