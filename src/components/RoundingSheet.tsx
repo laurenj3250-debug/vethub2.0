@@ -431,16 +431,16 @@ function TemplateSelector({
 
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg z-50 min-w-[200px] max-h-[320px] overflow-y-auto"
-          style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+          className="absolute top-0 left-full ml-2 bg-white/95 backdrop-blur-sm rounded-lg z-[100] min-w-[220px] max-h-[320px] overflow-y-auto"
+          style={{ border: '2px solid #000', boxShadow: '8px 8px 0 rgba(0,0,0,0.9)' }}
         >
-          <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
-            <span className="text-xs font-bold text-gray-700">Apply Template</span>
+          <div className="px-3 py-2 border-b-2 border-black bg-purple-100 rounded-t-lg">
+            <span className="text-xs font-bold text-gray-900">Apply Template</span>
           </div>
           {categories.map(({ category, label, templates }) => (
             <div key={category}>
-              <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-200">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">{label}</span>
+              <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-300">
+                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wide">{label}</span>
               </div>
               {templates.map(template => (
                 <button
@@ -449,9 +449,9 @@ function TemplateSelector({
                     onSelect(template);
                     setIsOpen(false);
                   }}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-purple-50 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+                  className="w-full px-3 py-2.5 text-left text-xs hover:bg-purple-100 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0 border-l-4 border-l-transparent hover:border-l-purple-500"
                 >
-                  <span className="font-medium text-gray-900">{template.name}</span>
+                  <span className="font-semibold text-gray-900">{template.name}</span>
                 </button>
               ))}
             </div>
