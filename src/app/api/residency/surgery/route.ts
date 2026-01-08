@@ -6,6 +6,7 @@ const surgerySchema = z.object({
   dailyEntryId: z.string(),
   procedureName: z.string().min(1, 'Procedure name is required'),
   participation: z.enum(['S', 'O', 'C', 'D', 'K']),
+  discSpaces: z.string().optional(), // e.g., "T12-T13", "L2-L3, L3-L4"
   patientName: z.string().optional(),
   patientId: z.number().optional(), // Link to VetHub patient
   notes: z.string().optional(),
@@ -61,6 +62,32 @@ function mapParticipationToRole(participation: string): 'Primary' | 'Assistant' 
   return participation === 'S' ? 'Primary' : 'Assistant';
 }
 
+// Procedure-specific default hours (surgeries are typically 2 hours, others 1 hour)
+const PROCEDURE_DEFAULT_HOURS: Record<string, number> = {
+  'Hemilaminectomy': 2.0,
+  'Ventral Slot': 2.0,
+  'Craniotomy': 2.0,
+  'Foramen Magnum Decompression': 2.0,
+  'Atlantoaxial Stabilization': 2.0,
+  'Lumbosacral Dorsal Laminectomy': 2.0,
+  'Lateral Corpectomy': 2.0,
+  'VP Shunt': 2.0,
+};
+
+function getDefaultHours(procedureName: string): number {
+  // Check for exact match first
+  if (PROCEDURE_DEFAULT_HOURS[procedureName]) {
+    return PROCEDURE_DEFAULT_HOURS[procedureName];
+  }
+  // Check for case-insensitive partial match (e.g., "hemilaminectomy" or "HEMI")
+  const lowerProc = procedureName.toLowerCase();
+  if (lowerProc.includes('hemi') || lowerProc.includes('ventral slot')) {
+    return 2.0;
+  }
+  // Default for other procedures
+  return 1.0;
+}
+
 // POST - Create new surgery (also creates ACVIM case log entry)
 export async function POST(request: NextRequest) {
   try {
@@ -114,6 +141,7 @@ export async function POST(request: NextRequest) {
           dailyEntryId: validated.dailyEntryId,
           procedureName: validated.procedureName,
           participation: validated.participation,
+          discSpaces: validated.discSpaces,
           patientName,
           patientId: validated.patientId,
           notes: validated.notes,
@@ -133,8 +161,9 @@ export async function POST(request: NextRequest) {
             dateCompleted: dailyEntry.date,
             caseIdNumber,
             role: mapParticipationToRole(validated.participation),
-            hours: 1.0, // Default 1 hour - can be edited later on full page
+            hours: getDefaultHours(validated.procedureName), // Spinal surgeries default to 2 hours
             residencyYear,
+            discSpaces: validated.discSpaces,
             patientId: validated.patientId,
             patientName,
             patientInfo,

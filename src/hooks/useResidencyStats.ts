@@ -7,6 +7,7 @@ interface Surgery {
   dailyEntryId: string;
   procedureName: string;
   participation: 'S' | 'O' | 'C' | 'D' | 'K';
+  discSpaces?: string; // e.g., "T12-T13", "L2-L3, L3-L4"
   patientName?: string;
   patientId?: number;
   notes?: string;
@@ -141,6 +142,7 @@ export function useAddSurgery() {
       dailyEntryId: string;
       procedureName: string;
       participation: 'S' | 'O' | 'C' | 'D' | 'K';
+      discSpaces?: string;
       patientName?: string;
       patientId?: number;
       notes?: string;

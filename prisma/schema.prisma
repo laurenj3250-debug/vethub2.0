@@ -317,6 +317,7 @@ model ACVIMNeurosurgeryCase {
   role          String   // "Primary" | "Assistant" (per ACVIM instructions)
   hours         Float    // 0.25 increments (15-min blocks)
   residencyYear Int      // 1, 2, or 3
+  discSpaces    String?  // Disc space(s) operated, e.g., "T12-T13", "L2-L3, L3-L4"
   notes         String?
 
   // Optional link to VetHub patient
@@ -433,6 +434,7 @@ model Surgery {
 
   procedureName   String     // e.g., "hemilaminectomy", "ventral slot", "craniotomy"
   participation   String     // "S" | "O" | "C" | "D" | "K"
+  discSpaces      String?    // Disc space(s) operated, e.g., "T12-T13", "L2-L3, L3-L4"
 
   // Optional details
   patientName     String?

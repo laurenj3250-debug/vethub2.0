@@ -32,6 +32,7 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
   const [newSurgery, setNewSurgery] = useState({
     procedureName: '',
     participation: 'O' as 'S' | 'O' | 'C' | 'D' | 'K',
+    discSpaces: '', // e.g., "T12-T13", "L2-L3, L3-L4"
     patientName: '',
     patientId: null as number | null,
   });
@@ -47,11 +48,12 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
       dailyEntryId,
       procedureName: newSurgery.procedureName,
       participation: newSurgery.participation,
+      discSpaces: newSurgery.discSpaces || undefined,
       patientName: newSurgery.patientName || undefined,
       patientId: newSurgery.patientId || undefined,
     });
 
-    setNewSurgery({ procedureName: '', participation: 'O', patientName: '', patientId: null });
+    setNewSurgery({ procedureName: '', participation: 'O', discSpaces: '', patientName: '', patientId: null });
     setShowForm(false);
   };
 
@@ -126,6 +128,15 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
             </div>
 
             <div className="space-y-2">
+              <Label>Disc Space(s) (optional)</Label>
+              <Input
+                placeholder="e.g., T12-T13 or L2-L3, L3-L4"
+                value={newSurgery.discSpaces}
+                onChange={(e) => setNewSurgery((s) => ({ ...s, discSpaces: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Patient (optional)</Label>
               <PatientQuickSelect
                 value={newSurgery.patientId}
@@ -178,7 +189,10 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
                     {surgery.participation}
                   </div>
                   <div>
-                    <p className="font-medium">{surgery.procedureName}</p>
+                    <p className="font-medium">
+                      {surgery.procedureName}
+                      {surgery.discSpaces && <span className="text-muted-foreground ml-1">({surgery.discSpaces})</span>}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {PARTICIPATION_LEVELS[surgery.participation as keyof typeof PARTICIPATION_LEVELS]?.description || surgery.participation}
                       {surgery.patientName && ` • ${surgery.patientName}`}
