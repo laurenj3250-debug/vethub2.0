@@ -29,9 +29,9 @@ export function useSurgeryPatients() {
   const surgeryPatients = useMemo<SurgeryPatient[]>(() => {
     if (!patients) return [];
 
-    // Filter to hospitalized patients only (valid statuses: New, Hospitalized, Discharging)
+    // Filter to hospitalized Surgery-type patients only
     return patients
-      .filter((p) => p.status === 'Hospitalized')
+      .filter((p) => p.status === 'Hospitalized' && p.type === 'Surgery')
       .map((patient) => {
         const demographics = patient.demographics as PatientDemographics | null;
         const name = demographics?.name || `Patient #${patient.id}`;
