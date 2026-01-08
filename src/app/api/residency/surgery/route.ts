@@ -96,9 +96,10 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         );
       }
-      const demographics = patient.demographics as { name?: string; species?: string; breed?: string } | null;
+      const demographics = patient.demographics as { name?: string; species?: string; breed?: string; patientId?: string; clientId?: string } | null;
       patientName = demographics?.name || patientName;
-      caseIdNumber = `VH-${validated.patientId}`; // VetHub patient ID as case number
+      // Use practice management ID: patientId (case-specific) preferred over clientId (owner account)
+      caseIdNumber = demographics?.patientId || demographics?.clientId || `VH-${validated.patientId}`;
       patientInfo = [demographics?.species, demographics?.breed].filter(Boolean).join(' ');
     }
 
