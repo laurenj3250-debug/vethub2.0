@@ -16,6 +16,7 @@ import { useAddSurgery, useDeleteSurgery, type Surgery } from '@/hooks/useReside
 import { Scissors, Plus, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
+import { PatientQuickSelect } from './PatientQuickSelect';
 
 interface SurgeryTrackerProps {
   dailyEntryId: string | null;
@@ -32,6 +33,7 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
     procedureName: '',
     participation: 'O' as 'S' | 'O' | 'C' | 'D' | 'K',
     patientName: '',
+    patientId: null as number | null,
   });
 
   const handleAdd = async () => {
@@ -46,9 +48,10 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
       procedureName: newSurgery.procedureName,
       participation: newSurgery.participation,
       patientName: newSurgery.patientName || undefined,
+      patientId: newSurgery.patientId || undefined,
     });
 
-    setNewSurgery({ procedureName: '', participation: 'O', patientName: '' });
+    setNewSurgery({ procedureName: '', participation: 'O', patientName: '', patientId: null });
     setShowForm(false);
   };
 
@@ -123,11 +126,13 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
             </div>
 
             <div className="space-y-2">
-              <Label>Patient Name (optional)</Label>
-              <Input
-                placeholder="e.g., Max, Bella..."
-                value={newSurgery.patientName}
-                onChange={(e) => setNewSurgery((s) => ({ ...s, patientName: e.target.value }))}
+              <Label>Patient (optional)</Label>
+              <PatientQuickSelect
+                value={newSurgery.patientId}
+                onChange={(patientId, patientName) =>
+                  setNewSurgery((s) => ({ ...s, patientId, patientName }))
+                }
+                placeholder="Select hospitalized patient..."
               />
             </div>
 

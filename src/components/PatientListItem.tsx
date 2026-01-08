@@ -191,7 +191,7 @@ export function PatientListItem({
         <QuickSurgeryButton
           patientName={patient.demographics?.name || patient.name || 'Unknown'}
           patientType={patient.type}
-          caseId={patient.demographics?.patientId || patient.demographics?.clientId || String(patient.id || '')}
+          patientId={patient.id}
         />
 
         {/* Food Calculator (dogs only) */}

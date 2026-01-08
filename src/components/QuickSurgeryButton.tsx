@@ -6,7 +6,7 @@ import { Scissors } from 'lucide-react';
 interface QuickSurgeryButtonProps {
   patientName: string;
   patientType: string;
-  caseId?: string; // Patient ID or case number for ACVIM tracking
+  patientId: number; // VetHub patient ID for proper tracking
   onSurgeryAdded?: () => void;
 }
 
@@ -29,7 +29,7 @@ const PARTICIPATION_OPTIONS = [
   { code: 'K', label: 'Knew About', color: '#6B7280' },
 ] as const;
 
-export function QuickSurgeryButton({ patientName, patientType, caseId, onSurgeryAdded }: QuickSurgeryButtonProps) {
+export function QuickSurgeryButton({ patientName, patientType, patientId, onSurgeryAdded }: QuickSurgeryButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedSurgery, setSelectedSurgery] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,7 +84,7 @@ export function QuickSurgeryButton({ patientName, patientType, caseId, onSurgery
 
       const dailyEntry = await entryRes.json();
 
-      // 2. Create the surgery with case ID for ACVIM tracking
+      // 2. Create the surgery with patient ID for ACVIM tracking
       const surgeryRes = await fetch('/api/residency/surgery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +92,8 @@ export function QuickSurgeryButton({ patientName, patientType, caseId, onSurgery
           dailyEntryId: dailyEntry.id,
           procedureName: selectedSurgery,
           participation,
-          patientName: caseId ? `${patientName} (${caseId})` : patientName,
+          patientId,
+          patientName,
         }),
       });
 

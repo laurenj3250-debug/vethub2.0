@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
+import { PatientQuickSelect } from '@/components/residency/PatientQuickSelect';
 
 // Counter button component
 function CounterBtn({
@@ -101,6 +102,8 @@ export function ResidencyTracker() {
   const [showSurgeryForm, setShowSurgeryForm] = useState(false);
   const [surgeryProcedure, setSurgeryProcedure] = useState('');
   const [surgeryRole, setSurgeryRole] = useState<'S' | 'O' | 'C' | 'D' | 'K'>('O');
+  const [surgeryPatientId, setSurgeryPatientId] = useState<number | null>(null);
+  const [surgeryPatientName, setSurgeryPatientName] = useState('');
   const [editingClockIn, setEditingClockIn] = useState(false);
   const [clockInTime, setClockInTime] = useState('');
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -146,11 +149,15 @@ export function ResidencyTracker() {
       dailyEntryId: todayEntry.id,
       procedureName: surgeryProcedure,
       participation: surgeryRole,
+      patientId: surgeryPatientId || undefined,
+      patientName: surgeryPatientName || undefined,
     });
 
     setSurgeryProcedure('');
+    setSurgeryPatientId(null);
+    setSurgeryPatientName('');
     setShowSurgeryForm(false);
-  }, [surgeryProcedure, surgeryRole, todayEntry?.id, addSurgery]);
+  }, [surgeryProcedure, surgeryRole, surgeryPatientId, surgeryPatientName, todayEntry?.id, addSurgery]);
 
   // Get values
   const totals = stats?.totals ?? {
@@ -330,6 +337,16 @@ export function ResidencyTracker() {
                     <option key={proc} value={proc}>{proc}</option>
                   ))}
                 </select>
+
+                <PatientQuickSelect
+                  value={surgeryPatientId}
+                  onChange={(patientId, patientName) => {
+                    setSurgeryPatientId(patientId);
+                    setSurgeryPatientName(patientName);
+                  }}
+                  placeholder="Select patient (optional)..."
+                  size="sm"
+                />
 
                 <div className="flex gap-1">
                   {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (

@@ -8,6 +8,7 @@ interface Surgery {
   procedureName: string;
   participation: 'S' | 'O' | 'C' | 'D' | 'K';
   patientName?: string;
+  patientId?: number;
   notes?: string;
 }
 
@@ -141,6 +142,7 @@ export function useAddSurgery() {
       procedureName: string;
       participation: 'S' | 'O' | 'C' | 'D' | 'K';
       patientName?: string;
+      patientId?: number;
       notes?: string;
     }) => {
       const res = await fetch('/api/residency/surgery', {
@@ -173,6 +175,7 @@ export function useAddSurgery() {
                 procedureName: newSurgery.procedureName,
                 participation: newSurgery.participation,
                 patientName: newSurgery.patientName,
+                patientId: newSurgery.patientId,
                 notes: newSurgery.notes,
               },
             ],

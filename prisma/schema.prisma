@@ -47,6 +47,7 @@ model Patient {
   tasks             Task[]
   neuroExams        NeuroExam[]
   resiliencyEntries ResiliencyEntry[]
+  surgeries         Surgery[]
 
   @@index([status])
   @@index([createdAt])
@@ -437,10 +438,15 @@ model Surgery {
   patientName     String?
   notes           String?
 
+  // Optional link to VetHub patient (for ACVIM tracking)
+  patientId       Int?
+  patient         Patient?   @relation(fields: [patientId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime   @default(now())
 
   @@index([dailyEntryId])
   @@index([participation])
+  @@index([patientId])
 }
 
 // LMRI+ Entry - tracks neuro exam localization accuracy vs MRI findings

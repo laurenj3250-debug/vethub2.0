@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight, Pencil, Check, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { apiClient } from '@/lib/api-client';
@@ -395,6 +396,7 @@ function ProblemsMultiSelect({ value, onChange, 'aria-label': ariaLabel }: { val
 
 /**
  * Template Selector - Dropdown to apply rounding templates to a patient
+ * Uses Portal pattern to escape overflow-hidden parents
  */
 function TemplateSelector({
   onSelect,
@@ -404,61 +406,110 @@ function TemplateSelector({
   patientName: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const categories = getTemplateCategories();
 
-  // Close dropdown when clicking outside
+  // Update position when opening
   useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+      });
+    }
+  }, [isOpen]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+
     function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen]);
+
+  // Close on scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleScroll = () => setIsOpen(false);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, [isOpen]);
+
+  const popoverContent = (
+    <div
+      ref={popoverRef}
+      className="fixed z-[99999] bg-white rounded-lg shadow-xl min-w-[220px] max-h-[320px] overflow-y-auto"
+      style={{
+        top: position.top,
+        left: position.left,
+        border: '2px solid #000',
+        boxShadow: '4px 4px 0 #000',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="px-3 py-2 border-b border-gray-200 bg-purple-50">
+        <span className="text-xs font-bold text-purple-700">Apply Template to {patientName}</span>
+      </div>
+      {categories.map(({ category, label, templates }) => (
+        <div key={category}>
+          <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-200">
+            <span className="text-[10px] font-bold text-gray-500 uppercase">{label}</span>
+          </div>
+          {templates.map(template => (
+            <button
+              key={template.id}
+              onClick={() => {
+                onSelect(template);
+                setIsOpen(false);
+              }}
+              className="w-full px-3 py-2.5 text-left text-xs hover:bg-purple-50 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0"
+            >
+              <span className="font-medium text-gray-900">{template.name}</span>
+              {template.description && (
+                <span className="text-[10px] text-gray-500 ml-auto">{template.description.slice(0, 30)}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-1 rounded hover:bg-gray-100 transition-colors"
+        ref={buttonRef}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 text-xs font-medium transition-all hover:-translate-y-0.5"
+        style={{ minHeight: '28px' }}
         title={`Apply template to ${patientName}`}
         aria-label={`Apply template to ${patientName}`}
       >
-        <FileText size={14} className="text-gray-500 hover:text-purple-600" />
+        <FileText size={12} />
+        <span className="hidden sm:inline">Template</span>
+        <ChevronDown size={10} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {isOpen && (
-        <div
-          className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg z-50 min-w-[200px] max-h-[320px] overflow-y-auto"
-          style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-        >
-          <div className="px-3 py-2 border-b border-gray-200 bg-gray-50">
-            <span className="text-xs font-bold text-gray-700">Apply Template</span>
-          </div>
-          {categories.map(({ category, label, templates }) => (
-            <div key={category}>
-              <div className="px-3 py-1.5 bg-gray-100 border-b border-gray-200">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">{label}</span>
-              </div>
-              {templates.map(template => (
-                <button
-                  key={template.id}
-                  onClick={() => {
-                    onSelect(template);
-                    setIsOpen(false);
-                  }}
-                  className="w-full px-3 py-2 text-left text-xs hover:bg-purple-50 transition-colors flex items-center gap-2 border-b border-gray-100 last:border-b-0"
-                >
-                  <span className="font-medium text-gray-900">{template.name}</span>
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+      {isOpen && typeof document !== 'undefined' && createPortal(popoverContent, document.body)}
+    </>
   );
 }
 
