@@ -23,6 +23,7 @@ import { PatientListItem } from '@/components/PatientListItem';
 import { ResidencyTracker } from '@/components/dashboard/ResidencyTracker';
 import { useResidencyStats } from '@/hooks/useResidencyStats';
 import { TaskChecklist } from '@/components/TaskChecklist';
+import { MultiSelectDrugPicker, parseTherapeuticsString, combineTherapeutics } from '@/components/MultiSelectDrugPicker';
 import { migrateAllTasksOnLoad } from '@/lib/task-migration';
 import { downloadAllStickersPDF, downloadBigLabelsPDF, downloadTinyLabelsPDF, printConsolidatedBigLabels, printConsolidatedTinyLabels, printSinglePatientBigLabels, printSinglePatientTinyLabels } from '@/lib/pdf-generators/stickers';
 import {
@@ -90,13 +91,16 @@ export default function VetHub() {
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
   const [roundingFormData, setRoundingFormData] = useState<any>({});
+  // Multi-select drug picker state
+  const [selectedDrugs, setSelectedDrugs] = useState<string[]>([]);
+  const [customTherapeutics, setCustomTherapeutics] = useState('');
+  const [fluidsHighlighted, setFluidsHighlighted] = useState(false);
   const [showMedicationSelector, setShowMedicationSelector] = useState<number | null>(null);
   const [newGeneralTaskName, setNewGeneralTaskName] = useState('');
   const [showAddGeneralTask, setShowAddGeneralTask] = useState(false);
   const [showAddPatientTaskFromOverview, setShowAddPatientTaskFromOverview] = useState(false);
   const [newPatientTaskName, setNewPatientTaskName] = useState('');
   const [selectedPatientForTask, setSelectedPatientForTask] = useState<number | null>(null);
-  const [showQuickReference, setShowQuickReference] = useState(false);
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [showToolsMenu, setShowToolsMenu] = useState(false);
 
@@ -115,7 +119,6 @@ export default function VetHub() {
   // Batch operations state
   const [selectedPatientIds, setSelectedPatientIds] = useState<Set<number>>(new Set());
   const [showBatchActions, setShowBatchActions] = useState(false);
-  const [referenceSearch, setReferenceSearch] = useState('');
 
   // Debounced input state for MRI Schedule
   const [mriInputValues, setMriInputValues] = useState<Record<string, string>>({});
@@ -142,19 +145,6 @@ export default function VetHub() {
     type?: string;
     priority?: string;
   }>({});
-
-  const [referenceData, setReferenceData] = useState<{
-    medications: Array<{ id: string; name: string; dose: string; notes?: string }>;
-    protocols: Array<{ id: string; name: string; content: string }>;
-  }>({
-    medications: [],
-    protocols: [],
-  });
-  const [referenceLoading, setReferenceLoading] = useState(false);
-  const [editingReference, setEditingReference] = useState<{type: 'medications' | 'protocols', id: string} | null>(null);
-  const [editingReferenceData, setEditingReferenceData] = useState<any>(null);
-  const [newReferenceItem, setNewReferenceItem] = useState<any>({});
-  const [cocktailWeight, setCocktailWeight] = useState('');
 
   // SOAP Builder state
   const [showSOAPBuilder, setShowSOAPBuilder] = useState(false);
@@ -1196,8 +1186,15 @@ export default function VetHub() {
     if (!roundingSheetPatient) return;
 
     try {
+      // Combine selectedDrugs + customTherapeutics into therapeutics string
+      const therapeuticsString = combineTherapeutics(selectedDrugs, customTherapeutics);
+      const dataToSave = {
+        ...roundingFormData,
+        therapeutics: therapeuticsString,
+      };
+
       await apiClient.updatePatient(String(roundingSheetPatient), {
-        roundingData: roundingFormData
+        roundingData: dataToSave
       });
       toast({ title: '✅ Rounding data saved!' });
       setRoundingSheetPatient(null);
@@ -2049,8 +2046,20 @@ export default function VetHub() {
     if (roundingSheetPatient !== null) {
       const patient = patients.find(p => p.id === roundingSheetPatient);
       if (patient) {
-        setRoundingFormData(patient.roundingData || {});
+        const roundingData = patient.roundingData || {};
+        setRoundingFormData(roundingData);
+        // Parse existing therapeutics into drug picker state
+        const parsed = parseTherapeuticsString(roundingData.therapeutics || '');
+        setSelectedDrugs(parsed.selectedDrugs);
+        setCustomTherapeutics(parsed.customText);
+        // Check if fluids was in the therapeutics (for highlighting)
+        setFluidsHighlighted(parsed.selectedDrugs.includes('fluids'));
       }
+    } else {
+      // Reset drug picker state when modal closes
+      setSelectedDrugs([]);
+      setCustomTherapeutics('');
+      setFluidsHighlighted(false);
     }
   }, [roundingSheetPatient, patients]);
 
@@ -2067,142 +2076,6 @@ export default function VetHub() {
       }
     }
   }, [showSOAPBuilder]);
-
-  // Fetch reference data when Quick Reference modal opens
-  const fetchReferenceData = async () => {
-    setReferenceLoading(true);
-    try {
-      // First try to seed defaults if tables are empty
-      await fetch('/api/reference/seed', { method: 'POST' });
-
-      // Then fetch all data
-      const [medsRes, protosRes] = await Promise.all([
-        fetch('/api/reference/medications'),
-        fetch('/api/reference/protocols'),
-      ]);
-
-      const medications = await medsRes.json();
-      const protocols = await protosRes.json();
-
-      setReferenceData({
-        medications: Array.isArray(medications) ? medications : [],
-        protocols: Array.isArray(protocols) ? protocols : [],
-      });
-    } catch (error) {
-      console.error('Failed to fetch reference data:', error);
-    } finally {
-      setReferenceLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (showQuickReference) {
-      fetchReferenceData();
-    }
-  }, [showQuickReference]);
-
-  // Reference data CRUD helpers
-  const saveReferenceMedication = async (med: { id?: string; name: string; dose: string; notes?: string }) => {
-    try {
-      let response: Response;
-      if (med.id) {
-        // Update existing
-        response = await fetch(`/api/reference/medications/${med.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(med),
-        });
-      } else {
-        // Create new
-        response = await fetch('/api/reference/medications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(med),
-        });
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to save (${response.status})`);
-      }
-
-      await fetchReferenceData();
-      setEditingReference(null);
-      setEditingReferenceData(null);
-      toast({ title: '✅ Medication saved!' });
-    } catch (error: any) {
-      console.error('Failed to save medication:', error);
-      toast({ variant: 'destructive', title: 'Error saving medication', description: error.message || 'Please try again' });
-    }
-  };
-
-  const deleteReferenceMedication = async (id: string) => {
-    try {
-      const response = await fetch(`/api/reference/medications/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to delete (${response.status})`);
-      }
-      await fetchReferenceData();
-      setEditingReference(null);
-      setEditingReferenceData(null);
-      toast({ title: '🗑️ Medication deleted' });
-    } catch (error: any) {
-      console.error('Failed to delete medication:', error);
-      toast({ variant: 'destructive', title: 'Error deleting medication', description: error.message || 'Please try again' });
-    }
-  };
-
-  const saveReferenceProtocol = async (proto: { id?: string; name: string; content: string }) => {
-    try {
-      let response: Response;
-      if (proto.id) {
-        // Update existing
-        response = await fetch(`/api/reference/protocols/${proto.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(proto),
-        });
-      } else {
-        // Create new
-        response = await fetch('/api/reference/protocols', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(proto),
-        });
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to save (${response.status})`);
-      }
-
-      await fetchReferenceData();
-      setEditingReference(null);
-      setEditingReferenceData(null);
-      toast({ title: '✅ Protocol saved!' });
-    } catch (error: any) {
-      console.error('Failed to save protocol:', error);
-      toast({ variant: 'destructive', title: 'Error saving protocol', description: error.message || 'Please try again' });
-    }
-  };
-
-  const deleteReferenceProtocol = async (id: string) => {
-    try {
-      const response = await fetch(`/api/reference/protocols/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to delete (${response.status})`);
-      }
-      await fetchReferenceData();
-      setEditingReference(null);
-      setEditingReferenceData(null);
-      toast({ title: '🗑️ Protocol deleted' });
-    } catch (error: any) {
-      console.error('Failed to delete protocol:', error);
-      toast({ variant: 'destructive', title: 'Error deleting protocol', description: error.message || 'Please try again' });
-    }
-  };
 
   // Initialize mounted and load hideCompletedTasks from localStorage
   useEffect(() => {
@@ -2753,14 +2626,6 @@ export default function VetHub() {
                     <Zap size={16} style={{ color: '#9B7FCF' }} />
                     Neuro Exam
                   </Link>
-                  <button
-                    onClick={() => { setShowQuickReference(!showQuickReference); setShowToolsMenu(false); }}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition"
-                    style={{ borderTop: '1px solid #e5e7eb' }}
-                  >
-                    <BookOpen size={16} />
-                    Quick Reference
-                  </button>
                   <Link
                     href="/residency"
                     className="w-full text-left px-4 py-3 hover:bg-gray-50 text-gray-900 font-medium flex items-center gap-2 transition block"
@@ -3869,25 +3734,15 @@ export default function VetHub() {
                         />
                       </div>
 
-                      {/* Row 4: Therapeutics */}
+                      {/* Row 4: Therapeutics - Multi-Select Drug Picker */}
                       <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <label className="text-xs text-slate-400 uppercase">Therapeutics (Medications)</label>
-                          <button
-                            type="button"
-                            onClick={() => handleSmartPaste('medications')}
-                            className="text-xs hover:text-green-400 transition"
-                            title="Paste medications (formats nicely)"
-                          >
-                            💊
-                          </button>
-                        </div>
-                        <textarea
-                          value={roundingFormData.therapeutics || ''}
-                          onChange={(e) => setRoundingFormData({...roundingFormData, therapeutics: e.target.value})}
-                          rows={8}
-                          className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
-                          placeholder="Type or use 💊 icon to paste & format"
+                        <label className="text-xs text-slate-400 uppercase block mb-1">Therapeutics (Medications)</label>
+                        <MultiSelectDrugPicker
+                          selectedDrugs={selectedDrugs}
+                          onSelectedDrugsChange={setSelectedDrugs}
+                          customText={customTherapeutics}
+                          onCustomTextChange={setCustomTherapeutics}
+                          onFluidsSelected={setFluidsHighlighted}
                         />
                       </div>
 
@@ -3905,13 +3760,19 @@ export default function VetHub() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-xs text-slate-400 uppercase block mb-1">Fluids</label>
+                          <label className={`text-xs uppercase block mb-1 ${fluidsHighlighted ? 'text-blue-400 font-bold' : 'text-slate-400'}`}>
+                            Fluids {fluidsHighlighted && '(specify rate)'}
+                          </label>
                           <input
                             type="text"
                             value={roundingFormData.fluids || ''}
                             onChange={(e) => setRoundingFormData({...roundingFormData, fluids: e.target.value})}
-                            className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                            placeholder="No or fluid rate"
+                            className={`w-full px-3 py-2 bg-slate-900/50 rounded-lg text-white text-sm focus:ring-2 focus:ring-cyan-500 ${
+                              fluidsHighlighted
+                                ? 'border-2 border-blue-500 ring-2 ring-blue-500/30'
+                                : 'border border-slate-700'
+                            }`}
+                            placeholder={fluidsHighlighted ? 'Enter fluid rate (required)' : 'No or fluid rate'}
                           />
                         </div>
                         <div>
@@ -4364,584 +4225,6 @@ export default function VetHub() {
                   <Plus size={20} />
                   Add Task to Patient
                 </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Quick Reference Modal */}
-        {showQuickReference && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-slate-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 w-full max-w-6xl my-8">
-              <div className="p-6 border-b border-slate-700/50">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <BookOpen className="text-pink-400" size={28} />
-                    Quick Reference - Meds & Protocols
-                  </h3>
-                  <button
-                    onClick={() => setShowQuickReference(false)}
-                    className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="mt-4">
-                  <input
-                    type="text"
-                    value={referenceSearch}
-                    onChange={(e) => setReferenceSearch(e.target.value)}
-                    placeholder="🔍 Search medications or protocols..."
-                    className="w-full px-4 py-2 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
-                  />
-                </div>
-              </div>
-
-              <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-                {referenceLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-                    <span className="ml-3 text-slate-400">Loading reference data...</span>
-                  </div>
-                ) : (
-                  <>
-                {/* Medications Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xl font-bold text-emerald-400 flex items-center gap-2">
-                      💊 Common Medications
-                    </h4>
-                    <button
-                      onClick={() => {
-                        setEditingReference({ type: 'medications', id: 'new' });
-                        setEditingReferenceData({ name: '', dose: '', notes: '' });
-                      }}
-                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition"
-                    >
-                      + Add Medication
-                    </button>
-                  </div>
-                  {/* Add new medication form */}
-                  {editingReference?.type === 'medications' && editingReference.id === 'new' && (
-                    <div className="bg-slate-900/50 border border-emerald-500 rounded-lg p-3 mb-3">
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={editingReferenceData?.name || ''}
-                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
-                          placeholder="Medication name"
-                          className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <input
-                          type="text"
-                          value={editingReferenceData?.dose || ''}
-                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, dose: e.target.value })}
-                          placeholder="Dose (e.g., 10-20 mg/kg PO BID)"
-                          className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <input
-                          type="text"
-                          value={editingReferenceData?.notes || ''}
-                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, notes: e.target.value })}
-                          placeholder="Notes/indications"
-                          className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => saveReferenceMedication(editingReferenceData)}
-                            disabled={!editingReferenceData?.name || !editingReferenceData?.dose}
-                            className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-bold transition"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
-                            className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {referenceData.medications
-                      .filter((med) =>
-                        !referenceSearch ||
-                        med.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
-                        med.dose.toLowerCase().includes(referenceSearch.toLowerCase()) ||
-                        (med.notes || '').toLowerCase().includes(referenceSearch.toLowerCase())
-                      )
-                      .map((med) => (
-                        <div
-                          key={med.id}
-                          className="bg-slate-900/50 border border-slate-700 rounded-lg p-3 hover:border-emerald-500/50 transition"
-                        >
-                          {editingReference?.type === 'medications' && editingReference.id === med.id ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={editingReferenceData?.name || ''}
-                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
-                                placeholder="Medication name"
-                                className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
-                              />
-                              <input
-                                type="text"
-                                value={editingReferenceData?.dose || ''}
-                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, dose: e.target.value })}
-                                placeholder="Dose (e.g., 10-20 mg/kg PO BID)"
-                                className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
-                              />
-                              <input
-                                type="text"
-                                value={editingReferenceData?.notes || ''}
-                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, notes: e.target.value })}
-                                placeholder="Notes/indications"
-                                className="w-full px-2 py-1 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-emerald-500"
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => saveReferenceMedication({ ...editingReferenceData, id: med.id })}
-                                  className="flex-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold transition"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => deleteReferenceMedication(med.id)}
-                                  className="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
-                                >
-                                  Delete
-                                </button>
-                                <button
-                                  onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
-                                  className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div
-                              onClick={() => { setEditingReference({ type: 'medications', id: med.id }); setEditingReferenceData({ ...med }); }}
-                              className="cursor-pointer"
-                            >
-                              <h5 className="font-bold text-white text-sm mb-1">{med.name}</h5>
-                              <p className="text-emerald-300 text-xs mb-1">📏 {med.dose}</p>
-                              <p className="text-slate-400 text-xs">{med.notes}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Protocols Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-xl font-bold text-cyan-400 flex items-center gap-2">
-                      📋 Protocols & Procedures
-                    </h4>
-                    <button
-                      onClick={() => {
-                        setEditingReference({ type: 'protocols', id: 'new' });
-                        setEditingReferenceData({ name: '', content: '' });
-                      }}
-                      className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold transition"
-                    >
-                      + Add Protocol
-                    </button>
-                  </div>
-                  {/* Add new protocol form */}
-                  {editingReference?.type === 'protocols' && editingReference.id === 'new' && (
-                    <div className="bg-slate-900/50 border border-cyan-500 rounded-lg p-4 mb-3">
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={editingReferenceData?.name || ''}
-                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
-                          placeholder="Protocol name"
-                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                        />
-                        <textarea
-                          value={editingReferenceData?.content || ''}
-                          onChange={(e) => setEditingReferenceData({ ...editingReferenceData, content: e.target.value })}
-                          placeholder="Protocol steps/details..."
-                          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
-                          rows={6}
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => saveReferenceProtocol(editingReferenceData)}
-                            disabled={!editingReferenceData?.name || !editingReferenceData?.content}
-                            className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded text-sm font-bold transition"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
-                            className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    {referenceData.protocols
-                      .filter((protocol) =>
-                        !referenceSearch ||
-                        protocol.name.toLowerCase().includes(referenceSearch.toLowerCase()) ||
-                        protocol.content.toLowerCase().includes(referenceSearch.toLowerCase())
-                      )
-                      .map((protocol) => (
-                        <div
-                          key={protocol.id}
-                          className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 hover:border-cyan-500/50 transition"
-                        >
-                          {editingReference?.type === 'protocols' && editingReference.id === protocol.id ? (
-                            <div className="space-y-2">
-                              <input
-                                type="text"
-                                value={editingReferenceData?.name || ''}
-                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, name: e.target.value })}
-                                placeholder="Protocol name"
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500"
-                              />
-                              <textarea
-                                value={editingReferenceData?.content || ''}
-                                onChange={(e) => setEditingReferenceData({ ...editingReferenceData, content: e.target.value })}
-                                placeholder="Protocol steps/details..."
-                                className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white text-sm focus:ring-2 focus:ring-cyan-500 resize-y"
-                                rows={6}
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => saveReferenceProtocol({ ...editingReferenceData, id: protocol.id })}
-                                  className="flex-1 px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded text-sm font-bold transition"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => deleteReferenceProtocol(protocol.id)}
-                                  className="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold transition"
-                                >
-                                  Delete
-                                </button>
-                                <button
-                                  onClick={() => { setEditingReference(null); setEditingReferenceData(null); }}
-                                  className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded text-sm font-bold transition"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div
-                              onClick={() => { setEditingReference({ type: 'protocols', id: protocol.id }); setEditingReferenceData({ ...protocol }); }}
-                              className="cursor-pointer"
-                            >
-                              <h5 className="font-bold text-white text-base mb-2">{protocol.name}</h5>
-                              <pre className="text-slate-300 text-sm whitespace-pre-wrap font-sans">{protocol.content}</pre>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Cocktail Calculator Section */}
-                <div>
-                  <h4 className="text-xl font-bold text-pink-400 flex items-center gap-2 mb-3">
-                    🧪 Discharge Cocktail Calculator
-                  </h4>
-                  <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                    <div className="mb-4">
-                      <label className="block text-sm font-bold text-slate-300 mb-2">Patient Weight (kg)</label>
-                      <input
-                        type="number"
-                        value={cocktailWeight}
-                        onChange={(e) => setCocktailWeight(e.target.value)}
-                        placeholder="Enter weight in kg..."
-                        className="w-full px-3 py-1 bg-slate-800 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-pink-500"
-                        step="0.1"
-                      />
-                    </div>
-
-                    {cocktailWeight && (() => {
-                      const weight = parseFloat(cocktailWeight);
-                      let protocol = '';
-
-                      if (weight < 7) {
-                        protocol = `<7kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 1/2 tablet by mouth every 12 hours for 7 days, then give 1/2 tablet by mouth every 24 hours for 7 days, then give 1/2 tablet by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 10mg tablets - Give 1/2 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1/4 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 3.8mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsule by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 3.8mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-5) Hemp complete oil - Give 0.1mL by mouth every 12 hours until otherwise advised.
-   **Next dose due at 8pm tonight**
-
-6) Clavamox 62.5mg tablets - Give 1 tablet by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-6) Clavamox 62.5mg tablets - Give 1.5 tablets by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 7 && weight <= 9) {
-                        protocol = `7-9kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 1 tablet by mouth every 12 hours for 7 days, then give 1 tablet by mouth every 24 hours for 7 days, then give 1 tablet by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 10mg tablets - Give 1/2 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1/4 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 3.8mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 3.8mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-5) Hemp complete oil - Give 0.1mL by mouth every 12 hours until otherwise advised.
-   **Next dose due at 8pm tonight**
-
-6) Clavamox 250mg Tablets - Give 1/2 tablet every 12 hours until gone
-   **Next dose due at 8pm tonight**
-
-6) Clavamox 125mg Tablets - Give 1 tablet every 12 hours until gone
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 10 && weight <= 12) {
-                        protocol = `10-12kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 1 tablet by mouth every 12 hours for 7 days, then give 1 tablet by mouth every 24 hours for 7 days, then give 1 tablet by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1/2 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 11.3mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsule by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-5) Hemp complete oil - Give 0.1mL by mouth every 12 hours until otherwise advised.
-   **Next dose due at 8pm tonight**
-
-6) Cephalexin 250mg capsules - Give 1 capsule by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.
-
-Please schedule a recheck appointment with the Neurology department to have staples removed in 10-14 days from now`;
-                      } else if (weight >= 13 && weight <= 15) {
-                        protocol = `13-15kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 1.5 tablets by mouth every 12 hours for 7 days, then give 1.5 tablets by mouth every 24 hours for 7 days, then give 1.5 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1/2 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 11.3mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsule by mouth every 12 hours until otherwise advised. (mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-5) Hemp complete oil - Give 0.4mL by mouth every 12 hours for 7 days, then give 0.2mL by mouth every 12 hours until otherwise advised.
-   **Next dose due at 8pm tonight**
-
-6) Cephalexin 250mg tablets - Give 1 tablet by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 16 && weight <= 20) {
-                        protocol = `16-20kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 1.5 tablets by mouth every 12 hours for 7 days, then give 1.5 tablets by mouth every 24 hours for 7 days, then give 1.5 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tonight**
-
-3) Gabapentin 100mg capsules - Give 1 capsule by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1/2 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 11.3mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-5) Hemp complete oil - Give 0.4mL by mouth every 12 hours for 7 days, then give 0.2mL by mouth every 12 hours until otherwise advised.
-   **Next dose due at 8pm tonight**
-
-6) Cephalexin 250mg capsule - Give 1 capsule by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 21 && weight <= 26) {
-                        protocol = `21-26kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 2 tablets by mouth every 12 hours for 7 days, then give 2 tablets by mouth every 24 hours for 7 days, then give 2 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 10mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 100mg capsules - Give 1-2 capsules by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 11.3mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 11.3mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-6) Cephalexin 500mg capsule - Give 1 capsule by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-6) Clavamox 375mg tablet - Give 1 tablet by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 27 && weight <= 30) {
-                        protocol = `27-30kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 2 tablets by mouth every 12 hours for 7 days, then give 2 tablets by mouth every 24 hours for 7 days, then give 2 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 20mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 100mg capsules - Give 1-2 capsules by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1 tablet by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 28mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 28mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-6) Clavamox 375mg tablet - Give 1 tablet by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 31 && weight <= 39) {
-                        protocol = `>30kg DISCHARGE MEDICATIONS:
-
-1) Prednisone 5mg tablets - Give 2.5 tablets by mouth every 12 hours for 7 days, then give 2.5 tablets by mouth every 24 hours for 7 days, then give 2.5 tablets by mouth every 48 hours for 7 doses. Today is the first day of this schedule.
-   **Next dose due at 8pm tonight**
-
-2) Famotidine 20mg tablets - Give 1 tablet by mouth every 24 hours while on prednisone.
-   **Next dose due at 8am tomorrow morning**
-
-3) Gabapentin 100mg capsules - Give 1-2 capsules by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-4) Tramadol 50mg tablets - Give 1.5-2 tablets by mouth every 8-12 hours for pain until otherwise advised. May cause sedation.
-   **Next dose due at 4pm tonight**
-
-5) Hemp 28mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 28mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**
-
-6) Cephalexin 500mg capsule - Give 2 capsules by mouth every 12 hours until finished. Give with food.
-   **Next dose due at 8pm tonight**
-
-7) Fentanyl patch - Please remove this on ********* as per the instructions below.`;
-                      } else if (weight >= 40 && weight <= 54) {
-                        protocol = `40-54kg DISCHARGE MEDICATIONS:
-
-5) Hemp 37.5mg capsules - Give 2 capsules by mouth every 12 hours for 7 days, then give 1 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 37.5mg capsules - Give 3 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**`;
-                      } else if (weight >= 55) {
-                        protocol = `>55kg DISCHARGE MEDICATIONS:
-
-5) Hemp 37.5mg capsules - Give 3 capsules by mouth every 12 hours for 7 days, then give 2 capsules by mouth every 12 hours until otherwise advised. (Mobility)
-   **Next dose due at 8pm tonight**
-
-5) Hemp 37.5mg capsules - Give 4 capsules by mouth every 12 hours until otherwise advised. (Brain)
-   **Next dose due at 8pm tonight**`;
-                      }
-
-                      return (
-                        <div className="bg-slate-800 border border-pink-500/30 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <h5 className="font-bold text-pink-300">Discharge Protocol for {weight}kg</h5>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(protocol);
-                                toast({ title: '✅ Protocol copied to clipboard!' });
-                              }}
-                              className="px-3 py-1 bg-pink-600 hover:bg-pink-500 text-white rounded text-sm font-bold transition"
-                            >
-                              📋 Copy
-                            </button>
-                          </div>
-                          <pre className="text-slate-200 text-xs whitespace-pre-wrap font-sans overflow-y-auto max-h-96">{protocol}</pre>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-                  </>
-                )}
               </div>
             </div>
           </div>

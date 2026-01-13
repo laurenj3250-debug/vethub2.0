@@ -50,7 +50,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'Seizures, MRI tomorrow',
-      diagnosticFindings: 'CBC/CHEM: pending, CXR: pending',
+      diagnosticFindings: '', // Leave empty - user will add image
       therapeutics: '',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -70,7 +70,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'TL myelopathy, MRI tomorrow, Ambulatory',
-      diagnosticFindings: 'CBC/CHEM: pending, CXR: pending',
+      diagnosticFindings: '', // Leave empty - user will add image
       therapeutics: 'Gabapentin, Tramadol, Prednisone, Famotidine',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -90,7 +90,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'TL myelopathy, MRI tomorrow, Plegic',
-      diagnosticFindings: 'CBC/CHEM: pending, CXR: pending',
+      diagnosticFindings: '', // Leave empty - user will add image
       therapeutics: 'Gabapentin, Tramadol, Cerenia, Prednisone, Famotidine',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -110,7 +110,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'Cervical myelopathy, MRI tomorrow, Plegic',
-      diagnosticFindings: 'CBC/CHEM: pending, CXR: pending',
+      diagnosticFindings: '', // Leave empty - user will add image
       therapeutics: 'Gabapentin, Tramadol, Prednisone, Famotidine',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -130,7 +130,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'Cd Fossa, MRI tomorrow',
-      diagnosticFindings: 'CBC/CHEM: pending, CXR: pending',
+      diagnosticFindings: '', // Leave empty - user will add image
       therapeutics: '',
       ivc: 'Yes',
       fluids: fluids[2], // n/a

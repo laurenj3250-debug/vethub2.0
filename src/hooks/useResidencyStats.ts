@@ -449,12 +449,12 @@ export function useTodayEntry() {
   return useDailyEntry(today);
 }
 
-// Clock in/out mutation with optimistic updates
+// Clock in/out mutation with optimistic updates - supports editing past dates
 export function useClockInOut() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { action: 'clockIn' | 'clockOut'; time?: string }) => {
+    mutationFn: async (data: { action: 'clockIn' | 'clockOut'; time?: string; date?: string }) => {
       const res = await fetch('/api/residency/quick-increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -466,21 +466,21 @@ export function useClockInOut() {
       }
       return res.json();
     },
-    onMutate: async ({ action, time }) => {
-      const todayKey = getTodayET();
+    onMutate: async ({ action, time, date }) => {
+      const targetDate = date || getTodayET();
       const clockTime = time || getCurrentTimeET();
 
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['daily-entry', todayKey] });
+      await queryClient.cancelQueries({ queryKey: ['daily-entry', targetDate] });
 
       // Snapshot previous value for rollback
-      const previousEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', todayKey]);
+      const previousEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', targetDate]);
 
       // Optimistically update the cache
-      queryClient.setQueryData<DailyEntry | null>(['daily-entry', todayKey], (old) => {
+      queryClient.setQueryData<DailyEntry | null>(['daily-entry', targetDate], (old) => {
         const base: DailyEntry = old ?? {
           id: 'temp-' + Date.now(),
-          date: todayKey,
+          date: targetDate,
           mriCount: 0,
           recheckCount: 0,
           newConsultCount: 0,
@@ -499,32 +499,83 @@ export function useClockInOut() {
         };
       });
 
-      return { previousEntry, todayKey };
+      return { previousEntry, targetDate };
     },
-    onSuccess: (data, _, context) => {
+    onSuccess: (data, variables, context) => {
       // Update with server response to ensure consistency
-      const todayKey = context?.todayKey || getTodayET();
+      const targetDate = context?.targetDate || getTodayET();
       if (data?.date) {
         queryClient.setQueryData(['daily-entry', data.date], data);
-        // Also update today's key if different
-        if (data.date !== todayKey) {
-          queryClient.setQueryData(['daily-entry', todayKey], data);
+        // Also update target date key if different
+        if (data.date !== targetDate) {
+          queryClient.setQueryData(['daily-entry', targetDate], data);
         }
       }
+      const isToday = !variables.date || variables.date === getTodayET();
       toast({
-        title: data.shiftEndTime ? 'Clocked Out' : 'Clocked In',
-        description: data.shiftEndTime
-          ? `Shift ended at ${data.shiftEndTime}`
-          : `Shift started at ${data.shiftStartTime}`,
+        title: data.shiftEndTime && !data.shiftStartTime ? 'Clock Out Updated' :
+               data.shiftStartTime && !data.shiftEndTime ? 'Clock In Updated' :
+               'Time Updated',
+        description: isToday
+          ? (data.shiftEndTime ? `Shift ended at ${data.shiftEndTime}` : `Shift started at ${data.shiftStartTime}`)
+          : `Updated ${variables.date}`,
       });
     },
     onError: (error, _, context) => {
       // Rollback optimistic update on error
-      if (context?.todayKey && context?.previousEntry !== undefined) {
-        queryClient.setQueryData(['daily-entry', context.todayKey], context.previousEntry);
+      if (context?.targetDate && context?.previousEntry !== undefined) {
+        queryClient.setQueryData(['daily-entry', context.targetDate], context.previousEntry);
       }
       toast({
-        title: 'Failed to clock',
+        title: 'Failed to update',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+    },
+  });
+}
+
+// Atomic update of both shift times for any date
+export function useUpdateShiftTimes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      date: string;
+      shiftStartTime?: string | null; // null = clear, undefined = no change
+      shiftEndTime?: string | null;   // null = clear, undefined = no change
+    }) => {
+      const res = await fetch('/api/residency/quick-increment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateShiftTimes',
+          ...data,
+        }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update shift times');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Update cache with server response
+      if (data?.date) {
+        queryClient.setQueryData(['daily-entry', data.date], data);
+      }
+      toast({
+        title: 'Times Updated',
+        description: `Shift times for ${data.date} saved.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to update',
         description: error instanceof Error ? error.message : 'Please try again.',
         variant: 'destructive',
       });

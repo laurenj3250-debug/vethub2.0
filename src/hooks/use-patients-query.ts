@@ -93,6 +93,23 @@ export function useTogglePatientTask() {
       // Return context with previous value for rollback
       return { previousPatients };
     },
+    onSuccess: (result, { patientId, taskId, completed }) => {
+      // Update cache with the actual server response
+      // This prevents the "undo" effect caused by stale refetch data
+      queryClient.setQueryData(queryKeys.patients, (old: any[] | undefined) => {
+        if (!old) return old;
+        return old.map((patient) =>
+          patient.id === patientId
+            ? {
+                ...patient,
+                tasks: (patient.tasks || []).map((task: any) =>
+                  task.id === taskId ? { ...task, completed } : task
+                ),
+              }
+            : patient
+        );
+      });
+    },
     onError: (err, variables, context) => {
       // Rollback to previous value on error
       if (context?.previousPatients) {
@@ -100,11 +117,8 @@ export function useTogglePatientTask() {
       }
       console.error('Failed to toggle task:', err);
     },
-    onSettled: () => {
-      // Always refetch after mutation to ensure sync
-      // This happens after success OR error
-      queryClient.invalidateQueries({ queryKey: queryKeys.patients });
-    },
+    // Note: Removed onSettled invalidation - it caused race conditions
+    // where refetch returned stale data before the DB updated, causing visual "undo"
   });
 }
 
@@ -144,6 +158,15 @@ export function useToggleGeneralTask() {
       // Return context with previous value for rollback
       return { previousTasks };
     },
+    onSuccess: (result, { taskId, completed }) => {
+      // Update cache with the actual server response
+      queryClient.setQueryData(queryKeys.generalTasks, (old: any[] | undefined) => {
+        if (!old) return old;
+        return old.map((task) =>
+          task.id === taskId ? { ...task, completed } : task
+        );
+      });
+    },
     onError: (err, variables, context) => {
       // Rollback to previous value on error
       if (context?.previousTasks) {
@@ -151,10 +174,7 @@ export function useToggleGeneralTask() {
       }
       console.error('Failed to toggle general task:', err);
     },
-    onSettled: () => {
-      // Always refetch after mutation to ensure sync
-      queryClient.invalidateQueries({ queryKey: queryKeys.generalTasks });
-    },
+    // Note: Removed onSettled invalidation to prevent visual "undo" effect
   });
 }
 

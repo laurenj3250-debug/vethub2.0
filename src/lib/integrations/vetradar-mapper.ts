@@ -7,7 +7,6 @@
 
 import { UnifiedPatient, RoundingData, StickerData } from '@/contexts/PatientContext';
 import { VetRadarPatient, VetRadarTreatmentSheet } from './vetradar-scraper';
-import { MRI_DEFAULT_DIAGNOSTICS } from '@/lib/constants';
 
 /**
  * Map VetRadar patient to UnifiedPatient structure
@@ -128,11 +127,9 @@ export function mapVetRadarToUnifiedPatient(
   // (Previously pulled from VetRadar issues or critical notes)
   const problems = '';
 
-  // Diagnostic findings - NOT auto-populated EXCEPT for MRI admits
-  // MRI admits get default pre-MRI workup checklist (don't import any external data)
-  // inferPatientType already checks location/status for MRI, no need to check again
-  const isMRIAdmit = inferPatientType(vetRadarPatient) === 'MRI';
-  const diagnosticFindings = isMRIAdmit ? MRI_DEFAULT_DIAGNOSTICS : '';
+  // Diagnostic findings - NOT auto-populated for any patient type
+  // User will add image or fill manually during rounding
+  const diagnosticFindings = '';
 
   // Build signalment
   const signalment = [
@@ -172,7 +169,7 @@ export function mapVetRadarToUnifiedPatient(
     code: codeStatus, // Maps to 'code' field in rounding sheet
     codeStatus, // Keep for backwards compatibility
     problems,
-    diagnosticFindings, // Empty unless MRI admit (then: CBC/Chem: pending, CXR: pending)
+    diagnosticFindings, // Always empty - user adds image or fills manually
     therapeutics,
     ivc: fluidsText ? 'Y' : 'N',
     fluids: fluidsText,

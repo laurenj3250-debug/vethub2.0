@@ -20,10 +20,19 @@ const quickIncrementSchema = z.object({
   delta: z.number().int().min(-1).max(1), // Only allow +1 or -1
 });
 
-// Validation schema for clock in/out
+// Validation schema for clock in/out (single action)
 const clockSchema = z.object({
   action: z.enum(['clockIn', 'clockOut']),
-  time: z.string().optional(), // If not provided, use current time in ET
+  time: z.string().nullable().optional(), // null = clear, undefined = current time
+  date: z.string().optional(), // If not provided, use today - allows editing past days
+});
+
+// Validation schema for updating both shift times atomically
+const updateShiftTimesSchema = z.object({
+  action: z.literal('updateShiftTimes'),
+  date: z.string(), // Required - which day to update
+  shiftStartTime: z.string().nullable().optional(), // null = clear, undefined = no change
+  shiftEndTime: z.string().nullable().optional(), // null = clear, undefined = no change
 });
 
 // POST - Atomically increment/decrement a field for today
@@ -31,16 +40,51 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Check if this is a clock action
-    if (body.action) {
-      const validated = clockSchema.parse(body);
-      const today = getTodayET();
-      const time = validated.time || getCurrentTimeET();
+    // Check if this is an updateShiftTimes action (atomic update of both times)
+    if (body.action === 'updateShiftTimes') {
+      const validated = updateShiftTimesSchema.parse(body);
+      const targetDate = validated.date;
+
+      // Build update object - only include fields that were explicitly provided
+      const updateData: Record<string, string | null> = {};
+      if (validated.shiftStartTime !== undefined) {
+        updateData.shiftStartTime = validated.shiftStartTime; // null clears, string sets
+      }
+      if (validated.shiftEndTime !== undefined) {
+        updateData.shiftEndTime = validated.shiftEndTime; // null clears, string sets
+      }
 
       const entry = await prisma.dailyEntry.upsert({
-        where: { date: today },
+        where: { date: targetDate },
         create: {
-          date: today,
+          date: targetDate,
+          mriCount: 0,
+          recheckCount: 0,
+          newConsultCount: 0,
+          newCount: 0,
+          emergencyCount: 0,
+          commsCount: 0,
+          totalCases: 0,
+          shiftStartTime: validated.shiftStartTime ?? null,
+          shiftEndTime: validated.shiftEndTime ?? null,
+        },
+        update: updateData,
+      });
+
+      return NextResponse.json(entry);
+    }
+
+    // Check if this is a single clock action (clockIn or clockOut)
+    if (body.action === 'clockIn' || body.action === 'clockOut') {
+      const validated = clockSchema.parse(body);
+      const targetDate = validated.date || getTodayET();
+      // null = clear the time, undefined = use current time
+      const time = validated.time === null ? null : (validated.time || getCurrentTimeET());
+
+      const entry = await prisma.dailyEntry.upsert({
+        where: { date: targetDate },
+        create: {
+          date: targetDate,
           mriCount: 0,
           recheckCount: 0,
           newConsultCount: 0,
