@@ -93,9 +93,9 @@ export function useTogglePatientTask() {
       // Return context with previous value for rollback
       return { previousPatients };
     },
-    onSuccess: (result, { patientId, taskId, completed }) => {
-      // Update cache with the actual server response
-      // This prevents the "undo" effect caused by stale refetch data
+    onSuccess: (result, { patientId, taskId }) => {
+      // Update cache with the ACTUAL server response (not just the parameter)
+      // This ensures we have the server-confirmed state
       queryClient.setQueryData(queryKeys.patients, (old: any[] | undefined) => {
         if (!old) return old;
         return old.map((patient) =>
@@ -103,12 +103,18 @@ export function useTogglePatientTask() {
             ? {
                 ...patient,
                 tasks: (patient.tasks || []).map((task: any) =>
-                  task.id === taskId ? { ...task, completed } : task
+                  task.id === taskId ? { ...task, ...result } : task
                 ),
               }
             : patient
         );
       });
+
+      // Invalidate after a brief delay to ensure DB has propagated
+      // This prevents the refetchInterval from returning stale data
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.patients });
+      }, 500);
     },
     onError: (err, variables, context) => {
       // Rollback to previous value on error
@@ -158,14 +164,19 @@ export function useToggleGeneralTask() {
       // Return context with previous value for rollback
       return { previousTasks };
     },
-    onSuccess: (result, { taskId, completed }) => {
-      // Update cache with the actual server response
+    onSuccess: (result, { taskId }) => {
+      // Update cache with the ACTUAL server response
       queryClient.setQueryData(queryKeys.generalTasks, (old: any[] | undefined) => {
         if (!old) return old;
         return old.map((task) =>
-          task.id === taskId ? { ...task, completed } : task
+          task.id === taskId ? { ...task, ...result } : task
         );
       });
+
+      // Invalidate after a brief delay to ensure DB has propagated
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.generalTasks });
+      }, 500);
     },
     onError: (err, variables, context) => {
       // Rollback to previous value on error

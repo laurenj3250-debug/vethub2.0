@@ -50,7 +50,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'Seizures, MRI tomorrow',
-      diagnosticFindings: '', // Leave empty - user will add image
+      diagnosticFindings: 'CXR: pending | CBC/Chem: pending',
       therapeutics: '',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -70,7 +70,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'TL myelopathy, MRI tomorrow, Ambulatory',
-      diagnosticFindings: '', // Leave empty - user will add image
+      diagnosticFindings: 'CXR: pending | CBC/Chem: pending',
       therapeutics: 'Gabapentin, Tramadol, Prednisone, Famotidine',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -90,7 +90,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'TL myelopathy, MRI tomorrow, Plegic',
-      diagnosticFindings: '', // Leave empty - user will add image
+      diagnosticFindings: 'CXR: pending | CBC/Chem: pending',
       therapeutics: 'Gabapentin, Tramadol, Cerenia, Prednisone, Famotidine',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -110,7 +110,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'Cervical myelopathy, MRI tomorrow, Plegic',
-      diagnosticFindings: '', // Leave empty - user will add image
+      diagnosticFindings: 'CXR: pending | CBC/Chem: pending',
       therapeutics: 'Gabapentin, Tramadol, Prednisone, Famotidine',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
@@ -130,7 +130,7 @@ export const roundingTemplates: RoundingTemplate[] = [
       icuCriteria: icuCriteria[2], // n/a
       code: code[1], // Yellow
       problems: 'Cd Fossa, MRI tomorrow',
-      diagnosticFindings: '', // Leave empty - user will add image
+      diagnosticFindings: 'CXR: pending | CBC/Chem: pending',
       therapeutics: '',
       ivc: 'Yes',
       fluids: fluids[2], // n/a
