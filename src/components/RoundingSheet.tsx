@@ -21,6 +21,7 @@ import {
   NEO_POP_STYLES,
 } from '@/lib/constants';
 import { FieldMultiSelect } from './FieldMultiSelect';
+import { TherapeuticsMultiSelect } from './TherapeuticsMultiSelect';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
 import { getTemplateCategories, type RoundingTemplate } from '@/data/rounding-templates';
 
@@ -1626,11 +1627,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     {/* Therapeutics */}
                     <div>
                       <label className="text-[10px] font-bold text-gray-500 uppercase">Therapeutics</label>
-                      <FieldMultiSelect
+                      <TherapeuticsMultiSelect
                         value={data.therapeutics || ''}
                         onChange={(val) => handleFieldChange(patient.id, 'therapeutics', val)}
-                        options={ROUNDING_MULTISELECT_OPTIONS.therapeutics}
-                        placeholder="Select therapeutics..."
                         aria-label={`Therapeutics for ${patientName}`}
                       />
                     </div>
@@ -1881,11 +1880,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                     />
                   </td>
                   <td className="p-0.5 relative" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <FieldMultiSelect
+                    <TherapeuticsMultiSelect
                       value={data.therapeutics || ''}
                       onChange={(val) => handleFieldChange(patient.id, 'therapeutics', val)}
-                      options={ROUNDING_MULTISELECT_OPTIONS.therapeutics}
-                      placeholder="Select therapeutics..."
                       aria-label={`Therapeutics for ${patientName}`}
                     />
                   </td>
