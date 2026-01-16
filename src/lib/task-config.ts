@@ -63,7 +63,6 @@ export const TASK_CONFIG = {
       { name: 'Blood Work', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay },
       { name: 'Chest X-rays', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay },
       { name: 'MRI Anesthesia Sheet', category: 'MRI Prep', timeOfDay: 'evening' as TaskTimeOfDay },
-      { name: 'Black Book', category: 'Admin', timeOfDay: 'evening' as TaskTimeOfDay },
       // Daily evening tasks - also added on MRI admission
       { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay },
       { name: 'Rounding Sheet Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay },
