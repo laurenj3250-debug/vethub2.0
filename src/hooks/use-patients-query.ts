@@ -20,6 +20,7 @@ const recentTaskMutations = new Map<string, { completed: boolean; timestamp: num
 const MUTATION_PROTECTION_WINDOW = 60 * 1000; // 60 seconds
 
 function recordTaskMutation(taskId: string, completed: boolean) {
+  console.log('[TASK PROTECTION] Recording mutation:', taskId, '→', completed);
   recentTaskMutations.set(taskId, { completed, timestamp: Date.now() });
 }
 
@@ -28,11 +29,14 @@ function getProtectedTaskState(taskId: string): { completed: boolean } | null {
   if (!mutation) return null;
 
   // Check if still within protection window
-  if (Date.now() - mutation.timestamp > MUTATION_PROTECTION_WINDOW) {
+  const age = Date.now() - mutation.timestamp;
+  if (age > MUTATION_PROTECTION_WINDOW) {
+    console.log('[TASK PROTECTION] Expired:', taskId, 'age:', Math.round(age / 1000), 's');
     recentTaskMutations.delete(taskId);
     return null;
   }
 
+  console.log('[TASK PROTECTION] Active:', taskId, '=', mutation.completed, 'age:', Math.round(age / 1000), 's');
   return { completed: mutation.completed };
 }
 
@@ -41,17 +45,30 @@ function getProtectedTaskState(taskId: string): { completed: boolean } | null {
  * This prevents refetch from overwriting recently-toggled tasks
  */
 function mergeWithProtectedState(patients: any[]): any[] {
-  return patients.map(patient => ({
+  let protectedCount = 0;
+  let overrideCount = 0;
+
+  const result = patients.map(patient => ({
     ...patient,
     tasks: (patient.tasks || []).map((task: any) => {
       const protectedState = getProtectedTaskState(task.id);
       if (protectedState) {
-        // Use the protected (recently mutated) state instead of server state
+        protectedCount++;
+        if (task.completed !== protectedState.completed) {
+          overrideCount++;
+          console.log('[TASK PROTECTION] OVERRIDE:', task.id, 'server:', task.completed, '→ protected:', protectedState.completed);
+        }
         return { ...task, ...protectedState };
       }
       return task;
     }),
   }));
+
+  if (protectedCount > 0) {
+    console.log('[TASK PROTECTION] Merge complete:', protectedCount, 'protected,', overrideCount, 'overridden');
+  }
+
+  return result;
 }
 
 /**
@@ -68,7 +85,9 @@ export function usePatientsQuery() {
   return useQuery({
     queryKey: queryKeys.patients,
     queryFn: async () => {
+      console.log('[TASK PROTECTION] Fetching patients from server...');
       const data = await apiClient.getPatients();
+      console.log('[TASK PROTECTION] Server returned', data.length, 'patients');
       // Merge with protected mutation state to prevent undo effect
       return mergeWithProtectedState(data);
     },
