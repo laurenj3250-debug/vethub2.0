@@ -12,6 +12,49 @@ export const queryKeys = {
 };
 
 /**
+ * Track recently mutated tasks to prevent refetch from overwriting optimistic updates
+ * Maps taskId -> { completed: boolean, timestamp: number }
+ * Entries expire after 60 seconds
+ */
+const recentTaskMutations = new Map<string, { completed: boolean; timestamp: number }>();
+const MUTATION_PROTECTION_WINDOW = 60 * 1000; // 60 seconds
+
+function recordTaskMutation(taskId: string, completed: boolean) {
+  recentTaskMutations.set(taskId, { completed, timestamp: Date.now() });
+}
+
+function getProtectedTaskState(taskId: string): { completed: boolean } | null {
+  const mutation = recentTaskMutations.get(taskId);
+  if (!mutation) return null;
+
+  // Check if still within protection window
+  if (Date.now() - mutation.timestamp > MUTATION_PROTECTION_WINDOW) {
+    recentTaskMutations.delete(taskId);
+    return null;
+  }
+
+  return { completed: mutation.completed };
+}
+
+/**
+ * Merge fetched data with protected mutation state
+ * This prevents refetch from overwriting recently-toggled tasks
+ */
+function mergeWithProtectedState(patients: any[]): any[] {
+  return patients.map(patient => ({
+    ...patient,
+    tasks: (patient.tasks || []).map((task: any) => {
+      const protectedState = getProtectedTaskState(task.id);
+      if (protectedState) {
+        // Use the protected (recently mutated) state instead of server state
+        return { ...task, ...protectedState };
+      }
+      return task;
+    }),
+  }));
+}
+
+/**
  * React Query hook for fetching patients with tasks
  * Replaces the old usePatients() hook from use-api.ts
  *
@@ -19,27 +62,43 @@ export const queryKeys = {
  * - Automatic 30-second polling (configured in QueryClient)
  * - Refetch on window focus
  * - Proper cache invalidation
+ * - PROTECTED: Recently mutated tasks won't be overwritten by refetch
  */
 export function usePatientsQuery() {
   return useQuery({
     queryKey: queryKeys.patients,
     queryFn: async () => {
       const data = await apiClient.getPatients();
-      return data;
+      // Merge with protected mutation state to prevent undo effect
+      return mergeWithProtectedState(data);
     },
+  });
+}
+
+/**
+ * Merge fetched general tasks with protected mutation state
+ */
+function mergeGeneralTasksWithProtectedState(tasks: any[]): any[] {
+  return tasks.map(task => {
+    const protectedState = getProtectedTaskState(task.id);
+    if (protectedState) {
+      return { ...task, ...protectedState };
+    }
+    return task;
   });
 }
 
 /**
  * React Query hook for fetching general (non-patient) tasks
  * Replaces the old useGeneralTasks() hook from use-api.ts
+ * PROTECTED: Recently mutated tasks won't be overwritten by refetch
  */
 export function useGeneralTasksQuery() {
   return useQuery({
     queryKey: queryKeys.generalTasks,
     queryFn: async () => {
       const data = await apiClient.getGeneralTasks();
-      return data;
+      return mergeGeneralTasksWithProtectedState(data);
     },
   });
 }
@@ -69,6 +128,9 @@ export function useTogglePatientTask() {
       return result;
     },
     onMutate: async ({ patientId, taskId, completed }) => {
+      // CRITICAL: Record mutation FIRST to protect against any concurrent refetch
+      recordTaskMutation(taskId, completed);
+
       // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: queryKeys.patients });
 
@@ -91,7 +153,7 @@ export function useTogglePatientTask() {
       });
 
       // Return context with previous value for rollback
-      return { previousPatients };
+      return { previousPatients, taskId, completed };
     },
     onSuccess: (result, { patientId, taskId }) => {
       // Update cache with the ACTUAL server response (not just the parameter)
@@ -110,14 +172,17 @@ export function useTogglePatientTask() {
         );
       });
 
-      // Invalidate after a brief delay to ensure DB has propagated
-      // This prevents the refetchInterval from returning stale data
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.patients });
-      }, 500);
+      // Update the protected state with server-confirmed value
+      // This ensures the protection reflects the actual server state
+      if (result && typeof result.completed === 'boolean') {
+        recordTaskMutation(taskId, result.completed);
+      }
     },
     onError: (err, variables, context) => {
-      // Rollback to previous value on error
+      // Clear protection and rollback to previous value on error
+      if (context?.taskId) {
+        recentTaskMutations.delete(context.taskId);
+      }
       if (context?.previousPatients) {
         queryClient.setQueryData(queryKeys.patients, context.previousPatients);
       }
@@ -147,6 +212,9 @@ export function useToggleGeneralTask() {
       return result;
     },
     onMutate: async ({ taskId, completed }) => {
+      // CRITICAL: Record mutation FIRST to protect against any concurrent refetch
+      recordTaskMutation(taskId, completed);
+
       // Cancel any outgoing refetches to prevent race conditions
       await queryClient.cancelQueries({ queryKey: queryKeys.generalTasks });
 
@@ -162,7 +230,7 @@ export function useToggleGeneralTask() {
       });
 
       // Return context with previous value for rollback
-      return { previousTasks };
+      return { previousTasks, taskId };
     },
     onSuccess: (result, { taskId }) => {
       // Update cache with the ACTUAL server response
@@ -173,13 +241,16 @@ export function useToggleGeneralTask() {
         );
       });
 
-      // Invalidate after a brief delay to ensure DB has propagated
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.generalTasks });
-      }, 500);
+      // Update the protected state with server-confirmed value
+      if (result && typeof result.completed === 'boolean') {
+        recordTaskMutation(taskId, result.completed);
+      }
     },
     onError: (err, variables, context) => {
-      // Rollback to previous value on error
+      // Clear protection and rollback to previous value on error
+      if (context?.taskId) {
+        recentTaskMutations.delete(context.taskId);
+      }
       if (context?.previousTasks) {
         queryClient.setQueryData(queryKeys.generalTasks, context.previousTasks);
       }
