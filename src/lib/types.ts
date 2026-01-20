@@ -1,4 +1,4 @@
-export type ProcedureType = 'Surgery' | 'MRI' | 'Medical' | 'Other';
+export type ProcedureType = 'Surgery' | 'MRI' | 'Medical' | 'Boarding' | 'Other';
 
 export type PatientStatus =
   | 'New Admit'

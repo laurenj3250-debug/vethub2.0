@@ -36,9 +36,12 @@ export async function POST() {
       const patientType = patient.type || 'Medical';
       const patientStatus = patient.status;
 
-      // Get existing incomplete tasks for this patient
-      const existingIncompleteTasks = patient.tasks.filter(t => !t.completed);
-      const existingTaskTitles = new Set(existingIncompleteTasks.map(t => t.title));
+      // Get existing tasks for this patient - include BOTH incomplete AND completed-today
+      // This prevents recreating tasks that were already completed today
+      const existingTodayTasks = patient.tasks.filter(t =>
+        !t.completed || t.completedDate === today
+      );
+      const existingTaskTitles = new Set(existingTodayTasks.map(t => t.title));
 
       // Generate expected tasks based on current status
       const expectedTasks = generateDailyTasksForPatient({
@@ -51,7 +54,8 @@ export async function POST() {
       // Check for status change - if discharging, clear non-discharge tasks
       if (patientStatus === 'Discharging') {
         // Delete non-discharge incomplete tasks
-        const tasksToDelete = existingIncompleteTasks.filter(
+        const incompleteTasks = patient.tasks.filter(t => !t.completed);
+        const tasksToDelete = incompleteTasks.filter(
           t => t.category !== 'Discharge'
         );
         if (tasksToDelete.length > 0) {

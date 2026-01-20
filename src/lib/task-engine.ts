@@ -217,11 +217,40 @@ export const TASK_TEMPLATES_BY_STATUS: Record<string, TaskTemplate[]> = {
   'Discharged': [],
 };
 
+// Boarding-specific tasks (no daily phone calls, no discharge instructions)
+export const BOARDING_TASKS: TaskTemplate[] = [
+  {
+    id: 'boarding-daily-check',
+    name: 'Daily Wellness Check',
+    category: 'Daily',
+    estimatedMinutes: 5,
+    priority: 'medium',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'boarding-feeding',
+    name: 'Feeding Complete',
+    category: 'Daily',
+    estimatedMinutes: 5,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+  {
+    id: 'boarding-medication',
+    name: 'Medications Given',
+    category: 'Daily',
+    estimatedMinutes: 5,
+    priority: 'high',
+    timeOfDay: 'morning',
+  },
+];
+
 // Legacy: Keep type-based templates for backward compatibility but they're not used for daily tasks
 export const TASK_TEMPLATES_BY_PATIENT_TYPE: Record<string, TaskTemplate[]> = {
   'MRI': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
   'Surgery': TASK_TEMPLATES_BY_STATUS['Pre-procedure'],
   'Medical': TASK_TEMPLATES_BY_STATUS['Hospitalized'],
+  'Boarding': BOARDING_TASKS, // No daily calls or discharge instructions
   'Discharge': TASK_TEMPLATES_BY_STATUS['Discharging'],
 };
 
@@ -292,7 +321,7 @@ export function autoCompleteTasks(
 export function createTasksForPatient(
   patientId: number,
   patientName: string,
-  patientType: 'MRI' | 'Surgery' | 'Medical' | 'Discharge'
+  patientType: 'MRI' | 'Surgery' | 'Medical' | 'Boarding' | 'Discharge'
 ): TaskWithMetadata[] {
   const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType] || [];
 
@@ -445,13 +474,31 @@ export interface PatientForTasks {
  * - Ready for Discharge → Discharge prep tasks
  * - Discharging → Final checkout only
  * - Discharged → No tasks
+ *
+ * EXCEPTION: Boarding patients use BOARDING_TASKS (no daily phone calls or discharge instructions)
  */
 export function generateDailyTasksForPatient(
   patient: PatientForTasks
 ): { title: string; category: string; timeOfDay: string; priority: string }[] {
   const patientStatus = patient.status;
+  const patientType = patient.type;
 
-  // Get tasks based on STATUS (not type!)
+  // Boarding patients have special tasks - no daily calls or discharge instructions
+  if (patientType === 'Boarding') {
+    // Discharged boarding patients have no tasks
+    if (patientStatus === 'Discharged') {
+      return [];
+    }
+    // All other boarding patients get boarding-specific tasks
+    return BOARDING_TASKS.map(template => ({
+      title: template.name,
+      category: template.category,
+      timeOfDay: template.timeOfDay || 'morning',
+      priority: template.priority,
+    }));
+  }
+
+  // Get tasks based on STATUS (not type!) for non-Boarding patients
   const templates = TASK_TEMPLATES_BY_STATUS[patientStatus] || [];
 
   // If no templates for this status, return empty (no auto-generated tasks)

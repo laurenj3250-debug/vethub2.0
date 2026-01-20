@@ -1,6 +1,6 @@
 import type { ProcedureType, PatientStatus } from './types';
 
-export const procedureTypes: ProcedureType[] = ['Surgery', 'MRI', 'Medical', 'Other'];
+export const procedureTypes: ProcedureType[] = ['Surgery', 'MRI', 'Medical', 'Boarding', 'Other'];
 
 export const statusOptions: PatientStatus[] = [
   'New Admit',
@@ -49,6 +49,11 @@ export const admitTasks: Record<ProcedureType, string[]> = {
   Medical: [
     'Admission SOAP',
     'Treatment Sheet Created'
+  ],
+  Boarding: [
+    'Boarding Intake Form',
+    'Feeding Schedule Set',
+    'Medication Schedule Set'
   ],
   Other: [
     'Admission SOAP'

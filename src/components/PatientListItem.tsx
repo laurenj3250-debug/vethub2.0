@@ -44,6 +44,7 @@ export function PatientListItem({
   const getPriorityColor = () => {
     if (patient.type === 'Surgery') return COLORS.pink;
     if (patient.type === 'MRI') return COLORS.lavender;
+    if (patient.type === 'Boarding') return '#FDD835';
     return COLORS.mint;
   };
 
@@ -61,6 +62,7 @@ export function PatientListItem({
       case 'Surgery': return { backgroundColor: COLORS.pink, color: '#000' };
       case 'MRI': return { backgroundColor: COLORS.lavender, color: '#000' };
       case 'Medical': return { backgroundColor: COLORS.mint, color: '#000' };
+      case 'Boarding': return { backgroundColor: '#FDD835', color: '#000' };
       default: return { backgroundColor: '#E5E7EB', color: '#000' };
     }
   };
@@ -128,6 +130,7 @@ export function PatientListItem({
           <option value="Surgery">Surgery</option>
           <option value="MRI">MRI</option>
           <option value="Medical">Medical</option>
+          <option value="Boarding">Boarding</option>
         </select>
 
         {/* Status dropdown */}

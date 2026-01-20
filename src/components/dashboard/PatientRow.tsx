@@ -3,7 +3,7 @@
 import React from 'react';
 
 type PatientStatus = 'critical' | 'monitoring' | 'stable' | 'discharged' | 'new';
-type PatientType = 'Medical' | 'MRI' | 'Surgery';
+type PatientType = 'Medical' | 'MRI' | 'Surgery' | 'Boarding';
 
 interface PatientRowProps {
   id: number;

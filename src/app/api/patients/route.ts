@@ -117,11 +117,11 @@ export async function POST(request: NextRequest) {
 
     // Auto-create tasks based on patient type
     const createdTasks: any[] = [];
-    if (['MRI', 'Surgery', 'Medical', 'Discharge'].includes(patientType)) {
+    if (['MRI', 'Surgery', 'Medical', 'Boarding', 'Discharge'].includes(patientType)) {
       try {
         // Dynamically import task engine to avoid build issues
         const { TASK_TEMPLATES_BY_PATIENT_TYPE } = await import('@/lib/task-engine');
-        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical' | 'Discharge'] || [];
+        const templates = TASK_TEMPLATES_BY_PATIENT_TYPE[patientType as 'MRI' | 'Surgery' | 'Medical' | 'Boarding' | 'Discharge'] || [];
 
         // Fetch all existing tasks for this patient in a single query
         const existingTasks = await prisma.task.findMany({

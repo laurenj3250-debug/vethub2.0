@@ -28,7 +28,7 @@ export default function VetHub() {
 
   // Patient state
   const [patientBlurb, setPatientBlurb] = useState('');
-  const [patientType, setPatientType] = useState<'MRI' | 'Surgery' | 'Medical'>('MRI');
+  const [patientType, setPatientType] = useState<'MRI' | 'Surgery' | 'Medical' | 'Boarding'>('MRI');
   const [isAddingPatient, setIsAddingPatient] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [patientSortBy, setPatientSortBy] = useState<'name' | 'status' | 'type'>('name');
@@ -3598,10 +3598,10 @@ export default function VetHub() {
               </div>
 
               <div className="p-6 space-y-4 bg-white">
-                <div className="flex gap-2">
-                  {(['MRI', 'Surgery', 'Medical'] as const).map((type) => {
-                    const emojis = { MRI: '🧠', Surgery: '🔪', Medical: '💊' };
-                    const colors = { MRI: '#DCC4F5', Surgery: '#FFBDBD', Medical: '#B8E6D4' };
+                <div className="flex gap-2 flex-wrap">
+                  {(['MRI', 'Surgery', 'Medical', 'Boarding'] as const).map((type) => {
+                    const emojis = { MRI: '🧠', Surgery: '🔪', Medical: '💊', Boarding: '🏠' };
+                    const colors = { MRI: '#DCC4F5', Surgery: '#FFBDBD', Medical: '#B8E6D4', Boarding: '#FDD835' };
                     return (
                       <button
                         key={type}
