@@ -56,12 +56,14 @@ interface TaskChecklistProps {
 }
 
 // Deduplicate general tasks by title - keep only one per unique title
+// FIXED: Now keeps the COMPLETED one if there are duplicates (prevents "unclicking" bug)
 function deduplicateGeneralTasks(tasks: GeneralTask[]): GeneralTask[] {
   const seen = new Map<string, GeneralTask>();
   tasks.forEach(task => {
     const title = task.title || task.name || 'Untitled';
-    // Keep the first incomplete one, or the first one if all are complete
-    if (!seen.has(title) || (!task.completed && seen.get(title)?.completed)) {
+    // Keep the completed one, or the first one if neither is completed
+    // This prevents the bug where completing a task would show the incomplete duplicate
+    if (!seen.has(title) || (task.completed && !seen.get(title)?.completed)) {
       seen.set(title, task);
     }
   });
@@ -103,12 +105,17 @@ export function TaskChecklist({
     let completed = 0;
 
     // Collect all task names from patients
+    // FIXED: If duplicates exist, prefer the COMPLETED one (prevents "unclicking" bug)
     patients.forEach(patient => {
       (patient.tasks || []).forEach(task => {
         const taskName = task.title || task.name || 'Untitled';
         names.add(taskName);
         if (!map[taskName]) map[taskName] = {};
-        map[taskName][patient.id] = task;
+        // Only overwrite if: no existing task, OR new task is completed and existing is not
+        const existing = map[taskName][patient.id];
+        if (!existing || (task.completed && !existing.completed)) {
+          map[taskName][patient.id] = task;
+        }
         total++;
         if (task.completed) completed++;
       });
@@ -411,10 +418,9 @@ export function TaskChecklist({
                         </button>
                       ) : (
                         taskPatients.map(patient => {
-                          // Get fresh task data from patient.tasks to ensure consistency
-                          const task = (patient.tasks || []).find(
-                            t => (t.title || t.name) === taskName
-                          ) || patientTaskMap[taskName][patient.id];
+                          // FIXED: Use patientTaskMap consistently (it prefers completed tasks)
+                          // Previously used .find() which could return a different task than the map
+                          const task = patientTaskMap[taskName][patient.id];
                           if (!task) return null;
                           return (
                             <button

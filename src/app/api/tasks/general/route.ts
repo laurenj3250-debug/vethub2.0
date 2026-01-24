@@ -43,6 +43,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for duplicate general task (same title with patientId=null)
+    const existingTask = await prisma.task.findFirst({
+      where: {
+        patientId: null,
+        title: body.title.trim(),
+      },
+    });
+
+    if (existingTask) {
+      // Return existing task instead of creating duplicate
+      console.log(`[API] General task "${body.title}" already exists, returning existing`);
+      return NextResponse.json(existingTask, { status: 200 });
+    }
+
     const task = await prisma.task.create({
       data: {
         title: body.title.trim(),
