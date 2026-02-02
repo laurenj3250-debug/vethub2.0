@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Brain, Zap, FileText, Copy, Loader2 } from 'lucide-react';
+import { Brain, Zap, FileText, Loader2, ArrowLeft } from 'lucide-react';
 import { useNeuroExamState } from '@/components/neuro-exam/useNeuroExamState';
 import { SECTION_GROUPS } from '@/components/neuro-exam/constants';
 import { StepperProgress } from '@/components/neuro-exam/StepperProgress';
@@ -59,6 +59,13 @@ export default function NeuroExamMobile() {
           {/* Top row: title + actions */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
+              <a
+                href="/"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:scale-95 transition-all"
+                aria-label="Back to dashboard"
+              >
+                <ArrowLeft size={20} className="text-gray-900" />
+              </a>
               <Brain size={20} className="text-gray-900" />
               <h1 className="text-lg font-black text-gray-900">Neuro Exam</h1>
               {isSaving && (
@@ -120,7 +127,7 @@ export default function NeuroExamMobile() {
       </div>
 
       {/* ─── Content ─── */}
-      <div className="px-4 py-4 pb-36">
+      <div className="relative z-0 px-4 py-4 pb-36">
         {/* Mobile: show current step only */}
         <div className="md:hidden">
           <SectionGroup

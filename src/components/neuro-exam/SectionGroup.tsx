@@ -17,8 +17,8 @@ export function SectionGroup({ group, sections, onBulkNormal, children }: Sectio
 
   return (
     <div className="space-y-3">
-      {/* Group header */}
-      <div className="flex items-center justify-between">
+      {/* Group header - sticky below main nav */}
+      <div className="sticky top-[105px] z-10 bg-[#FFF8F0] py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-black text-gray-900">{group.label}</h2>
           <span className="text-xs font-semibold text-gray-400">
