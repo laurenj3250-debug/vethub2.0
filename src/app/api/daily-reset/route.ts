@@ -84,11 +84,15 @@ export async function POST(request: Request) {
     let generalTasksCreated = 0;
 
     // ========================================
-    // 1. DELETE COMPLETED TASKS (clean slate for new day)
+    // 1. DELETE COMPLETED DAILY TASKS (clean slate for new day)
+    // Only delete daily recurring tasks, NOT type-specific ones like Surgery Slip
+    // so they can't be recreated on type change
     // ========================================
+    const allDailyTaskNames = [...DAILY_PATIENT_TASK_NAMES, ...DAILY_GENERAL_TASK_NAMES];
     const deletedTasks = await prisma.task.deleteMany({
       where: {
         completed: true,
+        title: { in: allDailyTaskNames },
       },
     });
     tasksDeleted = deletedTasks.count;
@@ -100,7 +104,6 @@ export async function POST(request: Request) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const allDailyTaskNames = [...DAILY_PATIENT_TASK_NAMES, ...DAILY_GENERAL_TASK_NAMES];
     const deletedOldTasks = await prisma.task.deleteMany({
       where: {
         createdAt: { lt: todayStart },
@@ -112,25 +115,6 @@ export async function POST(request: Request) {
       console.log(`[Daily Reset] Cleaned up ${deletedOldTasks.count} old incomplete daily tasks`);
     }
     tasksDeleted += deletedOldTasks.count;
-
-    // ========================================
-    // 1c. DELETE STALE NON-DAILY TASKS (>7 days old)
-    // Status-triggered and type-specific tasks that are incomplete for >7 days
-    // ========================================
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const deletedStaleTasks = await prisma.task.deleteMany({
-      where: {
-        createdAt: { lt: sevenDaysAgo },
-        completed: false,
-        title: { notIn: allDailyTaskNames }, // Non-daily tasks only
-      },
-    });
-    if (deletedStaleTasks.count > 0) {
-      console.log(`[Daily Reset] Cleaned up ${deletedStaleTasks.count} stale non-daily tasks (>7 days old)`);
-    }
-    tasksDeleted += deletedStaleTasks.count;
 
     // ========================================
     // 2. RESET/CREATE GENERAL TASKS (team-wide, not patient-specific)
@@ -341,16 +325,16 @@ export async function GET(request: Request) {
       let tasksCreated = 0;
       let generalTasksCreated = 0;
 
-      // Delete completed tasks
+      // Delete completed DAILY tasks only (preserve completed type-specific tasks)
+      const allDailyTaskNames = [...DAILY_PATIENT_TASK_NAMES, ...DAILY_GENERAL_TASK_NAMES];
       const deletedTasks = await prisma.task.deleteMany({
-        where: { completed: true },
+        where: { completed: true, title: { in: allDailyTaskNames } },
       });
       tasksDeleted = deletedTasks.count;
 
       // Delete old incomplete daily tasks
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const allDailyTaskNames = [...DAILY_PATIENT_TASK_NAMES, ...DAILY_GENERAL_TASK_NAMES];
 
       const deletedOldTasks = await prisma.task.deleteMany({
         where: {
@@ -360,18 +344,6 @@ export async function GET(request: Request) {
         },
       });
       tasksDeleted += deletedOldTasks.count;
-
-      // Delete stale non-daily tasks (>7 days)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const deletedStaleTasks = await prisma.task.deleteMany({
-        where: {
-          createdAt: { lt: sevenDaysAgo },
-          completed: false,
-          title: { notIn: allDailyTaskNames },
-        },
-      });
-      tasksDeleted += deletedStaleTasks.count;
 
       // Create general tasks
       const existingGeneralTasks = await prisma.task.findMany({

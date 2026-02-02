@@ -970,14 +970,11 @@ export default function VetHub() {
       console.log(`[handleTypeChange] API response:`, result);
       toast({ title: `✅ Type updated to ${newType}` });
 
-      // Auto-create tasks for type changes
-      // - New Admits: get all type-specific tasks
-      // - Hospitalized patients switching to MRI/Surgery: get prep tasks (patient may have been waiting)
+      // Auto-create tasks for type changes - only for new admits
       const patient = patients.find(p => p.id === patientId);
       const isNewAdmit = patient?.status?.toLowerCase() === 'new admit';
-      const isSwitchingToMRIOrSurgery = newType === 'MRI' || newType === 'Surgery';
 
-      if ((isNewAdmit || isSwitchingToMRIOrSurgery) && ['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
+      if (isNewAdmit && ['MRI', 'Surgery', 'Medical', 'Discharge'].includes(newType)) {
         // Fetch fresh patient data to get accurate existing tasks (avoid stale state)
         const freshPatient = await apiClient.getPatient(String(patientId));
         const patientName = freshPatient?.demographics?.name || 'Unknown Patient';
@@ -1319,27 +1316,34 @@ export default function VetHub() {
 
   const batchChangeType = async (newType: 'Medical' | 'MRI' | 'Surgery') => {
     try {
+      const { getTypeSpecificTasks } = await import('@/lib/task-config');
+
       for (const patientId of Array.from(selectedPatientIds)) {
         await apiClient.updatePatient(String(patientId), { type: newType });
 
-        // Auto-create MRI tasks if changing to MRI
-        if (newType === 'MRI') {
-          const patient = patients.find(p => p.id === patientId);
-          const today = new Date().toISOString().split('T')[0];
-          const existingTasks = patient?.tasks || [];
-          const mriTasks = ['MRI Anesthesia Sheet', 'Blood Work', 'Chest X-rays', 'MRI Meds Sheet'];
+        // Auto-create type-specific tasks only for new admits (matching handleTypeChange)
+        const patient = patients.find(p => p.id === patientId);
+        const isNewAdmit = patient?.status?.toLowerCase() === 'new admit';
 
-          for (const taskName of mriTasks) {
-            const hasTask = existingTasks.some((t: any) =>
-              (t.title || t.name) === taskName // No date check - tasks don't have date field
-            );
+        if (isNewAdmit) {
+          const templates = getTypeSpecificTasks(newType);
+          if (templates.length > 0) {
+            const freshPatient = await apiClient.getPatient(String(patientId));
+            const existingTasks = freshPatient?.tasks || [];
 
-            if (!hasTask) {
-              await apiClient.createTask(String(patientId), {
-                name: taskName,
-                completed: false,
-                date: today,
-              });
+            for (const template of templates) {
+              const hasTask = existingTasks.some((t: any) =>
+                (t.title || t.name) === template.name
+              );
+
+              if (!hasTask) {
+                await apiClient.createTask(String(patientId), {
+                  title: template.name,
+                  category: template.category,
+                  timeOfDay: template.timeOfDay || 'anytime',
+                  completed: false,
+                });
+              }
             }
           }
         }
