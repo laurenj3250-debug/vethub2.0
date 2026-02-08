@@ -4,14 +4,10 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Brain,
-  Users,
   Scissors,
-  MessageSquare,
   Plus,
   Minus,
   ChevronRight,
-  AlertCircle,
-  UserPlus,
   RefreshCw,
   X,
 } from 'lucide-react';
@@ -19,13 +15,11 @@ import {
   useResidencyStats,
   useQuickIncrement,
   useTodayEntry,
-  useAddSurgery,
   type CounterField,
 } from '@/hooks/useResidencyStats';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
-import { PatientQuickSelect } from '@/components/residency/PatientQuickSelect';
+import { SurgeryQuickForm } from '@/components/residency/SurgeryQuickForm';
 
 // Counter button component
 function CounterBtn({
@@ -97,16 +91,11 @@ export function ResidencyTracker() {
   // Simplified state: panel is either open or closed, no confusing "pinned" concept
   const [isOpen, setIsOpen] = useState(false);
   const [showSurgeryForm, setShowSurgeryForm] = useState(false);
-  const [surgeryProcedure, setSurgeryProcedure] = useState('');
-  const [surgeryRole, setSurgeryRole] = useState<'S' | 'O' | 'C' | 'D' | 'K'>('O');
-  const [surgeryPatientId, setSurgeryPatientId] = useState<number | null>(null);
-  const [surgeryPatientName, setSurgeryPatientName] = useState('');
   const panelRef = useRef<HTMLDivElement>(null);
 
   const { data: stats, isLoading } = useResidencyStats();
-  const { data: todayEntry, isLoading: todayLoading } = useTodayEntry();
+  const { data: todayEntry } = useTodayEntry();
   const { mutate: increment, isPending } = useQuickIncrement();
-  const { mutateAsync: addSurgery, isPending: surgeryPending } = useAddSurgery();
 
   // Close panel when clicking outside or pressing Escape
   useEffect(() => {
@@ -139,24 +128,6 @@ export function ResidencyTracker() {
   const handleDecrement = useCallback((field: CounterField) => {
     increment({ field, delta: -1 });
   }, [increment]);
-
-  // Handle adding surgery quickly
-  const handleAddSurgery = useCallback(async () => {
-    if (!surgeryProcedure || !todayEntry?.id) return;
-
-    await addSurgery({
-      dailyEntryId: todayEntry.id,
-      procedureName: surgeryProcedure,
-      participation: surgeryRole,
-      patientId: surgeryPatientId || undefined,
-      patientName: surgeryPatientName || undefined,
-    });
-
-    setSurgeryProcedure('');
-    setSurgeryPatientId(null);
-    setSurgeryPatientName('');
-    setShowSurgeryForm(false);
-  }, [surgeryProcedure, surgeryRole, surgeryPatientId, surgeryPatientName, todayEntry?.id, addSurgery]);
 
   // Get values
   const totals = stats?.totals ?? {
@@ -249,62 +220,12 @@ export function ResidencyTracker() {
 
             {/* Quick Surgery Form */}
             {showSurgeryForm && (
-              <div className="space-y-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <select
-                  value={surgeryProcedure}
-                  onChange={(e) => setSurgeryProcedure(e.target.value)}
-                  className="w-full text-xs p-1.5 rounded border bg-white dark:bg-slate-900"
-                >
-                  <option value="">Select procedure...</option>
-                  {COMMON_PROCEDURES.map((proc) => (
-                    <option key={proc} value={proc}>{proc}</option>
-                  ))}
-                </select>
-
-                <PatientQuickSelect
-                  value={surgeryPatientId}
-                  onChange={(patientId, patientName) => {
-                    setSurgeryPatientId(patientId);
-                    setSurgeryPatientName(patientName);
-                  }}
-                  placeholder="Select patient (optional)..."
-                  size="sm"
-                />
-
-                <div className="flex gap-1">
-                  {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
-                    <button
-                      key={key}
-                      onClick={() => setSurgeryRole(key as 'S' | 'O' | 'C' | 'D' | 'K')}
-                      className={cn(
-                        'flex-1 py-1 text-[10px] font-medium rounded transition-colors',
-                        surgeryRole === key ? `${color} text-white` : 'bg-slate-200 dark:bg-slate-700'
-                      )}
-                      title={label}
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={handleAddSurgery}
-                  disabled={!surgeryProcedure || !todayEntry?.id || surgeryPending}
-                  className={cn(
-                    'w-full py-1.5 text-xs font-medium rounded transition-colors',
-                    'bg-red-500 hover:bg-red-600 text-white',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
-                  )}
-                >
-                  {surgeryPending ? 'Adding...' : 'Add Surgery'}
-                </button>
-
-                {!todayEntry?.id && (
-                  <p className="text-[10px] text-amber-600 text-center">
-                    Log a case first to add surgeries
-                  </p>
-                )}
-              </div>
+              <SurgeryQuickForm
+                dailyEntryId={todayEntry?.id ?? null}
+                variant="compact"
+                onSuccess={() => setShowSurgeryForm(false)}
+                onCancel={() => setShowSurgeryForm(false)}
+              />
             )}
 
             <Link

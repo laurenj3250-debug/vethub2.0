@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Plus,
@@ -45,14 +46,16 @@ import {
   CaseRole,
 } from '@/lib/residency-types';
 import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
-import { NEO_POP } from '@/lib/neo-pop-styles';
+import { NEO_POP, neoCard, neoButton, neoInput } from '@/lib/neo-pop-styles';
 
 type TabType = 'quickadd' | 'cases' | 'journal' | 'schedule' | 'summary' | 'stats';
 
-// Neo-Pop styled components
-const neoCard = "bg-white border-2 border-black shadow-[4px_4px_0_#000] rounded-2xl";
-const neoButton = "border-2 border-black shadow-[3px_3px_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000] transition-all rounded-xl font-bold";
-const neoInput = "border-2 border-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-300 outline-none";
+const VALID_TABS: TabType[] = ['quickadd', 'cases', 'journal', 'schedule', 'summary', 'stats'];
+
+function parseTab(value: string | null): TabType {
+  if (value && (VALID_TABS as string[]).includes(value)) return value as TabType;
+  return 'quickadd';
+}
 
 // Calculate current week based on program start date
 function getCurrentWeekInfo(startDate: string): { monthNumber: number; weekNumber: number } {
@@ -108,12 +111,18 @@ function StatsTabContent() {
   );
 }
 
-export default function ACVIMResidencyTrackerPage() {
+function ACVIMResidencyTrackerPage() {
   // Core state
-  const [activeTab, setActiveTab] = useState<TabType>('quickadd');
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>(() => parseTab(searchParams.get('tab')));
   const [selectedYear, setSelectedYear] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Sync tab with URL when navigating in-page (e.g., dashboard link to /residency?tab=stats)
+  useEffect(() => {
+    setActiveTab(parseTab(searchParams.get('tab')));
+  }, [searchParams]);
 
   // Data state
   const [profile, setProfile] = useState<ACVIMProfile | null>(null);
@@ -738,7 +747,9 @@ export default function ACVIMResidencyTrackerPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         {/* Quick Add Tab */}
         {activeTab === 'quickadd' && (
-          <QuickAddTracker />
+          <StatsErrorBoundary>
+            <QuickAddTracker />
+          </StatsErrorBoundary>
         )}
 
         {/* Case Log Tab */}
@@ -1721,5 +1732,13 @@ export default function ACVIMResidencyTrackerPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ACVIMResidencyTrackerPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-gray-400" /></div>}>
+      <ACVIMResidencyTrackerPage />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Brain,
   Scissors,
@@ -20,32 +20,28 @@ import {
   useResidencyStats,
   useQuickIncrement,
   useTodayEntry,
-  useAddSurgery,
   type CounterField,
 } from '@/hooks/useResidencyStats';
-import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
-import { PatientQuickSelect } from '@/components/residency/PatientQuickSelect';
-import { NEO_POP } from '@/lib/neo-pop-styles';
+import { PARTICIPATION_LEVELS } from '@/lib/residency-milestones';
+import { SurgeryQuickForm } from '@/components/residency/SurgeryQuickForm';
+import { NEO_POP, neoCard, neoButton } from '@/lib/neo-pop-styles';
 import { cn } from '@/lib/utils';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
-
-const neoCard = "bg-white border-2 border-black shadow-[4px_4px_0_#000] rounded-2xl";
-const neoButton = "border-2 border-black shadow-[3px_3px_0_#000] hover:-translate-y-0.5 hover:shadow-[4px_4px_0_#000] transition-all rounded-xl font-bold";
 
 // localStorage keys for editable goals
 const MRI_GOAL_KEY = 'residency-goal-mri-daily';
 const SURGERY_GOAL_KEY = 'residency-goal-surgery-daily';
 
 function useLocalStorageGoal(key: string, defaultValue: number) {
-  const [goal, setGoal] = useState(defaultValue);
-
-  useEffect(() => {
+  const [goal, setGoal] = useState(() => {
+    if (typeof window === 'undefined') return defaultValue;
     const stored = localStorage.getItem(key);
     if (stored) {
       const parsed = parseInt(stored, 10);
-      if (!isNaN(parsed) && parsed > 0) setGoal(parsed);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-  }, [key]);
+    return defaultValue;
+  });
 
   const updateGoal = useCallback((newGoal: number) => {
     if (newGoal > 0) {
@@ -102,17 +98,10 @@ export function QuickAddTracker() {
   const { data: stats, isLoading: statsLoading } = useResidencyStats();
   const { data: todayEntry, isLoading: todayLoading } = useTodayEntry();
   const { mutate: increment, isPending } = useQuickIncrement();
-  const { mutateAsync: addSurgery, isPending: surgeryPending } = useAddSurgery();
 
   // Quick add mode toggle
   const [mode, setMode] = useState<'mri' | 'surgery'>('mri');
   const [breakdownView, setBreakdownView] = useState<'weekly' | 'monthly'>('weekly');
-
-  // Surgery form state
-  const [surgeryProcedure, setSurgeryProcedure] = useState('');
-  const [surgeryRole, setSurgeryRole] = useState<'S' | 'O' | 'C' | 'D' | 'K'>('O');
-  const [surgeryPatientId, setSurgeryPatientId] = useState<number | null>(null);
-  const [surgeryPatientName, setSurgeryPatientName] = useState('');
 
   // Editable daily goals
   const [mriGoal, setMriGoal] = useLocalStorageGoal(MRI_GOAL_KEY, 3);
@@ -162,22 +151,6 @@ export function QuickAddTracker() {
   const handleIncrement = useCallback((field: CounterField, delta: number) => {
     increment({ field, delta });
   }, [increment]);
-
-  const handleAddSurgery = useCallback(async () => {
-    if (!surgeryProcedure || !todayEntry?.id) return;
-
-    await addSurgery({
-      dailyEntryId: todayEntry.id,
-      procedureName: surgeryProcedure,
-      participation: surgeryRole,
-      patientId: surgeryPatientId || undefined,
-      patientName: surgeryPatientName || undefined,
-    });
-
-    setSurgeryProcedure('');
-    setSurgeryPatientId(null);
-    setSurgeryPatientName('');
-  }, [surgeryProcedure, surgeryRole, surgeryPatientId, surgeryPatientName, todayEntry?.id, addSurgery]);
 
   if (statsLoading || todayLoading) {
     return (
@@ -294,7 +267,7 @@ export function QuickAddTracker() {
             onClick={() => setMode('mri')}
             className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm`}
             style={{
-              backgroundColor: mode === 'mri' ? '#DCC4F5' : NEO_POP.colors.white,
+              backgroundColor: mode === 'mri' ? NEO_POP.colors.lavender : NEO_POP.colors.white,
             }}
           >
             <Brain className="w-4 h-4" />
@@ -304,7 +277,7 @@ export function QuickAddTracker() {
             onClick={() => setMode('surgery')}
             className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm`}
             style={{
-              backgroundColor: mode === 'surgery' ? '#FFBDBD' : NEO_POP.colors.white,
+              backgroundColor: mode === 'surgery' ? NEO_POP.colors.pink : NEO_POP.colors.white,
             }}
           >
             <Scissors className="w-4 h-4" />
@@ -388,66 +361,7 @@ export function QuickAddTracker() {
                 </p>
               </div>
             ) : (
-              <>
-                {/* Procedure */}
-                <select
-                  value={surgeryProcedure}
-                  onChange={(e) => setSurgeryProcedure(e.target.value)}
-                  className="w-full text-sm p-2.5 rounded-xl border-2 border-black bg-white font-medium"
-                >
-                  <option value="">Select procedure...</option>
-                  {COMMON_PROCEDURES.map((proc) => (
-                    <option key={proc} value={proc}>{proc}</option>
-                  ))}
-                </select>
-
-                {/* Role picker */}
-                <div className="flex gap-1.5">
-                  {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
-                    <button
-                      key={key}
-                      onClick={() => setSurgeryRole(key as 'S' | 'O' | 'C' | 'D' | 'K')}
-                      className={cn(
-                        'flex-1 py-2 text-xs font-bold rounded-xl border-2 border-black transition-all',
-                        surgeryRole === key
-                          ? `${color} text-white shadow-[2px_2px_0_#000]`
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      )}
-                      title={label}
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-                <div className="text-[10px] text-gray-500 text-center">
-                  {PARTICIPATION_LEVELS[surgeryRole].label} — {PARTICIPATION_LEVELS[surgeryRole].description}
-                </div>
-
-                {/* Patient picker */}
-                <PatientQuickSelect
-                  value={surgeryPatientId}
-                  onChange={(patientId, patientName) => {
-                    setSurgeryPatientId(patientId);
-                    setSurgeryPatientName(patientName);
-                  }}
-                  placeholder="Select patient (optional)..."
-                  size="md"
-                />
-
-                {/* Add button */}
-                <button
-                  onClick={handleAddSurgery}
-                  disabled={!surgeryProcedure || surgeryPending}
-                  className={`${neoButton} w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50`}
-                  style={{ backgroundColor: surgeryProcedure ? '#FFBDBD' : NEO_POP.colors.gray200 }}
-                >
-                  {surgeryPending ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin" /> Adding...</>
-                  ) : (
-                    <><Plus className="w-4 h-4" /> Add Surgery</>
-                  )}
-                </button>
-              </>
+              <SurgeryQuickForm dailyEntryId={todayEntry.id} variant="neo" />
             )}
           </div>
         )}

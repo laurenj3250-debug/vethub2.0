@@ -2,58 +2,22 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAddSurgery, useDeleteSurgery, type Surgery } from '@/hooks/useResidencyStats';
-import { Scissors, Plus, Trash2, Loader2 } from 'lucide-react';
+import { useDeleteSurgery, type Surgery } from '@/hooks/useResidencyStats';
+import { Scissors, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
-import { PatientQuickSelect } from './PatientQuickSelect';
+import { PARTICIPATION_LEVELS } from '@/lib/residency-milestones';
+import { SurgeryQuickForm } from './SurgeryQuickForm';
 
 interface SurgeryTrackerProps {
   dailyEntryId: string | null;
   surgeries: Surgery[];
-  onNeedsDailyEntry?: () => void;
 }
 
-export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: SurgeryTrackerProps) {
-  const addMutation = useAddSurgery();
+export function SurgeryTracker({ dailyEntryId, surgeries }: SurgeryTrackerProps) {
   const deleteMutation = useDeleteSurgery();
 
   const [showForm, setShowForm] = useState(false);
-  const [newSurgery, setNewSurgery] = useState({
-    procedureName: '',
-    participation: 'O' as 'S' | 'O' | 'C' | 'D' | 'K',
-    patientName: '',
-    patientId: null as number | null,
-  });
-
-  const handleAdd = async () => {
-    if (!dailyEntryId) {
-      onNeedsDailyEntry?.();
-      return;
-    }
-    if (!newSurgery.procedureName) return;
-
-    await addMutation.mutateAsync({
-      dailyEntryId,
-      procedureName: newSurgery.procedureName,
-      participation: newSurgery.participation,
-      patientName: newSurgery.patientName || undefined,
-      patientId: newSurgery.patientId || undefined,
-    });
-
-    setNewSurgery({ procedureName: '', participation: 'O', patientName: '', patientId: null });
-    setShowForm(false);
-  };
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
@@ -80,80 +44,12 @@ export function SurgeryTracker({ dailyEntryId, surgeries, onNeedsDailyEntry }: S
       <CardContent className="space-y-4">
         {/* Add Surgery Form */}
         {showForm && (
-          <div className="p-4 border rounded-lg bg-muted/50 space-y-3">
-            <div className="space-y-2">
-              <Label>Procedure</Label>
-              <Select
-                value={newSurgery.procedureName}
-                onValueChange={(v) => setNewSurgery((s) => ({ ...s, procedureName: v }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select or type procedure..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {COMMON_PROCEDURES.map((proc) => (
-                    <SelectItem key={proc} value={proc}>
-                      {proc}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Or type custom procedure..."
-                value={newSurgery.procedureName}
-                onChange={(e) => setNewSurgery((s) => ({ ...s, procedureName: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Your Role</Label>
-              <div className="grid grid-cols-5 gap-2">
-                {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
-                  <Button
-                    key={key}
-                    variant={newSurgery.participation === key ? 'default' : 'outline'}
-                    className={cn(
-                      'flex flex-col h-auto min-h-[44px] py-3 px-1',
-                      newSurgery.participation === key && color
-                    )}
-                    onClick={() => setNewSurgery((s) => ({ ...s, participation: key as Surgery['participation'] }))}
-                  >
-                    <span className="font-bold text-base">{key}</span>
-                    <span className="text-[10px] sm:text-xs opacity-80 leading-tight">{label}</span>
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Patient (optional)</Label>
-              <PatientQuickSelect
-                value={newSurgery.patientId}
-                onChange={(patientId, patientName) =>
-                  setNewSurgery((s) => ({ ...s, patientId, patientName }))
-                }
-                placeholder="Select hospitalized patient..."
-              />
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button
-                onClick={handleAdd}
-                disabled={!newSurgery.procedureName || addMutation.isPending}
-                className="h-11 min-h-[44px] px-6"
-              >
-                {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Add Surgery
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => setShowForm(false)}
-                className="h-11 min-h-[44px]"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
+          <SurgeryQuickForm
+            dailyEntryId={dailyEntryId}
+            variant="full"
+            onSuccess={() => setShowForm(false)}
+            onCancel={() => setShowForm(false)}
+          />
         )}
 
         {/* Surgery List */}
