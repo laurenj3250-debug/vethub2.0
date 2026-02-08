@@ -21,7 +21,7 @@ export interface SurgeryPatient {
 
 /**
  * Hook to get patients available for surgery selection
- * Returns hospitalized patients sorted by name
+ * Returns all Surgery-type patients sorted by name
  */
 export function useSurgeryPatients() {
   const { data: patients, isLoading, error } = usePatientsQuery();
@@ -29,9 +29,9 @@ export function useSurgeryPatients() {
   const surgeryPatients = useMemo<SurgeryPatient[]>(() => {
     if (!patients) return [];
 
-    // Filter to hospitalized Surgery-type patients only
+    // Filter to Surgery-type patients only
     return patients
-      .filter((p) => p.status === 'Hospitalized' && p.type === 'Surgery')
+      .filter((p) => p.type === 'Surgery')
       .map((patient) => {
         const demographics = patient.demographics as PatientDemographics | null;
         const name = demographics?.name || `Patient #${patient.id}`;

@@ -162,7 +162,7 @@ export function PatientQuickSelect({
           </div>
         ) : filteredPatients.length === 0 ? (
           <div className="px-3 py-4 text-center text-xs text-muted-foreground">
-            {search ? 'No patients match your search' : 'No hospitalized patients'}
+            {search ? 'No patients match your search' : 'No surgery patients available'}
           </div>
         ) : (
           filteredPatients.map((patient) => (

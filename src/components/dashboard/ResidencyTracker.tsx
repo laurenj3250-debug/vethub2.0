@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Brain,
   Users,
   Scissors,
   MessageSquare,
-  Clock,
   Plus,
   Minus,
   ChevronRight,
@@ -15,16 +14,11 @@ import {
   UserPlus,
   RefreshCw,
   X,
-  Pencil,
-  History,
-  Check,
 } from 'lucide-react';
 import {
   useResidencyStats,
   useQuickIncrement,
   useTodayEntry,
-  useUpdateShiftTimes,
-  useClockInOut,
   useAddSurgery,
   type CounterField,
 } from '@/hooks/useResidencyStats';
@@ -107,37 +101,12 @@ export function ResidencyTracker() {
   const [surgeryRole, setSurgeryRole] = useState<'S' | 'O' | 'C' | 'D' | 'K'>('O');
   const [surgeryPatientId, setSurgeryPatientId] = useState<number | null>(null);
   const [surgeryPatientName, setSurgeryPatientName] = useState('');
-  const [editingClockIn, setEditingClockIn] = useState(false);
-  const [clockInTime, setClockInTime] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
-  const [editingHistoryDate, setEditingHistoryDate] = useState<string | null>(null);
-  const [historyClockIn, setHistoryClockIn] = useState('');
-  const [historyClockOut, setHistoryClockOut] = useState('');
-  const [savingHistoryDate, setSavingHistoryDate] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const { data: stats, isLoading } = useResidencyStats();
   const { data: todayEntry, isLoading: todayLoading } = useTodayEntry();
   const { mutate: increment, isPending } = useQuickIncrement();
-  const { mutate: clockAction, isPending: clockPending } = useClockInOut();
-  const { mutate: updateShiftTimes, isPending: isUpdatingShiftTimes } = useUpdateShiftTimes();
   const { mutateAsync: addSurgery, isPending: surgeryPending } = useAddSurgery();
-
-  // Generate last 7 days (excluding today) for history editing
-  const last7Days = useMemo(() => {
-    type WeeklyEntry = NonNullable<typeof stats>['weeklyData'][number];
-    const days: { date: string; entry: WeeklyEntry | undefined }[] = [];
-    const today = new Date();
-
-    for (let i = 1; i <= 7; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD format
-      const existingEntry = stats?.weeklyData?.find(e => e.date === dateStr);
-      days.push({ date: dateStr, entry: existingEntry });
-    }
-    return days;
-  }, [stats?.weeklyData]);
 
   // Close panel when clicking outside or pressing Escape
   useEffect(() => {
@@ -150,7 +119,6 @@ export function ResidencyTracker() {
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsOpen(false);
-        setEditingHistoryDate(null);
       }
     };
 
@@ -207,10 +175,6 @@ export function ResidencyTracker() {
     commsCount: todayEntry?.commsCount ?? 0,
   };
 
-  const shiftStart = todayEntry?.shiftStartTime;
-  const shiftEnd = todayEntry?.shiftEndTime;
-  const isClockingIn = clockPending;
-
   // Calculate total for badge
   const todayTotal = today.mriCount + today.recheckCount + today.newConsultCount + today.emergencyCount;
 
@@ -250,194 +214,6 @@ export function ResidencyTracker() {
               Full Stats <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
-
-          {/* Clock In/Out */}
-          <div className="flex items-center justify-between py-2 mb-2 bg-slate-50 dark:bg-slate-800 rounded-lg px-3">
-            <div className="flex items-center gap-2 flex-1">
-              <Clock className="w-4 h-4 text-blue-500" />
-              <div className="text-xs flex-1">
-                {editingClockIn ? (
-                  <div className="flex items-center gap-1">
-                    <input
-                      type="time"
-                      value={clockInTime}
-                      onChange={(e) => setClockInTime(e.target.value)}
-                      className="w-20 px-1 py-0.5 text-xs rounded border bg-white dark:bg-slate-900"
-                    />
-                    <button
-                      onClick={() => {
-                        clockAction({ action: 'clockIn', time: clockInTime });
-                        setEditingClockIn(false);
-                      }}
-                      className="text-emerald-500 hover:text-emerald-600"
-                    >
-                      <Check className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => setEditingClockIn(false)}
-                      className="text-rose-500 hover:text-rose-600"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ) : shiftStart ? (
-                  <span className="flex items-center gap-1">
-                    In: <span className="font-mono">{shiftStart}</span>
-                    <button
-                      onClick={() => {
-                        setClockInTime(shiftStart);
-                        setEditingClockIn(true);
-                      }}
-                      className="text-muted-foreground hover:text-primary ml-1"
-                      title="Edit time"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    {shiftEnd && (
-                      <> → Out: <span className="font-mono">{shiftEnd}</span></>
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">Not clocked in</span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className={cn(
-                  'p-1 rounded transition-colors',
-                  showHistory ? 'bg-blue-100 text-blue-600' : 'text-muted-foreground hover:text-primary'
-                )}
-                title="View/edit past days"
-              >
-                <History className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => clockAction({ action: shiftStart && !shiftEnd ? 'clockOut' : 'clockIn' })}
-                disabled={isClockingIn || !!(shiftStart && shiftEnd) || editingClockIn}
-                className={cn(
-                  'px-2 py-1 text-xs font-medium rounded-md transition-colors min-w-[40px]',
-                  shiftStart && !shiftEnd
-                    ? 'bg-rose-500 hover:bg-rose-600 text-white'
-                    : 'bg-emerald-500 hover:bg-emerald-600 text-white',
-                  (isClockingIn || !!(shiftStart && shiftEnd) || editingClockIn) && 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                {isClockingIn ? (
-                  <RefreshCw className="w-3 h-3 animate-spin mx-auto" />
-                ) : shiftStart && !shiftEnd ? 'Out' : 'In'}
-              </button>
-            </div>
-          </div>
-
-          {/* History - Past Days Clock Times (always shows last 7 days) */}
-          {showHistory && (
-            <div className="mb-3 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg max-h-52 overflow-y-auto">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-medium text-muted-foreground">Edit Past Days</span>
-                <span className="text-[9px] text-muted-foreground">Clear field to remove time</span>
-              </div>
-              <div className="space-y-2">
-                {last7Days.map(({ date, entry }) => {
-                  const isSaving = savingHistoryDate === date;
-                  const isEditing = editingHistoryDate === date;
-                  const hasEntry = !!entry;
-
-                  return (
-                    <div key={date} className={cn(
-                      "flex items-center justify-between text-xs p-1.5 rounded",
-                      isEditing && "bg-white dark:bg-slate-900 border",
-                      !hasEntry && !isEditing && "opacity-60"
-                    )}>
-                      <span className={cn(
-                        "w-20 font-medium",
-                        hasEntry ? "text-muted-foreground" : "text-muted-foreground/60"
-                      )}>
-                        {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
-                      </span>
-                      {isEditing ? (
-                        <div className="flex items-center gap-1">
-                          <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[9px] text-muted-foreground w-6">In:</span>
-                              <input
-                                type="time"
-                                value={historyClockIn}
-                                onChange={(e) => setHistoryClockIn(e.target.value)}
-                                className="w-20 px-1 py-0.5 text-[10px] rounded border bg-white dark:bg-slate-900"
-                              />
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[9px] text-muted-foreground w-6">Out:</span>
-                              <input
-                                type="time"
-                                value={historyClockOut}
-                                onChange={(e) => setHistoryClockOut(e.target.value)}
-                                className="w-20 px-1 py-0.5 text-[10px] rounded border bg-white dark:bg-slate-900"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex flex-col gap-1 ml-1">
-                            <button
-                              onClick={() => {
-                                setSavingHistoryDate(date);
-                                updateShiftTimes(
-                                  {
-                                    date,
-                                    // Empty string = clear (null), non-empty = set value
-                                    shiftStartTime: historyClockIn === '' ? null : historyClockIn,
-                                    shiftEndTime: historyClockOut === '' ? null : historyClockOut,
-                                  },
-                                  {
-                                    onSettled: () => {
-                                      setSavingHistoryDate(null);
-                                      setEditingHistoryDate(null);
-                                    },
-                                  }
-                                );
-                              }}
-                              disabled={isSaving}
-                              className="text-emerald-500 hover:text-emerald-600 disabled:opacity-50"
-                            >
-                              {isSaving ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-                            </button>
-                            <button
-                              onClick={() => setEditingHistoryDate(null)}
-                              disabled={isSaving}
-                              className="text-rose-500 hover:text-rose-600 disabled:opacity-50"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "font-mono text-[11px]",
-                            (!entry?.shiftStartTime && !entry?.shiftEndTime) && "text-muted-foreground"
-                          )}>
-                            {entry?.shiftStartTime || '--:--'} → {entry?.shiftEndTime || '--:--'}
-                          </span>
-                          <button
-                            onClick={() => {
-                              setEditingHistoryDate(date);
-                              setHistoryClockIn(entry?.shiftStartTime || '');
-                              setHistoryClockOut(entry?.shiftEndTime || '');
-                            }}
-                            className="text-muted-foreground hover:text-primary p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
-                            title={hasEntry ? "Edit times" : "Add times for this day"}
-                          >
-                            {hasEntry ? <Pencil className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* MRI Counter Only */}
           <div className="space-y-0.5">

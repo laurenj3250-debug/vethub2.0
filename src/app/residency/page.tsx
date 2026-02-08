@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Pencil,
   BarChart3,
+  Zap,
 } from 'lucide-react';
 import { DailyEntryForm } from '@/components/residency/DailyEntryForm';
 import { SurgeryTracker } from '@/components/residency/SurgeryTracker';
@@ -30,6 +31,7 @@ import { StatsOverview } from '@/components/residency/StatsOverview';
 import { WeeklyChart } from '@/components/residency/WeeklyChart';
 import { MilestoneCelebration } from '@/components/residency/MilestoneCelebration';
 import { StatsErrorBoundary } from '@/components/residency/StatsErrorBoundary';
+import { QuickAddTracker } from '@/components/residency/QuickAddTracker';
 import { ProfileSetupPrompt } from '@/components/residency/ProfileSetupPrompt';
 import { useDailyEntry, useResidencyStats } from '@/hooks/useResidencyStats';
 import { format } from 'date-fns';
@@ -45,7 +47,7 @@ import {
 import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
 import { NEO_POP } from '@/lib/neo-pop-styles';
 
-type TabType = 'cases' | 'journal' | 'schedule' | 'summary' | 'stats';
+type TabType = 'quickadd' | 'cases' | 'journal' | 'schedule' | 'summary' | 'stats';
 
 // Neo-Pop styled components
 const neoCard = "bg-white border-2 border-black shadow-[4px_4px_0_#000] rounded-2xl";
@@ -108,7 +110,7 @@ function StatsTabContent() {
 
 export default function ACVIMResidencyTrackerPage() {
   // Core state
-  const [activeTab, setActiveTab] = useState<TabType>('cases');
+  const [activeTab, setActiveTab] = useState<TabType>('quickadd');
   const [selectedYear, setSelectedYear] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -708,6 +710,7 @@ export default function ACVIMResidencyTrackerPage() {
             {/* Tabs - Neo-Pop colored */}
             <div className="flex gap-2 overflow-x-auto pb-1">
               {[
+                { id: 'quickadd' as TabType, label: 'Quick Add', icon: Zap, color: NEO_POP.colors.mint },
                 { id: 'cases' as TabType, label: 'Cases', icon: Stethoscope, color: NEO_POP.colors.mint },
                 { id: 'journal' as TabType, label: 'Journal', icon: BookOpen, color: NEO_POP.colors.lavender },
                 { id: 'schedule' as TabType, label: 'Schedule', icon: Calendar, color: NEO_POP.colors.yellow },
@@ -733,6 +736,11 @@ export default function ACVIMResidencyTrackerPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* Quick Add Tab */}
+        {activeTab === 'quickadd' && (
+          <QuickAddTracker />
+        )}
+
         {/* Case Log Tab */}
         {activeTab === 'cases' && (
           <div>
