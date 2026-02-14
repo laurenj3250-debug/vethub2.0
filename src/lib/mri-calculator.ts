@@ -64,9 +64,10 @@ export function calculateMRIDoses(
   const lbs = weightLbs ?? kgToLbs(weightKg);
 
   // Determine opioid based on scan type
-  // Brain → Butorphanol
-  // Spine (C-Spine, T-Spine, LS) → Methadone
-  const useButorphanol = scanType === 'Brain';
+  // Brain (or any scan including Brain) → Butorphanol
+  // Spine only (C-Spine, T-Spine, LS without Brain) → Methadone
+  const scanTypeLower = (scanType || '').toLowerCase();
+  const useButorphanol = scanTypeLower.includes('brain');
   const opioidName = useButorphanol ? 'Butorphanol' : 'Methadone';
   const opioidProtocol = useButorphanol
     ? MRI_PROTOCOLS.butorphanol
