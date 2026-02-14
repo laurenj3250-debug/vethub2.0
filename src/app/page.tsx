@@ -20,7 +20,8 @@ import { parsePatientBlurb, analyzeBloodwork, analyzeRadiology, parseMedications
 import { Search, Plus, Loader2, LogOut, CheckCircle2, Circle, Trash2, Sparkles, Brain, Zap, ListTodo, FileSpreadsheet, BookOpen, FileText, Copy, ChevronDown, Camera, Upload, AlertTriangle, TableProperties, LayoutGrid, List as ListIcon, Award, Download, Tag, MoreHorizontal, RotateCcw, Sunrise } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { PatientListItem } from '@/components/PatientListItem';
-import { ResidencyTracker } from '@/components/dashboard/ResidencyTracker';
+import { ResidencyTracker, MRISchedule } from '@/components/dashboard';
+import { NEO_SHADOW, NEO_SHADOW_SM, NEO_BORDER, NEO_COLORS } from '@/lib/neo-styles';
 import { useResidencyStats } from '@/hooks/useResidencyStats';
 import { TaskChecklist } from '@/components/TaskChecklist';
 import { MultiSelectDrugPicker, parseTherapeuticsString, combineTherapeutics } from '@/components/MultiSelectDrugPicker';
@@ -2594,17 +2595,7 @@ export default function VetHub() {
     );
   }
 
-  // Neo-pop styling constants
-  const NEO_SHADOW = '6px 6px 0 #000';
-  const NEO_SHADOW_SM = '4px 4px 0 #000';
-  const NEO_BORDER = '2px solid #000';
-  const NEO_COLORS = {
-    lavender: '#DCC4F5',
-    mint: '#B8E6D4',
-    pink: '#FFBDBD',
-    cream: '#FFF8F0',
-    teal: '#6BB89D', // Used for focus rings and accents
-  };
+  // NEO styling constants imported from @/lib/neo-styles
 
   return (
     <div className="min-h-screen relative" style={{ backgroundColor: NEO_COLORS.cream }}>
@@ -3489,139 +3480,13 @@ export default function VetHub() {
           </div>
         )}
 
-        {/* MRI Schedule View - Neo-pop styled */}
+        {/* MRI Schedule View - Extracted Component */}
         {showMRISchedule && (
-          <div
-            className="rounded-2xl p-4"
-            style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
-                <Brain style={{ color: NEO_COLORS.teal }} />
-                MRI Schedule
-              </h2>
-              <button
-                onClick={handleExportMRISchedule}
-                className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2"
-                style={{ backgroundColor: NEO_COLORS.lavender, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
-              >
-                <Copy size={16} />
-                Copy to Clipboard
-              </button>
-            </div>
-            <div className="overflow-x-auto max-h-[70vh] rounded-xl" style={{ border: NEO_BORDER }}>
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10" style={{ backgroundColor: NEO_COLORS.mint }}>
-                  <tr style={{ borderBottom: NEO_BORDER }}>
-                    <th className="text-left p-3 text-gray-900 font-bold">Name</th>
-                    <th className="text-left p-3 text-gray-900 font-bold">Patient ID</th>
-                    <th className="text-left p-3 text-gray-900 font-bold">Weight (kg)</th>
-                    <th className="text-left p-3 text-gray-900 font-bold">Scan Type</th>
-                    <th className="text-left p-3 text-gray-900 font-bold">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {patients.filter(p => p.type === 'MRI' && (p.status === 'New' || p.status?.toLowerCase() === 'new admit')).map((patient, idx) => {
-                    // Helper to render save status indicator
-                    const renderSaveStatus = (field: string) => {
-                      const status = mriSaveStatus[`${patient.id}-${field}`];
-                      if (!status) return null;
-                      return (
-                        <span className={`ml-2 text-xs font-bold ${
-                          status === 'saving' ? 'text-amber-500' :
-                          status === 'saved' ? 'text-green-600' :
-                          'text-red-500'
-                        }`}>
-                          {status === 'saving' ? '...' : status === 'saved' ? '✓' : '✗'}
-                        </span>
-                      );
-                    };
-
-                    return (
-                      <tr
-                        key={patient.id}
-                        className={`hover:bg-[${NEO_COLORS.mint}]/30 transition`}
-                        style={{
-                          backgroundColor: idx % 2 === 0 ? 'white' : NEO_COLORS.cream,
-                          borderBottom: '1px solid #e5e7eb'
-                        }}
-                        onPaste={(e) => handleMRIPaste(e, patient.id)}
-                      >
-                        <td className="p-3">
-                          <button
-                            onClick={() => setRoundingSheetPatient(patient.id)}
-                            className="text-gray-900 font-bold transition cursor-pointer"
-                            style={{ color: 'inherit' }}
-                            onMouseOver={(e) => e.currentTarget.style.color = NEO_COLORS.teal}
-                            onMouseOut={(e) => e.currentTarget.style.color = 'inherit'}
-                          >
-                            {patient.demographics?.name || patient.name || 'Unnamed'}
-                          </button>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center">
-                            <input
-                              type="text"
-                              value={mriInputValues[`${patient.id}-patientId`] ?? (patient.demographics?.patientId || '')}
-                              onChange={(e) => debouncedMRIUpdate(patient.id, 'patientId', e.target.value, 'demographics')}
-                              className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2"
-                              style={{ border: '1px solid #000', backgroundColor: 'white', '--tw-ring-color': NEO_COLORS.teal } as any}
-                            />
-                            {renderSaveStatus('patientId')}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center">
-                            <input
-                              type="text"
-                              value={mriInputValues[`${patient.id}-weight`] ?? ((patient.demographics?.weight || '').toString().replace(/[^\d.]/g, ''))}
-                              onChange={(e) => debouncedMRIUpdate(patient.id, 'weight', e.target.value, 'demographics')}
-                              className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2"
-                              style={{ border: '1px solid #000', backgroundColor: 'white', '--tw-ring-color': NEO_COLORS.teal } as any}
-                              placeholder="kg"
-                            />
-                            {renderSaveStatus('weight')}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <div className="flex items-center">
-                            <input
-                              type="text"
-                              value={mriInputValues[`${patient.id}-scanType`] ?? (patient.mriData?.scanType || '')}
-                              onChange={(e) => debouncedMRIUpdate(patient.id, 'scanType', e.target.value, 'mriData')}
-                              className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2"
-                              style={{ border: '1px solid #000', backgroundColor: 'white', '--tw-ring-color': NEO_COLORS.teal } as any}
-                              placeholder="Brain, LS, C-Spine..."
-                            />
-                            {renderSaveStatus('scanType')}
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <button
-                            onClick={() => handleCopySingleMRILine(patient.id)}
-                            className="p-2 rounded-lg transition hover:-translate-y-0.5"
-                            style={{ backgroundColor: NEO_COLORS.lavender, border: '1px solid #000' }}
-                            title="Copy this patient's MRI line"
-                          >
-                            <Copy className="w-4 h-4 text-gray-900" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {patients.filter(p => p.type === 'MRI' && (p.status === 'New' || p.status?.toLowerCase() === 'new admit')).length === 0 && (
-              <div
-                className="text-center py-8 mt-4 rounded-xl"
-                style={{ backgroundColor: NEO_COLORS.cream, border: NEO_BORDER }}
-              >
-                <div className="text-4xl mb-2">🧠</div>
-                <p className="text-gray-500 font-bold">No MRI patients with New/New Admit status</p>
-              </div>
-            )}
-          </div>
+          <MRISchedule
+            patients={patients}
+            selectedPatientIds={selectedPatientIds}
+            onOpenRoundingSheet={setRoundingSheetPatient}
+          />
         )}
 
         {/* Floating Add Patient Button */}
