@@ -1860,7 +1860,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         <table className="w-full border-collapse bg-white overflow-hidden">
           <thead>
             <tr className="text-gray-900 text-[10px] font-bold" style={{ backgroundColor: COLORS.mint }}>
-              <th className="p-1 text-left sticky left-0 z-10 min-w-[85px]" style={{ backgroundColor: COLORS.mint, borderRight: NEO_BORDER, borderBottom: NEO_BORDER }}>Patient</th>
+              <th className="p-1 text-left sticky left-0 z-10 min-w-[85px]" style={{ backgroundColor: COLORS.mint, borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Patient</th>
               <th className="p-1 text-left min-w-[90px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Signalment</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Loc</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>ICU</th>
@@ -1874,7 +1874,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
               <th className="p-1 text-left min-w-[100px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Dx</th>
               <th className="p-1 text-left min-w-[110px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Concerns</th>
               <th className="p-1 text-left min-w-[100px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Extra Notes</th>
-              <th className="p-1 text-center sticky right-0 z-10 min-w-[60px]" style={{ backgroundColor: COLORS.mint, borderLeft: NEO_BORDER, borderBottom: NEO_BORDER }}>Actions</th>
+              <th className="p-1 text-center sticky right-0 z-10 min-w-[60px]" style={{ backgroundColor: COLORS.mint, borderLeft: '1px solid #000', borderBottom: NEO_BORDER }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1895,7 +1895,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                   style={{ backgroundColor: rowBg }}
                   onPaste={(e) => handleRowPaste(e, patient.id)}
                 >
-                  <td className="p-1 sticky left-0 z-10" style={{ backgroundColor: rowBg, borderRight: NEO_BORDER, borderBottom: '1px solid #000' }}>
+                  <td className="p-1 sticky left-0 z-10" style={{ backgroundColor: rowBg, borderRight: '1px solid #000', borderBottom: '1px solid #000' }}>
                     <div className="flex items-center gap-1">
                       <TemplateSelector
                         patientName={patientName}
@@ -2067,7 +2067,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       aria-label={`Comments for ${patientName}`}
                     />
                   </td>
-                  <td className="p-1 text-center sticky right-0 z-10" style={{ backgroundColor: rowBg, borderLeft: NEO_BORDER, borderBottom: '1px solid #000' }}>
+                  <td className="p-1 text-center sticky right-0 z-10" style={{ backgroundColor: rowBg, borderLeft: '1px solid #000', borderBottom: '1px solid #000' }}>
                     <div className="flex flex-col gap-1 md:gap-0.5">
                       <button
                         onClick={() => copyPatientRow(patient.id)}
