@@ -11,7 +11,7 @@ const sheets = google.sheets('v4');
 
 // Sheet configuration
 const SHEET_ID = process.env.GOOGLE_MRI_SHEET_ID;
-const SHEET_NAME = 'Sheet1'; // Default sheet name, can be configured
+const SHEET_NAME = 'Sheet2'; // MRI data goes to Sheet2
 
 /**
  * Get authenticated Google Sheets client using service account
