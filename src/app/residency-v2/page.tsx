@@ -16,8 +16,10 @@ import {
   X,
   Check,
   Loader2,
-  Scissors
+  Scissors,
+  Home
 } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 // Neo-pop styling
@@ -429,10 +431,19 @@ export default function ResidencyV2Page() {
           style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
         >
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-              <Stethoscope size={28} />
-              Residency Tracker
-            </h1>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="p-2 rounded-xl transition hover:-translate-y-0.5"
+                style={{ backgroundColor: COLORS.cream, border: '2px solid #000' }}
+              >
+                <Home size={20} />
+              </Link>
+              <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <Stethoscope size={28} />
+                Residency Tracker
+              </h1>
+            </div>
             <button
               onClick={() => setShowImport(true)}
               className="px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition hover:-translate-y-0.5"
