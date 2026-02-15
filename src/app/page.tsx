@@ -82,7 +82,7 @@ export default function VetHub() {
   const [quickTaskInput, setQuickTaskInput] = useState('');
   const [quickTaskPatient, setQuickTaskPatient] = useState<number | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [showMRISchedule, setShowMRISchedule] = useState(false);
+  const [showMRISchedule, setShowMRISchedule] = useState(true); // Always show MRI schedule
   const [showAllTasksView, setShowAllTasksView] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [isAlreadyHospitalized, setIsAlreadyHospitalized] = useState(false);
