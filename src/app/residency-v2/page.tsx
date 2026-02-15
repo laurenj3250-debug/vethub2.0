@@ -66,6 +66,7 @@ interface Stats {
   totalAppointments: number;
   totalSurgeries: number;
   milestones: Milestone[];
+  daysUntilFreedom: number | null;
 }
 
 interface Milestone {
@@ -135,6 +136,7 @@ export default function ResidencyV2Page() {
     totalAppointments: 0,
     totalSurgeries: 0,
     milestones: [],
+    daysUntilFreedom: null,
   });
 
   // Bulk import
@@ -180,10 +182,11 @@ export default function ResidencyV2Page() {
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats({
-          totalMRI: statsData.totalMRI || 0,
-          totalAppointments: statsData.totalAppointments || 0,
-          totalSurgeries: statsData.totalSurgeries || 0,
+          totalMRI: statsData.totals?.mriCount || 0,
+          totalAppointments: statsData.totals?.totalAppointments || 0,
+          totalSurgeries: statsData.surgeryBreakdown?.total || 0,
           milestones: statsData.milestones || [],
+          daysUntilFreedom: statsData.daysUntilFreedom,
         });
       }
     } catch (error) {
@@ -229,10 +232,11 @@ export default function ResidencyV2Page() {
       if (statsRes.ok) {
         const statsData = await statsRes.json();
         setStats({
-          totalMRI: statsData.totalMRI || 0,
-          totalAppointments: statsData.totalAppointments || 0,
-          totalSurgeries: statsData.totalSurgeries || 0,
+          totalMRI: statsData.totals?.mriCount || 0,
+          totalAppointments: statsData.totals?.totalAppointments || 0,
+          totalSurgeries: statsData.surgeryBreakdown?.total || 0,
           milestones: statsData.milestones || [],
+          daysUntilFreedom: statsData.daysUntilFreedom,
         });
       }
     } catch (error) {
@@ -789,6 +793,18 @@ export default function ResidencyV2Page() {
                 <p className="text-gray-500 text-center py-4">No journal entries for this date</p>
               )}
             </div>
+
+            {/* Days Until Freedom */}
+            {stats.daysUntilFreedom !== null && (
+              <div
+                className="rounded-2xl p-6 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-center"
+                style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+              >
+                <p className="text-sm font-bold opacity-90">Days Until Freedom</p>
+                <p className="text-5xl font-black">{stats.daysUntilFreedom}</p>
+                <p className="text-sm opacity-75 mt-1">You've got this!</p>
+              </div>
+            )}
 
             {/* Progress & Milestones */}
             <div className="grid md:grid-cols-2 gap-6">
