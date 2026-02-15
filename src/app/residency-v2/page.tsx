@@ -15,7 +15,8 @@ import {
   Upload,
   X,
   Check,
-  Loader2
+  Loader2,
+  Scissors
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -118,6 +119,14 @@ export default function ResidencyV2Page() {
     article: '',
     supervisor: '',
     hours: 1,
+  });
+
+  // Surgery tracking
+  const [showSurgeryForm, setShowSurgeryForm] = useState(false);
+  const [surgeryForm, setSurgeryForm] = useState({
+    procedure: '',
+    role: 'S' as 'S' | 'O' | 'C' | 'D' | 'K',
+    patient: '',
   });
 
   // Overall stats
@@ -276,6 +285,56 @@ export default function ResidencyV2Page() {
       await fetch(`/api/acvim/journal-club?id=${id}`, { method: 'DELETE' });
       setJournals(prev => prev.filter(j => j.id !== id));
       toast({ title: 'Journal entry deleted' });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Failed to delete' });
+    }
+  };
+
+  // Add surgery - simplified, no patient requirements
+  const handleAddSurgery = async () => {
+    if (!surgeryForm.procedure.trim()) {
+      toast({ title: 'Please enter a procedure name' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/residency/surgery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: selectedDate,
+          procedureName: surgeryForm.procedure.trim(),
+          participation: surgeryForm.role,
+          patientName: surgeryForm.patient.trim() || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        toast({ title: 'Surgery added!' });
+        setSurgeryForm({ procedure: '', role: 'S', patient: '' });
+        setShowSurgeryForm(false);
+        loadDateData();
+      } else {
+        throw new Error('Failed to save');
+      }
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Failed to save surgery' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete surgery
+  const handleDeleteSurgery = async (surgeryId: string) => {
+    try {
+      await fetch(`/api/residency/surgery?id=${surgeryId}`, { method: 'DELETE' });
+      setEntry(prev => ({
+        ...prev,
+        surgeries: prev.surgeries?.filter(s => s.id !== surgeryId) || [],
+      }));
+      toast({ title: 'Surgery deleted' });
+      loadDateData(); // Reload to update stats
     } catch (error) {
       toast({ variant: 'destructive', title: 'Failed to delete' });
     }
@@ -481,6 +540,139 @@ export default function ResidencyV2Page() {
                   onDecrement={() => handleIncrement('emergencyCount', -1)}
                 />
               </div>
+            </div>
+
+            {/* Surgeries */}
+            <div
+              className="rounded-2xl p-6 bg-white"
+              style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                  <Scissors size={20} />
+                  Surgeries
+                </h2>
+                {!showSurgeryForm && (
+                  <button
+                    onClick={() => setShowSurgeryForm(true)}
+                    className="px-3 py-2 rounded-xl font-bold text-sm flex items-center gap-1 transition hover:-translate-y-0.5"
+                    style={{ backgroundColor: COLORS.pink, border: NEO_BORDER }}
+                  >
+                    <Plus size={16} />
+                    Add Surgery
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Add Surgery Form */}
+              {showSurgeryForm && (
+                <div
+                  className="mb-4 p-4 rounded-xl"
+                  style={{ backgroundColor: COLORS.cream, border: '2px solid #000' }}
+                >
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Procedure name (e.g., Hemilaminectomy)..."
+                      value={surgeryForm.procedure}
+                      onChange={(e) => setSurgeryForm(f => ({ ...f, procedure: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-lg font-medium bg-white"
+                      style={{ border: '2px solid #000' }}
+                      autoFocus
+                    />
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs font-bold text-gray-600 mb-1 block">Role</label>
+                        <select
+                          value={surgeryForm.role}
+                          onChange={(e) => setSurgeryForm(f => ({ ...f, role: e.target.value as 'S' | 'O' | 'C' | 'D' | 'K' }))}
+                          className="w-full px-3 py-2 rounded-lg font-bold bg-white"
+                          style={{ border: '2px solid #000' }}
+                        >
+                          <option value="S">S - Surgeon</option>
+                          <option value="O">O - Observer</option>
+                          <option value="C">C - Circulator</option>
+                          <option value="D">D - Dissector</option>
+                          <option value="K">K - Knife (assistant)</option>
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs font-bold text-gray-600 mb-1 block">Patient (optional)</label>
+                        <input
+                          type="text"
+                          placeholder="Patient name..."
+                          value={surgeryForm.patient}
+                          onChange={(e) => setSurgeryForm(f => ({ ...f, patient: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg font-medium bg-white"
+                          style={{ border: '2px solid #000' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddSurgery}
+                        disabled={saving}
+                        className="flex-1 px-4 py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition hover:-translate-y-0.5 disabled:opacity-50"
+                        style={{ backgroundColor: COLORS.mint, border: NEO_BORDER }}
+                      >
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                        Save
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSurgeryForm(false);
+                          setSurgeryForm({ procedure: '', role: 'S', patient: '' });
+                        }}
+                        className="px-4 py-2 rounded-xl font-bold transition hover:-translate-y-0.5"
+                        style={{ backgroundColor: COLORS.pink, border: NEO_BORDER }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Surgeries List */}
+              {entry.surgeries && entry.surgeries.length > 0 ? (
+                <div className="space-y-2">
+                  {entry.surgeries.map(s => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between p-3 rounded-xl group"
+                      style={{ backgroundColor: COLORS.cream, border: '2px solid #000' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
+                          style={{
+                            backgroundColor: s.participation === 'S' ? COLORS.mint :
+                              s.participation === 'O' ? COLORS.blue :
+                              s.participation === 'K' ? COLORS.lavender : COLORS.cream,
+                            border: '2px solid #000'
+                          }}
+                        >
+                          {s.participation}
+                        </span>
+                        <div>
+                          <p className="font-bold text-gray-900">{s.procedureName}</p>
+                          {s.patientName && (
+                            <p className="text-sm text-gray-600">{s.patientName}</p>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteSurgery(s.id)}
+                        className="p-2 rounded-lg opacity-0 group-hover:opacity-100 transition hover:bg-red-100"
+                      >
+                        <X size={16} className="text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No surgeries for this date</p>
+              )}
             </div>
 
             {/* Journal Club */}
