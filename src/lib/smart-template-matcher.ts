@@ -48,18 +48,20 @@ interface PatientSignals {
 /**
  * Patient Phase Detection
  *
- * Detects what phase the patient is in based on their data:
- * - PRE_MRI: Admitted, awaiting MRI (problems say "MRI tomorrow")
- * - MRI_DAY: Going for MRI today (yesterday said "MRI tomorrow")
- * - POST_MRI: After MRI, awaiting results or discharge
- * - POST_OP_DAY1: First day after surgery
+ * CONTEXT: Rounding sheets are for OVERNIGHT doctors.
+ * MRI happens in the morning, so "MRI tomorrow" on the evening sheet
+ * means MRI is next morning.
+ *
+ * Phases:
+ * - PRE_MRI: Admitted evening, MRI scheduled for tomorrow morning
+ * - POST_MRI: MRI done this morning, awaiting results/surgery decision
+ * - POST_OP_DAY1: Surgery done today, first overnight
  * - POST_OP_DAY2_PLUS: Day 2+ after surgery
  * - MEDICAL_STABLE: Medical patient, stable protocol
  * - DISCHARGING: Going home
  */
 export type PatientPhase =
   | 'PRE_MRI'
-  | 'MRI_DAY'
   | 'POST_MRI'
   | 'POST_OP_DAY1'
   | 'POST_OP_DAY2_PLUS'
@@ -100,17 +102,30 @@ export function detectPatientPhase(
                    prevProblems.includes('po hemi');
 
   // Phase detection logic
+  //
+  // IMPORTANT: Rounding sheets are for OVERNIGHT doctors.
+  // "MRI tomorrow" means MRI happens next morning.
+  // After MRI, patient is either:
+  //   - Going to surgery → will become POST_OP
+  //   - Getting results → may discharge or stay for medical management
+  //
+  // So if yesterday said "MRI tomorrow", today they're POST-MRI (awaiting surgery/results)
   if (hadMRITomorrow) {
-    // Yesterday said "MRI tomorrow" → Today is MRI day!
-    phase = 'MRI_DAY';
-    confidence = 95;
-    reasons.push('Yesterday\'s data said "MRI tomorrow"');
+    // Yesterday said "MRI tomorrow" → MRI happened this morning
+    // Now waiting for surgery or results
+    phase = 'POST_MRI';
+    confidence = 90;
+    reasons.push('MRI was this morning (yesterday said "MRI tomorrow")');
 
-    // Update problems to reflect MRI day
+    // Clear the "MRI tomorrow" - it's done now
+    // Don't auto-fill post-op yet - wait for user to confirm surgery happened
     suggestedChanges = {
-      problems: prevProblems.replace(/mri tomorrow/gi, 'MRI TODAY').replace(/,?\s*ambulatory/gi, ''),
-      concerns: 'NPO since 8pm, Pre-med at scheduled time',
-      overnightDx: '', // No overnight stuff on MRI day
+      problems: prevProblems
+        .replace(/,?\s*mri tomorrow/gi, '')
+        .replace(/mri tomorrow,?\s*/gi, '')
+        .trim() + ', MRI done - awaiting results/surgery',
+      concerns: 'Post-MRI monitoring, awaiting plan',
+      overnightDx: '', // Fresh slate post-MRI
     };
   } else if (isPostOp && dayCount === 1) {
     phase = 'POST_OP_DAY1';
@@ -581,16 +596,24 @@ export function carryForwardRoundingData(
     });
   }
 
-  // Special handling for MRI day
-  if (phaseResult.phase === 'MRI_DAY') {
-    // Clear overnight diagnostics (not needed on MRI day)
-    roundingData.overnightDx = '';
-    changesApplied.push('Cleared overnight Dx for MRI day');
+  // Special handling for POST_MRI (MRI was this morning)
+  if (phaseResult.phase === 'POST_MRI') {
+    // Clear overnight Dx - fresh slate after MRI
+    if (roundingData.overnightDx) {
+      roundingData.overnightDx = '';
+      changesApplied.push('Cleared overnight Dx (MRI done, awaiting plan)');
+    }
+  }
 
-    // Ensure NPO is in concerns
+  // Special handling for PRE_MRI (MRI tomorrow morning)
+  if (phaseResult.phase === 'PRE_MRI') {
+    // Ensure NPO is in concerns for overnight
     if (!roundingData.concerns?.toLowerCase().includes('npo')) {
-      roundingData.concerns = 'NPO since 8pm, Pre-med at scheduled time';
-      changesApplied.push('Added NPO protocol for MRI day');
+      const existingConcerns = roundingData.concerns || '';
+      roundingData.concerns = existingConcerns
+        ? `${existingConcerns}; NPO from 8pm`
+        : 'NPO from 8pm';
+      changesApplied.push('Added NPO for MRI tomorrow');
     }
   }
 
