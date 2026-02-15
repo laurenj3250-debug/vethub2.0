@@ -53,6 +53,7 @@ interface TaskChecklistProps {
   onDeleteGeneralTask?: (taskId: string) => void;
   onDeleteAllTasks?: () => void;
   onCompleteAllForTaskName?: (taskName: string) => void;
+  onCompleteAllTimeOfDay?: (timeOfDay: 'morning' | 'evening') => void;
 }
 
 // Deduplicate general tasks by title - keep only one per unique title
@@ -80,6 +81,7 @@ export function TaskChecklist({
   onDeleteGeneralTask,
   onDeleteAllTasks,
   onCompleteAllForTaskName,
+  onCompleteAllTimeOfDay,
 }: TaskChecklistProps) {
   // Deduplicate general tasks to ensure each shows only once
   const generalTasks = useMemo(() => deduplicateGeneralTasks(rawGeneralTasks), [rawGeneralTasks]);
@@ -98,11 +100,15 @@ export function TaskChecklist({
     getPatientName(patient).split(' ')[0];
 
   // Build matrix data: unique task names and patient-task lookup
-  const { taskNames, patientTaskMap, stats } = useMemo(() => {
+  const { taskNames, patientTaskMap, stats, morningStats, eveningStats } = useMemo(() => {
     const names = new Set<string>();
     const map: Record<string, Record<number, Task>> = {}; // taskName -> patientId -> task
     let total = 0;
     let completed = 0;
+    let morningTotal = 0;
+    let morningCompleted = 0;
+    let eveningTotal = 0;
+    let eveningCompleted = 0;
 
     // Collect all task names from patients
     // FIXED: If duplicates exist, prefer the COMPLETED one (prevents "unclicking" bug)
@@ -118,6 +124,16 @@ export function TaskChecklist({
         }
         total++;
         if (task.completed) completed++;
+
+        // Track morning/evening stats
+        const taskTime = getTaskTimeOfDay(taskName);
+        if (taskTime === 'morning') {
+          morningTotal++;
+          if (task.completed) morningCompleted++;
+        } else if (taskTime === 'evening') {
+          eveningTotal++;
+          if (task.completed) eveningCompleted++;
+        }
       });
     });
 
@@ -127,12 +143,24 @@ export function TaskChecklist({
       names.add(taskName);
       total++;
       if (task.completed) completed++;
+
+      // Track morning/evening stats for general tasks too
+      const taskTime = getTaskTimeOfDay(taskName);
+      if (taskTime === 'morning') {
+        morningTotal++;
+        if (task.completed) morningCompleted++;
+      } else if (taskTime === 'evening') {
+        eveningTotal++;
+        if (task.completed) eveningCompleted++;
+      }
     });
 
     return {
       taskNames: Array.from(names).sort(),
       patientTaskMap: map,
-      stats: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 }
+      stats: { total, completed, percent: total > 0 ? Math.round((completed / total) * 100) : 0 },
+      morningStats: { total: morningTotal, completed: morningCompleted, incomplete: morningTotal - morningCompleted },
+      eveningStats: { total: eveningTotal, completed: eveningCompleted, incomplete: eveningTotal - eveningCompleted },
     };
   }, [patients, generalTasks]);
 
@@ -247,6 +275,36 @@ export function TaskChecklist({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Bulk Complete Buttons - One click to complete ALL morning or evening tasks */}
+          {onCompleteAllTimeOfDay && morningStats.incomplete > 0 && (
+            <button
+              onClick={() => onCompleteAllTimeOfDay('morning')}
+              className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-1"
+              style={{
+                backgroundColor: '#FCD34D',
+                border: '2px solid #2D3436',
+              }}
+              title={`Complete all ${morningStats.incomplete} morning tasks`}
+            >
+              <Check size={12} />
+              <Sun size={12} /> All AM ({morningStats.incomplete})
+            </button>
+          )}
+          {onCompleteAllTimeOfDay && eveningStats.incomplete > 0 && (
+            <button
+              onClick={() => onCompleteAllTimeOfDay('evening')}
+              className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:-translate-y-0.5 flex items-center gap-1"
+              style={{
+                backgroundColor: '#818CF8',
+                border: '2px solid #2D3436',
+                color: 'white',
+              }}
+              title={`Complete all ${eveningStats.incomplete} evening tasks`}
+            >
+              <Check size={12} />
+              <Moon size={12} /> All PM ({eveningStats.incomplete})
+            </button>
+          )}
           {/* Time Filter */}
           <div className="flex rounded-full overflow-hidden" style={{ border: '2px solid #2D3436' }}>
             <button

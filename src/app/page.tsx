@@ -793,6 +793,57 @@ export default function VetHub() {
     }
   };
 
+  // Complete ALL morning or ALL evening tasks for ALL patients in ONE CLICK
+  const handleCompleteAllTimeOfDay = async (timeOfDay: 'morning' | 'evening') => {
+    // Collect all incomplete tasks for this time of day across all patients
+    const items: Array<{ patient: any; task: any }> = [];
+
+    filteredPatients.forEach(patient => {
+      (patient.tasks || []).forEach((task: any) => {
+        if (!task.completed) {
+          const taskTime = getTaskTimeOfDay(task.title || task.name);
+          if (taskTime === timeOfDay) {
+            items.push({ patient, task });
+          }
+        }
+      });
+    });
+
+    if (items.length === 0) {
+      toast({
+        title: 'All tasks already completed',
+        description: `All ${timeOfDay} tasks are already completed.`
+      });
+      return;
+    }
+
+    try {
+      // Update all tasks in parallel
+      await Promise.all(
+        items.map(({ patient, task }) =>
+          apiClient.updateTask(String(patient.id), String(task.id), { completed: true })
+        )
+      );
+
+      toast({
+        title: `All ${timeOfDay} tasks completed!`,
+        description: `Marked ${items.length} task(s) as complete.`
+      });
+
+      // Refetch to show updated state
+      refetch();
+    } catch (error: any) {
+      console.error(`Complete all ${timeOfDay} error:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to complete tasks',
+        description: `Could not complete all ${timeOfDay} tasks. ${error.message || 'Try again.'}`
+      });
+      // Refetch to get correct state
+      refetch();
+    }
+  };
+
   const handleDeleteTask = async (patientId: number, taskId: string) => {
     try {
       await apiClient.deleteTask(String(patientId), String(taskId));
@@ -2889,6 +2940,7 @@ export default function VetHub() {
           onDeleteGeneralTask={handleDeleteGeneralTask}
           onDeleteAllTasks={handleDeleteAllTasks}
           onCompleteAllForTaskName={handleCompleteAllForTaskName}
+          onCompleteAllTimeOfDay={handleCompleteAllTimeOfDay}
         />
 
         {/* OLD Task Overview - DISABLED */}
