@@ -19,15 +19,37 @@ const COLORS = {
 };
 
 /**
+ * Calculate days since patient was created/admitted
+ */
+function getDaysSinceAdmit(patient: any): number {
+  const createdAt = patient.createdAt || patient.created_at;
+  if (!createdAt) return 1;
+
+  const created = new Date(createdAt);
+  const now = new Date();
+
+  // Reset to midnight for accurate day comparison
+  created.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+
+  const diffTime = now.getTime() - created.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  return diffDays + 1; // Day 1 is the day of admission
+}
+
+/**
  * Detect if patient needs attention (post-MRI decision, etc.)
  */
 function detectNeedsAttention(patient: any): { needsAttention: boolean; reason: string } {
   const roundingData = patient.roundingData || patient.rounding_data;
   const problems = (roundingData?.problems || '').toLowerCase();
-  const dayCount = roundingData?.dayCount || 1;
+
+  // Use actual date calculation, not dayCount (which requires rounding sheet to be opened)
+  const daysSinceAdmit = getDaysSinceAdmit(patient);
 
   // MRI patient on Day 2+ with "MRI tomorrow" still in problems = needs decision
-  if ((patient.type === 'MRI' || patient.type === 'Surgery') && dayCount >= 2) {
+  if ((patient.type === 'MRI' || patient.type === 'Surgery') && daysSinceAdmit >= 2) {
     if (problems.includes('mri tomorrow')) {
       return { needsAttention: true, reason: 'Post-MRI: Update plan' };
     }
