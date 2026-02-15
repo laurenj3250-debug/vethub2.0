@@ -175,30 +175,43 @@ export async function syncMRIPatientsToSheet(patients: MRIPatientData[]): Promis
     });
 
     // Optional: Format header row (bold, background color)
-    await sheets.spreadsheets.batchUpdate({
-      auth,
-      spreadsheetId: SHEET_ID,
-      requestBody: {
-        requests: [
-          {
-            repeatCell: {
-              range: {
-                sheetId: 0,
-                startRowIndex: 0,
-                endRowIndex: 1,
-              },
-              cell: {
-                userEnteredFormat: {
-                  backgroundColor: { red: 0.918, green: 0.863, blue: 0.957 }, // Light purple
-                  textFormat: { bold: true },
+    // Wrapped in try-catch - formatting is nice-to-have, data sync is critical
+    try {
+      // Get actual sheet ID (don't assume 0)
+      const spreadsheet = await sheets.spreadsheets.get({
+        auth,
+        spreadsheetId: SHEET_ID,
+        fields: 'sheets.properties',
+      });
+      const sheetId = spreadsheet.data.sheets?.[0]?.properties?.sheetId ?? 0;
+
+      await sheets.spreadsheets.batchUpdate({
+        auth,
+        spreadsheetId: SHEET_ID,
+        requestBody: {
+          requests: [
+            {
+              repeatCell: {
+                range: {
+                  sheetId,
+                  startRowIndex: 0,
+                  endRowIndex: 1,
                 },
+                cell: {
+                  userEnteredFormat: {
+                    backgroundColor: { red: 0.918, green: 0.863, blue: 0.957 },
+                    textFormat: { bold: true },
+                  },
+                },
+                fields: 'userEnteredFormat(backgroundColor,textFormat)',
               },
-              fields: 'userEnteredFormat(backgroundColor,textFormat)',
             },
-          },
-        ],
-      },
-    });
+          ],
+        },
+      });
+    } catch (formatError) {
+      console.warn('[Google Sheets] Header formatting failed (non-critical):', formatError);
+    }
 
     return { success: true, rowsWritten: rows.length };
   } catch (error) {
