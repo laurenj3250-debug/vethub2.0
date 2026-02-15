@@ -7,6 +7,7 @@
 
 import { UnifiedPatient, RoundingData, StickerData } from '@/contexts/PatientContext';
 import { VetRadarPatient, VetRadarTreatmentSheet } from './vetradar-scraper';
+import { smartAutoFillRoundingData } from '@/lib/smart-template-matcher';
 
 /**
  * Map VetRadar patient to UnifiedPatient structure
@@ -161,29 +162,60 @@ export function mapVetRadarToUnifiedPatient(
     vetRadarPatient.vitals?.latestRR ? `RR: ${vetRadarPatient.vitals.latestRR}` : '',
   ].filter(Boolean).join('; ');
 
-  // Create rounding data with comprehensive vision extraction
-  const roundingData: RoundingData = {
+  // Create base rounding data from VetRadar extraction
+  const baseRoundingData: Partial<RoundingData> = {
     signalment,
-    location: location || 'IP', // Default to "IP" (In-Patient) unless specific location from VetRadar
-    icuCriteria: meetsICUCriteria || 'N/a', // Default to "N/a" unless patient meets ICU criteria
-    code: codeStatus, // Maps to 'code' field in rounding sheet
-    codeStatus, // Keep for backwards compatibility
-    problems,
-    diagnosticFindings, // Always empty - user adds image or fills manually
-    therapeutics,
+    location: location || 'IP',
+    icuCriteria: meetsICUCriteria || 'N/a',
+    code: codeStatus as 'Green' | 'Yellow' | 'Orange' | 'Red' | '',
+    diagnosticFindings,
     ivc: fluidsText ? 'Y' : 'N',
     fluids: fluidsText,
     cri: hasCRI ? 'Y' : 'N',
-    overnightDx: '', // Requires manual entry
     concerns: comprehensiveConcerns || vetRadarPatient.cage_location || '',
     comments: comprehensiveComments || '',
-
-    // Fields auto-populated from VetRadar
     neurolocalization: '',
     labResults: undefined,
     chestXray: {
-      findings: 'NSF', // Default - update if abnormal
+      findings: 'NSF',
     },
+  };
+
+  // SMART TEMPLATE AUTO-FILL: Detect matching template and pre-populate protocol fields
+  // This analyzes medications, concerns, and patient type to auto-apply the right template
+  const patientSignals = {
+    medications: (vetRadarPatient.medications || []).map(m => m.medication),
+    treatments: vetRadarPatient.treatments,
+    concerns: vetRadarPatient.concerns,
+    type: inferPatientType(vetRadarPatient),
+  };
+
+  const smartFill = smartAutoFillRoundingData(patientSignals, baseRoundingData);
+
+  if (smartFill.templateApplied) {
+    console.log(`[VetRadar Mapper] Auto-applied template "${smartFill.templateApplied.name}" for ${vetRadarPatient.name} (${smartFill.confidence}% confidence)`);
+    console.log(`[VetRadar Mapper] Reasons: ${smartFill.reasons.join(', ')}`);
+  }
+
+  // Use smart-filled data (has template applied) or base data if no match
+  const roundingData: RoundingData = {
+    signalment,
+    location: smartFill.roundingData.location || 'IP',
+    icuCriteria: smartFill.roundingData.icuCriteria || meetsICUCriteria || 'N/a',
+    code: smartFill.roundingData.code || (codeStatus as 'Green' | 'Yellow' | 'Orange' | 'Red' | ''),
+    codeStatus, // Keep for backwards compatibility
+    problems: smartFill.roundingData.problems || '',
+    diagnosticFindings: smartFill.roundingData.diagnosticFindings || '',
+    therapeutics: smartFill.roundingData.therapeutics || '',
+    ivc: baseRoundingData.ivc || smartFill.roundingData.ivc || '',
+    fluids: baseRoundingData.fluids || smartFill.roundingData.fluids || '',
+    cri: baseRoundingData.cri || smartFill.roundingData.cri || '',
+    overnightDx: smartFill.roundingData.overnightDx || '',
+    concerns: smartFill.roundingData.concerns || comprehensiveConcerns || '',
+    comments: smartFill.roundingData.comments || comprehensiveComments || '',
+    neurolocalization: '',
+    labResults: undefined,
+    chestXray: { findings: 'NSF' },
   };
 
   // Initialize sticker data with default flags
