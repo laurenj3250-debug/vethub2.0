@@ -1029,14 +1029,14 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       e.preventDefault();
       e.stopPropagation();
 
-      const startField = focusedField?.field || 'signalment';
+      const startField = focusedField?.field || 'location';
       if (handleMultiRowPaste(pasteData, patientId, startField)) {
         return; // Multi-row paste handled
       }
     }
 
     // Single row paste - determine starting field from focused field
-    const startField = focusedField?.patientId === patientId ? focusedField.field : 'signalment';
+    const startField = focusedField?.patientId === patientId ? focusedField.field : 'location';
 
     e.preventDefault();
     e.stopPropagation();
@@ -1051,14 +1051,12 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     let finalValues = values;
 
     // Smart detection: skip patient name column if needed
-    if (startField === 'signalment' && finalValues.length >= fieldOrder.length) {
+    if (startField === 'location' && finalValues.length >= fieldOrder.length) {
       const firstVal = finalValues[0]?.trim().toLowerCase() || '';
-      const secondVal = finalValues[1]?.trim().toLowerCase() || '';
-      const signalmentPattern = /\d+\s*(y|yo|yr|m|mo)?\s*(m|f|fs|mn|cm|sf|intact)/i;
-      const firstLooksLikeSignalment = signalmentPattern.test(firstVal);
-      const secondLooksLikeSignalment = signalmentPattern.test(secondVal);
+      const locationPattern = /^(ip|icu)$/i;
+      const firstLooksLikeLocation = locationPattern.test(firstVal);
 
-      if (finalValues.length > fieldOrder.length || (!firstLooksLikeSignalment && secondLooksLikeSignalment)) {
+      if (finalValues.length > fieldOrder.length && !firstLooksLikeLocation) {
         finalValues = finalValues.slice(1);
       }
     }
@@ -1251,8 +1249,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       ...prev,
       [patientId]: {
         ...template.data,
-        // Keep signalment if it exists (patient-specific)
-        signalment: prev[patientId]?.signalment || '',
       },
     }));
 
@@ -1388,7 +1384,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
       return [
         escapeTSVValue(patientName),
-        escapeTSVValue(data.signalment),
         escapeTSVValue(data.location),
         escapeTSVValue(data.icuCriteria),
         escapeTSVValue(data.code),
@@ -1420,10 +1415,9 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     const data = getPatientData(patientId);
     const patientName = getPatientName(patient);
 
-    // Build row with all 14 columns - each value MUST be escaped to prevent multi-line pastes
+    // Build row with all columns - each value MUST be escaped to prevent multi-line pastes
     const row = [
       escapeTSVValue(patientName),
-      escapeTSVValue(data.signalment),
       escapeTSVValue(data.location),
       escapeTSVValue(data.icuCriteria),
       escapeTSVValue(data.code),
@@ -1442,7 +1436,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     // Count non-empty columns for feedback
     const filledColumns = [
-      data.signalment, data.location, data.icuCriteria, data.code,
+      data.location, data.icuCriteria, data.code,
       data.problems, data.diagnosticFindings, data.therapeutics,
       data.ivc, data.fluids, data.cri, data.overnightDx,
       data.concerns, data.comments
@@ -1450,7 +1444,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     toast({
       title: 'Row Copied',
-      description: `${patientName} (${filledColumns}/13 fields)`
+      description: `${patientName} (${filledColumns}/12 fields)`
     });
   };
 
@@ -1486,7 +1480,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
             codeStatus: data.code,
           },
           roundingData: {
-            signalment: data.signalment,
             location: data.location,
             icuCriteria: data.icuCriteria,
             codeStatus: data.code,
@@ -1623,7 +1616,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                       />
                       <div>
                         <div className="font-bold text-gray-900">{patientName}</div>
-                        <div className="text-xs text-gray-600">{data.signalment || 'No signalment'}</div>
+                        <div className="text-xs text-gray-600">{(patient as any)?.demographics?.age} {(patient as any)?.demographics?.breed}</div>
                       </div>
                     </button>
                   </div>
@@ -1861,7 +1854,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           <thead>
             <tr className="text-gray-900 text-[10px] font-bold" style={{ backgroundColor: COLORS.mint }}>
               <th className="p-1 text-left sticky left-0 z-10 min-w-[85px]" style={{ backgroundColor: COLORS.mint, borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Patient</th>
-              <th className="p-1 text-left min-w-[90px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Signalment</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Loc</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>ICU</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Code</th>
@@ -1911,18 +1903,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                         </div>
                       </Link>
                     </div>
-                  </td>
-                  <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
-                    <input
-                      type="text"
-                      value={data.signalment || ''}
-                      onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
-                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'signalment' })}
-                      onPaste={(e) => handleFieldPaste(e, patient.id, 'signalment')}
-                      aria-label={`Signalment for ${patientName}`}
-                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
-                      style={{ border: '1px solid #ccc' }}
-                    />
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
                     <select

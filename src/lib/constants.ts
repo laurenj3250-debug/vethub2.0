@@ -179,7 +179,6 @@ export const ROUNDING_MULTISELECT_OPTIONS = {
 
 // Field order for paste operations (matches Google Sheets columns)
 export const ROUNDING_FIELD_ORDER = [
-  'signalment',
   'location',
   'icuCriteria',
   'code',
@@ -197,7 +196,6 @@ export const ROUNDING_FIELD_ORDER = [
 // TSV export headers
 export const ROUNDING_TSV_HEADERS = [
   'Patient',
-  'Signalment',
   'Location',
   'ICU Criteria',
   'Code Status',
