@@ -1838,6 +1838,18 @@ export default function VetHub() {
       const includeHeader = !format.includes('no-header');
       const formatName = format.includes('csv') ? 'CSV' : 'TSV';
 
+      // CRITICAL: TSV escape function - newlines/tabs break Google Sheets paste
+      const escapeTSV = (value: string): string => {
+        if (!value) return '';
+        return value
+          .replace(/\r\n/g, ' | ')  // Windows CRLF
+          .replace(/\r/g, ' | ')     // Mac CR
+          .replace(/\n/g, ' | ')     // Unix LF
+          .replace(/\t/g, '    ')    // Tabs → spaces
+          .replace(/(\s*\|\s*){2,}/g, ' | ')  // Clean duplicates
+          .trim();
+      };
+
       // Build export with hospital format
       const header = ['Name', 'Signalment', 'Location', 'ICU Criteria', 'Code', 'Problems', 'Diagnostics', 'Therapeutics', 'IVC', 'Fluids', 'CRI', 'Overnight Dx', 'Concerns', 'Comments'].join(delimiter);
 
@@ -1869,7 +1881,8 @@ export default function VetHub() {
           }).join(delimiter);
         }
 
-        return fields.join(delimiter);
+        // TSV: escape newlines and tabs to prevent row/column corruption
+        return fields.map(escapeTSV).join(delimiter);
       });
 
       const content = includeHeader ? [header, ...rows].join('\n') : rows.join('\n');
