@@ -290,6 +290,7 @@ export function MRISchedule({
       const syncData = patientsForSync.map(p => ({
         name: p.demographics?.name || p.name || 'Unknown',
         patientId: mriInputValues[`${p.id}-patientId`] || p.demographics?.patientId || '',
+        signalment: p.roundingData?.signalment || '',
         weightKg: parseFloat(String(mriInputValues[`${p.id}-weight`] || p.demographics?.weight || '0').replace(/[^\d.]/g, '')) || 0,
         scanType: mriInputValues[`${p.id}-scanType`] || p.mriData?.scanType || 'Brain',
       }));

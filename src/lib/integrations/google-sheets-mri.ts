@@ -76,6 +76,7 @@ function getAuthClient() {
 export interface MRIPatientData {
   name: string;
   patientId: string;
+  signalment?: string;  // e.g., "8y MN Lab"
   weightKg: number;
   scanType: 'Brain' | 'C-Spine' | 'T-Spine' | 'LS' | string;
 }
@@ -83,7 +84,7 @@ export interface MRIPatientData {
 /**
  * Format patient data for Google Sheets row
  * Matches the MRI anesthesia sheet format:
- * Name | CID# | kg | lb | Scan | Opioid | mg | mL | Valium mg | mL | Contrast mL
+ * Name | CID# | Signalment | kg | lb | Scan | Opioid | mg | mL | Valium mg | mL | Contrast mL
  */
 function formatPatientRow(patient: MRIPatientData): (string | number)[] {
   const weightLbs = patient.weightKg * 2.20462;
@@ -93,6 +94,7 @@ function formatPatientRow(patient: MRIPatientData): (string | number)[] {
     return [
       patient.name,
       patient.patientId,
+      patient.signalment || '',
       patient.weightKg.toFixed(1),
       weightLbs.toFixed(2),
       patient.scanType,
@@ -108,6 +110,7 @@ function formatPatientRow(patient: MRIPatientData): (string | number)[] {
   return [
     patient.name,
     patient.patientId,
+    patient.signalment || '',
     patient.weightKg.toFixed(1),
     weightLbs.toFixed(2),
     patient.scanType,
@@ -142,7 +145,7 @@ export async function syncMRIPatientsToSheet(patients: MRIPatientData[]): Promis
 
     // Header row
     const headers = [
-      'Name', 'CID#', 'kg', 'lb', 'Scan',
+      'Name', 'CID#', 'Signalment', 'kg', 'lb', 'Scan',
       'Pre-med', 'mg', 'mL',
       'Valium mg', 'mL', 'Contrast mL'
     ];
@@ -153,11 +156,11 @@ export async function syncMRIPatientsToSheet(patients: MRIPatientData[]): Promis
     // Combine headers and data
     const values = [headers, ...rows];
 
-    // Clear existing content in the range (A1 to K100 should cover most cases)
+    // Clear existing content in the range (A1 to L100 should cover most cases)
     await sheets.spreadsheets.values.clear({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A1:K100`,
+      range: `${SHEET_NAME}!A1:L100`,
     });
 
     // Write new data
