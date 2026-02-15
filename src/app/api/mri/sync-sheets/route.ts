@@ -55,6 +55,10 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     configured: isGoogleSheetsConfigured(),
-    sheetId: process.env.GOOGLE_MRI_SHEET_ID ? '***configured***' : null,
+    debug: {
+      hasSheetId: !!process.env.GOOGLE_MRI_SHEET_ID,
+      hasEmail: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      hasPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
+    },
   });
 }
