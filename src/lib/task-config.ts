@@ -31,8 +31,7 @@ export const TASK_CONFIG = {
 
     // General team tasks (not tied to any patient)
     general: [
-      { name: 'Do All Rounding Summaries', category: 'General', timeOfDay: 'evening' as TaskTimeOfDay },
-      { name: 'Sticker on Daily Sheet', category: 'General', timeOfDay: 'evening' as TaskTimeOfDay },
+      // Removed per user request: 'Do All Rounding Summaries', 'Sticker on Daily Sheet'
     ],
 
     // Patient statuses that should NOT get daily recurring tasks
@@ -70,7 +69,7 @@ export const TASK_CONFIG = {
     'Surgery': [
       { name: 'Surgery Slip', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay },
       { name: 'Written on Board', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay },
-      { name: 'Print Surgery Sheet', category: 'Surgery Prep', timeOfDay: 'morning' as TaskTimeOfDay },
+      // Removed per user request: 'Print Surgery Sheet'
     ],
     'Medical': [],
   } as Record<string, TaskDefinition[]>,
