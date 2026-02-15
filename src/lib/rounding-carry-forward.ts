@@ -58,17 +58,16 @@ export function carryForwardRoundingData(
     };
   }
 
-  // Fields to carry forward - NOW includes problems and therapeutics
-  // Rationale: Templates fill problems/therapeutics on Day 1, should persist
-  // User updates what changed rather than re-entering everything
+  // Fields to carry forward (static fields that rarely change day-to-day)
+  // Problems and therapeutics are NOT carried - user edits Google Sheets on Day 2+
   const fieldsToCarry: (keyof RoundingData)[] = [
     'signalment',
     'location',
     'icuCriteria',
     'code',
-    'problems',        // NOW carried forward - template data persists
+    // 'problems' - NOT carried (user edits Google Sheets on Day 2+)
     'diagnosticFindings',
-    'therapeutics',    // NOW carried forward - meds usually same day-to-day
+    // 'therapeutics' - NOT carried (user edits Google Sheets on Day 2+)
     'ivc',
     'fluids',
     'cri',
