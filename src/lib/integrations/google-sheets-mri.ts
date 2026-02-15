@@ -5,7 +5,6 @@
  */
 
 import { google } from 'googleapis';
-import { calculateMRIDosesFromWeight } from '@/lib/mri-calculator';
 
 const sheets = google.sheets('v4');
 
@@ -76,50 +75,20 @@ function getAuthClient() {
 export interface MRIPatientData {
   name: string;
   patientId: string;
-  signalment?: string;  // e.g., "8y MN Lab"
   weightKg: number;
   scanType: 'Brain' | 'C-Spine' | 'T-Spine' | 'LS' | string;
 }
 
 /**
  * Format patient data for Google Sheets row
- * Matches the MRI anesthesia sheet format:
- * Name | CID# | Signalment | kg | lb | Scan | Opioid | mg | mL | Valium mg | mL | Contrast mL
+ * Simple format for Sheet2: Name | CID# | kg | Scan
  */
 function formatPatientRow(patient: MRIPatientData): (string | number)[] {
-  const weightLbs = patient.weightKg * 2.20462;
-  const doses = calculateMRIDosesFromWeight(String(patient.weightKg), patient.scanType as any);
-
-  if (!doses) {
-    return [
-      patient.name,
-      patient.patientId,
-      patient.signalment || '',
-      patient.weightKg.toFixed(1),
-      weightLbs.toFixed(2),
-      patient.scanType,
-      'N/A', // opioid name
-      'N/A', // opioid mg
-      'N/A', // opioid mL
-      'N/A', // valium mg
-      'N/A', // valium mL
-      'N/A', // contrast mL
-    ];
-  }
-
   return [
     patient.name,
     patient.patientId,
-    patient.signalment || '',
-    patient.weightKg.toFixed(1),
-    weightLbs.toFixed(2),
+    patient.weightKg,  // Just the number, no formatting
     patient.scanType,
-    doses.opioid.name,
-    doses.opioid.doseMg.toFixed(2),
-    doses.opioid.volumeMl.toFixed(2),
-    doses.valium.doseMg.toFixed(2),
-    doses.valium.volumeMl.toFixed(1),
-    doses.contrast.volumeMl.toFixed(1),
   ];
 }
 
@@ -143,24 +112,14 @@ export async function syncMRIPatientsToSheet(patients: MRIPatientData[]): Promis
   try {
     const auth = getAuthClient();
 
-    // Header row
-    const headers = [
-      'Name', 'CID#', 'Signalment', 'kg', 'lb', 'Scan',
-      'Pre-med', 'mg', 'mL',
-      'Valium mg', 'mL', 'Contrast mL'
-    ];
+    // Format all patient data (no headers - just data)
+    const values = patients.map(formatPatientRow);
 
-    // Format all patient data
-    const rows = patients.map(formatPatientRow);
-
-    // Combine headers and data
-    const values = [headers, ...rows];
-
-    // Clear existing content in the range (A1 to L100 should cover most cases)
+    // Clear existing content in the range (A1 to D100 - just 4 columns now)
     await sheets.spreadsheets.values.clear({
       auth,
       spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A1:L100`,
+      range: `${SHEET_NAME}!A1:D100`,
     });
 
     // Write new data
@@ -174,46 +133,8 @@ export async function syncMRIPatientsToSheet(patients: MRIPatientData[]): Promis
       },
     });
 
-    // Optional: Format header row (bold, background color)
-    // Wrapped in try-catch - formatting is nice-to-have, data sync is critical
-    try {
-      // Get actual sheet ID (don't assume 0)
-      const spreadsheet = await sheets.spreadsheets.get({
-        auth,
-        spreadsheetId: SHEET_ID,
-        fields: 'sheets.properties',
-      });
-      const sheetId = spreadsheet.data.sheets?.[0]?.properties?.sheetId ?? 0;
-
-      await sheets.spreadsheets.batchUpdate({
-        auth,
-        spreadsheetId: SHEET_ID,
-        requestBody: {
-          requests: [
-            {
-              repeatCell: {
-                range: {
-                  sheetId,
-                  startRowIndex: 0,
-                  endRowIndex: 1,
-                },
-                cell: {
-                  userEnteredFormat: {
-                    backgroundColor: { red: 0.918, green: 0.863, blue: 0.957 },
-                    textFormat: { bold: true },
-                  },
-                },
-                fields: 'userEnteredFormat(backgroundColor,textFormat)',
-              },
-            },
-          ],
-        },
-      });
-    } catch (formatError) {
-      console.warn('[Google Sheets] Header formatting failed (non-critical):', formatError);
-    }
-
-    return { success: true, rowsWritten: rows.length };
+    // No formatting - just clean data
+    return { success: true, rowsWritten: values.length };
   } catch (error) {
     console.error('[Google Sheets] Sync error:', error);
     return {
