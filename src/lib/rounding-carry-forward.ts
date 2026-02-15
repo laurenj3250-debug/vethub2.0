@@ -58,16 +58,17 @@ export function carryForwardRoundingData(
     };
   }
 
-  // Fields to carry forward (everything except concerns, problems, and therapeutics by default)
-  // Problems and therapeutics are NOT carried forward - user fills fresh each day
+  // Fields to carry forward - NOW includes problems and therapeutics
+  // Rationale: Templates fill problems/therapeutics on Day 1, should persist
+  // User updates what changed rather than re-entering everything
   const fieldsToCarry: (keyof RoundingData)[] = [
     'signalment',
     'location',
     'icuCriteria',
     'code',
-    // 'problems', - NOT carried forward, user fills fresh
+    'problems',        // NOW carried forward - template data persists
     'diagnosticFindings',
-    // 'therapeutics', - NOT carried forward, user fills fresh
+    'therapeutics',    // NOW carried forward - meds usually same day-to-day
     'ivc',
     'fluids',
     'cri',

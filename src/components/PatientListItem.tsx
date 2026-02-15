@@ -15,7 +15,35 @@ const COLORS = {
   mint: '#B8E6D4',
   pink: '#FFBDBD',
   cream: '#FFF8F0',
+  amber: '#F59E0B',
 };
+
+/**
+ * Detect if patient needs attention (post-MRI decision, etc.)
+ */
+function detectNeedsAttention(patient: any): { needsAttention: boolean; reason: string } {
+  const roundingData = patient.roundingData || patient.rounding_data;
+  const problems = (roundingData?.problems || '').toLowerCase();
+  const dayCount = roundingData?.dayCount || 1;
+
+  // MRI patient on Day 2+ with "MRI tomorrow" still in problems = needs decision
+  if ((patient.type === 'MRI' || patient.type === 'Surgery') && dayCount >= 2) {
+    if (problems.includes('mri tomorrow')) {
+      return { needsAttention: true, reason: 'Post-MRI: Update plan' };
+    }
+    // Problems empty on Day 2+ for MRI patient
+    if (patient.type === 'MRI' && !problems.trim()) {
+      return { needsAttention: true, reason: 'Post-MRI: Add problems' };
+    }
+  }
+
+  // New patient with no rounding data
+  if (patient.status === 'New' && !roundingData) {
+    return { needsAttention: true, reason: 'New: Fill rounding data' };
+  }
+
+  return { needsAttention: false, reason: '' };
+}
 
 interface PatientListItemProps {
   patient: any;
@@ -131,22 +159,43 @@ export function PatientListItem({
           <option value="Medical">Medical</option>
         </select>
 
-        {/* Status dropdown */}
-        <select
-          value={patient.status || 'New'}
-          onChange={(e) => {
-            e.stopPropagation();
-            onUpdatePatient('status', e.target.value);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="px-2 py-1 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition focus:outline-none"
-          style={{ ...getStatusBadgeStyle(), border: '1.5px solid #000' }}
-        >
-          <option value="New Admit">New Admit</option>
-          <option value="Hospitalized">Hospitalized</option>
-          <option value="Discharging">Discharging</option>
-          <option value="Discharged">Discharged</option>
-        </select>
+        {/* Status dropdown + attention indicator */}
+        <div className="relative flex items-center gap-1">
+          <select
+            value={patient.status || 'New'}
+            onChange={(e) => {
+              e.stopPropagation();
+              onUpdatePatient('status', e.target.value);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="px-2 py-1 rounded-lg text-xs font-bold cursor-pointer hover:opacity-80 transition focus:outline-none"
+            style={{ ...getStatusBadgeStyle(), border: '1.5px solid #000' }}
+          >
+            <option value="New Admit">New Admit</option>
+            <option value="Hospitalized">Hospitalized</option>
+            <option value="Discharging">Discharging</option>
+            <option value="Discharged">Discharged</option>
+          </select>
+
+          {/* Attention indicator - pulsing dot when patient needs decision */}
+          {(() => {
+            const { needsAttention, reason } = detectNeedsAttention(patient);
+            if (!needsAttention) return null;
+            return (
+              <div className="relative group">
+                <div
+                  className="w-3 h-3 rounded-full animate-pulse cursor-help"
+                  style={{ backgroundColor: COLORS.amber, border: '1.5px solid #000' }}
+                  title={reason}
+                />
+                {/* Tooltip on hover */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-xs font-bold bg-gray-900 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                  {reason}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
 
         {/* Weight - support both UnifiedPatient (demographics.weight) and legacy (patient_info.weight) */}
         {(patient.demographics?.weight || patient.patient_info?.weight) && (
