@@ -57,8 +57,12 @@ export async function GET() {
     configured: isGoogleSheetsConfigured(),
     debug: {
       hasSheetId: !!process.env.GOOGLE_MRI_SHEET_ID,
-      hasEmail: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      hasPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
+      hasBase64Creds: !!process.env.GOOGLE_CREDENTIALS_BASE64,
+      hasLegacyEmail: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      hasLegacyPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
     },
+    recommendation: !process.env.GOOGLE_CREDENTIALS_BASE64
+      ? 'Set GOOGLE_CREDENTIALS_BASE64 for more reliable auth. Generate with: cat service-account.json | base64 | tr -d "\\n"'
+      : 'Using Base64 credentials (recommended)',
   });
 }

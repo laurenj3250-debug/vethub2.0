@@ -16,54 +16,61 @@ const SHEET_NAME = 'Sheet1'; // Default sheet name, can be configured
 /**
  * Get authenticated Google Sheets client using service account
  *
- * MASTERMIND FIX: Railway/Vercel store private keys with escaped newlines.
- * We need to handle multiple escape scenarios:
- * - \\n (literal backslash-n) → actual newline
- * - Literal \n string (already a newline, no change needed)
- * - JSON-encoded keys (double-escaped)
+ * MASTERMIND FIX: Use Base64-encoded JSON credentials to avoid newline hell.
+ * Set GOOGLE_CREDENTIALS_BASE64 = base64(JSON.stringify(service-account.json))
+ *
+ * Fallback: Legacy individual env vars with newline replacement
  */
 function getAuthClient() {
+  // PREFERRED: Base64-encoded JSON credentials (avoids all newline issues)
+  // Generate with: cat service-account.json | base64 | tr -d '\n'
+  const credentialsBase64 = process.env.GOOGLE_CREDENTIALS_BASE64;
+
+  if (credentialsBase64) {
+    try {
+      const credentials = JSON.parse(
+        Buffer.from(credentialsBase64, 'base64').toString('utf-8')
+      );
+      console.log('[Google Sheets] Using Base64 credentials for:', credentials.client_email);
+
+      return new google.auth.GoogleAuth({
+        credentials: {
+          client_email: credentials.client_email,
+          private_key: credentials.private_key,
+        },
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+    } catch (error) {
+      console.error('[Google Sheets] Failed to parse Base64 credentials:', error);
+      throw new Error('Invalid GOOGLE_CREDENTIALS_BASE64 format');
+    }
+  }
+
+  // FALLBACK: Legacy individual env vars
   let privateKey = process.env.GOOGLE_PRIVATE_KEY;
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
 
   if (!privateKey || !clientEmail) {
-    throw new Error('Google service account credentials not configured');
+    throw new Error(
+      'Google Sheets not configured. Set GOOGLE_CREDENTIALS_BASE64 (preferred) ' +
+      'or GOOGLE_PRIVATE_KEY + GOOGLE_SERVICE_ACCOUNT_EMAIL'
+    );
   }
 
-  // Handle multiple escape scenarios from env vars
-  // 1. Replace literal \\n with actual newlines (most common)
-  privateKey = privateKey.replace(/\\n/g, '\n');
+  // Handle newline escapes from env vars
+  privateKey = privateKey
+    .replace(/\\n/g, '\n')
+    .replace(/\\\\n/g, '\n');
 
-  // 2. If still no newlines and key looks Base64-ish, try JSON parse
-  if (!privateKey.includes('\n') && !privateKey.includes('-----BEGIN')) {
-    try {
-      // Maybe it's JSON-stringified
-      privateKey = JSON.parse(`"${privateKey}"`);
-    } catch {
-      // Not JSON, try one more replacement for double-escaped
-      privateKey = privateKey.replace(/\\\\n/g, '\n');
-    }
-  }
+  console.log('[Google Sheets] Using legacy credentials for:', clientEmail);
 
-  // Debug: Log key format (first/last 20 chars only for security)
-  const keyPreview = privateKey.length > 40
-    ? `${privateKey.slice(0, 20)}...${privateKey.slice(-20)}`
-    : '[key too short]';
-  console.log('[Google Sheets] Key format check:', {
-    hasBeginMarker: privateKey.includes('-----BEGIN'),
-    hasNewlines: privateKey.includes('\n'),
-    keyPreview,
-  });
-
-  const auth = new google.auth.GoogleAuth({
+  return new google.auth.GoogleAuth({
     credentials: {
       client_email: clientEmail,
       private_key: privateKey,
     },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
   });
-
-  return auth;
 }
 
 export interface MRIPatientData {
@@ -240,9 +247,14 @@ export async function appendMRIPatientToSheet(patient: MRIPatientData): Promise<
  * Check if Google Sheets integration is configured
  */
 export function isGoogleSheetsConfigured(): boolean {
-  return !!(
-    process.env.GOOGLE_MRI_SHEET_ID &&
+  const hasSheetId = !!process.env.GOOGLE_MRI_SHEET_ID;
+
+  // Check for Base64 credentials (preferred) OR legacy individual vars
+  const hasBase64Creds = !!process.env.GOOGLE_CREDENTIALS_BASE64;
+  const hasLegacyCreds = !!(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
     process.env.GOOGLE_PRIVATE_KEY
   );
+
+  return hasSheetId && (hasBase64Creds || hasLegacyCreds);
 }
