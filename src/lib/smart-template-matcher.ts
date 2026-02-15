@@ -45,6 +45,117 @@ interface PatientSignals {
   daysSinceSurgery?: number;
 }
 
+/**
+ * Patient Phase Detection
+ *
+ * Detects what phase the patient is in based on their data:
+ * - PRE_MRI: Admitted, awaiting MRI (problems say "MRI tomorrow")
+ * - MRI_DAY: Going for MRI today (yesterday said "MRI tomorrow")
+ * - POST_MRI: After MRI, awaiting results or discharge
+ * - POST_OP_DAY1: First day after surgery
+ * - POST_OP_DAY2_PLUS: Day 2+ after surgery
+ * - MEDICAL_STABLE: Medical patient, stable protocol
+ * - DISCHARGING: Going home
+ */
+export type PatientPhase =
+  | 'PRE_MRI'
+  | 'MRI_DAY'
+  | 'POST_MRI'
+  | 'POST_OP_DAY1'
+  | 'POST_OP_DAY2_PLUS'
+  | 'MEDICAL_STABLE'
+  | 'DISCHARGING';
+
+interface PhaseDetectionResult {
+  phase: PatientPhase;
+  confidence: number;
+  reasons: string[];
+  suggestedChanges?: Partial<SmartRoundingData>;
+}
+
+/**
+ * Detect patient phase based on their type, previous rounding data, and day count
+ */
+export function detectPatientPhase(
+  patientType: 'Surgery' | 'Medical' | 'MRI' | undefined,
+  previousRoundingData: Partial<SmartRoundingData> | undefined,
+  dayCount: number = 1
+): PhaseDetectionResult {
+  const reasons: string[] = [];
+  let phase: PatientPhase = 'MEDICAL_STABLE';
+  let confidence = 50;
+  let suggestedChanges: Partial<SmartRoundingData> = {};
+
+  const prevProblems = (previousRoundingData?.problems || '').toLowerCase();
+  const prevConcerns = (previousRoundingData?.concerns || '').toLowerCase();
+
+  // Check for "MRI tomorrow" in yesterday's data → Today is MRI day
+  const hadMRITomorrow = prevProblems.includes('mri tomorrow') ||
+                         prevConcerns.includes('mri tomorrow');
+
+  // Check for post-op indicators
+  const isPostOp = prevProblems.includes('post op') ||
+                   prevProblems.includes('post-op') ||
+                   prevProblems.includes('postop') ||
+                   prevProblems.includes('po hemi');
+
+  // Phase detection logic
+  if (hadMRITomorrow) {
+    // Yesterday said "MRI tomorrow" → Today is MRI day!
+    phase = 'MRI_DAY';
+    confidence = 95;
+    reasons.push('Yesterday\'s data said "MRI tomorrow"');
+
+    // Update problems to reflect MRI day
+    suggestedChanges = {
+      problems: prevProblems.replace(/mri tomorrow/gi, 'MRI TODAY').replace(/,?\s*ambulatory/gi, ''),
+      concerns: 'NPO since 8pm, Pre-med at scheduled time',
+      overnightDx: '', // No overnight stuff on MRI day
+    };
+  } else if (isPostOp && dayCount === 1) {
+    phase = 'POST_OP_DAY1';
+    confidence = 90;
+    reasons.push('Post-op patient, Day 1');
+  } else if (isPostOp && dayCount >= 2) {
+    phase = 'POST_OP_DAY2_PLUS';
+    confidence = 90;
+    reasons.push(`Post-op patient, Day ${dayCount}`);
+
+    // Suggest reducing pain meds on day 2+
+    suggestedChanges = {
+      comments: 'Reassess pain management, consider weaning CRIs',
+    };
+  } else if (patientType === 'MRI') {
+    // MRI patient but no "MRI tomorrow" yet
+    if (dayCount === 1) {
+      phase = 'PRE_MRI';
+      confidence = 85;
+      reasons.push('MRI patient, Day 1 (pre-MRI workup)');
+    } else {
+      // Day 2+ and MRI type but didn't have "MRI tomorrow" - maybe post-MRI?
+      phase = 'POST_MRI';
+      confidence = 70;
+      reasons.push('MRI patient, Day 2+ (likely post-MRI)');
+    }
+  } else if (patientType === 'Surgery') {
+    if (dayCount === 1) {
+      phase = 'PRE_MRI'; // Surgery patients often get MRI first
+      confidence = 75;
+      reasons.push('Surgery patient, Day 1 (pre-op workup)');
+    } else {
+      phase = 'POST_OP_DAY1';
+      confidence = 70;
+      reasons.push('Surgery patient, Day 2+ (likely post-op)');
+    }
+  } else {
+    phase = 'MEDICAL_STABLE';
+    confidence = 60;
+    reasons.push('Medical patient, stable protocol');
+  }
+
+  return { phase, confidence, reasons, suggestedChanges };
+}
+
 interface TemplateMatch {
   template: RoundingTemplate;
   confidence: number; // 0-100
@@ -393,5 +504,159 @@ export function smartAutoFillRoundingData(
     templateApplied: match.template,
     confidence: match.confidence,
     reasons: match.reasons,
+  };
+}
+
+/**
+ * CARRY-FORWARD ROUNDING
+ *
+ * INGENIOUS INSIGHT #2: Yesterday's rounding data IS today's template.
+ * Instead of re-detecting template every day, carry forward what was there
+ * and apply phase-aware adjustments.
+ *
+ * Day 1: Template detection fills initial data
+ * Day 2+: Yesterday's data carries forward with smart phase transitions
+ *
+ * Phase Transitions:
+ * - "MRI tomorrow" in yesterday → "MRI TODAY" + NPO protocol
+ * - Post-op Day 1 → Day 2: Suggest weaning pain meds
+ * - Discharge criteria met → Flag for discharge
+ */
+export interface CarryForwardResult {
+  roundingData: SmartRoundingData;
+  phase: PatientPhase;
+  phaseConfidence: number;
+  phaseReasons: string[];
+  isCarryForward: boolean;
+  changesApplied: string[];
+}
+
+export function carryForwardRoundingData(
+  patientType: 'Surgery' | 'Medical' | 'MRI' | undefined,
+  previousRoundingData: Partial<SmartRoundingData> | undefined,
+  dayCount: number = 1
+): CarryForwardResult {
+  const changesApplied: string[] = [];
+
+  // If no previous data, this isn't a carry-forward scenario
+  if (!previousRoundingData || Object.keys(previousRoundingData).length === 0) {
+    return {
+      roundingData: {
+        location: 'IP',
+        icuCriteria: '',
+        code: 'Yellow',
+        problems: '',
+        diagnosticFindings: '',
+        therapeutics: '',
+        ivc: '',
+        fluids: '',
+        cri: '',
+        overnightDx: '',
+        concerns: '',
+        comments: '',
+      },
+      phase: 'MEDICAL_STABLE',
+      phaseConfidence: 0,
+      phaseReasons: ['No previous data - fresh start'],
+      isCarryForward: false,
+      changesApplied: [],
+    };
+  }
+
+  // Detect phase based on previous data
+  const phaseResult = detectPatientPhase(patientType, previousRoundingData, dayCount);
+
+  // Start with yesterday's data
+  const roundingData: SmartRoundingData = {
+    ...previousRoundingData,
+  };
+
+  // Apply phase-specific changes
+  if (phaseResult.suggestedChanges) {
+    Object.entries(phaseResult.suggestedChanges).forEach(([key, value]) => {
+      if (value !== undefined) {
+        (roundingData as any)[key] = value;
+        changesApplied.push(`Updated ${key} for ${phaseResult.phase}`);
+      }
+    });
+  }
+
+  // Special handling for MRI day
+  if (phaseResult.phase === 'MRI_DAY') {
+    // Clear overnight diagnostics (not needed on MRI day)
+    roundingData.overnightDx = '';
+    changesApplied.push('Cleared overnight Dx for MRI day');
+
+    // Ensure NPO is in concerns
+    if (!roundingData.concerns?.toLowerCase().includes('npo')) {
+      roundingData.concerns = 'NPO since 8pm, Pre-med at scheduled time';
+      changesApplied.push('Added NPO protocol for MRI day');
+    }
+  }
+
+  // Day count increment in comments (optional)
+  if (dayCount > 1) {
+    const dayLabel = `Day ${dayCount}`;
+    if (!roundingData.problems?.includes(dayLabel)) {
+      // Don't modify problems directly, but log for awareness
+      changesApplied.push(`Patient is on ${dayLabel}`);
+    }
+  }
+
+  console.log(`[Carry-Forward] Phase: ${phaseResult.phase} (${phaseResult.confidence}% confidence)`);
+  console.log(`[Carry-Forward] Reasons: ${phaseResult.reasons.join(', ')}`);
+  console.log(`[Carry-Forward] Changes applied: ${changesApplied.join(', ') || 'none'}`);
+
+  return {
+    roundingData,
+    phase: phaseResult.phase,
+    phaseConfidence: phaseResult.confidence,
+    phaseReasons: phaseResult.reasons,
+    isCarryForward: true,
+    changesApplied,
+  };
+}
+
+/**
+ * Smart Rounding: Combines template detection (Day 1) with carry-forward (Day 2+)
+ *
+ * This is the main entry point that decides:
+ * - Day 1 / No previous data → Use template detection
+ * - Day 2+ with previous data → Use carry-forward with phase detection
+ */
+export function smartRounding(
+  patient: any,
+  previousRoundingData?: Partial<SmartRoundingData>,
+  dayCount: number = 1
+): CarryForwardResult & { templateApplied: RoundingTemplate | null } {
+
+  // If Day 2+ and we have previous data, use carry-forward
+  if (dayCount > 1 && previousRoundingData && Object.keys(previousRoundingData).length > 0) {
+    const carryForward = carryForwardRoundingData(
+      patient.type,
+      previousRoundingData,
+      dayCount
+    );
+
+    return {
+      ...carryForward,
+      templateApplied: null, // No new template, just carried forward
+    };
+  }
+
+  // Day 1 or no previous data: Use template detection
+  const templateResult = smartAutoFillRoundingData(patient, previousRoundingData);
+
+  // Detect phase for Day 1
+  const phaseResult = detectPatientPhase(patient.type, templateResult.roundingData, dayCount);
+
+  return {
+    roundingData: templateResult.roundingData,
+    phase: phaseResult.phase,
+    phaseConfidence: phaseResult.confidence,
+    phaseReasons: phaseResult.reasons,
+    isCarryForward: false,
+    changesApplied: templateResult.reasons,
+    templateApplied: templateResult.templateApplied,
   };
 }
