@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight, Pencil, Check, FileText, FileDown, Loader2 } from 'lucide-react';
+import { Save, Copy, ChevronDown, X, Trash2, RotateCcw, ChevronRight, Pencil, Check, FileText } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-media-query';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
@@ -24,7 +24,6 @@ import { FieldMultiSelect } from './FieldMultiSelect';
 import { TherapeuticsMultiSelect } from './TherapeuticsMultiSelect';
 import type { RoundingData, RoundingPatient } from '@/types/rounding';
 import { getTemplateCategories, type RoundingTemplate } from '@/data/rounding-templates';
-import { downloadRoundingSheetPDF } from '@/lib/pdf-generators/rounding-sheet';
 
 // Local Patient interface for component props (uses RoundingPatient pattern)
 type Patient = RoundingPatient;
@@ -578,7 +577,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     return {};
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [saveTimers, setSaveTimers] = useState<Map<number, NodeJS.Timeout>>(new Map());
   const [saveStatus, setSaveStatus] = useState<Map<number, 'saving' | 'saved' | 'error'>>(new Map());
   const [carryForwardResults, setCarryForwardResults] = useState<Record<number, CarryForwardResult>>({});
@@ -1448,73 +1446,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     });
   };
 
-  // Handle PDF download - generates printable rounding sheet with all active patients
-  const handleDownloadRoundingPDF = async () => {
-    try {
-      if (activePatients.length === 0) {
-        toast({
-          variant: 'destructive',
-          title: 'No patients',
-          description: 'No active patients to include in PDF'
-        });
-        return;
-      }
-
-      setIsGeneratingPDF(true);
-
-      // Map to UnifiedPatient format expected by PDF generator
-      const unifiedPatients = activePatients.map(patient => {
-        const data = getPatientData(patient.id);
-        return {
-          id: patient.id,
-          demographics: {
-            name: getPatientName(patient),
-            age: patient.demographics?.age || '',
-            sex: patient.demographics?.sex || '',
-            breed: patient.demographics?.breed || '',
-            weight: patient.demographics?.weight || '',
-          },
-          currentStay: {
-            location: data.location,
-            icuCriteria: data.icuCriteria,
-            codeStatus: data.code,
-          },
-          roundingData: {
-            location: data.location,
-            icuCriteria: data.icuCriteria,
-            codeStatus: data.code,
-            problems: data.problems,
-            diagnosticFindings: data.diagnosticFindings,
-            therapeutics: data.therapeutics,
-            ivc: data.ivc,
-            fluids: data.fluids,
-            cri: data.cri,
-            overnightDx: data.overnightDx,
-            concerns: data.concerns,
-            comments: data.comments,
-          },
-          status: patient.status,
-        };
-      });
-
-      await downloadRoundingSheetPDF(unifiedPatients as any, `rounding-sheet-${new Date().toISOString().split('T')[0]}.pdf`);
-
-      toast({
-        title: '📄 Rounding Sheet PDF Ready!',
-        description: `Generated PDF for ${activePatients.length} patient${activePatients.length > 1 ? 's' : ''}`
-      });
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'PDF generation failed',
-        description: error instanceof Error ? error.message : 'Unknown error'
-      });
-    } finally {
-      setIsGeneratingPDF(false);
-    }
-  };
-
   // Neo-pop styling from shared constants
   const { BORDER: NEO_BORDER, SHADOW: NEO_SHADOW, COLORS } = NEO_POP_STYLES;
 
@@ -1526,16 +1457,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
         style={{ backgroundColor: 'white', border: NEO_BORDER, boxShadow: NEO_SHADOW }}
       >
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleDownloadRoundingPDF}
-            disabled={isGeneratingPDF}
-            className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: COLORS.mint, border: NEO_BORDER, boxShadow: '3px 3px 0 #000' }}
-            title="Generate printable PDF rounding sheet"
-          >
-            {isGeneratingPDF ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
-            {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-          </button>
           <button
             onClick={exportToTSV}
             className="px-4 py-2 rounded-xl font-bold text-gray-900 transition hover:-translate-y-0.5 flex items-center gap-2"
