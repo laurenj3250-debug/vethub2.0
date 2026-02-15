@@ -58,16 +58,17 @@ export function carryForwardRoundingData(
     };
   }
 
-  // Fields to carry forward (static fields that rarely change day-to-day)
-  // Problems and therapeutics are NOT carried - user edits Google Sheets on Day 2+
+  // Fields to carry forward (stable fields that save re-entry time)
+  // MASTERMIND FIX: Include problems and therapeutics - saves 10-30 min daily
+  // Users can clear fields if needed - safer than forcing re-entry
   const fieldsToCarry: (keyof RoundingData)[] = [
     'signalment',
     'location',
     'icuCriteria',
     'code',
-    // 'problems' - NOT carried (user edits Google Sheets on Day 2+)
+    'problems',        // Carried forward - most stay stable day-to-day
     'diagnosticFindings',
-    // 'therapeutics' - NOT carried (user edits Google Sheets on Day 2+)
+    'therapeutics',    // Carried forward - meds rarely change completely
     'ivc',
     'fluids',
     'cri',

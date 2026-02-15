@@ -722,16 +722,12 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     if (editingData[patientId]) return editingData[patientId];
 
     // Otherwise, use the saved data from API (camelCase) or legacy format (snake_case)
+    // MASTERMIND FIX: Carry forward ALL fields including problems/therapeutics
+    // This saves 10-30 min daily - users can clear fields if needed
     const patient = patients.find(p => p.id === patientId);
     const savedData = (patient as any)?.roundingData || patient?.rounding_data || {};
 
-    // CRITICAL: Clear problems and therapeutics - user must fill fresh each day
-    // These are NOT carried forward and should never be pre-populated
-    return {
-      ...savedData,
-      problems: '',
-      therapeutics: '',
-    };
+    return savedData;
   };
 
   const handleFieldChange = (patientId: number, field: keyof RoundingData, value: string) => {
