@@ -1771,6 +1771,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           <thead>
             <tr className="text-gray-900 text-[10px] font-bold" style={{ backgroundColor: COLORS.mint }}>
               <th className="p-1 text-left sticky left-0 z-10 min-w-[85px]" style={{ backgroundColor: COLORS.mint, borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Patient</th>
+              <th className="p-1 text-left min-w-[90px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Signalment</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Loc</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>ICU</th>
               <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Code</th>
@@ -1820,6 +1821,18 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
                         </div>
                       </Link>
                     </div>
+                  </td>
+                  <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
+                    <input
+                      type="text"
+                      value={data.signalment || ''}
+                      onChange={(e) => handleFieldChange(patient.id, 'signalment', e.target.value)}
+                      onFocus={() => setFocusedField({ patientId: patient.id, field: 'signalment' })}
+                      aria-label={`Signalment for ${patientName}`}
+                      className="w-full px-1 py-0.5 rounded text-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-[#6BB89D] bg-gray-50"
+                      style={{ border: '1px solid #ccc' }}
+                      placeholder="8y MN Lab"
+                    />
                   </td>
                   <td className="p-0.5" style={{ borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>
                     <select
