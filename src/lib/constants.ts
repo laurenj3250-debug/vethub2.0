@@ -196,6 +196,7 @@ export const ROUNDING_FIELD_ORDER = [
 // TSV export headers
 export const ROUNDING_TSV_HEADERS = [
   'Patient',
+  'Signalment',
   'Location',
   'ICU Criteria',
   'Code Status',

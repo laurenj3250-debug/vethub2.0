@@ -1378,6 +1378,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
       return [
         escapeTSVValue(patientName),
+        escapeTSVValue(data.signalment),
         escapeTSVValue(data.location),
         escapeTSVValue(data.icuCriteria),
         escapeTSVValue(data.code),
@@ -1412,6 +1413,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
     // Build row with all columns - each value MUST be escaped to prevent multi-line pastes
     const row = [
       escapeTSVValue(patientName),
+      escapeTSVValue(data.signalment),
       escapeTSVValue(data.location),
       escapeTSVValue(data.icuCriteria),
       escapeTSVValue(data.code),
@@ -1430,7 +1432,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     // Count non-empty columns for feedback
     const filledColumns = [
-      data.location, data.icuCriteria, data.code,
+      data.signalment, data.location, data.icuCriteria, data.code,
       data.problems, data.diagnosticFindings, data.therapeutics,
       data.ivc, data.fluids, data.cri, data.overnightDx,
       data.concerns, data.comments
@@ -1438,7 +1440,7 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
 
     toast({
       title: 'Row Copied',
-      description: `${patientName} (${filledColumns}/12 fields)`
+      description: `${patientName} (${filledColumns}/13 fields)`
     });
   };
 
