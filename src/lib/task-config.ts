@@ -25,6 +25,7 @@ export const TASK_CONFIG = {
     patient: [
       { name: 'Daily SOAP', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay },
       { name: 'Call Owner', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay },
+      { name: 'Check Finances', category: 'Daily', timeOfDay: 'morning' as TaskTimeOfDay },
       { name: 'Vet Radar Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay },
       { name: 'Rounding Sheet Done', category: 'Daily', timeOfDay: 'evening' as TaskTimeOfDay },
     ],
