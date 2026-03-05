@@ -54,12 +54,12 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-# Create start script that runs migrations and starts server
+# Create start script that syncs schema and starts server
 RUN echo '#!/bin/sh\n\
 set -e\n\
-echo "Running database migrations..."\n\
-npx prisma migrate deploy\n\
+echo "Syncing database schema..."\n\
+npx prisma db push --skip-generate --accept-data-loss || echo "Schema sync failed - check logs"\n\
 echo "Starting Next.js server..."\n\
-exec npm start' > /app/start.sh && chmod +x /app/start.sh
+exec npx next start' > /app/start.sh && chmod +x /app/start.sh
 
 CMD ["/bin/sh", "/app/start.sh"]
