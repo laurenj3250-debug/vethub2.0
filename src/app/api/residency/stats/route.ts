@@ -39,14 +39,16 @@ export async function GET() {
       }
     );
 
-    // Surgery participation breakdown
+    // Surgery role breakdown (Primary/Assistant)
     const surgeryBreakdown = allSurgeries.reduce(
       (acc, surgery) => {
-        acc[surgery.participation] = (acc[surgery.participation] || 0) + 1;
+        // Use new `role` field, fall back to legacy `participation` mapping
+        const role = surgery.role || (surgery.participation === 'S' ? 'Primary' : 'Assistant');
+        acc[role] = (acc[role] || 0) + 1;
         acc.total += 1;
         return acc;
       },
-      { S: 0, O: 0, C: 0, D: 0, K: 0, total: 0 } as Record<string, number>
+      { Primary: 0, Assistant: 0, total: 0 } as Record<string, number>
     );
 
     // LMRI+ accuracy stats

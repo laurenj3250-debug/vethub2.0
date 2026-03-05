@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useAddSurgery, type Surgery } from '@/hooks/useResidencyStats';
-import { PARTICIPATION_LEVELS, COMMON_PROCEDURES } from '@/lib/residency-milestones';
+import { useAddSurgery } from '@/hooks/useResidencyStats';
+import { COMMON_PROCEDURES } from '@/lib/residency-milestones';
 import { PatientQuickSelect } from '@/components/residency/PatientQuickSelect';
 import { cn } from '@/lib/utils';
 import { NEO_POP, neoButton } from '@/lib/neo-pop-styles';
 import { Plus, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -18,16 +17,68 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+// Extracted toggle components to avoid re-mount on parent re-render
+function RoleToggle({ role, onRoleChange, size = 'md' }: { role: 'Primary' | 'Assistant'; onRoleChange: (r: 'Primary' | 'Assistant') => void; size?: 'sm' | 'md' }) {
+  return (
+    <div className={cn('flex gap-2', size === 'sm' ? 'gap-1' : 'gap-2')}>
+      {(['Primary', 'Assistant'] as const).map((r) => (
+        <button
+          key={r}
+          onClick={() => onRoleChange(r)}
+          className={cn(
+            'flex-1 font-bold rounded-xl border-2 border-black transition-all',
+            size === 'sm' ? 'py-1.5 text-xs' : 'py-2 text-sm',
+            role === r
+              ? r === 'Primary'
+                ? 'bg-green-500 text-white shadow-[2px_2px_0_#000]'
+                : 'bg-blue-400 text-white shadow-[2px_2px_0_#000]'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          )}
+        >
+          {r}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function OriginToggle({ patientOrigin, onOriginChange, size = 'md' }: { patientOrigin: 'new' | 'hospitalized'; onOriginChange: (v: 'new' | 'hospitalized') => void; size?: 'sm' | 'md' }) {
+  return (
+    <div className={cn('flex gap-2', size === 'sm' ? 'gap-1' : 'gap-2')}>
+      {([
+        { value: 'new' as const, label: 'New Patient', color: 'bg-emerald-500' },
+        { value: 'hospitalized' as const, label: 'Hospitalized', color: 'bg-amber-500' },
+      ]).map(({ value, label, color }) => (
+        <button
+          key={value}
+          onClick={() => onOriginChange(value)}
+          className={cn(
+            'flex-1 font-medium rounded-xl border-2 border-black transition-all',
+            size === 'sm' ? 'py-1.5 text-xs' : 'py-2 text-sm',
+            patientOrigin === value
+              ? `${color} text-white shadow-[2px_2px_0_#000]`
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          )}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 interface SurgeryQuickFormProps {
-  dailyEntryId: string | null;
+  dailyEntryId?: string | null;
+  date?: string; // ISO date for backdating
   variant: 'compact' | 'full' | 'neo';
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }: SurgeryQuickFormProps) {
+export function SurgeryQuickForm({ dailyEntryId, date, variant, onSuccess, onCancel }: SurgeryQuickFormProps) {
   const [procedure, setProcedure] = useState('');
-  const [role, setRole] = useState<'S' | 'O' | 'C' | 'D' | 'K'>('O');
+  const [role, setRole] = useState<'Primary' | 'Assistant'>('Primary');
+  const [patientOrigin, setPatientOrigin] = useState<'new' | 'hospitalized'>('new');
   const [patientId, setPatientId] = useState<number | null>(null);
   const [patientName, setPatientName] = useState('');
 
@@ -40,13 +91,15 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!procedure || !dailyEntryId) return;
+    if (!procedure) return;
 
     try {
       await addSurgery({
-        dailyEntryId,
+        dailyEntryId: dailyEntryId || undefined,
+        date,
         procedureName: procedure,
-        participation: role,
+        role,
+        patientOrigin,
         patientId: patientId || undefined,
         patientName: patientName || undefined,
       });
@@ -56,7 +109,7 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
     } catch {
       // React Query mutation already handles toast and optimistic rollback
     }
-  }, [procedure, role, patientId, patientName, dailyEntryId, addSurgery, resetForm, onSuccess]);
+  }, [procedure, role, patientOrigin, patientId, patientName, dailyEntryId, date, addSurgery, resetForm, onSuccess]);
 
   const handlePatientChange = useCallback((id: number | null, name: string) => {
     setPatientId(id);
@@ -77,6 +130,9 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
           ))}
         </select>
 
+        <RoleToggle role={role} onRoleChange={setRole} size="sm" />
+        <OriginToggle patientOrigin={patientOrigin} onOriginChange={setPatientOrigin} size="sm" />
+
         <PatientQuickSelect
           value={patientId}
           onChange={handlePatientChange}
@@ -84,25 +140,9 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
           size="sm"
         />
 
-        <div className="flex gap-1">
-          {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
-            <button
-              key={key}
-              onClick={() => setRole(key as Surgery['participation'])}
-              className={cn(
-                'flex-1 py-1 text-[10px] font-medium rounded transition-colors',
-                role === key ? `${color} text-white` : 'bg-slate-200 dark:bg-slate-700'
-              )}
-              title={label}
-            >
-              {key}
-            </button>
-          ))}
-        </div>
-
         <button
           onClick={handleSubmit}
-          disabled={!procedure || !dailyEntryId || isPending}
+          disabled={!procedure || isPending}
           className={cn(
             'w-full py-1.5 text-xs font-medium rounded transition-colors',
             'bg-red-500 hover:bg-red-600 text-white',
@@ -111,12 +151,6 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
         >
           {isPending ? 'Adding...' : 'Add Surgery'}
         </button>
-
-        {!dailyEntryId && (
-          <p className="text-[10px] text-amber-600 text-center">
-            Log a case first to add surgeries
-          </p>
-        )}
       </div>
     );
   }
@@ -131,7 +165,7 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
             onValueChange={(v) => setProcedure(v)}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select or type procedure..." />
+              <SelectValue placeholder="Select procedure..." />
             </SelectTrigger>
             <SelectContent>
               {COMMON_PROCEDURES.map((proc) => (
@@ -141,31 +175,16 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
               ))}
             </SelectContent>
           </Select>
-          <Input
-            placeholder="Or type custom procedure..."
-            value={procedure}
-            onChange={(e) => setProcedure(e.target.value)}
-          />
         </div>
 
         <div className="space-y-2">
           <Label>Your Role</Label>
-          <div className="grid grid-cols-5 gap-2">
-            {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
-              <Button
-                key={key}
-                variant={role === key ? 'default' : 'outline'}
-                className={cn(
-                  'flex flex-col h-auto min-h-[44px] py-3 px-1',
-                  role === key && color
-                )}
-                onClick={() => setRole(key as Surgery['participation'])}
-              >
-                <span className="font-bold text-base">{key}</span>
-                <span className="text-[10px] sm:text-xs opacity-80 leading-tight">{label}</span>
-              </Button>
-            ))}
-          </div>
+          <RoleToggle role={role} onRoleChange={setRole} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Patient Type</Label>
+          <OriginToggle patientOrigin={patientOrigin} onOriginChange={setPatientOrigin} />
         </div>
 
         <div className="space-y-2">
@@ -213,27 +232,11 @@ export function SurgeryQuickForm({ dailyEntryId, variant, onSuccess, onCancel }:
         ))}
       </select>
 
-      {/* Role picker */}
-      <div className="flex gap-1.5">
-        {Object.entries(PARTICIPATION_LEVELS).map(([key, { label, color }]) => (
-          <button
-            key={key}
-            onClick={() => setRole(key as Surgery['participation'])}
-            className={cn(
-              'flex-1 py-2 text-xs font-bold rounded-xl border-2 border-black transition-all',
-              role === key
-                ? `${color} text-white shadow-[2px_2px_0_#000]`
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            )}
-            title={label}
-          >
-            {key}
-          </button>
-        ))}
-      </div>
-      <div className="text-[10px] text-gray-500 text-center">
-        {PARTICIPATION_LEVELS[role].label} — {PARTICIPATION_LEVELS[role].description}
-      </div>
+      {/* Role picker: Primary / Assistant */}
+      <RoleToggle role={role} onRoleChange={setRole} />
+
+      {/* Patient origin: New / Hospitalized */}
+      <OriginToggle patientOrigin={patientOrigin} onOriginChange={setPatientOrigin} />
 
       {/* Patient picker */}
       <PatientQuickSelect

@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { getTodayET } from '@/lib/timezone';
 
 const surgerySchema = z.object({
-  dailyEntryId: z.string(),
+  dailyEntryId: z.string().optional(), // Optional now — auto-creates if missing
+  date: z.string().optional(), // ISO date — used when dailyEntryId not provided
   procedureName: z.string().min(1, 'Procedure name is required'),
-  participation: z.enum(['S', 'O', 'C', 'D', 'K']),
+  role: z.enum(['Primary', 'Assistant']),
+  patientOrigin: z.enum(['new', 'hospitalized']).optional(),
   patientName: z.string().optional(),
-  patientId: z.number().optional(), // Link to VetHub patient
+  patientId: z.number().optional(),
   notes: z.string().optional(),
+  skipAcvim: z.boolean().optional(),
 });
 
 // GET - Fetch surgeries (optionally filtered)
@@ -16,11 +20,9 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const dailyEntryId = searchParams.get('dailyEntryId');
-    const participation = searchParams.get('participation');
 
-    const where: { dailyEntryId?: string; participation?: string } = {};
+    const where: { dailyEntryId?: string } = {};
     if (dailyEntryId) where.dailyEntryId = dailyEntryId;
-    if (participation) where.participation = participation;
 
     const surgeries = await prisma.surgery.findMany({
       where,
@@ -56,31 +58,50 @@ async function getResidencyYear(): Promise<number> {
   return 3;
 }
 
-// Helper: Map participation level to ACVIM role
-function mapParticipationToRole(participation: string): 'Primary' | 'Assistant' {
-  return participation === 'S' ? 'Primary' : 'Assistant';
-}
-
-// POST - Create new surgery (also creates ACVIM case log entry)
+// POST - Create new surgery (also creates ACVIM case log entry with proper FK)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = surgerySchema.parse(body);
-    const skipAcvim = body.skipAcvim === true; // Allow opting out
+    const skipAcvim = validated.skipAcvim === true;
 
-    // Get the daily entry to get the date
-    const dailyEntry = await prisma.dailyEntry.findUnique({
-      where: { id: validated.dailyEntryId },
-    });
+    // Determine the target date and daily entry
+    const targetDate = validated.date || getTodayET();
+    let dailyEntryId = validated.dailyEntryId;
 
-    if (!dailyEntry) {
-      return NextResponse.json(
-        { error: 'Daily entry not found' },
-        { status: 404 }
-      );
+    // Auto-create DailyEntry if not provided (removes the "log a case first" blocker)
+    let dailyEntry;
+    if (!dailyEntryId) {
+      dailyEntry = await prisma.dailyEntry.upsert({
+        where: { date: targetDate },
+        create: {
+          date: targetDate,
+          mriCount: 0,
+          recheckCount: 0,
+          newConsultCount: 0,
+          newCount: 0,
+          emergencyCount: 0,
+          commsCount: 0,
+          totalCases: 0,
+        },
+        update: {},
+      });
+      dailyEntryId = dailyEntry.id;
+    } else {
+      // Verify the provided daily entry exists
+      dailyEntry = await prisma.dailyEntry.findUnique({
+        where: { id: dailyEntryId },
+      });
+
+      if (!dailyEntry) {
+        return NextResponse.json(
+          { error: 'Daily entry not found' },
+          { status: 404 }
+        );
+      }
     }
 
-    // Look up patient if patientId provided (for name and caseIdNumber)
+    // Look up patient if patientId provided
     let patientName = validated.patientName;
     let caseIdNumber = 'N/A';
     let patientInfo: string | undefined;
@@ -89,7 +110,6 @@ export async function POST(request: NextRequest) {
       const patient = await prisma.patient.findUnique({
         where: { id: validated.patientId },
       });
-      // Validate patient still exists (race condition protection)
       if (!patient) {
         return NextResponse.json(
           { error: 'Patient not found. They may have been discharged or deleted.' },
@@ -98,33 +118,16 @@ export async function POST(request: NextRequest) {
       }
       const demographics = patient.demographics as { name?: string; species?: string; breed?: string; patientId?: string; clientId?: string } | null;
       patientName = demographics?.name || patientName;
-      // Use practice management ID: patientId (case-specific) preferred over clientId (owner account)
       caseIdNumber = demographics?.patientId || demographics?.clientId || `VH-${validated.patientId}`;
       patientInfo = [demographics?.species, demographics?.breed].filter(Boolean).join(' ');
     }
 
-    // Get residency year upfront (before transaction)
+    // Get residency year upfront
     const residencyYear = skipAcvim ? 1 : await getResidencyYear();
 
-    // Create both in a transaction
+    // Create both in a transaction with proper FK linking
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create the daily stats surgery (with patientId link)
-      const surgery = await tx.surgery.create({
-        data: {
-          dailyEntryId: validated.dailyEntryId,
-          procedureName: validated.procedureName,
-          participation: validated.participation,
-          patientName,
-          patientId: validated.patientId,
-          notes: validated.notes,
-        },
-        include: {
-          dailyEntry: true,
-          patient: true,
-        },
-      });
-
-      // 2. Also create ACVIM case log entry (unless skipped)
+      // 1. Create ACVIM case first (if not skipped) to get its ID for the FK
       let acvimCase = null;
       if (!skipAcvim) {
         acvimCase = await tx.aCVIMNeurosurgeryCase.create({
@@ -132,8 +135,8 @@ export async function POST(request: NextRequest) {
             procedureName: validated.procedureName,
             dateCompleted: dailyEntry.date,
             caseIdNumber,
-            role: mapParticipationToRole(validated.participation),
-            hours: 1.0, // Default 1 hour - can be edited later on full page
+            role: validated.role,
+            hours: 1.0,
             residencyYear,
             patientId: validated.patientId,
             patientName,
@@ -142,6 +145,24 @@ export async function POST(request: NextRequest) {
           },
         });
       }
+
+      // 2. Create the surgery with FK to ACVIM case
+      const surgery = await tx.surgery.create({
+        data: {
+          dailyEntryId,
+          procedureName: validated.procedureName,
+          role: validated.role,
+          patientOrigin: validated.patientOrigin,
+          patientName,
+          patientId: validated.patientId,
+          notes: validated.notes,
+          acvimCaseId: acvimCase?.id || null,
+        },
+        include: {
+          dailyEntry: true,
+          patient: true,
+        },
+      });
 
       return { surgery, acvimCase };
     });
@@ -162,7 +183,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Remove surgery by ID (also removes corresponding ACVIM case)
+// DELETE - Remove surgery by ID (also removes linked ACVIM case via FK)
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -175,10 +196,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // First get the surgery to find matching ACVIM case
     const surgery = await prisma.surgery.findUnique({
       where: { id },
-      include: { dailyEntry: true },
     });
 
     if (!surgery) {
@@ -188,34 +207,20 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete both surgery and matching ACVIM case in a transaction
+    // Delete both in a transaction using the FK link
     await prisma.$transaction(async (tx) => {
-      // 1. Delete the surgery
-      await tx.surgery.delete({
-        where: { id },
-      });
-
-      // 2. Try to find and delete the matching ACVIM case
-      // Match on: procedureName, dateCompleted, and (patientId OR patientName)
-      const matchCriteria: {
-        procedureName: string;
-        dateCompleted: string;
-        patientId?: number;
-        patientName?: string;
-      } = {
-        procedureName: surgery.procedureName,
-        dateCompleted: surgery.dailyEntry.date,
-      };
-
-      if (surgery.patientId) {
-        matchCriteria.patientId = surgery.patientId;
-      } else if (surgery.patientName) {
-        matchCriteria.patientName = surgery.patientName;
+      // Delete linked ACVIM case first (if exists)
+      if (surgery.acvimCaseId) {
+        await tx.aCVIMNeurosurgeryCase.delete({
+          where: { id: surgery.acvimCaseId },
+        }).catch(() => {
+          // ACVIM case may have been manually deleted — that's fine
+        });
       }
 
-      // Delete matching ACVIM case (best effort - may not find exact match)
-      await tx.aCVIMNeurosurgeryCase.deleteMany({
-        where: matchCriteria,
+      // Delete the surgery
+      await tx.surgery.delete({
+        where: { id },
       });
     });
 

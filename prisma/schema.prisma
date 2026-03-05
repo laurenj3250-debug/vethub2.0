@@ -341,6 +341,7 @@ model ACVIMJournalClub {
   hours                   Float    // 0.5 increments (30-min blocks)
   residencyYear           Int      // 1, 2, or 3
   notes                   String?
+  articleUrl              String?  // Source URL for auto-fetched articles
 
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
@@ -424,15 +425,16 @@ model DailyEntry {
   @@index([date])
 }
 
-// Surgery - individual surgery with participation level
-// S = Surgeon (primary), O = Observer, C = Circulator, D = Dissector, K = Knife (cutting/suturing assistant)
+// Surgery - individual surgery logged during daily tracking
 model Surgery {
   id              String     @id @default(cuid())
   dailyEntryId    String
   dailyEntry      DailyEntry @relation(fields: [dailyEntryId], references: [id], onDelete: Cascade)
 
   procedureName   String     // e.g., "hemilaminectomy", "ventral slot", "craniotomy"
-  participation   String     // "S" | "O" | "C" | "D" | "K"
+  participation   String?    // Legacy: "S" | "O" | "C" | "D" | "K" (nullable for backward compat)
+  role            String?    // "Primary" | "Assistant" (new simplified role)
+  patientOrigin   String?    // "new" | "hospitalized" (patient source)
 
   // Optional details
   patientName     String?
@@ -442,10 +444,12 @@ model Surgery {
   patientId       Int?
   patient         Patient?   @relation(fields: [patientId], references: [id], onDelete: SetNull)
 
+  // Link to auto-created ACVIM case (proper FK for reliable deletion)
+  acvimCaseId     String?    @unique
+
   createdAt       DateTime   @default(now())
 
   @@index([dailyEntryId])
-  @@index([participation])
   @@index([patientId])
 }
 

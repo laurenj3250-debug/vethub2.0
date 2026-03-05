@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         hours: data.hours,
         residencyYear: data.residencyYear || 1,
         notes: data.notes,
+        articleUrl: data.articleUrl || null,
       },
     });
 
@@ -82,6 +83,7 @@ export async function PUT(request: NextRequest) {
         hours: data.hours,
         residencyYear: data.residencyYear,
         notes: data.notes,
+        articleUrl: data.articleUrl,
       },
     });
 

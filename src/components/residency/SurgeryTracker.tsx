@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeleteSurgery, type Surgery } from '@/hooks/useResidencyStats';
 import { Scissors, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PARTICIPATION_LEVELS } from '@/lib/residency-milestones';
 import { SurgeryQuickForm } from './SurgeryQuickForm';
 
 interface SurgeryTrackerProps {
   dailyEntryId: string | null;
+  date?: string;
   surgeries: Surgery[];
 }
 
-export function SurgeryTracker({ dailyEntryId, surgeries }: SurgeryTrackerProps) {
+export function SurgeryTracker({ dailyEntryId, date, surgeries }: SurgeryTrackerProps) {
   const deleteMutation = useDeleteSurgery();
 
   const [showForm, setShowForm] = useState(false);
@@ -29,7 +29,7 @@ export function SurgeryTracker({ dailyEntryId, surgeries }: SurgeryTrackerProps)
         <CardTitle className="flex items-center justify-between">
           <span className="flex items-center gap-2 text-lg">
             <Scissors className="h-5 w-5 text-red-500" />
-            Surgeries Today
+            Surgeries
           </span>
           <Button
             variant="outline"
@@ -42,55 +42,63 @@ export function SurgeryTracker({ dailyEntryId, surgeries }: SurgeryTrackerProps)
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Surgery Form */}
         {showForm && (
           <SurgeryQuickForm
             dailyEntryId={dailyEntryId}
+            date={date}
             variant="full"
             onSuccess={() => setShowForm(false)}
             onCancel={() => setShowForm(false)}
           />
         )}
 
-        {/* Surgery List */}
         {surgeries.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No surgeries logged today
+            No surgeries logged
           </p>
         ) : (
           <div className="space-y-2">
-            {surgeries.map((surgery) => (
-              <div
-                key={surgery.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm',
-                      PARTICIPATION_LEVELS[surgery.participation as keyof typeof PARTICIPATION_LEVELS]?.color || 'bg-gray-500'
-                    )}
-                  >
-                    {surgery.participation}
-                  </div>
-                  <div>
-                    <p className="font-medium">{surgery.procedureName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {PARTICIPATION_LEVELS[surgery.participation as keyof typeof PARTICIPATION_LEVELS]?.description || surgery.participation}
-                      {surgery.patientName && ` • ${surgery.patientName}`}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(surgery.id)}
-                  disabled={deleteMutation.isPending}
+            {surgeries.map((surgery) => {
+              const displayRole = surgery.role || (surgery.participation === 'S' ? 'Primary' : 'Assistant');
+              const roleColor = displayRole === 'Primary' ? 'bg-green-500' : 'bg-blue-400';
+
+              return (
+                <div
+                  key={surgery.id}
+                  className="flex items-center justify-between p-3 border rounded-lg"
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        'px-2 py-1 rounded-full text-white font-bold text-xs',
+                        roleColor
+                      )}
+                    >
+                      {displayRole}
+                    </div>
+                    <div>
+                      <p className="font-medium">{surgery.procedureName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {surgery.patientOrigin && (
+                          <span className="capitalize">{surgery.patientOrigin}</span>
+                        )}
+                        {surgery.patientName && (
+                          <span>{surgery.patientOrigin ? ' · ' : ''}{surgery.patientName}</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(surgery.id)}
+                    disabled={deleteMutation.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
       </CardContent>

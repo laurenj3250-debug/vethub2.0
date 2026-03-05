@@ -7,7 +7,6 @@ import {
   Plus,
   Minus,
   RefreshCw,
-  AlertCircle,
   Users,
   Stethoscope,
   AlertTriangle,
@@ -15,18 +14,21 @@ import {
   Pencil,
   Check,
   X,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
 } from 'lucide-react';
 import {
   useResidencyStats,
   useQuickIncrement,
-  useTodayEntry,
+  useDailyEntry,
   type CounterField,
 } from '@/hooks/useResidencyStats';
-import { PARTICIPATION_LEVELS } from '@/lib/residency-milestones';
 import { SurgeryQuickForm } from '@/components/residency/SurgeryQuickForm';
 import { NEO_POP, neoCard, neoButton } from '@/lib/neo-pop-styles';
 import { cn } from '@/lib/utils';
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
+import { getTodayET } from '@/lib/timezone';
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval, format, addDays, subDays } from 'date-fns';
 
 // localStorage keys for editable goals
 const MRI_GOAL_KEY = 'residency-goal-mri-daily';
@@ -53,7 +55,6 @@ function useLocalStorageGoal(key: string, defaultValue: number) {
   return [goal, updateGoal] as const;
 }
 
-// Editable goal display
 function EditableGoal({ value, onChange, label }: { value: number; onChange: (v: number) => void; label: string }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
@@ -96,8 +97,15 @@ function EditableGoal({ value, onChange, label }: { value: number; onChange: (v:
 
 export function QuickAddTracker() {
   const { data: stats, isLoading: statsLoading } = useResidencyStats();
-  const { data: todayEntry, isLoading: todayLoading } = useTodayEntry();
   const { mutate: increment, isPending } = useQuickIncrement();
+
+  // Date navigation state
+  const today = getTodayET();
+  const [selectedDate, setSelectedDate] = useState(today);
+  const isToday = selectedDate === today;
+
+  // Fetch entry for selected date
+  const { data: dayEntry, isLoading: dayLoading } = useDailyEntry(selectedDate);
 
   // Quick add mode toggle
   const [mode, setMode] = useState<'mri' | 'surgery'>('mri');
@@ -107,15 +115,45 @@ export function QuickAddTracker() {
   const [mriGoal, setMriGoal] = useLocalStorageGoal(MRI_GOAL_KEY, 3);
   const [surgeryGoal, setSurgeryGoal] = useLocalStorageGoal(SURGERY_GOAL_KEY, 1);
 
-  // Today's values
-  const todayMri = todayEntry?.mriCount ?? 0;
-  const todayRecheck = todayEntry?.recheckCount ?? 0;
-  const todayConsult = todayEntry?.newConsultCount ?? 0;
-  const todayEmergency = todayEntry?.emergencyCount ?? 0;
-  const todaySurgeries = todayEntry?.surgeries?.length ?? 0;
-  const todayTotal = todayMri + todayRecheck + todayConsult + todayEmergency;
+  // Selected day's values
+  const dayMri = dayEntry?.mriCount ?? 0;
+  const dayRecheck = dayEntry?.recheckCount ?? 0;
+  const dayConsult = dayEntry?.newConsultCount ?? 0;
+  const dayEmergency = dayEntry?.emergencyCount ?? 0;
+  const daySurgeries = dayEntry?.surgeries?.length ?? 0;
+  const dayTotal = dayMri + dayRecheck + dayConsult + dayEmergency;
 
-  // Breakdown data: aggregate weeklyData by current week or month
+  // Date navigation
+  const goBack = useCallback(() => {
+    const prev = subDays(parseISO(selectedDate), 1);
+    setSelectedDate(format(prev, 'yyyy-MM-dd'));
+  }, [selectedDate]);
+
+  const goForward = useCallback(() => {
+    if (!isToday) {
+      const next = addDays(parseISO(selectedDate), 1);
+      const nextStr = format(next, 'yyyy-MM-dd');
+      // Don't go past today
+      if (nextStr <= today) {
+        setSelectedDate(nextStr);
+      }
+    }
+  }, [selectedDate, isToday, today]);
+
+  const goToToday = useCallback(() => {
+    setSelectedDate(today);
+  }, [today]);
+
+  // Format date for display
+  const displayDate = useMemo(() => {
+    if (isToday) return 'Today';
+    const d = parseISO(selectedDate);
+    const yesterday = subDays(parseISO(today), 1);
+    if (format(d, 'yyyy-MM-dd') === format(yesterday, 'yyyy-MM-dd')) return 'Yesterday';
+    return format(d, 'EEE, MMM d');
+  }, [selectedDate, isToday, today]);
+
+  // Breakdown data
   const breakdownData = useMemo(() => {
     if (!stats?.weeklyData?.length) return { mri: 0, surgery: 0, recheck: 0, consult: 0, emergency: 0 };
 
@@ -149,10 +187,10 @@ export function QuickAddTracker() {
   const maxBreakdown = Math.max(breakdownData.mri, breakdownData.surgery, breakdownData.recheck, breakdownData.consult, breakdownData.emergency, 1);
 
   const handleIncrement = useCallback((field: CounterField, delta: number) => {
-    increment({ field, delta });
-  }, [increment]);
+    increment({ field, delta, date: selectedDate });
+  }, [increment, selectedDate]);
 
-  if (statsLoading || todayLoading) {
+  if (statsLoading || dayLoading) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
@@ -167,19 +205,64 @@ export function QuickAddTracker() {
 
   return (
     <div className="space-y-4">
+      {/* Date Navigator */}
+      <div className={`${neoCard} p-3`}>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={goBack}
+            className={`${neoButton} w-10 h-10 flex items-center justify-center`}
+            style={{ backgroundColor: NEO_POP.colors.white }}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <span className={cn(
+              'text-sm font-bold',
+              isToday ? 'text-gray-900' : 'text-amber-700'
+            )}>
+              {displayDate}
+            </span>
+            {!isToday && (
+              <button
+                onClick={goToToday}
+                className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+              >
+                Back to today
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={goForward}
+            disabled={isToday}
+            className={`${neoButton} w-10 h-10 flex items-center justify-center disabled:opacity-30`}
+            style={{ backgroundColor: NEO_POP.colors.white }}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+        {!isToday && (
+          <div className="mt-2 text-center">
+            <span className="text-xs text-amber-600 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 font-medium">
+              Logging for {format(parseISO(selectedDate), 'MMMM d, yyyy')}
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* Section 1: Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Today's Total */}
         <div className={`${neoCard} p-4`} style={{ backgroundColor: NEO_POP.colors.cream }}>
           <div className="flex items-center gap-2 mb-2">
             <Target className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-bold text-gray-700">Today&apos;s Total</span>
+            <span className="text-sm font-bold text-gray-700">{displayDate}&apos;s Total</span>
           </div>
-          <div className="text-3xl font-black text-gray-900">{todayTotal}</div>
-          <p className="text-xs text-gray-500 mt-1">cases logged today</p>
+          <div className="text-3xl font-black text-gray-900">{dayTotal}</div>
+          <p className="text-xs text-gray-500 mt-1">cases logged</p>
         </div>
 
-        {/* MRI Count + Goal */}
         <div className={`${neoCard} p-4`} style={{ backgroundColor: '#F3E8FF' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -188,17 +271,16 @@ export function QuickAddTracker() {
             </div>
             <EditableGoal value={mriGoal} onChange={setMriGoal} label="MRI" />
           </div>
-          <div className="text-3xl font-black text-purple-900">{todayMri}</div>
+          <div className="text-3xl font-black text-purple-900">{dayMri}</div>
           <div className="mt-2 h-2 rounded-full border border-black overflow-hidden" style={{ backgroundColor: NEO_POP.colors.gray200 }}>
             <div
               className="h-full bg-purple-500 transition-all duration-500 rounded-full"
-              style={{ width: `${Math.min(100, (todayMri / mriGoal) * 100)}%` }}
+              style={{ width: `${Math.min(100, (dayMri / mriGoal) * 100)}%` }}
             />
           </div>
-          <p className="text-[10px] text-purple-600 mt-1">{todayMri}/{mriGoal} daily goal</p>
+          <p className="text-[10px] text-purple-600 mt-1">{dayMri}/{mriGoal} daily goal</p>
         </div>
 
-        {/* Surgery Count + Goal */}
         <div className={`${neoCard} p-4`} style={{ backgroundColor: '#FEE2E2' }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -207,14 +289,14 @@ export function QuickAddTracker() {
             </div>
             <EditableGoal value={surgeryGoal} onChange={setSurgeryGoal} label="surgery" />
           </div>
-          <div className="text-3xl font-black text-red-900">{todaySurgeries}</div>
+          <div className="text-3xl font-black text-red-900">{daySurgeries}</div>
           <div className="mt-2 h-2 rounded-full border border-black overflow-hidden" style={{ backgroundColor: NEO_POP.colors.gray200 }}>
             <div
               className="h-full bg-red-500 transition-all duration-500 rounded-full"
-              style={{ width: `${Math.min(100, (todaySurgeries / surgeryGoal) * 100)}%` }}
+              style={{ width: `${Math.min(100, (daySurgeries / surgeryGoal) * 100)}%` }}
             />
           </div>
-          <p className="text-[10px] text-red-600 mt-1">{todaySurgeries}/{surgeryGoal} daily goal</p>
+          <p className="text-[10px] text-red-600 mt-1">{daySurgeries}/{surgeryGoal} daily goal</p>
         </div>
       </div>
 
@@ -261,7 +343,6 @@ export function QuickAddTracker() {
 
       {/* Section 3: Quick Add Forms */}
       <div className={`${neoCard} p-4`}>
-        {/* Mode Toggle */}
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setMode('mri')}
@@ -287,19 +368,18 @@ export function QuickAddTracker() {
 
         {mode === 'mri' ? (
           <div className="space-y-3">
-            {/* Large MRI +/- buttons */}
             <div className="flex items-center justify-center gap-4">
               <button
                 onClick={() => handleIncrement('mriCount', -1)}
-                disabled={todayMri <= 0 || isPending}
+                disabled={dayMri <= 0 || isPending}
                 className={`${neoButton} w-14 h-14 flex items-center justify-center text-xl disabled:opacity-40`}
                 style={{ backgroundColor: NEO_POP.colors.pink }}
               >
                 <Minus className="w-6 h-6" />
               </button>
               <div className="text-center">
-                <div className="text-4xl font-black text-gray-900 tabular-nums">{todayMri}</div>
-                <div className="text-xs text-gray-500">MRIs today</div>
+                <div className="text-4xl font-black text-gray-900 tabular-nums">{dayMri}</div>
+                <div className="text-xs text-gray-500">MRIs {isToday ? 'today' : displayDate}</div>
               </div>
               <button
                 onClick={() => handleIncrement('mriCount', 1)}
@@ -317,12 +397,11 @@ export function QuickAddTracker() {
               </div>
             )}
 
-            {/* Compact rows for other counters */}
             <div className="border-t-2 border-black pt-3 space-y-2">
               {[
-                { label: 'Rechecks', field: 'recheckCount' as CounterField, value: todayRecheck, icon: <Users className="w-4 h-4" />, color: 'text-blue-600' },
-                { label: 'New Consults', field: 'newConsultCount' as CounterField, value: todayConsult, icon: <Stethoscope className="w-4 h-4" />, color: 'text-emerald-600' },
-                { label: 'Emergencies', field: 'emergencyCount' as CounterField, value: todayEmergency, icon: <AlertTriangle className="w-4 h-4" />, color: 'text-amber-600' },
+                { label: 'Rechecks', field: 'recheckCount' as CounterField, value: dayRecheck, icon: <Users className="w-4 h-4" />, color: 'text-blue-600' },
+                { label: 'New Consults', field: 'newConsultCount' as CounterField, value: dayConsult, icon: <Stethoscope className="w-4 h-4" />, color: 'text-emerald-600' },
+                { label: 'Emergencies', field: 'emergencyCount' as CounterField, value: dayEmergency, icon: <AlertTriangle className="w-4 h-4" />, color: 'text-amber-600' },
               ].map(({ label, field, value, icon, color }) => (
                 <div key={field} className="flex items-center justify-between">
                   <div className={`flex items-center gap-2 ${color}`}>
@@ -351,64 +430,58 @@ export function QuickAddTracker() {
             </div>
           </div>
         ) : (
-          /* Surgery Mode */
+          /* Surgery Mode — no daily entry blocker, auto-creates if needed */
           <div className="space-y-3">
-            {!todayEntry?.id ? (
-              <div className="flex items-center gap-2 p-3 rounded-xl border-2 border-amber-400" style={{ backgroundColor: NEO_POP.colors.yellow }}>
-                <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-                <p className="text-xs text-amber-800 font-medium">
-                  Log a case first to add surgeries. Use MRI mode to log your first case today.
-                </p>
-              </div>
-            ) : (
-              <SurgeryQuickForm dailyEntryId={todayEntry.id} variant="neo" />
-            )}
+            <SurgeryQuickForm
+              dailyEntryId={dayEntry?.id || null}
+              date={selectedDate}
+              variant="neo"
+            />
           </div>
         )}
       </div>
 
-      {/* Section 4: Today's History */}
+      {/* Section 4: Day's History */}
       <div className={`${neoCard} p-4`}>
-        <h3 className="text-sm font-bold text-gray-900 mb-3">Today&apos;s Log</h3>
+        <h3 className="text-sm font-bold text-gray-900 mb-3">{displayDate}&apos;s Log</h3>
 
-        {todayTotal === 0 && todaySurgeries === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-4">Nothing logged yet today</p>
+        {dayTotal === 0 && daySurgeries === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-4">Nothing logged{isToday ? ' yet today' : ` for ${displayDate}`}</p>
         ) : (
           <div className="space-y-2">
-            {/* MRI summary */}
-            {todayMri > 0 && (
+            {dayMri > 0 && (
               <div className="flex items-center gap-2 text-xs p-2 rounded-lg bg-purple-50 border border-purple-200">
                 <Brain className="w-4 h-4 text-purple-500" />
-                <span className="font-medium text-purple-800">{todayMri} MRI{todayMri !== 1 ? 's' : ''}</span>
+                <span className="font-medium text-purple-800">{dayMri} MRI{dayMri !== 1 ? 's' : ''}</span>
               </div>
             )}
 
-            {/* Other counters summary */}
-            {(todayRecheck > 0 || todayConsult > 0 || todayEmergency > 0) && (
+            {(dayRecheck > 0 || dayConsult > 0 || dayEmergency > 0) && (
               <div className="flex gap-2 flex-wrap">
-                {todayRecheck > 0 && (
+                {dayRecheck > 0 && (
                   <span className="text-xs px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-medium">
-                    {todayRecheck} Recheck{todayRecheck !== 1 ? 's' : ''}
+                    {dayRecheck} Recheck{dayRecheck !== 1 ? 's' : ''}
                   </span>
                 )}
-                {todayConsult > 0 && (
+                {dayConsult > 0 && (
                   <span className="text-xs px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium">
-                    {todayConsult} New Consult{todayConsult !== 1 ? 's' : ''}
+                    {dayConsult} New Consult{dayConsult !== 1 ? 's' : ''}
                   </span>
                 )}
-                {todayEmergency > 0 && (
+                {dayEmergency > 0 && (
                   <span className="text-xs px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 font-medium">
-                    {todayEmergency} Emergenc{todayEmergency !== 1 ? 'ies' : 'y'}
+                    {dayEmergency} Emergenc{dayEmergency !== 1 ? 'ies' : 'y'}
                   </span>
                 )}
               </div>
             )}
 
-            {/* Surgeries */}
-            {todayEntry?.surgeries && todayEntry.surgeries.length > 0 && (
+            {dayEntry?.surgeries && dayEntry.surgeries.length > 0 && (
               <div className="space-y-1.5 pt-1">
-                {todayEntry.surgeries.map((surgery) => {
-                  const level = PARTICIPATION_LEVELS[surgery.participation];
+                {dayEntry.surgeries.map((surgery) => {
+                  const displayRole = surgery.role || (surgery.participation === 'S' ? 'Primary' : 'Assistant');
+                  const roleColor = displayRole === 'Primary' ? 'bg-green-500' : 'bg-blue-400';
+
                   return (
                     <div
                       key={surgery.id}
@@ -421,14 +494,21 @@ export function QuickAddTracker() {
                           <span className="text-gray-500">({surgery.patientName})</span>
                         )}
                       </div>
-                      <span
-                        className={cn(
-                          'px-1.5 py-0.5 rounded text-[10px] font-bold text-white',
-                          level.color
+                      <div className="flex items-center gap-1.5">
+                        {surgery.patientOrigin && (
+                          <span className={cn(
+                            'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                            surgery.patientOrigin === 'new'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-amber-100 text-amber-700'
+                          )}>
+                            {surgery.patientOrigin}
+                          </span>
                         )}
-                      >
-                        {surgery.participation}
-                      </span>
+                        <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-bold text-white', roleColor)}>
+                          {displayRole}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}

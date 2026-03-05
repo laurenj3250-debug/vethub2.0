@@ -6,10 +6,14 @@ import { useResidencyStats } from '@/hooks/useResidencyStats';
 import { Brain, Users, Scissors, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  PARTICIPATION_LEVELS,
   getNextMilestone,
   getMilestoneProgress,
 } from '@/lib/residency-milestones';
+
+const ROLE_COLORS: Record<string, { color: string; textColor: string }> = {
+  Primary: { color: 'bg-green-500', textColor: 'text-green-700' },
+  Assistant: { color: 'bg-blue-400', textColor: 'text-blue-700' },
+};
 import { StatsOverviewSkeleton } from './StatsOverviewSkeleton';
 
 export function StatsOverview() {
@@ -106,17 +110,18 @@ export function StatsOverview() {
           <CardContent>
             <div className="text-3xl font-bold">{surgeryBreakdown.total}</div>
             <div className="flex flex-wrap gap-2 text-sm mt-1">
-              {Object.entries(surgeryBreakdown)
-                .filter(([k]) => k !== 'total')
-                .map(([role, count]) => {
-                  const config = PARTICIPATION_LEVELS[role as keyof typeof PARTICIPATION_LEVELS];
+              {(['Primary', 'Assistant'] as const)
+                .filter((role) => (surgeryBreakdown as Record<string, number>)[role] > 0)
+                .map((role) => {
+                  const count = (surgeryBreakdown as Record<string, number>)[role];
+                  const config = ROLE_COLORS[role];
                   return (
                     <span
                       key={role}
                       className={cn(
                         'px-2 py-0.5 rounded-full text-xs font-medium',
-                        `${config?.color}/20`,
-                        config?.textColor
+                        `${config?.color || 'bg-gray-400'}/20`,
+                        config?.textColor || 'text-gray-600'
                       )}
                     >
                       {role}: {count}

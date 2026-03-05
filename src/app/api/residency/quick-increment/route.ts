@@ -18,6 +18,7 @@ type CounterField = typeof COUNTER_FIELDS[number];
 const quickIncrementSchema = z.object({
   field: z.enum(COUNTER_FIELDS),
   delta: z.number().int().min(-1).max(1), // Only allow +1 or -1
+  date: z.string().optional(), // Optional ISO date for backdating
 });
 
 // Validation schema for clock in/out (single action)
@@ -105,19 +106,19 @@ export async function POST(request: NextRequest) {
 
     // Counter increment
     const validated = quickIncrementSchema.parse(body);
-    const today = getTodayET();
+    const targetDate = validated.date || getTodayET();
 
     // Use a transaction to ensure atomic read-modify-write
     const entry = await prisma.$transaction(async (tx) => {
-      // Get or create the entry for today
+      // Get or create the entry for the target date
       let existing = await tx.dailyEntry.findUnique({
-        where: { date: today },
+        where: { date: targetDate },
       });
 
       if (!existing) {
         existing = await tx.dailyEntry.create({
           data: {
-            date: today,
+            date: targetDate,
             mriCount: 0,
             recheckCount: 0,
             newConsultCount: 0,
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
 
       // Update the entry
       return tx.dailyEntry.update({
-        where: { date: today },
+        where: { date: targetDate },
         data: updates,
       });
     });

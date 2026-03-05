@@ -179,7 +179,9 @@ function ACVIMResidencyTrackerPage() {
     supervisingNeurologists: '',
     hours: 1.0,
     notes: '',
+    articleUrl: '',
   });
+  const [fetchingArticle, setFetchingArticle] = useState(false);
 
   const [profileForm, setProfileForm] = useState({
     residentName: '',
@@ -382,13 +384,14 @@ function ACVIMResidencyTrackerPage() {
   }
 
   // Start editing a journal club entry
-  function handleEditJournal(j: JournalClubEntry) {
+  function handleEditJournal(j: JournalClubEntry & { articleUrl?: string }) {
     setJournalForm({
       date: j.date,
       articleTitles: j.articleTitles.join('\n'),
       supervisingNeurologists: j.supervisingNeurologists.join(', '),
       hours: j.hours,
       notes: j.notes || '',
+      articleUrl: j.articleUrl || '',
     });
     setEditingJournalId(j.id);
     setShowJournalDialog(true);
@@ -419,6 +422,7 @@ function ACVIMResidencyTrackerPage() {
             .filter(Boolean),
           hours: journalForm.hours,
           notes: journalForm.notes,
+          articleUrl: journalForm.articleUrl || undefined,
           residencyYear: selectedYear,
         }),
       });
@@ -450,7 +454,35 @@ function ACVIMResidencyTrackerPage() {
       supervisingNeurologists: profile?.supervisingDiplomateNames?.join(', ') || '',
       hours: 1.0,
       notes: '',
+      articleUrl: '',
     });
+  }
+
+  // Fetch article title from URL
+  async function handleFetchArticle() {
+    if (!journalForm.articleUrl) return;
+    setFetchingArticle(true);
+    try {
+      const res = await fetch('/api/acvim/journal-club/fetch-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: journalForm.articleUrl }),
+      });
+      const data = await res.json();
+      if (res.ok && data.title) {
+        const currentTitles = journalForm.articleTitles.trim();
+        setJournalForm({
+          ...journalForm,
+          articleTitles: currentTitles ? `${currentTitles}\n${data.title}` : data.title,
+        });
+      } else {
+        alert(data.error || 'Could not fetch article title');
+      }
+    } catch {
+      alert('Failed to fetch article metadata');
+    } finally {
+      setFetchingArticle(false);
+    }
   }
 
   // Delete journal entry
@@ -1528,6 +1560,29 @@ function ACVIMResidencyTrackerPage() {
             </h3>
 
             <div className="space-y-3">
+              {/* URL Auto-Fetch */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Paste Article URL (auto-fills title)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={journalForm.articleUrl}
+                    onChange={(e) => setJournalForm({ ...journalForm, articleUrl: e.target.value })}
+                    placeholder="https://pubmed.ncbi.nlm.nih.gov/..."
+                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  />
+                  <button
+                    onClick={handleFetchArticle}
+                    disabled={!journalForm.articleUrl || fetchingArticle}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm font-medium whitespace-nowrap"
+                  >
+                    {fetchingArticle ? 'Fetching...' : 'Fetch'}
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Date *</label>
                 <input

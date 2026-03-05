@@ -6,10 +6,13 @@ interface Surgery {
   id: string;
   dailyEntryId: string;
   procedureName: string;
-  participation: 'S' | 'O' | 'C' | 'D' | 'K';
+  participation?: string; // Legacy field
+  role?: 'Primary' | 'Assistant';
+  patientOrigin?: 'new' | 'hospitalized';
   patientName?: string;
   patientId?: number;
   notes?: string;
+  acvimCaseId?: string;
 }
 
 interface LMRIEntry {
@@ -51,12 +54,15 @@ interface Stats {
     totalAppointments: number;
   };
   surgeryBreakdown: {
-    S: number;
-    O: number;
-    C: number;
-    D: number;
-    K: number;
+    Primary: number;
+    Assistant: number;
     total: number;
+    // Legacy fields for backward compat
+    S?: number;
+    O?: number;
+    C?: number;
+    D?: number;
+    K?: number;
   };
   lmriStats: {
     total: number;
@@ -138,9 +144,11 @@ export function useAddSurgery() {
 
   return useMutation({
     mutationFn: async (data: {
-      dailyEntryId: string;
+      dailyEntryId?: string;
+      date?: string;
       procedureName: string;
-      participation: 'S' | 'O' | 'C' | 'D' | 'K';
+      role: 'Primary' | 'Assistant';
+      patientOrigin?: 'new' | 'hospitalized';
       patientName?: string;
       patientId?: number;
       notes?: string;
@@ -154,39 +162,38 @@ export function useAddSurgery() {
       return res.json();
     },
     onMutate: async (newSurgery) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
-
-      // Snapshot the previous value
       const previousEntries = queryClient.getQueriesData({ queryKey: ['daily-entry'] });
 
-      // Optimistically update the cache
-      queryClient.setQueriesData<DailyEntry | null>(
-        { queryKey: ['daily-entry'] },
-        (old) => {
-          if (!old || old.id !== newSurgery.dailyEntryId) return old;
-          return {
-            ...old,
-            surgeries: [
-              ...old.surgeries,
-              {
-                id: `temp-${Date.now()}`, // Temporary ID until server responds
-                dailyEntryId: newSurgery.dailyEntryId,
-                procedureName: newSurgery.procedureName,
-                participation: newSurgery.participation,
-                patientName: newSurgery.patientName,
-                patientId: newSurgery.patientId,
-                notes: newSurgery.notes,
-              },
-            ],
-          };
-        }
-      );
+      // Optimistically update if we have a dailyEntryId
+      if (newSurgery.dailyEntryId) {
+        queryClient.setQueriesData<DailyEntry | null>(
+          { queryKey: ['daily-entry'] },
+          (old) => {
+            if (!old || old.id !== newSurgery.dailyEntryId) return old;
+            return {
+              ...old,
+              surgeries: [
+                ...old.surgeries,
+                {
+                  id: `temp-${Date.now()}`,
+                  dailyEntryId: newSurgery.dailyEntryId!,
+                  procedureName: newSurgery.procedureName,
+                  role: newSurgery.role,
+                  patientOrigin: newSurgery.patientOrigin,
+                  patientName: newSurgery.patientName,
+                  patientId: newSurgery.patientId,
+                  notes: newSurgery.notes,
+                },
+              ],
+            };
+          }
+        );
+      }
 
       return { previousEntries };
     },
     onError: (error, _, context) => {
-      // Rollback on error
       if (context?.previousEntries) {
         context.previousEntries.forEach(([queryKey, data]) => {
           queryClient.setQueryData(queryKey, data);
@@ -205,7 +212,6 @@ export function useAddSurgery() {
       });
     },
     onSettled: () => {
-      // Always refetch after mutation settles
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
       queryClient.invalidateQueries({ queryKey: ['milestones'] });
@@ -307,6 +313,7 @@ export function useCelebrateMilestone() {
 type CounterField = 'mriCount' | 'recheckCount' | 'newConsultCount' | 'emergencyCount' | 'commsCount';
 
 // Quick increment for dashboard card - optimistic updates for instant feedback
+// Supports backdating via optional `date` parameter
 export function useQuickIncrement() {
   const queryClient = useQueryClient();
 
@@ -314,8 +321,8 @@ export function useQuickIncrement() {
     mutationFn: async (data: {
       field: CounterField;
       delta: number; // +1 or -1
+      date?: string; // Optional ISO date for backdating
     }) => {
-      // Let server determine "today" to avoid timezone mismatch
       const res = await fetch('/api/residency/quick-increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -327,32 +334,25 @@ export function useQuickIncrement() {
       }
       return res.json();
     },
-    onMutate: async ({ field, delta }) => {
-      // Cancel outgoing refetches
+    onMutate: async ({ field, delta, date }) => {
       await queryClient.cancelQueries({ queryKey: ['residency-stats'] });
       await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
 
-      // Snapshot previous values for rollback
       const previousStats = queryClient.getQueryData<Stats>(['residency-stats']);
 
-      // Get today's date in Eastern Time for query key matching
-      const todayKey = getTodayET();
-      const previousDailyEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', todayKey]);
+      // Use provided date or today
+      const targetKey = date || getTodayET();
+      const previousDailyEntry = queryClient.getQueryData<DailyEntry | null>(['daily-entry', targetKey]);
 
-      // Get today's current value for the field
-      const currentTodayValue = (previousDailyEntry?.[field] as number) ?? 0;
+      const currentValue = (previousDailyEntry?.[field] as number) ?? 0;
 
-      // Calculate the actual delta (can't go below 0 for TODAY's values)
       let actualDelta = delta;
-      if (delta < 0 && currentTodayValue <= 0) {
-        // Can't decrement - today's value is already 0
+      if (delta < 0 && currentValue <= 0) {
         actualDelta = 0;
       }
 
-      // Only update if there's an actual change
       if (actualDelta === 0 && delta < 0) {
-        // Decrement was blocked - don't update anything
-        return { previousStats, previousDailyEntry, blocked: true };
+        return { previousStats, previousDailyEntry, blocked: true, targetKey };
       }
 
       // Optimistically update global stats
@@ -362,22 +362,20 @@ export function useQuickIncrement() {
         const fieldValue = (newTotals[field] as number) ?? 0;
         newTotals[field] = Math.max(0, fieldValue + actualDelta);
 
-        // Update calculated fields
         if (field === 'newConsultCount') {
-          newTotals.newCount = newTotals.newConsultCount; // Keep legacy field in sync
+          newTotals.newCount = newTotals.newConsultCount;
         }
-        // Recalculate totalAppointments
         newTotals.totalAppointments = (newTotals.recheckCount ?? 0) +
           (newTotals.newConsultCount ?? 0) + (newTotals.emergencyCount ?? 0);
 
         return { ...old, totals: newTotals };
       });
 
-      // Optimistically update today's daily entry
-      queryClient.setQueryData<DailyEntry | null>(['daily-entry', todayKey], (old) => {
+      // Optimistically update the target day's entry
+      queryClient.setQueryData<DailyEntry | null>(['daily-entry', targetKey], (old) => {
         const baseEntry: DailyEntry = old ?? {
           id: 'temp-' + Date.now(),
-          date: todayKey,
+          date: targetKey,
           mriCount: 0,
           recheckCount: 0,
           newConsultCount: 0,
@@ -389,35 +387,32 @@ export function useQuickIncrement() {
           lmriEntries: [],
         };
 
-        const currentValue = (baseEntry[field] as number) ?? 0;
-        const newValue = Math.max(0, currentValue + actualDelta);
+        const curVal = (baseEntry[field] as number) ?? 0;
+        const newValue = Math.max(0, curVal + actualDelta);
 
         const updated = {
           ...baseEntry,
           [field]: newValue,
         };
 
-        // Keep newCount in sync with newConsultCount
         if (field === 'newConsultCount') {
           updated.newCount = newValue;
         }
 
-        // Recalculate totalCases
         updated.totalCases = updated.mriCount + updated.recheckCount +
           updated.newConsultCount + updated.emergencyCount;
 
         return updated;
       });
 
-      return { previousStats, previousDailyEntry, todayKey };
+      return { previousStats, previousDailyEntry, targetKey };
     },
     onError: (error, _, context) => {
-      // Rollback on error
       if (context?.previousStats) {
         queryClient.setQueryData(['residency-stats'], context.previousStats);
       }
-      if (context?.todayKey && context?.previousDailyEntry !== undefined) {
-        queryClient.setQueryData(['daily-entry', context.todayKey], context.previousDailyEntry);
+      if (context?.targetKey && context?.previousDailyEntry !== undefined) {
+        queryClient.setQueryData(['daily-entry', context.targetKey], context.previousDailyEntry);
       }
       toast({
         title: 'Failed to update',
@@ -426,16 +421,13 @@ export function useQuickIncrement() {
       });
     },
     onSuccess: (data) => {
-      // Update with server response to ensure consistency
       if (data?.date) {
         queryClient.setQueryData(['daily-entry', data.date], data);
       }
     },
     onSettled: (_, __, ___, context) => {
-      // Don't refetch if mutation was blocked
       if (context?.blocked) return;
 
-      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
       queryClient.invalidateQueries({ queryKey: ['milestones'] });
