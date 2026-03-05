@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MRI_DEFAULT_DIAGNOSTICS } from '@/lib/constants';
+import { getTodayET } from '@/lib/timezone';
 
 /**
  * GET /api/patients
@@ -140,6 +141,39 @@ export async function POST(request: NextRequest) {
         tasks: true,
       },
     });
+
+    // Auto-increment tomorrow's MRI count when admitting an MRI patient
+    // (MRI patients are admitted the evening before, MRI happens next morning)
+    if (patientType === 'MRI') {
+      try {
+        const today = getTodayET();
+        const tomorrow = new Date(today + 'T12:00:00Z'); // noon UTC to avoid timezone edge
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const mriDate = tomorrow.toISOString().split('T')[0];
+
+        await prisma.dailyEntry.upsert({
+          where: { date: mriDate },
+          create: {
+            date: mriDate,
+            mriCount: 1,
+            recheckCount: 0,
+            newConsultCount: 0,
+            newCount: 0,
+            emergencyCount: 0,
+            commsCount: 0,
+            totalCases: 1,
+          },
+          update: {
+            mriCount: { increment: 1 },
+            totalCases: { increment: 1 },
+          },
+        });
+        console.log(`[API] Auto-incremented MRI count for ${mriDate} (patient ${patient.id})`);
+      } catch (mriError) {
+        console.error('[API] Error auto-incrementing MRI count:', mriError);
+        // Don't fail patient creation if MRI count fails
+      }
+    }
 
     // Auto-create tasks based on patient type
     const createdTasks: any[] = [];

@@ -51,6 +51,21 @@ export async function GET() {
       { Primary: 0, Assistant: 0, total: 0 } as Record<string, number>
     );
 
+    // MRI type breakdown from patient data (scan types like Brain, C-Spine, etc.)
+    const mriPatients = await prisma.patient.findMany({
+      where: { type: 'MRI' },
+      select: { mriData: true },
+    });
+    const mriTypeBreakdown: Record<string, number> = {};
+    for (const p of mriPatients) {
+      const scanType = (p.mriData as any)?.scanType || '';
+      // Handle comma-separated multi-select values (e.g., "Brain, C-Spine")
+      const types = scanType ? scanType.split(',').map((s: string) => s.trim()).filter(Boolean) : ['Unknown'];
+      for (const t of types) {
+        mriTypeBreakdown[t] = (mriTypeBreakdown[t] || 0) + 1;
+      }
+    }
+
     // LMRI+ accuracy stats
     const allLmri = entries.flatMap((e) => e.lmriEntries);
     const lmriStats = {
@@ -104,6 +119,7 @@ export async function GET() {
     return NextResponse.json({
       totals,
       surgeryBreakdown,
+      mriTypeBreakdown,
       lmriStats,
       weeklyData,
       milestones,

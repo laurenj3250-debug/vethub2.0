@@ -23,7 +23,7 @@ export function StatsOverview() {
     return <StatsOverviewSkeleton />;
   }
 
-  const { totals, surgeryBreakdown, daysUntilFreedom, daysLogged } = stats;
+  const { totals, surgeryBreakdown, mriTypeBreakdown, daysUntilFreedom, daysLogged } = stats;
 
   const nextMriMilestone = getNextMilestone(totals.mriCount, 'mri');
   const nextApptMilestone = getNextMilestone(totals.totalAppointments, 'appointment');
@@ -65,6 +65,28 @@ export function StatsOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{totals.mriCount}</div>
+            {mriTypeBreakdown && Object.keys(mriTypeBreakdown).filter(k => k !== 'Unknown').length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {Object.entries(mriTypeBreakdown)
+                  .filter(([k]) => k !== 'Unknown')
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([type, count]) => (
+                    <span
+                      key={type}
+                      className={cn(
+                        'px-2 py-0.5 rounded-full text-xs font-medium',
+                        type === 'Brain' ? 'bg-purple-100 text-purple-700' :
+                        type === 'C-Spine' ? 'bg-blue-100 text-blue-700' :
+                        type === 'T-Spine' ? 'bg-emerald-100 text-emerald-700' :
+                        type === 'LS' ? 'bg-amber-100 text-amber-700' :
+                        'bg-gray-100 text-gray-600'
+                      )}
+                    >
+                      {type}: {count}
+                    </span>
+                  ))}
+              </div>
+            )}
             <div className="mt-2 space-y-1">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Next: {nextMriMilestone}</span>

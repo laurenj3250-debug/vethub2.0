@@ -64,6 +64,7 @@ interface Stats {
     D?: number;
     K?: number;
   };
+  mriTypeBreakdown: Record<string, number>;
   lmriStats: {
     total: number;
     localizationCorrect: number;

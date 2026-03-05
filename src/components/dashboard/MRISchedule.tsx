@@ -7,6 +7,8 @@ import { apiClient } from '@/lib/api-client';
 import { NEO_SHADOW, NEO_SHADOW_SM, NEO_BORDER, NEO_COLORS } from '@/lib/neo-styles';
 import { downloadCombinedMRISheetPDF } from '@/lib/pdf-generators/mri-anesthesia-sheet';
 
+const MRI_SCAN_OPTIONS = ['Brain', 'C-Spine', 'T-Spine', 'LS'] as const;
+
 interface Patient {
   id: number;
   name?: string;
@@ -20,6 +22,47 @@ interface Patient {
   mriData?: {
     scanType?: string;
   };
+}
+
+// Multi-select pill toggle for MRI scan types
+function ScanTypeMultiSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const selected = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const toggle = (option: string) => {
+    const next = selected.includes(option)
+      ? selected.filter(s => s !== option)
+      : [...selected, option];
+    onChange(next.join(', '));
+  };
+
+  return (
+    <div className="flex gap-1 flex-wrap">
+      {MRI_SCAN_OPTIONS.map((option) => {
+        const isActive = selected.includes(option);
+        return (
+          <button
+            key={option}
+            onClick={() => toggle(option)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              isActive
+                ? 'text-white shadow-[1px_1px_0_#000]'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+            style={{
+              border: '1px solid #000',
+              ...(isActive ? {
+                backgroundColor: option === 'Brain' ? '#8B5CF6' :
+                  option === 'C-Spine' ? '#3B82F6' :
+                  option === 'T-Spine' ? '#10B981' : '#F59E0B'
+              } : {}),
+            }}
+          >
+            {option}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 interface MRIScheduleProps {
@@ -420,14 +463,13 @@ export function MRISchedule({
                   </div>
                 </td>
                 <td className="p-3">
-                  <div className="flex items-center">
-                    <input
-                      type="text"
+                  <div className="flex items-center gap-1">
+                    <ScanTypeMultiSelect
                       value={mriInputValues[`${patient.id}-scanType`] ?? (patient.mriData?.scanType || '')}
-                      onChange={(e) => debouncedMRIUpdate(patient.id, 'scanType', e.target.value, 'mriData')}
-                      className="w-full rounded-lg px-2 py-1.5 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#6BB89D]"
-                      style={{ border: '1px solid #000', backgroundColor: 'white' }}
-                      placeholder="Brain, LS, C-Spine..."
+                      onChange={(value) => {
+                        setMriInputValues(prev => ({ ...prev, [`${patient.id}-scanType`]: value }));
+                        debouncedMRIUpdate(patient.id, 'scanType', value, 'mriData');
+                      }}
                     />
                     {renderSaveStatus(patient.id, 'scanType')}
                   </div>
