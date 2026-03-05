@@ -17,6 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  BookOpen,
+  Link,
+  Loader2,
 } from 'lucide-react';
 import {
   useResidencyStats,
@@ -24,6 +27,8 @@ import {
   useDailyEntry,
   usePendingSurgeries,
   useAddSurgery,
+  useAddJournalClub,
+  useFetchArticleMetadata,
   type CounterField,
 } from '@/hooks/useResidencyStats';
 import { SurgeryQuickForm } from '@/components/residency/SurgeryQuickForm';
@@ -189,6 +194,125 @@ function PendingSurgeryRow({
   );
 }
 
+// Journal club quick-add form
+function JournalQuickForm({ date }: { date: string }) {
+  const [url, setUrl] = useState('');
+  const [title, setTitle] = useState('');
+  const [hours, setHours] = useState(1);
+  const [fetched, setFetched] = useState(false);
+
+  const { mutateAsync: fetchMeta, isPending: isFetching } = useFetchArticleMetadata();
+  const { mutateAsync: addJournal, isPending: isSaving } = useAddJournalClub();
+
+  const handleFetch = useCallback(async () => {
+    if (!url.trim()) return;
+    try {
+      const result = await fetchMeta(url.trim());
+      setTitle(result.title);
+      setFetched(true);
+    } catch {
+      // Error toast handled by mutation
+      setFetched(false);
+    }
+  }, [url, fetchMeta]);
+
+  const handleSave = useCallback(async () => {
+    if (!title.trim()) return;
+    try {
+      await addJournal({
+        date,
+        articleTitles: [title.trim()],
+        hours,
+        articleUrl: url.trim() || undefined,
+        residencyYear: 1,
+      });
+      // Reset form
+      setUrl('');
+      setTitle('');
+      setHours(1);
+      setFetched(false);
+    } catch {
+      // Error toast handled by mutation
+    }
+  }, [title, hours, url, date, addJournal]);
+
+  return (
+    <div className="space-y-3">
+      {/* URL input with fetch button */}
+      <div className="flex gap-2">
+        <div className="flex-1 relative">
+          <Link className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => { setUrl(e.target.value); setFetched(false); }}
+            placeholder="Paste PubMed or DOI link..."
+            className="w-full text-xs p-2.5 pl-9 rounded-xl border-2 border-black bg-white font-medium"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleFetch(); }}
+          />
+        </div>
+        <button
+          onClick={handleFetch}
+          disabled={!url.trim() || isFetching}
+          className={cn(
+            'px-3 py-2 text-xs font-bold rounded-xl border-2 border-black transition-all',
+            'disabled:opacity-40',
+            url.trim() ? 'bg-blue-500 text-white shadow-[2px_2px_0_#000]' : 'bg-gray-200 text-gray-400'
+          )}
+        >
+          {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Fetch'}
+        </button>
+      </div>
+
+      {/* Title (auto-filled or manual) */}
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder={fetched ? '' : 'Or type article title manually...'}
+        className={cn(
+          'w-full text-xs p-2.5 rounded-xl border-2 border-black bg-white font-medium',
+          fetched && 'border-green-500 bg-green-50'
+        )}
+      />
+
+      {/* Hours + Save */}
+      <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium text-gray-600">Hours:</span>
+          <button
+            onClick={() => setHours((h) => Math.max(0.5, h - 0.5))}
+            disabled={hours <= 0.5}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white bg-rose-500 hover:bg-rose-600 disabled:opacity-40 transition-all active:scale-90"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
+          <span className="w-8 text-center text-sm font-bold tabular-nums">{hours}</span>
+          <button
+            onClick={() => setHours((h) => Math.min(8, h + 0.5))}
+            disabled={hours >= 8}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 transition-all active:scale-90"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="flex-1" />
+        <button
+          onClick={handleSave}
+          disabled={!title.trim() || isSaving}
+          className={cn(
+            'px-5 py-2.5 text-xs font-bold rounded-xl border-2 border-black transition-all',
+            'disabled:opacity-40',
+            title.trim() ? 'bg-green-500 text-white shadow-[2px_2px_0_#000]' : 'bg-gray-200 text-gray-400'
+          )}
+        >
+          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Log Journal'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function QuickAddTracker() {
   const { data: stats, isLoading: statsLoading } = useResidencyStats();
   const { mutate: increment, isPending } = useQuickIncrement();
@@ -205,7 +329,7 @@ export function QuickAddTracker() {
   const { data: pendingSurgeries } = usePendingSurgeries();
 
   // Quick add mode toggle
-  const [mode, setMode] = useState<'mri' | 'surgery'>('mri');
+  const [mode, setMode] = useState<'mri' | 'surgery' | 'journal'>('mri');
   const [breakdownView, setBreakdownView] = useState<'weekly' | 'monthly'>('weekly');
 
   // Editable daily goals
@@ -443,23 +567,33 @@ export function QuickAddTracker() {
         <div className="flex gap-2 mb-4">
           <button
             onClick={() => setMode('mri')}
-            className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm`}
+            className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs sm:text-sm`}
             style={{
               backgroundColor: mode === 'mri' ? NEO_POP.colors.lavender : NEO_POP.colors.white,
             }}
           >
             <Brain className="w-4 h-4" />
-            MRI Mode
+            MRI
           </button>
           <button
             onClick={() => setMode('surgery')}
-            className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm`}
+            className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs sm:text-sm`}
             style={{
               backgroundColor: mode === 'surgery' ? NEO_POP.colors.pink : NEO_POP.colors.white,
             }}
           >
             <Scissors className="w-4 h-4" />
-            Surgery Mode
+            Surgery
+          </button>
+          <button
+            onClick={() => setMode('journal')}
+            className={`${neoButton} flex-1 flex items-center justify-center gap-2 px-3 py-2.5 text-xs sm:text-sm`}
+            style={{
+              backgroundColor: mode === 'journal' ? '#DBEAFE' : NEO_POP.colors.white,
+            }}
+          >
+            <BookOpen className="w-4 h-4" />
+            Journal
           </button>
         </div>
 
@@ -526,7 +660,7 @@ export function QuickAddTracker() {
               ))}
             </div>
           </div>
-        ) : (
+        ) : mode === 'surgery' ? (
           /* Surgery Mode — pending patients + manual form */
           <div className="space-y-3">
             {/* Pending surgery patients (admitted but not logged) */}
@@ -557,6 +691,9 @@ export function QuickAddTracker() {
               variant="neo"
             />
           </div>
+        ) : (
+          /* Journal Mode */
+          <JournalQuickForm date={selectedDate} />
         )}
       </div>
 

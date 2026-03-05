@@ -601,5 +601,67 @@ export function usePendingSurgeries() {
   });
 }
 
+// Journal club quick-add
+export function useAddJournalClub() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      date: string;
+      articleTitles: string[];
+      hours: number;
+      articleUrl?: string;
+      residencyYear?: number;
+      notes?: string;
+    }) => {
+      const res = await fetch('/api/acvim/journal-club', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to add journal entry');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Journal logged',
+        description: 'Article added to your journal club log.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to log journal',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal-club'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+    },
+  });
+}
+
+// Fetch article metadata from URL
+export function useFetchArticleMetadata() {
+  return useMutation({
+    mutationFn: async (url: string) => {
+      const res = await fetch('/api/acvim/journal-club/fetch-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Could not fetch article info');
+      }
+      return res.json() as Promise<{ title: string; source: string; pmid?: string; doi?: string }>;
+    },
+  });
+}
+
 // Export types for use in components
 export type { DailyEntry, Surgery, LMRIEntry, Stats, CounterField, PendingSurgery };
