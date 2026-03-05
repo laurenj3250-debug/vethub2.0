@@ -660,6 +660,13 @@ export function useFetchArticleMetadata() {
       }
       return res.json() as Promise<{ title: string; source: string; pmid?: string; doi?: string }>;
     },
+    onError: (error) => {
+      toast({
+        title: 'Could not fetch article',
+        description: error instanceof Error ? error.message : 'Try a PubMed or DOI link.',
+        variant: 'destructive',
+      });
+    },
   });
 }
 

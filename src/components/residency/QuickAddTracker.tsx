@@ -205,7 +205,7 @@ function JournalQuickForm({ date }: { date: string }) {
   const { mutateAsync: addJournal, isPending: isSaving } = useAddJournalClub();
 
   const handleFetch = useCallback(async () => {
-    if (!url.trim()) return;
+    if (!url.trim() || isFetching) return;
     try {
       const result = await fetchMeta(url.trim());
       setTitle(result.title);
@@ -214,17 +214,24 @@ function JournalQuickForm({ date }: { date: string }) {
       // Error toast handled by mutation
       setFetched(false);
     }
-  }, [url, fetchMeta]);
+  }, [url, isFetching, fetchMeta]);
 
   const handleSave = useCallback(async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || isSaving) return;
     try {
+      // Calculate residency year from July 2024 start
+      const now = new Date();
+      const startYear = 2024;
+      const startMonth = 6; // July (0-indexed)
+      const monthsIn = (now.getFullYear() - startYear) * 12 + (now.getMonth() - startMonth);
+      const residencyYear = Math.max(1, Math.min(3, Math.ceil((monthsIn + 1) / 12)));
+
       await addJournal({
         date,
         articleTitles: [title.trim()],
         hours,
         articleUrl: url.trim() || undefined,
-        residencyYear: 1,
+        residencyYear,
       });
       // Reset form
       setUrl('');
@@ -234,7 +241,7 @@ function JournalQuickForm({ date }: { date: string }) {
     } catch {
       // Error toast handled by mutation
     }
-  }, [title, hours, url, date, addJournal]);
+  }, [title, hours, url, date, isSaving, addJournal]);
 
   return (
     <div className="space-y-3">
@@ -268,7 +275,7 @@ function JournalQuickForm({ date }: { date: string }) {
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => { setTitle(e.target.value); if (fetched) setFetched(false); }}
         placeholder={fetched ? '' : 'Or type article title manually...'}
         className={cn(
           'w-full text-xs p-2.5 rounded-xl border-2 border-black bg-white font-medium',
