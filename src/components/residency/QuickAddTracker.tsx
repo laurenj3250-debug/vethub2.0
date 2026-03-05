@@ -22,12 +22,16 @@ import {
   useResidencyStats,
   useQuickIncrement,
   useDailyEntry,
+  usePendingSurgeries,
+  useAddSurgery,
   type CounterField,
 } from '@/hooks/useResidencyStats';
 import { SurgeryQuickForm } from '@/components/residency/SurgeryQuickForm';
+import { COMMON_PROCEDURES } from '@/lib/residency-milestones';
 import { NEO_POP, neoCard, neoButton } from '@/lib/neo-pop-styles';
 import { cn } from '@/lib/utils';
 import { getTodayET } from '@/lib/timezone';
+import type { PendingSurgery } from '@/hooks/useResidencyStats';
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, isWithinInterval, format, addDays, subDays } from 'date-fns';
 
 // localStorage keys for editable goals
@@ -95,6 +99,96 @@ function EditableGoal({ value, onChange, label }: { value: number; onChange: (v:
   );
 }
 
+// Pending surgery row — pre-filled patient, just needs procedure + role
+function PendingSurgeryRow({
+  pending,
+  dailyEntryId,
+  date,
+}: {
+  pending: PendingSurgery;
+  dailyEntryId: string | null;
+  date: string;
+}) {
+  const [procedure, setProcedure] = useState('');
+  const [role, setRole] = useState<'Primary' | 'Assistant'>('Primary');
+  const { mutateAsync: addSurgery, isPending } = useAddSurgery();
+
+  const handleLog = useCallback(async () => {
+    if (!procedure) return;
+    try {
+      await addSurgery({
+        dailyEntryId: dailyEntryId || undefined,
+        date,
+        procedureName: procedure,
+        role,
+        patientOrigin: 'hospitalized', // Surgery patients are already admitted
+        patientId: pending.patientId,
+        patientName: pending.patientName,
+      });
+    } catch {
+      // Toast handled by mutation
+    }
+  }, [procedure, role, dailyEntryId, date, pending, addSurgery]);
+
+  return (
+    <div
+      className="rounded-xl border-2 border-amber-300 bg-amber-50 p-3 space-y-2"
+      style={{ boxShadow: '2px 2px 0 #000' }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Scissors className="w-4 h-4 text-red-500" />
+          <span className="text-sm font-bold text-gray-900">{pending.patientName}</span>
+          {pending.species && (
+            <span className="text-xs text-gray-500">{pending.species}</span>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2 items-end">
+        <select
+          value={procedure}
+          onChange={(e) => setProcedure(e.target.value)}
+          className="flex-1 text-xs p-2 rounded-xl border-2 border-black bg-white font-medium"
+        >
+          <option value="">Procedure...</option>
+          {COMMON_PROCEDURES.map((proc) => (
+            <option key={proc} value={proc}>{proc}</option>
+          ))}
+        </select>
+        <div className="flex gap-1">
+          {(['Primary', 'Assistant'] as const).map((r) => (
+            <button
+              key={r}
+              onClick={() => setRole(r)}
+              className={cn(
+                'px-2.5 py-2 text-xs font-bold rounded-xl border-2 border-black transition-all',
+                role === r
+                  ? r === 'Primary'
+                    ? 'bg-green-500 text-white shadow-[2px_2px_0_#000]'
+                    : 'bg-blue-400 text-white shadow-[2px_2px_0_#000]'
+                  : 'bg-white text-gray-500'
+              )}
+            >
+              {r === 'Primary' ? 'P' : 'A'}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={handleLog}
+          disabled={!procedure || isPending}
+          className={cn(
+            'px-4 py-2 text-xs font-bold rounded-xl border-2 border-black transition-all',
+            'disabled:opacity-40',
+            procedure ? 'bg-green-500 text-white shadow-[2px_2px_0_#000]' : 'bg-gray-200 text-gray-400'
+          )}
+        >
+          {isPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function QuickAddTracker() {
   const { data: stats, isLoading: statsLoading } = useResidencyStats();
   const { mutate: increment, isPending } = useQuickIncrement();
@@ -106,6 +200,9 @@ export function QuickAddTracker() {
 
   // Fetch entry for selected date
   const { data: dayEntry, isLoading: dayLoading } = useDailyEntry(selectedDate);
+
+  // Pending surgery patients (admitted but not yet logged)
+  const { data: pendingSurgeries } = usePendingSurgeries();
 
   // Quick add mode toggle
   const [mode, setMode] = useState<'mri' | 'surgery'>('mri');
@@ -430,8 +527,30 @@ export function QuickAddTracker() {
             </div>
           </div>
         ) : (
-          /* Surgery Mode — no daily entry blocker, auto-creates if needed */
+          /* Surgery Mode — pending patients + manual form */
           <div className="space-y-3">
+            {/* Pending surgery patients (admitted but not logged) */}
+            {pendingSurgeries && pendingSurgeries.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-xs font-bold text-amber-700">
+                    {pendingSurgeries.length} surgery patient{pendingSurgeries.length !== 1 ? 's' : ''} to log
+                  </span>
+                </div>
+                {pendingSurgeries.map((pending) => (
+                  <PendingSurgeryRow
+                    key={pending.patientId}
+                    pending={pending}
+                    dailyEntryId={dayEntry?.id || null}
+                    date={selectedDate}
+                  />
+                ))}
+                <div className="border-t-2 border-dashed border-gray-300 pt-3">
+                  <span className="text-[10px] text-gray-400 font-medium">Or add manually:</span>
+                </div>
+              </div>
+            )}
             <SurgeryQuickForm
               dailyEntryId={dayEntry?.id || null}
               date={selectedDate}

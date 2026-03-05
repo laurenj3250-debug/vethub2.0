@@ -216,6 +216,7 @@ export function useAddSurgery() {
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
       queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-surgeries'] });
     },
   });
 }
@@ -580,5 +581,25 @@ export function useUpdateShiftTimes() {
   });
 }
 
+// Pending surgeries — surgery-type patients without a logged Surgery record
+interface PendingSurgery {
+  patientId: number;
+  patientName: string;
+  species?: string;
+  breed?: string;
+  admittedAt: string;
+}
+
+export function usePendingSurgeries() {
+  return useQuery<PendingSurgery[]>({
+    queryKey: ['pending-surgeries'],
+    queryFn: async () => {
+      const res = await fetch('/api/residency/pending-surgeries');
+      if (!res.ok) throw new Error('Failed to fetch pending surgeries');
+      return res.json();
+    },
+  });
+}
+
 // Export types for use in components
-export type { DailyEntry, Surgery, LMRIEntry, Stats, CounterField };
+export type { DailyEntry, Surgery, LMRIEntry, Stats, CounterField, PendingSurgery };
