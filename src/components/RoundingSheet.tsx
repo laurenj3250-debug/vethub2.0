@@ -1238,13 +1238,19 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
       if (!confirmed) return;
     }
 
-    // Apply template data to patient's editing data (replaces all fields)
-    setEditingData(prev => ({
-      ...prev,
-      [patientId]: {
-        ...template.data,
-      },
-    }));
+    // Apply template data but preserve patient-specific fields (signalment, dayCount)
+    setEditingData(prev => {
+      const existing = prev[patientId];
+      return {
+        ...prev,
+        [patientId]: {
+          ...template.data,
+          // Preserve patient-specific fields that the template shouldn't overwrite
+          signalment: existing?.signalment || template.data.signalment || '',
+          ...(existing?.dayCount ? { dayCount: existing.dayCount } : {}),
+        },
+      };
+    });
 
     toast({
       title: 'Template Applied',
