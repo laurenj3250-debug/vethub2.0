@@ -2732,12 +2732,12 @@ export default function VetHub() {
               Rounds
             </Link>
             <Link
-              href="/appointments"
+              href="/rounds-sheet"
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-gray-900 hover:-translate-y-1 transition-transform"
               style={{ backgroundColor: NEO_COLORS.lavender, border: NEO_BORDER, boxShadow: NEO_SHADOW_SM }}
             >
               <TableProperties size={18} />
-              Schedule
+              Rounds Builder
             </Link>
             {/* Print Menu */}
             <div className="relative">

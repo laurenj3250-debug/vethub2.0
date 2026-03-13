@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neurology Rounds – Mar 13, 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Montserrat',sans-serif;color:#1B3A4B;overflow-x:hidden;}
+
+/* BG */
+#bgLayer{position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;background-size:cover;background-position:center;background-color:#E4F1EF;}
+#bgOverlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;background:rgba(255,255,255,0.15);pointer-events:none;}
+
+/* CONTENT */
+.content-wrap{position:relative;z-index:10;padding:6px 16px 60px;}
+
+/* EMOJI LAYER — inside content flow, scrolls with page, ON TOP of table */
+#emojiLayer{position:absolute;top:0;left:0;width:100%;height:100%;z-index:50;pointer-events:none;}
+.sticker{position:absolute;pointer-events:auto;cursor:grab;user-select:none;line-height:1;transition:filter 0.1s;}
+.sticker:hover{filter:drop-shadow(0 0 4px rgba(0,0,0,0.3));}
+.sticker.dragging{cursor:grabbing;opacity:0.7;}
+
+/* ===== PANEL ===== */
+#panel{position:fixed;top:0;right:0;width:280px;height:100vh;z-index:1000;background:#1a2e3a;color:#fff;overflow-y:auto;font-size:11px;box-shadow:-3px 0 15px rgba(0,0,0,0.3);transition:transform 0.3s;}
+#panel.collapsed{transform:translateX(260px);}
+#panelToggle{position:absolute;left:-28px;top:50%;transform:translateY(-50%);background:#1a2e3a;color:#fff;border:none;padding:8px 5px;border-radius:6px 0 0 6px;cursor:pointer;font-size:12px;}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:2px solid #2a4a5a;margin-bottom:6px;}
+.tab{flex:1;padding:7px 4px;text-align:center;cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#668;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;}
+.tab:hover{color:#aac;}
+.tab.active{color:#80D8D0;border-bottom-color:#80D8D0;}
+.tab-content{display:none;padding:4px 10px 10px;}
+.tab-content.active{display:block;}
+
+#panel h3{font-size:11px;margin:8px 0 4px;color:#80D8D0;text-transform:uppercase;letter-spacing:0.08em;}
+#panel label{display:block;margin:3px 0 1px;font-size:10px;color:#99b;}
+#panel input[type=color]{width:100%;height:24px;border:none;cursor:pointer;border-radius:3px;}
+#panel input[type=range]{width:100%;cursor:pointer;}
+#panel input[type=file]{width:100%;font-size:10px;margin:3px 0;}
+.hint{font-size:9px;color:#667;margin:1px 0 4px;font-style:italic;}
+.sr{display:flex;align-items:center;gap:5px;}
+.sv{min-width:28px;text-align:right;font-size:10px;color:#80D8D0;}
+
+/* Theme presets */
+.theme-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:6px 0;}
+.theme-btn{padding:6px 4px;border:2px solid transparent;border-radius:5px;cursor:pointer;font-size:9px;font-weight:700;text-align:center;transition:all 0.15s;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.4);}
+.theme-btn:hover{transform:scale(1.03);filter:brightness(1.1);}
+.theme-btn.active{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,0.3);}
+
+/* Emoji palette */
+.emoji-palette{display:flex;flex-wrap:wrap;gap:2px;margin:4px 0;}
+.emoji-pick{font-size:18px;cursor:pointer;padding:1px 2px;border-radius:3px;background:rgba(255,255,255,0.03);line-height:1.2;}
+.emoji-pick:hover{background:rgba(255,255,255,0.12);}
+.emoji-pick.active{background:rgba(128,216,208,0.3);outline:2px solid #80D8D0;}
+.sticker-cats{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0;}
+.scat{padding:3px 7px;border-radius:10px;font-size:9px;font-weight:700;cursor:pointer;background:rgba(255,255,255,0.06);color:#99b;border:1px solid rgba(255,255,255,0.1);transition:all 0.15s;}
+.scat:hover{background:rgba(255,255,255,0.12);}
+.scat.active{background:rgba(128,216,208,0.2);color:#80D8D0;border-color:#80D8D0;}
+
+.btn-row{display:flex;gap:4px;margin-top:4px;}
+.sm-btn{padding:4px 8px;border:none;border-radius:3px;cursor:pointer;font-size:10px;font-weight:600;flex:1;text-align:center;}
+.btn-danger{background:#D4644A;color:#fff;}
+.btn-warn{background:#D4AA28;color:#1a2e3a;}
+#printBtn{background:#80D8D0;color:#1a2e3a;border:none;padding:8px;border-radius:20px;cursor:pointer;font-weight:700;font-size:12px;width:100%;margin-top:10px;}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;border-radius:6px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+thead th{padding:7px 8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;text-align:left;border-right:1px solid rgba(255,255,255,0.12);}
+thead th:last-child{border-right:none;}
+tbody tr{vertical-align:top;page-break-inside:avoid;transition:opacity 0.2s;}
+tbody tr.checked{opacity:0.2!important;}
+tbody td{padding:6px 8px;font-size:11px;border-right:1px solid rgba(0,0,0,0.03);}
+tbody td:last-child{border-right:none;}
+
+/* Editable cells */
+td[contenteditable=true]{outline:2px dashed #80D8D0;outline-offset:-2px;background:rgba(128,216,208,0.08)!important;}
+
+.time-cell{width:72px;text-align:center;}
+.time-pill{border-radius:6px;padding:3px 0;display:inline-block;width:100%;background:rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.06);}
+.time-num{font-size:14px;font-weight:900;display:block;line-height:1.1;}
+.time-ampm{font-size:10px;font-weight:700;}
+.time-cb{display:block;margin:0 auto 4px;cursor:pointer;}
+.patient-cell{width:110px;}
+.patient-name{font-family:'Playfair Display',serif;font-size:21px;font-weight:900;line-height:1.05;display:flex;align-items:center;justify-content:space-between;}
+.overdue-dot{width:9px;height:9px;border-radius:50%;background:#D4644A;border:1px solid white;box-shadow:0 0 0 2px rgba(212,100,74,0.25);flex-shrink:0;}
+.patient-owner{font-size:11px;font-weight:800;text-transform:uppercase;color:#3A6B6B;margin-top:2px;}
+.patient-species{font-size:10px;font-weight:700;text-transform:uppercase;color:#8AAFAD;margin-top:1px;}
+.patient-acct{font-size:10px;font-weight:600;color:#8AAFAD;}
+.dx-line{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.dx-text{font-size:13px;font-weight:900;text-transform:uppercase;line-height:1.2;}
+.surgery-line{display:flex;align-items:flex-start;gap:5px;padding-left:19px;margin-bottom:4px;}
+.surgery-text{font-size:11px;font-weight:700;font-style:italic;color:#8FAD82;}
+.case-sep{height:1px;background:rgba(0,0,0,0.08);margin:5px 0;}
+.visit-date-hdr{font-size:11px;font-weight:900;text-transform:uppercase;color:#3A6B6B;margin-bottom:3px;}
+.visit-text{font-size:11.5px;font-weight:500;line-height:1.55;border-left:2px solid rgba(0,0,0,0.08);padding-left:8px;}
+.imaging-content{display:flex;align-items:flex-start;gap:5px;}
+.imaging-text{font-size:12.5px;font-weight:700;color:#2A4664;line-height:1.45;}
+.no-mri{font-weight:900;color:#D4644A;}
+.meds-cell{width:250px;}
+.meds-label{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:900;text-transform:uppercase;margin-bottom:4px;}
+.med-item{font-size:11px;font-weight:600;padding:2px 0;border-bottom:1px solid rgba(0,0,0,0.03);line-height:1.3;}
+.med-item:last-child{border-bottom:none;}
+.lab-box{border-radius:5px;padding:6px 8px;margin-top:7px;}
+.lab-row{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;padding:2px 0;}
+.lab-row+.lab-row{border-top:1px solid rgba(0,0,0,0.04);padding-top:3px;margin-top:2px;}
+.lab-label{font-weight:900;text-transform:uppercase;}
+.lab-val{font-weight:700;text-align:right;}
+.plan-cell{width:160px;}
+.visit-badge{border-radius:4px;padding:4px 7px;width:100%;}
+.badge-line1{font-size:12.5px;font-weight:900;text-transform:uppercase;line-height:1.2;}
+.badge-line2{font-size:11.5px;font-weight:600;line-height:1.3;margin-top:2px;}
+.header{display:flex;align-items:flex-end;justify-content:space-between;padding-bottom:10px;border-bottom:2px solid rgba(0,0,0,0.08);margin-bottom:10px;}
+.header h1{font-family:'Playfair Display',serif;font-size:2.6rem;font-weight:900;letter-spacing:-0.025em;line-height:1;}
+.header-subtitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3em;color:#3A6B6B;margin-top:2px;}
+.legend{display:flex;align-items:center;gap:14px;font-size:10px;font-weight:700;}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-bar{width:16px;height:5px;border-radius:3px;}
+.legend-dot{width:9px;height:9px;border-radius:50%;background:#D4644A;border:1px solid white;}
+
+/* Edit hint */
+.edit-hint{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(26,46,58,0.9);color:#80D8D0;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:600;z-index:900;pointer-events:none;opacity:0;transition:opacity 0.3s;}
+.edit-hint.show{opacity:1;}
+
+@media print{
+  @page{size:landscape;margin:0.3cm;}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  #panel,.no-print,.edit-hint{display:none!important;}
+  .content-wrap{margin-right:0!important;padding-right:16px!important;}
+  #bgLayer,#bgOverlay,#bgGradient{position:absolute;}
+  #emojiLayer{z-index:50;}
+  body.panel-open .content-wrap{margin-right:0!important;}
+  body.panel-open #bgLayer,body.panel-open #bgGradient{right:0!important;}
+  td[contenteditable]{outline:none!important;}
+}
+body.panel-open .content-wrap{margin-right:280px;transition:margin 0.3s;}
+body.panel-open #bgLayer,body.panel-open #bgGradient{right:280px;transition:right 0.3s;}
+</style>
+</head>
+<body class="panel-open">
+<div id="bgLayer"></div>
+<div id="bgGradient" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;pointer-events:none;"></div>
+<div id="bgOverlay"></div>
+
+<div id="panel">
+  <button id="panelToggle" onclick="togglePanel()">◀</button>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('theme')">🎨 Theme</div>
+    <div class="tab" onclick="switchTab('stickers')">🐟 Stickers</div>
+    <div class="tab" onclick="switchTab('edit')">✏️ Edit</div>
+  </div>
+
+  <!-- THEME TAB -->
+  <div class="tab-content active" id="tab-theme">
+    <h3>Quick Themes</h3>
+    <div class="theme-grid" id="themeGrid"></div>
+
+    <h3>Background Image</h3>
+    <input type="file" id="bgUpload" accept="image/*">
+    <div class="hint">Upload scales, sparkles, anything</div>
+    <label>White overlay</label>
+    <div class="sr"><input type="range" id="overlaySlider" min="0" max="60" value="15" oninput="setOverlay(this.value)"><span class="sv" id="overlayVal">15%</span></div>
+
+    <h3>Background Gradient</h3>
+    <div class="hint">Works alone or blends on top of an image</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <div style="flex:1"><label>Color 1</label><input type="color" id="grad1" value="#B8E0EA" oninput="applyGradient()"></div>
+      <div style="flex:1"><label>Color 2</label><input type="color" id="grad2" value="#E8D0F0" oninput="applyGradient()"></div>
+    </div>
+    <label>Angle</label>
+    <div class="sr"><input type="range" id="gradAngle" min="0" max="360" value="135" oninput="applyGradient()"><span class="sv" id="gradAngleVal">135°</span></div>
+    <label>Gradient opacity</label>
+    <div class="sr"><input type="range" id="gradOp" min="0" max="100" value="0" oninput="applyGradient()"><span class="sv" id="gradOpVal">0%</span></div>
+    <div class="hint">0% = off · crank it up to see it</div>
+
+    <h3>Custom Colors</h3>
+    <label>Header</label><input type="color" id="cHeader" value="#B8E0EA" oninput="applyCustom()">
+    <label>Lab box</label><input type="color" id="cLab" value="#C8E4EB" oninput="applyCustom()">
+    <label>Consult row</label><input type="color" id="cConsult" value="#FFF8DC" oninput="applyCustom()">
+
+    <h3>Row Gradient</h3>
+    <div class="hint">Left → right gradient across each row</div>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <div style="flex:1"><label>Even L</label><input type="color" id="cEvenL" value="#FFFFFF" oninput="applyCustom()"></div>
+      <div style="flex:1"><label>Even R</label><input type="color" id="cEvenR" value="#FFFFFF" oninput="applyCustom()"></div>
+    </div>
+    <div style="display:flex;gap:4px;align-items:center;margin-top:2px;">
+      <div style="flex:1"><label>Odd L</label><input type="color" id="cOddL" value="#EBF5FA" oninput="applyCustom()"></div>
+      <div style="flex:1"><label>Odd R</label><input type="color" id="cOddR" value="#EBF5FA" oninput="applyCustom()"></div>
+    </div>
+    <label>Row opacity</label>
+    <div class="sr"><input type="range" id="opSlider" min="50" max="100" value="92" oninput="applyCustom()"><span class="sv" id="opVal">92%</span></div>
+
+    <h3>Save Theme</h3>
+    <div class="sr" style="gap:4px">
+      <input type="text" id="themeSaveName" placeholder="My Theme Name" style="flex:1;padding:4px;font-size:10px;border-radius:3px;border:1px solid #445;background:#0d1e28;color:#fff;">
+      <button class="sm-btn" style="background:#80D8D0;color:#1a2e3a;flex:none;padding:4px 10px;" onclick="saveTheme()">Save</button>
+    </div>
+    <div id="savedThemes" style="margin-top:6px;"></div>
+  </div>
+
+  <!-- STICKERS TAB -->
+  <div class="tab-content" id="tab-stickers">
+    <div class="hint">Pick sticker → click page to drop · Drag to move · Right-click delete · Scroll wheel resize</div>
+    <div class="sticker-cats" id="stickerCats"></div>
+    <div class="emoji-palette" id="emojiPalette"></div>
+    <label>Drop size <span id="szVal">28px</span></label>
+    <input type="range" id="emojiSz" min="14" max="90" value="28" oninput="document.getElementById('szVal').textContent=this.value+'px'">
+    <label>Drop opacity</label>
+    <div class="sr"><input type="range" id="emojiOp" min="15" max="100" value="60" oninput="document.getElementById('emojiOpVal').textContent=this.value+'%'"><span class="sv" id="emojiOpVal">60%</span></div>
+    <label>Drop rotation</label>
+    <div class="sr"><input type="range" id="emojiRot" min="-45" max="45" value="0" oninput="document.getElementById('emojiRotVal').textContent=this.value+'°'"><span class="sv" id="emojiRotVal">0°</span></div>
+    <label style="margin-top:2px;"><input type="checkbox" id="randomRot" checked> Randomize rotation</label>
+
+    <h3>🌊 Scatter</h3>
+    <div class="hint">Flood the page with stickers from the current category</div>
+    <div style="display:flex;gap:4px;align-items:center;">
+      <label style="margin:0">Count</label>
+      <input type="range" id="scatterCount" min="10" max="80" value="30" style="flex:1" oninput="document.getElementById('scatterCountVal').textContent=this.value">
+      <span class="sv" id="scatterCountVal">30</span>
+    </div>
+    <button class="sm-btn" style="background:#80D8D0;color:#1a2e3a;width:100%;margin-top:4px;" onclick="scatterStickers()">🎲 Scatter!</button>
+
+    <div class="btn-row" style="margin-top:6px;">
+      <button class="sm-btn btn-warn" onclick="undoSticker()">↩ Undo</button>
+      <button class="sm-btn btn-danger" onclick="clearStickers()">🗑️ Clear all</button>
+    </div>
+  </div>
+
+  <!-- EDIT TAB -->
+  <div class="tab-content" id="tab-edit">
+    <h3>Inline Editing</h3>
+    <div class="hint">Double-click any cell in the table to edit it. Changes are live — just print when done. Great for fixing typos or adding notes.</div>
+    <button class="sm-btn" style="background:#80D8D0;color:#1a2e3a;width:100%;margin-top:6px;" onclick="toggleEdit()">
+      <span id="editToggleLabel">🔓 Enable Editing</span>
+    </button>
+    <div class="hint" style="margin-top:6px;">Editing makes all cells editable. Click outside a cell to finish.</div>
+  </div>
+
+  <button id="printBtn" onclick="doPrint()">🖨️ Print / Export PDF</button>
+</div>
+
+<div class="content-wrap" id="mainArea">
+  <div id="emojiLayer"></div>
+  <div class="header">
+    <div><h1>Neurology Rounds</h1><div class="header-subtitle">Red Bank • Friday, March 13, 2026</div></div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div class="legend no-print">
+        <div class="legend-item"><div class="legend-bar" style="background:#7B8FA1;"></div>Med Mgmt</div>
+        <div class="legend-item"><div class="legend-bar" style="background:#8FAD82;"></div>Post-Op</div>
+        <div class="legend-item"><div class="legend-bar" style="background:#D4AA28;"></div>New Consult</div>
+        <div class="legend-item"><div class="legend-dot"></div>Overdue</div>
+      </div>
+    </div>
+  </div>
+  <table><thead><tr>
+    <th style="width:72px;text-align:center;">Time</th><th style="width:110px;">Patient</th><th>Case Profile</th><th>Imaging</th><th style="width:250px;">Meds & Labs</th><th style="width:160px;">Today's Plan</th>
+  </tr></thead><tbody id="tBody"></tbody></table>
+</div>
+
+<div class="edit-hint" id="editHint">Double-click any cell to edit</div>
+
+<script>
+// ===== ICONS =====
+const I={brain:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9.5 2a2.5 2.5 0 0 1 2.5 2.5v0a2.5 2.5 0 0 1-2.5 2.5H9a2.5 2.5 0 0 1 0-5h.5Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v0A2.5 2.5 0 0 0 14.5 7H15a2.5 2.5 0 0 0 0-5h-.5Z"/><path d="M6.5 7a2.5 2.5 0 0 0 0 5h.5a2.5 2.5 0 0 1 0 5H6a2.5 2.5 0 0 0 0 5h1"/><path d="M17.5 7a2.5 2.5 0 0 1 0 5h-.5a2.5 2.5 0 0 0 0 5h1a2.5 2.5 0 0 1 0 5h-1"/><path d="M12 4.5V22"/><path d="M8 9h1"/><path d="M15 9h1"/></svg>',sc:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8FAD82" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>',mag:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M6 15a6 6 0 0 0 12 0v-6H6v6Z"/><path d="M6 9V4h4v5"/><path d="M14 9V4h4v5"/></svg>',pill:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m10.5 1.5 3 3-8 8-3-3a4.243 4.243 0 0 1 0-6 4.243 4.243 0 0 1 6 0Z"/><path d="m13.5 6.5 3 3-8 8-3-3"/><path d="m5.5 13.5 8-8"/></svg>'};
+
+// ===== HELPERS =====
+const TD=new Date('2026-03-13');
+const ds=d=>d?Math.floor((TD-new Date(d))/864e5):Infinity;
+const mo=d=>d?Math.floor(ds(d)/30.44):'—';
+const ls=(d,l)=>{if(!d)return{t:'—',c:'#8AAFAD'};const x=ds(d),m=mo(d);return x>=l?{t:`DUE (${m}mo)`,c:x>=365?'#D4644A':'#B07030'}:{t:`${m}mo`,c:'#5A7D52'};};
+const hOD=p=>{const d=(p.dx||'').toLowerCase(),s=d.includes('seizure')||d.includes('epilepsy');return(!p.lastCBC&&s)||(p.lastCBC&&ds(p.lastCBC)>=365)||(p.lastPhenoDate&&ds(p.lastPhenoDate)>=180)||(p.lastKBrDate&&ds(p.lastKBrDate)>=180);};
+const iS=s=>s&&!['Medical Management','Medical Management Trial','Initial Consultation','Initial Evaluation'].includes(s);
+const gVT=p=>iS(p.surgery)?'postop':(p.surgery==='Initial Consultation'||p.surgery==='Initial Evaluation')?'consult':'medmgmt';
+const VC={medmgmt:{s:'#7B8FA1',bg:'rgba(90,120,150,0.07)',bd:'rgba(90,120,150,0.2)',tx:'#4A6178'},postop:{s:'#8FAD82',bg:'rgba(107,127,94,0.10)',bd:'rgba(107,127,94,0.3)',tx:'#5E6B52'},consult:{s:'#D4AA28',bg:'rgba(212,170,40,0.09)',bd:'rgba(212,170,40,0.3)',tx:'#8B6914'}};
+const eVD=t=>{const m=t.match(/^(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|rDVM[^:]*):?\s*/);return m?{d:m[1],r:t.slice(m[0].length)}:{d:null,r:t};};
+const hx=(h,a)=>{const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return`rgba(${r},${g},${b},${a})`;};
+
+// ===== 10 PRESET THEMES =====
+const THEMES=[
+  {name:'Mermaid Cove',hd:'#5BC0BE',evL:'#FFFFFF',evR:'#D5F0F0',odL:'#D5F0F0',odR:'#FFFFFF',lb:'#A8DCD8',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#5BC0BE,#3A9E9C)'},
+  {name:'Lavender Witch',hd:'#8B6CB0',evL:'#F9F5FF',evR:'#EDE0F8',odL:'#E0D0F4',odR:'#F4EEFF',lb:'#C9ACE0',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#8B6CB0,#6A4C93)'},
+  {name:'Hot Pink Pop',hd:'#E8508A',evL:'#FFFFFF',evR:'#FFE0EE',odL:'#FFD0E4',odR:'#FFFFFF',lb:'#F5A0C0',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#E8508A,#C03068)'},
+  {name:'Cottagecore',hd:'#A8B868',evL:'#FDFFF5',evR:'#EEF5DA',odL:'#E0ECC8',odR:'#F8FBF0',lb:'#C8D898',cn:'#FFF8E0',gradient:'linear-gradient(135deg,#A8B868,#889848)'},
+  {name:'Midnight Navy',hd:'#3A5080',evL:'#EDF2F8',evR:'#D4DEF0',odL:'#C0CCE4',odR:'#E8EEF8',lb:'#98B0D4',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#3A5080,#1E3460)'},
+  {name:'Peach Fuzz',hd:'#F0A878',evL:'#FFFFFF',evR:'#FFE8D4',odL:'#FFD8C0',odR:'#FFFFFF',lb:'#F0C8A0',cn:'#FFF8DC',gradient:'linear-gradient(135deg,#F0A878,#E08850)'},
+  {name:'Rainforest',hd:'#2D8B6B',evL:'#F0FBF5',evR:'#D0ECDC',odL:'#B8E0C8',odR:'#EEF9F2',lb:'#88CCA8',cn:'#FFF8DC',gradient:'linear-gradient(135deg,#2D8B6B,#1A6B4A)'},
+  {name:'Iced Mocha',hd:'#9C8070',evL:'#FAF6F2',evR:'#EDE0D4',odL:'#E0D0C0',odR:'#F8F2EC',lb:'#C8B0A0',cn:'#FFF8DC',gradient:'linear-gradient(135deg,#9C8070,#7C6050)'},
+  {name:'Electric Teal',hd:'#00B8A9',evL:'#FFFFFF',evR:'#C8F4EE',odL:'#A8ECE4',odR:'#FFFFFF',lb:'#70DCD0',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#00B8A9,#008878)'},
+  {name:'Dusty Rose',hd:'#C4868E',evL:'#FFF5F5',evR:'#F0D8DC',odL:'#E8C8CE',odR:'#FDF0F2',lb:'#DCA8B0',cn:'#FFF8DC',gradient:'linear-gradient(135deg,#C4868E,#A86068)'},
+  {name:'Bubblegum',hd:'#E880C0',evL:'#FFF5FC',evR:'#FFDCF4',odL:'#FFCAEE',odR:'#FFF2FB',lb:'#F0A8D8',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#E880C0,#D050A0)'},
+  {name:'Stormy Sea',hd:'#5A7088',evL:'#F0F2F5',evR:'#D8DEE8',odL:'#C8D0DC',odR:'#EEF0F5',lb:'#98A8BC',cn:'#FFF5D6',gradient:'linear-gradient(135deg,#5A7088,#3A5068)'}
+];
+let activeThemeIdx = 0;
+
+// ===== PATIENTS =====
+const P=[
+{time:"9:00 AM",name:"Piper",owner:"Martire",species:"K9 (French Bulldog)",acct:"5895552",dx:"C3-4 Disc Herniation (Hx Ventral Slot 5/7/25)",surgery:"05/07/25 Ventral Slot C3-4-5",imaging:"05/07/25: Large ventral slot, compression C3-4-5, small disc herniation C3-4. No brain changes.",lastVisit:"11/4/25: Continuing to improve, stronger, more comfortable. Some bad days but much improved. No med changes, d/c abx in 1 month.",meds:"Gabapentin 100mg BID-TID,Tramadol 50mg ½ tab TID,Hemp Complete,Trazodone TID,Ellevet CBD BID,Amantadine BID,Cytopoint,Benadryl 25mg SID",needsToday:"8wk Recheck · Post-Op Neuro Eval",lastCBC:"2025-09-12"},
+{time:"9:10 AM",name:"Cooper",owner:"Kosto",species:"K9 (Chihuahua Mix)",acct:"5898490",dx:"Multiple Suspect Vertebral Metastatic Lesions",surgery:"Medical Management",imaging:"01/19/26: Multiple suspect vertebral metastatic lesions.",lastVisit:"3/4/26: Doing well, more comfortable, increased appetite. No PU/PD/v/d/c/s. RT 2/11/26 — pending O decision.",meds:"Famotidine 5mg SID,Prednisone 2.5mg BID,Tramadol 12.5mg TID,Gabapentin 50mg BID",needsToday:"2wk Recheck · Med Mgmt Eval (Palliative)",lastCBC:"2026-01-18"},
+{time:"9:20 AM",name:"Dixie",owner:"Miller",species:"K9 (Pitbull Mix)",acct:"5905622",dx:"Left-Sided Neuropathy (CN 5, 7, 8) — Neospora Hx",surgery:"Medical Management",imaging:"09/17/22: Brain — no significant abnormalities.",lastVisit:"8/29/25: Doing well, no concerns. Continue Atopica. Recheck 6mo.",meds:"Atopica 100mg SID",needsToday:"6mo Recheck · Neuro Exam",lastCBC:"2022-09-16"},
+{time:"9:30 AM",name:"Maci",owner:"Wilson",species:"K9 (Bernese Mtn Dog)",acct:"5906655",dx:"Brain Tumor (Suspect Choroid Plexus) — Post-SRT",surgery:"Medical Management",imaging:"04/06/25: Brain tumor (suspect choroid plexus). SRT 5/14/25 — 6Gy × 5, 30Gy total.",lastVisit:"4/25/25: Unbalanced, unable to stand, FL knuckling bilat. MRI → brain tumor → SRT completed 5/14/25.",meds:"Prednisolone 5mg BID,Omeprazole 20mg SID,Gabapentin 200mg SID",needsToday:"7wk Recheck + MRI · Post-SRT Brain Tumor Eval",lastCBC:"2026-03-10"},
+{time:"9:40 AM",name:"Buddy",owner:"Marcantuono",species:"K9 (Lab Ret Mix)",acct:"5907086",dx:"Bilateral Forelimb Lameness/Pain",surgery:"Initial Consultation",imaging:"None.",lastVisit:"rDVM: Limping/pain in front legs. Hx elbow OA, hypothyroid, atypical Addison's, atopic dermatitis.",meds:"Thyro-Tabs 1mg BID,Movoflex SID,Flexadin SID",needsToday:"Initial Consult · BFL Lameness/Pain Eval — MRI?",lastCBC:"2025-03-18",isYellow:true},
+{time:"10:00 AM",name:"Nala",owner:"Alvarez",species:"K9 (Maltese Mix)",acct:"5910315",dx:"Sun-Downing / C6-T2 Myelopathy (Hx Ventral Slot C4-5 2020)",surgery:"Medical Management",imaging:"07/23/20: HNPE at C4-5. Ventral slot same day.",lastVisit:"2/19/26: Fragmented sleep, restlessness, circling, pacing, night panic. ⬆ Started phenobarbital 16.2mg BID. D/c trazodone.",meds:"Gabapentin 50mg BID,Clomicalm 5mg BID,CBD Hemp BID,Pepcid 5mg SID,Prednisone 1.5mg BID,⬆ Phenobarbital 16.2mg BID (NEW)",needsToday:"4wk Recheck · Sun-Downing / Phenobarbital Eval",lastCBC:"2025-11-12"},
+{time:"10:10 AM",name:"Joy",owner:"Torii",species:"K9 (Staffy Bull Terrier)",acct:"5907250",dx:"Seizures / Suspected Idiopathic Epilepsy",surgery:"Medical Management",imaging:"02/28/26: Incidental asymmetrical ventricles, no structural abnormalities.",lastVisit:"2/26/26: 3 seizure episodes (1/24, 2/12, 2/23). ~30 sec, no LOC. MRI normal. Started KBr.",meds:"KBr 1.5 mL SID",needsToday:"2wk Recheck · Seizure / KBr Eval",lastCBC:"2026-02-27",bromideOnly:true,onKBr:true},
+{time:"10:20 AM",name:"Stormy",owner:"Romeo",species:"K9 (Pitbull Mix)",acct:"5908109",dx:"Seizures / Epilepsy",surgery:"Medical Management",imaging:"None.",lastVisit:"8/15/25: One seizure q2wk. CBC/Chem + pheno/KBr levels drawn. Recheck 6mo.",meds:"Phenobarbital 97.2mg BID,KBr 3.2 mL SID,Keppra 750mg ER BID",needsToday:"7mo Recheck · Seizure Eval + Levels + CBC/Chem",lastCBC:"2025-08-15",lastPhenoDate:"2025-08-15",lastPhenoVal:"29",lastKBrDate:"2025-08-15",lastKBrVal:"1.3"},
+{time:"10:30 AM",name:"Dally",owner:"Taormina Williams",species:"K9 (Pitbull Mix)",acct:"5906375",dx:"L1-2 Disc Herniation (Extending T13-L1 Left)",surgery:"02/01/26 Left T13-L2 Hemilaminectomy",imaging:"01/31/26: Disc herniation L1-2 extending cranially T13-L1 left.",lastVisit:"2/10/26: Still wobbly, more weight on hinds. Improved on PE. ⬇ Gaba dec 1 cap BID. Staples removed.",meds:"Gabapentin 100mg BID ⬇ DEC,Tramadol 50mg 1.5 tab BID,Famotidine SID,CBD BID,Prednisone SID",needsToday:"4wk Post-Op Recheck · Neuro Exam + Mobility Eval",lastCBC:"2026-01-27"},
+{time:"10:40 AM",name:"Luna",owner:"Criscio",species:"K9 (Pitbull)",acct:"5908847",dx:"T13-L1 Disc Herniation (Acute) + Multiple Chronic Discs",surgery:"Medical Management",imaging:"03/05/26: Multiple herniations — C2-3, C4-5, T12-13 (chronic), T13-L1 (acute), L2-3 cord hyperintensity, L6-7 severe compression.",lastVisit:"3/4/26: Progressive PL weakness post couch fall. T3-L3 myelopathy. Multiple discs. O elected med mgmt.",meds:"Prednisone 5mg (tapering),Famotidine 20mg SID,Gabapentin 300mg TID,Tramadol 50mg 2 tab TID,Hemp 28mg BID (tapering),Cephalexin 250mg 3 cap BID",needsToday:"1wk Recheck · Neuro Exam + Treatment Response",lastCBC:"2026-03-04"},
+{time:"10:50 AM",name:"Diego",owner:"Stackhouse",species:"Fel (DSH)",acct:"5906557",dx:"Masticatory Myositis (2M Ab Titer+ 1:1000)",surgery:"Medical Management",imaging:"08/12/25: Bilaterally enlarged CN V.",lastVisit:"1/15/26: Doing very well, no concerns. ⬇ Pred tapered SID from BID.",meds:"Prednisolone 5mg ½ tab SID ⬇ DEC",needsToday:"8wk Recheck · Masticatory Myositis + Steroid Monitoring",lastCBC:"2026-01-16"},
+{time:"11:00 AM",name:"Tucker",owner:"Sharpe",species:"K9 (Beagle Mix)",acct:"5859608",dx:"Suspected Myasthenia Gravis (AChR Ab Neg)",surgery:"Medical Management",imaging:"09/13/21: TL — no structural abnormalities.",lastVisit:"9/11/25: Improved, walking/jumping normally. Meds refilled. Recheck 6mo.",meds:"Mestinon 60mg ¼ tab TID,Dasuquin Advanced w/ ESM SID",needsToday:"6mo Recheck · Neuro Exam (NMJ Eval)",lastCBC:"2026-03-12"},
+{time:"11:10 AM",name:"Buoy",owner:"Tokarz",species:"K9 (Newfoundland)",acct:"5877558",dx:"Seizures (Punctate Brain Lesions — Bartonella IFA+)",surgery:"Medical Management",imaging:"10/28/25: Punctate lesion T2 FLAIR.",lastVisit:"11/11/25: Much better, no seizures. Continue meds. Recheck 4mo.",meds:"Phenobarbital 1.5 tab PO BID",needsToday:"4mo Recheck · Seizure Eval + Pheno Level + CBC/Chem",lastCBC:"2025-10-26",lastPhenoDate:"2025-10-26",lastPhenoVal:"22.3"},
+{time:"11:30 AM",name:"Butchie",owner:"Schroeck",species:"K9 (Dachshund)",acct:"5887812",dx:"Meningoencephalitis + Hx Idiopathic Epilepsy",surgery:"Medical Management",imaging:"07/16/25: Mottled hyperintensity cervical cord.",lastVisit:"12/16/25: Doing well. No jumps/steps. Dandruff. Improved on PE. No med changes.",meds:"Atopica 25mg SID,Prednisone 5mg ¼ tab BID,Phenobarbital 16.2mg (½AM/1PM),Melatonin 3mg SID,Famotidine 10mg ½ tab SID,Biotin 2.5mg SID",needsToday:"3mo Recheck · Meningoencephalitis + Seizure Eval",lastCBC:"2025-09-13",lastPhenoDate:"2025-09-13",lastPhenoVal:"16"},
+{time:"11:40 AM",name:"Betty",owner:"Morozov",species:"K9 (GSD Mix)",acct:"5904119",dx:"Idiopathic Epilepsy + T3-L3 Myelopathy",surgery:"Medical Management",imaging:"02/11/26: Brain — mild A-A changes, no sinister. CTL spine — spondylosis, small discs.",lastVisit:"2/10/26: T3-L3 myelopathy. MRI: spondylosis, mild disc dz. Brain unremarkable. Sent home Denamarin + Dasuquin.",meds:"Phenobarbital 97.4mg 2 pills BID,Keppra 750mg 2 pills BID,KBr 500mg SID,Thyroid tabs 0.8mg SID,Denamarin BID,Dasuquin",needsToday:"2wk Recheck · Post-MRI Neuro + Liver Monitoring",lastCBC:"2026-02-10",lastPhenoDate:"2026-02-10",lastPhenoVal:"39.6",lastKBrDate:"2026-02-10",lastKBrVal:"1.6"},
+{time:"11:50 AM",name:"Henry",owner:"O'Connor",species:"K9 (Pembroke Corgi)",acct:"5906415",dx:"Multiple Herniated TL Discs (T12-L6)",surgery:"Medical Management",imaging:"07/25/25: Herniated discs T12-T13 through L5-L6. Cord hyperintensity T12-L3.",lastVisit:"12/15/25: L rear leg lost mobility, knuckling in wheelchair. Static on exam. ⬇ Pred dec 1.5 tab EOD.",meds:"Gabapentin 100mg BID,Tramadol 50mg ½ tab BID,Hemp 11.3mg BID,Glycoflex Ultimate SID,Ursolyx 24mg SID,Vetridisc BID",needsToday:"3mo Recheck · Neuro Exam + Mobility Eval",lastCBC:"2025-07-25"},
+{time:"12:00 PM",name:"Jem",owner:"Korde",species:"Fel (Persian)",acct:"5906901",dx:"Chiari-Like Malformation w/ Quadrigeminal Cyst + Cervical Syringomyelia",surgery:"10/29/24 Caudal Tentorial Craniectomy",imaging:"04/03/25: Improvement, less cerebellar herniation. Prior: 10/17/24 — Quadrigeminal cyst + cervical syringomyelia.",lastVisit:"3/12/26: Doing well. Some limping. Continue meds. Consider pred decrease 3-4mo.",meds:"Omeprazole 0.4mL SID,Prednisolone 5mg ½ tab SID,Clindamycin 75mg SID",needsToday:"6mo Recheck · Post-Craniectomy Eval",lastCBC:"2026-03-12"}
+];
+
+// ===== RENDER =====
+function render(){
+  let h='';
+  P.forEach((p,i)=>{
+    const vt=gVT(p),v=VC[vt],od=hOD(p),tp=p.time.split(' '),np=(p.needsToday||'').split(' · '),vd=eVD(p.lastVisit);
+    const img=(p.imaging||'').replace(/^MRI\s*[:\-–—\s]*/i,''),noI=!img||/^none\.?$/i.test(img);
+    const bg=p.isYellow?'var(--consult-row)':(i%2===0?'var(--row-even)':'var(--row-odd)');
+    h+=`<tr style="background:${bg}">`;
+    h+=`<td class="time-cell" style="border-left:5px solid ${v.s}"><input type="checkbox" class="time-cb no-print" onchange="this.closest('tr').classList.toggle('checked')"><div class="time-pill"><span class="time-num">${tp[0]}</span><span class="time-ampm">${tp[1]}</span></div></td>`;
+    h+=`<td class="patient-cell"><div class="patient-name">${p.name}${od?'<span class="overdue-dot" title="Overdue labs"></span>':''}</div><div class="patient-owner">${p.owner}</div><div class="patient-species">${p.species}</div><div class="patient-acct">#${p.acct}</div></td>`;
+    h+=`<td><div class="dx-line">${I.brain}<span class="dx-text">${p.dx}</span></div>`;
+    if(iS(p.surgery))h+=`<div class="surgery-line">${I.sc}<span class="surgery-text">${p.surgery}</span></div>`;
+    h+=`<div class="case-sep"></div>`;
+    if(vd.d)h+=`<div class="visit-date-hdr">LAST VISIT: ${vd.d}</div><div class="visit-text">${vd.r}</div>`;
+    else h+=`<div class="visit-text">${p.lastVisit}</div>`;
+    h+=`</td><td><div class="imaging-content">${I.mag}`;
+    h+=noI?'<span class="no-mri">NO MRI ON FILE</span>':`<div class="imaging-text">${img}</div>`;
+    h+=`</div></td><td class="meds-cell"><div class="meds-label">${I.pill} MEDICATIONS</div>`;
+    (p.meds||'').split(',').map(m=>m.trim()).filter(Boolean).forEach(m=>{h+=`<div class="med-item">${m}</div>`;});
+    h+=`<div class="lab-box">`;
+    const cs=ls(p.lastCBC,365);
+    h+=`<div class="lab-row"><span class="lab-label">CBC/CHEM:</span><span class="lab-val" style="color:${cs.c}">${p.lastCBC?p.lastCBC+' • '+cs.t:'—'}</span></div>`;
+    const dx=(p.dx||'').toLowerCase(),sz=dx.includes('seizure')||dx.includes('epilepsy');
+    if(p.lastPhenoDate||(sz&&!p.bromideOnly)){if(p.lastPhenoDate){const ps=ls(p.lastPhenoDate,180);h+=`<div class="lab-row"><span class="lab-label">PHENO:</span><span class="lab-val" style="color:${ps.c}">${p.lastPhenoDate} (${p.lastPhenoVal||'?'}) • ${ps.t}</span></div>`;}else h+=`<div class="lab-row"><span class="lab-label">PHENO:</span><span class="lab-val" style="color:#8AAFAD">NOT ON FILE</span></div>`;}
+    if(p.lastKBrDate){const bs=ls(p.lastKBrDate,180);h+=`<div class="lab-row"><span class="lab-label">BROMIDE:</span><span class="lab-val" style="color:${bs.c}">${p.lastKBrDate} (${p.lastKBrVal||'?'}) • ${bs.t}</span></div>`;}
+    else if(p.onKBr)h+=`<div class="lab-row"><span class="lab-label">BROMIDE:</span><span class="lab-val" style="color:#8AAFAD">NOT ON FILE</span></div>`;
+    h+=`</div></td>`;
+    h+=`<td class="plan-cell"><div class="visit-badge" style="background:${v.bg};border:1px solid ${v.bd}"><div class="badge-line1" style="color:${v.tx}">${np[0]||''}</div>${np[1]?`<div class="badge-line2">${np[1]}</div>`:''}</div></td></tr>`;
+  });
+  document.getElementById('tBody').innerHTML=h;
+}
+
+// ===== THEME SYSTEM =====
+function applyTheme(idx){
+  activeThemeIdx=idx;
+  const t=THEMES[idx];
+  document.getElementById('cHeader').value=t.hd;
+  document.getElementById('cEvenL').value=t.evL;
+  document.getElementById('cEvenR').value=t.evR;
+  document.getElementById('cOddL').value=t.odL;
+  document.getElementById('cOddR').value=t.odR;
+  document.getElementById('cLab').value=t.lb;
+  document.getElementById('cConsult').value=t.cn;
+  applyCustom();
+  document.querySelectorAll('.theme-btn').forEach((b,i)=>{b.classList.toggle('active',i===idx);});
+}
+
+function applyCustom(){
+  const op=document.getElementById('opSlider').value/100;
+  document.getElementById('opVal').textContent=Math.round(op*100)+'%';
+  const s=document.documentElement.style;
+  s.setProperty('--header-bg',hx(document.getElementById('cHeader').value,op));
+  const evL=document.getElementById('cEvenL').value,evR=document.getElementById('cEvenR').value;
+  const odL=document.getElementById('cOddL').value,odR=document.getElementById('cOddR').value;
+  s.setProperty('--row-even',`linear-gradient(90deg,${hx(evL,op)},${hx(evR,op)})`);
+  s.setProperty('--row-odd',`linear-gradient(90deg,${hx(odL,op)},${hx(odR,op)})`);
+  s.setProperty('--lab-box',hx(document.getElementById('cLab').value,Math.min(op+0.05,1)));
+  s.setProperty('--consult-row',hx(document.getElementById('cConsult').value,op));
+  document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));
+}
+
+function buildThemeGrid(){
+  const g=document.getElementById('themeGrid');
+  THEMES.forEach((t,i)=>{
+    const b=document.createElement('div');
+    b.className='theme-btn'+(i===0?' active':'');
+    b.style.background=t.gradient;
+    b.textContent=t.name;
+    b.onclick=()=>applyTheme(i);
+    g.appendChild(b);
+  });
+}
+
+// Save/load custom themes (localStorage)
+function saveTheme(){
+  const name=document.getElementById('themeSaveName').value.trim();
+  if(!name)return;
+  const saved=JSON.parse(localStorage.getItem('rbvh-themes')||'[]');
+  saved.push({name,hd:document.getElementById('cHeader').value,evL:document.getElementById('cEvenL').value,evR:document.getElementById('cEvenR').value,odL:document.getElementById('cOddL').value,odR:document.getElementById('cOddR').value,lb:document.getElementById('cLab').value,cn:document.getElementById('cConsult').value,op:document.getElementById('opSlider').value});
+  localStorage.setItem('rbvh-themes',JSON.stringify(saved));
+  document.getElementById('themeSaveName').value='';
+  renderSavedThemes();
+}
+function loadSavedTheme(idx){
+  const saved=JSON.parse(localStorage.getItem('rbvh-themes')||'[]');
+  const t=saved[idx];if(!t)return;
+  document.getElementById('cHeader').value=t.hd;
+  document.getElementById('cEvenL').value=t.evL||t.ev||'#FFFFFF';
+  document.getElementById('cEvenR').value=t.evR||t.ev||'#FFFFFF';
+  document.getElementById('cOddL').value=t.odL||t.od||'#EBF5FA';
+  document.getElementById('cOddR').value=t.odR||t.od||'#EBF5FA';
+  document.getElementById('cLab').value=t.lb;
+  document.getElementById('cConsult').value=t.cn;
+  document.getElementById('opSlider').value=t.op||92;
+  applyCustom();
+}
+function deleteSavedTheme(idx){
+  const saved=JSON.parse(localStorage.getItem('rbvh-themes')||'[]');
+  saved.splice(idx,1);localStorage.setItem('rbvh-themes',JSON.stringify(saved));renderSavedThemes();
+}
+function renderSavedThemes(){
+  const saved=JSON.parse(localStorage.getItem('rbvh-themes')||'[]');
+  const c=document.getElementById('savedThemes');
+  c.innerHTML=saved.map((t,i)=>`<div style="display:flex;align-items:center;gap:4px;margin:2px 0;">
+    <span style="width:14px;height:14px;border-radius:3px;background:${t.hd};flex-shrink:0;"></span>
+    <span style="flex:1;font-size:10px;cursor:pointer;color:#aac;" onclick="loadSavedTheme(${i})">${t.name}</span>
+    <span style="cursor:pointer;font-size:10px;color:#D4644A;" onclick="deleteSavedTheme(${i})">✕</span>
+  </div>`).join('');
+}
+
+// BG
+function setOverlay(v){document.getElementById('overlayVal').textContent=v+'%';document.getElementById('bgOverlay').style.background=`rgba(255,255,255,${v/100})`;}
+function applyGradient(){
+  const c1=document.getElementById('grad1').value,c2=document.getElementById('grad2').value;
+  const a=document.getElementById('gradAngle').value,op=document.getElementById('gradOp').value;
+  document.getElementById('gradAngleVal').textContent=a+'°';
+  document.getElementById('gradOpVal').textContent=op+'%';
+  const el=document.getElementById('bgGradient');
+  if(+op===0){el.style.background='none';return;}
+  el.style.background=`linear-gradient(${a}deg,${c1},${c2})`;
+  el.style.opacity=op/100;
+}
+document.getElementById('bgUpload').addEventListener('change',function(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();r.onload=ev=>{document.getElementById('bgLayer').style.backgroundImage=`url(${ev.target.result})`;};r.readAsDataURL(f);
+});
+
+// ===== STICKER SYSTEM =====
+const STICKERS = {
+  '🌊 Ocean':['🐟','🐠','🐡','🐚','🐳','🐋','🦈','🐙','🦑','🦐','🦞','🦀','🐢','🐬','🦭','🪸','🫧','🪼','🌊','🧜‍♀️'],
+  '🌸 Floral':['🌸','🌺','🌷','🌹','🌻','🌼','💐','🪷','🌿','🍃','🍂','🍀','🍄','🪻','🪺','🦋','🐝','🐞','🌈','☘️'],
+  '🐾 Animals':['🐾','🐕','🐈','🐕‍🦺','🦮','🐩','🐈‍⬛','🐇','🐿️','🦔','🐸','🦎','🐍','🦜','🐦','🦉','🐝','🐛','🦊','🐻'],
+  '✨ Sparkle':['✨','⭐','🌟','💫','🔮','💎','💠','🫧','☀️','🌙','⚡','🌠','💥','❄️','🧊','🪩','🎀','🎊','🎉','🎈'],
+  '💜 Hearts':['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🩷','🩵','💗','💖','💝','💕','💓','💞','🫶','♥️','❣️','💘'],
+  '🩺 Medical':['🩺','💊','🧬','🫀','🫁','🧠','🦴','🦷','🔬','🧪','🩻','🏥','⚕️','💉','🩹','🧫','🫂','🐾','📋','📌'],
+  '🍄 Cottage':['🍄','🏡','🧺','🕯️','📖','🧶','🪴','🫖','🍯','🧁','🍪','🎃','🧸','🪵','🦔','🐦','🌿','🍂','🍁','🌾'],
+  '🌴 Tropical':['🌴','🌺','🦜','🦩','🍍','🥥','🌊','🐠','🦋','🌈','☀️','🍹','🫧','🪸','🐚','🧉','🌻','🏝️','🎋','🪷']
+};
+let activeEmoji=null, activeCat='🌊 Ocean';
+const undoStack=[];
+
+function buildPalette(){
+  const cats=document.getElementById('stickerCats');
+  const pal=document.getElementById('emojiPalette');
+  cats.innerHTML='';pal.innerHTML='';
+  Object.keys(STICKERS).forEach(cat=>{
+    const btn=document.createElement('span');btn.className='scat'+(cat===activeCat?' active':'');
+    btn.textContent=cat;
+    btn.onclick=function(){activeCat=cat;activeEmoji=null;buildPalette();};
+    cats.appendChild(btn);
+  });
+  (STICKERS[activeCat]||[]).forEach(e=>{
+    const s=document.createElement('span');s.className='emoji-pick';s.textContent=e;
+    s.onclick=function(){document.querySelectorAll('.emoji-pick').forEach(x=>x.classList.remove('active'));
+      if(activeEmoji===e){activeEmoji=null;}else{this.classList.add('active');activeEmoji=e;}};
+    pal.appendChild(s);
+  });
+}
+
+function makeSticker(emoji,x,y,sz,op,rot){
+  const layer=document.getElementById('emojiLayer');
+  const wrap=document.getElementById('mainArea');
+  const el=document.createElement('span');
+  el.className='sticker';el.textContent=emoji;
+  el.style.fontSize=sz+'px';el.style.opacity=op;
+  el.style.left=x+'px';el.style.top=y+'px';
+  el.style.transform=`rotate(${rot}deg)`;
+  el.dataset.size=sz;el.dataset.rot=rot;
+  el.addEventListener('contextmenu',function(ev){ev.preventDefault();undoStack.push(this.cloneNode(true));this.remove();});
+  el.addEventListener('mousedown',function(ev){
+    if(ev.button!==0)return;ev.preventDefault();this.classList.add('dragging');
+    const rect=wrap.getBoundingClientRect();
+    const ox=ev.clientX-this.offsetLeft,oy=ev.clientY-this.offsetTop;
+    const mv=e=>{this.style.left=(e.clientX-ox)+'px';this.style.top=(e.clientY-oy)+'px';};
+    const up=()=>{this.classList.remove('dragging');document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
+    document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+  });
+  el.addEventListener('wheel',function(ev){
+    ev.preventDefault();
+    let s=parseFloat(this.dataset.size)||28;
+    s=Math.max(10,Math.min(120,s+(ev.deltaY<0?4:-4)));
+    this.style.fontSize=s+'px';this.dataset.size=s;
+  });
+  layer.appendChild(el);
+  return el;
+}
+
+document.addEventListener('click',function(e){
+  if(!activeEmoji||e.target.closest('#panel'))return;
+  const wrap=document.getElementById('mainArea');
+  const rect=wrap.getBoundingClientRect();
+  const sz=+document.getElementById('emojiSz').value;
+  const op=document.getElementById('emojiOp').value/100;
+  const randomize=document.getElementById('randomRot').checked;
+  const rot=randomize?Math.round(-40+Math.random()*80):+document.getElementById('emojiRot').value;
+  const x=e.clientX-rect.left+wrap.scrollLeft-sz/2;
+  const y=e.clientY-rect.top+wrap.scrollTop-sz/2;
+  makeSticker(activeEmoji,x,y,sz,op,rot);
+});
+
+function scatterStickers(){
+  const wrap=document.getElementById('mainArea');
+  const count=+document.getElementById('scatterCount').value;
+  const emojis=STICKERS[activeCat]||STICKERS['🌊 Ocean'];
+  const sz=+document.getElementById('emojiSz').value;
+  const op=document.getElementById('emojiOp').value/100;
+  const w=wrap.scrollWidth-60, h=wrap.scrollHeight-40;
+  for(let i=0;i<count;i++){
+    const emoji=emojis[Math.floor(Math.random()*emojis.length)];
+    const x=20+Math.random()*w;
+    const y=20+Math.random()*h;
+    const s=sz*0.6+Math.random()*sz*0.8;
+    const r=Math.round(-40+Math.random()*80);
+    const o=op*0.6+Math.random()*op*0.5;
+    makeSticker(emoji,x,y,s,Math.min(o,1),r);
+  }
+}
+
+function undoSticker(){
+  const layer=document.getElementById('emojiLayer');
+  if(layer.lastChild){undoStack.push(layer.lastChild.cloneNode(true));layer.lastChild.remove();}
+}
+function clearStickers(){document.getElementById('emojiLayer').innerHTML='';undoStack.length=0;}
+
+// Ctrl+Z support
+document.addEventListener('keydown',function(e){
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){
+    e.preventDefault();
+    const layer=document.getElementById('emojiLayer');
+    if(undoStack.length){
+      // Redo: put back last removed sticker
+      const el=undoStack.pop();
+      if(el.nodeType){layer.appendChild(el);}
+    } else if(layer.lastChild){
+      // Undo: remove last placed
+      undoStack.push(layer.lastChild.cloneNode(true));
+      layer.lastChild.remove();
+    }
+  }
+});
+
+// ===== EDIT MODE =====
+let editMode=false;
+function toggleEdit(){
+  editMode=!editMode;
+  document.getElementById('editToggleLabel').textContent=editMode?'🔒 Disable Editing':'🔓 Enable Editing';
+  document.querySelectorAll('#tBody td').forEach(td=>{
+    if(td.querySelector('input[type=checkbox]'))return;// skip time checkboxes
+    td.contentEditable=editMode;
+  });
+  document.getElementById('editHint').classList.toggle('show',editMode);
+}
+
+// ===== TABS =====
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.tab-content#tab-${name}`).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ===== PANEL TOGGLE =====
+function togglePanel(){
+  document.body.classList.toggle('panel-open');
+  document.getElementById('panel').classList.toggle('collapsed');
+}
+
+// ===== PRINT =====
+function doPrint(){
+  // Temporarily disable edit mode for clean print
+  const wasEdit=editMode;
+  if(wasEdit)toggleEdit();
+  setTimeout(()=>{window.print();if(wasEdit)setTimeout(()=>toggleEdit(),500);},100);
+}
+
+// ===== INIT =====
+render();
+buildThemeGrid();
+buildPalette();
+renderSavedThemes();
+applyTheme(0);
+</script>
+</body>
+</html>

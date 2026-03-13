@@ -137,6 +137,10 @@ export function QuickPatientNav({ currentPatientId }: QuickPatientNavProps) {
                 <ChevronRight className="mr-2 h-4 w-4" />
                 SOAP Notes
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigateTo('/rounds-sheet')}>
+                <ChevronRight className="mr-2 h-4 w-4" />
+                Rounds Sheet Builder
+              </DropdownMenuItem>
               {currentPatient.type === 'MRI' && (
                 <DropdownMenuItem onClick={() => navigateTo('/mri-builder')}>
                   <ChevronRight className="mr-2 h-4 w-4" />
