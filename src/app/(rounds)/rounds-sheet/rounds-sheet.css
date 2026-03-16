@@ -819,7 +819,12 @@ table.edit-mode tbody td[data-field]:hover::after {
   }
   .no-print, .toolbar, .empty-state, .panel, [class*="QuickPatient"], nav { display: none !important; }
   .content-wrap { padding: 6px 16px 20px !important; margin-right: 0 !important; }
-  .bg-layer, .bg-overlay, .bg-gradient { position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; }
+  .bg-layer, .bg-overlay, .bg-gradient {
+    position: fixed !important; top: 0 !important; left: 0 !important;
+    right: 0 !important; bottom: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   .sticker-layer { z-index: 50; }
   td[contenteditable] { outline: none !important; }
   .cell-editor-overlay { display: none !important; }

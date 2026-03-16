@@ -40,7 +40,7 @@ export default function RoundsSheet() {
 
   // Sticker state
   const [activeStickerCat, setActiveStickerCat] = useState('🌊 Ocean');
-  const [activeEmoji, setActiveEmoji] = useState<string | null>(null);
+  const [selectedEmojis, setSelectedEmojis] = useState<Set<string>>(new Set());
   const [stickerSize, setStickerSize] = useState(36);
   const [stickerOpacity, setStickerOpacity] = useState(60);
   const [randomRotation, setRandomRotation] = useState(true);
@@ -393,7 +393,8 @@ export default function RoundsSheet() {
 
   // Click-to-place when emoji is selected
   useEffect(() => {
-    if (!mounted || !activeEmoji) return;
+    if (!mounted || selectedEmojis.size === 0) return;
+    const emojiArr = Array.from(selectedEmojis);
     const handleClick = (e: MouseEvent) => {
       if ((e.target as HTMLElement).closest('.panel')) return;
       if ((e.target as HTMLElement).closest('.toolbar')) return;
@@ -407,16 +408,19 @@ export default function RoundsSheet() {
       const rot = randomRotation ? Math.round(-40 + Math.random() * 80) : 0;
       const x = e.clientX - rect.left + wrap.scrollLeft - sz / 2;
       const y = e.clientY - rect.top + wrap.scrollTop - sz / 2;
-      createStickerEl(activeEmoji, x, y, sz, op, rot);
+      const emoji = emojiArr[Math.floor(Math.random() * emojiArr.length)];
+      createStickerEl(emoji, x, y, sz, op, rot);
     };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
-  }, [mounted, activeEmoji, stickerSize, stickerOpacity, randomRotation, createStickerEl]);
+  }, [mounted, selectedEmojis, stickerSize, stickerOpacity, randomRotation, createStickerEl]);
 
   const scatterStickers = () => {
     const wrap = contentRef.current;
     if (!wrap) return;
-    const emojis = STICKER_CATEGORIES[activeStickerCat] || STICKER_CATEGORIES['🌊 Ocean'];
+    const emojis = selectedEmojis.size > 0
+      ? Array.from(selectedEmojis)
+      : (STICKER_CATEGORIES[activeStickerCat] || STICKER_CATEGORIES['🐶 Dogs']);
     const w = wrap.scrollWidth - 60;
     const h = wrap.scrollHeight - 40;
     lastScatterCount.current = scatterCount;
@@ -937,7 +941,7 @@ export default function RoundsSheet() {
             const emoji = cat.split(' ')[0];
             return (
               <button key={cat} className="sticker-tab" data-active={String(isActive)}
-                onClick={() => { setActiveStickerCat(cat); setActiveEmoji(null); setStickerDockOpen(true); }}
+                onClick={() => { setActiveStickerCat(cat); setStickerDockOpen(true); }}
                 title={cat}>
                 {emoji}
               </button>
@@ -951,14 +955,26 @@ export default function RoundsSheet() {
         <div className="sticker-palette" data-open={String(stickerDockOpen)}>
           <div className="sticker-palette-inner">
             {(STICKER_CATEGORIES[activeStickerCat] || []).map(emoji => {
-              const isSelected = activeEmoji === emoji;
+              const isSelected = selectedEmojis.has(emoji);
               return (
                 <span key={emoji} className="sticker-emoji" data-selected={String(isSelected)}
-                  onClick={() => setActiveEmoji(isSelected ? null : emoji)}>
+                  onClick={() => {
+                    setSelectedEmojis(prev => {
+                      const next = new Set(prev);
+                      if (next.has(emoji)) next.delete(emoji); else next.add(emoji);
+                      return next;
+                    });
+                  }}>
                   {emoji}
                 </span>
               );
             })}
+            {selectedEmojis.size > 0 && (
+              <button className="sticker-size-btn" style={{ marginLeft: 4, fontSize: 9 }}
+                onClick={() => setSelectedEmojis(new Set())}>
+                Clear ({selectedEmojis.size})
+              </button>
+            )}
             <div className="sticker-size-group">
               {([['S', 22], ['M', 36], ['L', 52], ['XL', 74]] as const).map(([label, sz]) => (
                 <button key={label} className="sticker-size-btn" data-active={String(stickerSize === sz)}
