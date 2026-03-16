@@ -289,6 +289,19 @@ model Note {
   @@index([createdAt])
 }
 
+// Rounds Sheet Session - saved rounds sheet data
+model RoundsSession {
+  id        String   @id @default(cuid())
+  name      String   // Display name (e.g., "Monday Rounds", "Neurology Rounds")
+  patients  Json     // Array of RoundsPatient objects
+  settings  Json?    // Theme, title, and other customization settings
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
 // ==========================================
 // ACVIM Neurology Residency Tracking Models
 // Matches official ACVIM Credentials Committee forms exactly
