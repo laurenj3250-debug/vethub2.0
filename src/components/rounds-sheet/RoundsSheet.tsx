@@ -615,49 +615,26 @@ export default function RoundsSheet() {
           <div className="empty-state">
             {/* Saved Sessions */}
             {loadingSessions && savedSessions.length === 0 && (
-              <div style={{ fontSize: 12, color: '#8AAFAD', fontWeight: 600 }}>Loading saved rounds...</div>
+              <div className="loading-text">Loading saved rounds...</div>
             )}
             {savedSessions.length > 0 && (
               <div style={{ width: '100%', maxWidth: 600, marginBottom: 24 }}>
-                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', fontWeight: 900, color: '#1B3A4B', marginBottom: 12 }}>
-                  Saved Rounds
-                </h3>
+                <h3 className="saved-sessions-title">Saved Rounds</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {savedSessions.map(s => (
-                    <div key={s.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 16px', borderRadius: 10,
-                      background: 'rgba(255,255,255,0.8)',
-                      border: '1px solid rgba(128,216,208,0.3)',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                      cursor: 'pointer', transition: 'all 0.15s',
-                    }}
-                      onClick={() => loadSession(s.id)}
-                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#80D8D0'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(128,216,208,0.3)'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
-                    >
+                    <div key={s.id} className="saved-session-card" onClick={() => loadSession(s.id)}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#1B3A4B' }}>{s.name}</div>
-                        <div style={{ fontSize: 11, color: '#3A6B6B', marginTop: 2 }}>
+                        <div className="saved-session-name">{s.name}</div>
+                        <div className="saved-session-meta">
                           {s.patientCount} patients · Last updated {new Date(s.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                         </div>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
-                        style={{
-                          padding: '4px 10px', border: 'none', borderRadius: 6,
-                          background: 'rgba(212,100,74,0.1)', color: '#D4644A',
-                          fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                        }}
-                        title="Delete session"
-                      >Delete</button>
+                      <button className="saved-session-delete" onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                        title="Delete session">Delete</button>
                     </div>
                   ))}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
-                  <span style={{ fontSize: 11, color: '#8AAFAD', fontWeight: 700, flexShrink: 0 }}>or paste new</span>
-                  <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
-                </div>
+                <div className="divider-line"><span className="divider-text">or paste new</span></div>
               </div>
             )}
 
@@ -703,26 +680,24 @@ export default function RoundsSheet() {
       {/* Toolbar */}
       <div className="toolbar no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 900 }}>Neurology Rounds</span>
-          <span style={{ fontSize: 10, opacity: 0.6 }}>{patients.length} patients</span>
+          <span className="toolbar-title">Neurology Rounds</span>
+          <span className="toolbar-count">{patients.length} patients</span>
         </div>
         <div className="toolbar-actions">
           <button className="toolbar-btn secondary" onClick={() => { setPatients([]); setPasteText(''); setSessionId(null); }}>New Sheet</button>
           <button className="toolbar-btn secondary" onClick={toggleEdit}>{editMode ? '🔒 Lock' : '✏️ Edit'}</button>
-          <button className="toolbar-btn" onClick={() => saveSession()} disabled={saving}
-            style={{ background: saving ? 'rgba(255,255,255,0.2)' : 'linear-gradient(135deg, #5BC0BE, #3A8B8B)' }}>
+          <button className="toolbar-btn save" onClick={() => saveSession()} disabled={saving}>
             {saving ? 'Saving...' : saveStatus || (sessionId ? '💾 Save' : '💾 Save to Site')}
           </button>
-          <button className="toolbar-btn" onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)' }}>🖨️ Print</button>
-          <button className="toolbar-btn" onClick={() => setPanelOpen(!panelOpen)}
-            style={{ background: panelOpen ? '#fff' : 'rgba(255,255,255,0.12)', color: panelOpen ? '#1a2e3a' : '#80D8D0' }}>
+          <button className="toolbar-btn print" onClick={handlePrint}>🖨️ Print</button>
+          <button className="toolbar-btn panel-toggle" data-open={String(panelOpen)} onClick={() => setPanelOpen(!panelOpen)}>
             {panelOpen ? '✕' : '🎨'}
           </button>
         </div>
       </div>
 
       {/* Sheet content */}
-      <div className="content-wrap" ref={contentRef} style={{ paddingRight: panelOpen ? 316 : 16, transition: 'padding-right 0.3s' }}>
+      <div className="content-wrap" ref={contentRef} data-panel={String(panelOpen)}>
         <div ref={stickerLayerRef} className="sticker-layer" />
         <div dangerouslySetInnerHTML={{ __html: renderHeader(dateString).replace('Neurology Rounds', customTitle) }} />
         <table className={editMode ? 'edit-mode' : ''}>
@@ -791,101 +766,52 @@ export default function RoundsSheet() {
         )}
 
         {/* Footer message */}
-        {footerText && (
-          <div style={{
-            textAlign: 'center', padding: '12px 0 4px', fontSize: 10,
-            fontWeight: 600, color: 'var(--text-secondary)', fontStyle: 'italic',
-            letterSpacing: '0.05em',
-          }}>
-            {footerText}
-          </div>
-        )}
+        {footerText && <div className="sheet-footer">{footerText}</div>}
 
         {/* Watermark */}
-        {watermarkEmoji && (
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            fontSize: 300, opacity: 0.04, pointerEvents: 'none',
-            zIndex: 5, lineHeight: 1,
-          }}>
-            {watermarkEmoji}
-          </div>
-        )}
+        {watermarkEmoji && <div className="sheet-watermark">{watermarkEmoji}</div>}
 
         {/* Page border */}
-        {pageBorder && (
-          <div style={{
-            position: 'absolute', top: 4, left: 4, right: 4, bottom: 4,
-            border: '3px double var(--text-secondary)', borderRadius: 12,
-            pointerEvents: 'none', zIndex: 5, opacity: 0.3,
-          }} />
-        )}
+        {pageBorder && <div className="sheet-border" />}
       </div>
 
       {/* ===== CONTROL PANEL ===== */}
-      <div className="panel no-print" style={{
-        position: 'fixed', top: 0, right: 0, width: 300, height: '100vh', zIndex: 1000,
-        background: 'linear-gradient(180deg, #0f1c24 0%, #162430 40%, #1a2e3a 100%)',
-        color: '#fff', overflowY: 'auto', fontSize: 11,
-        boxShadow: '-4px 0 30px rgba(0,0,0,0.4)',
-        borderLeft: '1px solid rgba(128,216,208,0.1)',
-        transform: panelOpen ? 'translateX(0)' : 'translateX(300px)',
-        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        {/* Panel header */}
-        <div style={{
-          padding: '16px 18px 12px', borderBottom: '1px solid rgba(128,216,208,0.12)',
-          background: 'linear-gradient(135deg, rgba(128,216,208,0.08), rgba(91,192,190,0.04))',
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#80D8D0' }}>
-            Customize
-          </div>
-          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-            Theme · Background · Stickers
-          </div>
+      <div className="panel no-print" data-open={String(panelOpen)}>
+        <div className="panel-header">
+          <div className="panel-header-title">Customize</div>
+          <div className="panel-header-sub">Theme · Background · Stickers</div>
         </div>
 
-        <div style={{ padding: '8px 16px 20px' }}>
+        <div className="panel-body">
 
           {/* ── THEMES ── */}
           <SectionHeader title="Themes" icon="🎨" section="themes" active={activeSection} onToggle={toggleSection} />
           {activeSection === 'themes' && (
-            <div style={{ paddingBottom: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 14 }}>
+            <div className="panel-section">
+              <div className="theme-grid">
                 {THEME_PRESETS.map((t, i) => (
-                  <button key={t.name} onClick={() => { setActiveTheme(i); applyTheme(i); }}
-                    style={{
-                      padding: '12px 8px', position: 'relative', overflow: 'hidden',
-                      border: 'none', borderRadius: 8, cursor: 'pointer',
-                      fontSize: 10, fontWeight: 700, textAlign: 'left', color: '#fff',
-                      textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                      background: t.gradient, transition: 'all 0.2s',
-                      boxShadow: i === activeTheme
-                        ? '0 0 0 2px #fff, 0 4px 12px rgba(0,0,0,0.3)'
-                        : '0 2px 8px rgba(0,0,0,0.2)',
-                      transform: i === activeTheme ? 'scale(1.02)' : 'scale(1)',
-                    }}>
-                    {/* Mini preview strips */}
-                    <div style={{ display: 'flex', gap: 2, marginBottom: 6 }}>
-                      <div style={{ width: 16, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.5)' }} />
-                      <div style={{ width: 16, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }} />
-                      <div style={{ width: 16, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
+                  <button key={t.name} className="theme-btn" data-active={String(i === activeTheme)}
+                    onClick={() => { setActiveTheme(i); applyTheme(i); }}
+                    style={{ background: t.gradient }}>
+                    <div className="theme-preview">
+                      <div className="theme-preview-bar" style={{ background: 'rgba(255,255,255,0.5)' }} />
+                      <div className="theme-preview-bar" style={{ background: 'rgba(255,255,255,0.3)' }} />
+                      <div className="theme-preview-bar" style={{ background: 'rgba(255,255,255,0.4)' }} />
                     </div>
                     {t.name}
-                    {i === activeTheme && <span style={{ position: 'absolute', top: 6, right: 8, fontSize: 12 }}>✓</span>}
+                    {i === activeTheme && <span className="theme-check">✓</span>}
                   </button>
                 ))}
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#80D8D0', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fine-tune Colors</div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <div className="panel-subsection">
+                <div className="panel-sublabel">Fine-tune Colors</div>
+                <div className="color-row">
                   <ColorPick label="Header" value={customHeader} onChange={v => { setCustomHeader(v); setActiveTheme(-1); }} />
                   <ColorPick label="Lab Box" value={customLab} onChange={v => { setCustomLab(v); setActiveTheme(-1); }} />
                   <ColorPick label="Consult" value={customConsult} onChange={v => { setCustomConsult(v); setActiveTheme(-1); }} />
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 6 }}>Row Transparency</div>
+                <div className="panel-hint" style={{ marginBottom: 6 }}>Row Transparency</div>
                 <SliderRow value={rowOpacity} min={30} max={100} suffix="%" onChange={v => { setRowOpacity(v); if (activeTheme >= 0) applyTheme(activeTheme, v); }} />
               </div>
             </div>
@@ -894,64 +820,40 @@ export default function RoundsSheet() {
           {/* ── BACKGROUND ── */}
           <SectionHeader title="Background" icon="🖼️" section="background" active={activeSection} onToggle={toggleSection} />
           {activeSection === 'background' && (
-            <div style={{ paddingBottom: 16 }}>
+            <div className="panel-section">
               {/* Upload zone */}
-              <label style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                padding: bgImage ? '6px' : '16px 12px', borderRadius: 8, cursor: 'pointer',
-                border: '2px dashed rgba(128,216,208,0.25)', marginBottom: 10,
-                background: 'rgba(128,216,208,0.04)', transition: 'all 0.2s',
-              }}>
+              <label className={`bg-upload-zone${bgImage ? ' has-image' : ''}`}>
                 {bgImage ? (
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <img src={bgImage} alt="Background" style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: 6 }} />
-                    <button onClick={(e) => { e.preventDefault(); setBgImage(null); }}
-                      style={{
-                        position: 'absolute', top: 4, right: 4, width: 22, height: 22,
-                        borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)',
-                        color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex',
-                        alignItems: 'center', justifyContent: 'center',
-                      }}>×</button>
+                  <div className="bg-preview">
+                    <img src={bgImage} alt="Background" />
+                    <button className="bg-preview-remove" onClick={(e) => { e.preventDefault(); setBgImage(null); }}>×</button>
                   </div>
                 ) : (
                   <>
-                    <span style={{ fontSize: 24, marginBottom: 4 }}>📷</span>
-                    <span style={{ fontSize: 10, color: '#80D8D0', fontWeight: 600 }}>Drop image or click to upload</span>
-                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Scales, sparkles, patterns — anything</span>
+                    <span className="bg-upload-icon">📷</span>
+                    <span className="bg-upload-text">Drop image or click to upload</span>
+                    <span className="bg-upload-hint">Scales, sparkles, patterns — anything</span>
                   </>
                 )}
                 <input type="file" accept="image/*" onChange={handleBgUpload} style={{ display: 'none' }} />
               </label>
 
               {/* URL input */}
-              <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
-                <input type="text" placeholder="Paste image URL..." value={bgUrlInput}
+              <div className="bg-url-row">
+                <input type="text" className="panel-input" placeholder="Paste image URL..." value={bgUrlInput}
                   onChange={e => setBgUrlInput(e.target.value)}
-                  style={{
-                    flex: 1, padding: '6px 8px', fontSize: 10, borderRadius: 6,
-                    border: '1px solid rgba(128,216,208,0.2)', background: 'rgba(0,0,0,0.3)',
-                    color: '#fff', outline: 'none',
-                  }}
+                  style={{ flex: 1, marginBottom: 0 }}
                   onKeyDown={e => { if (e.key === 'Enter' && bgUrlInput.trim()) { setBgImage(bgUrlInput.trim()); setBgUrlInput(''); } }}
                 />
-                <button onClick={() => { if (bgUrlInput.trim()) { setBgImage(bgUrlInput.trim()); setBgUrlInput(''); } }}
-                  style={{
-                    padding: '4px 10px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                    background: '#80D8D0', color: '#0f1c24', fontSize: 10, fontWeight: 700,
-                  }}>Go</button>
+                <button className="bg-url-go" onClick={() => { if (bgUrlInput.trim()) { setBgImage(bgUrlInput.trim()); setBgUrlInput(''); } }}>Go</button>
               </div>
 
               {/* Tile vs Cover toggle */}
               {bgImage && (
-                <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+                <div className="bg-mode-row">
                   {(['cover', 'tile'] as const).map(mode => (
-                    <button key={mode} onClick={() => setBgTile(mode === 'tile')}
-                      style={{
-                        flex: 1, padding: '5px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
-                        fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                        background: (mode === 'tile') === bgTile ? '#80D8D0' : 'rgba(255,255,255,0.06)',
-                        color: (mode === 'tile') === bgTile ? '#0f1c24' : 'rgba(255,255,255,0.4)',
-                      }}>
+                    <button key={mode} className="bg-mode-btn" data-active={String((mode === 'tile') === bgTile)}
+                      onClick={() => setBgTile(mode === 'tile')}>
                       {mode === 'cover' ? '🖼 Cover' : '🔲 Tile'}
                     </button>
                   ))}
@@ -959,8 +861,8 @@ export default function RoundsSheet() {
               )}
 
               {/* Quick gradient presets */}
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick Gradients</div>
-              <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+              <div className="panel-hint">Quick Gradients</div>
+              <div className="gradient-presets">
                 {[
                   { name: 'Sunset', c1: '#F0A878', c2: '#E8508A', angle: 135 },
                   { name: 'Ocean', c1: '#5BC0BE', c2: '#3A5080', angle: 135 },
@@ -969,28 +871,24 @@ export default function RoundsSheet() {
                   { name: 'Rose', c1: '#C4868E', c2: '#F0D8DC', angle: 135 },
                   { name: 'Mint', c1: '#80D8D0', c2: '#E4F1EF', angle: 135 },
                 ].map(g => (
-                  <button key={g.name} onClick={() => { setGradColor1(g.c1); setGradColor2(g.c2); setGradAngle(g.angle); setGradOpacity(50); }}
-                    style={{
-                      width: 40, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
-                      background: `linear-gradient(${g.angle}deg, ${g.c1}, ${g.c2})`,
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                      transition: 'transform 0.15s',
-                    }}
+                  <button key={g.name} className="gradient-swatch"
+                    onClick={() => { setGradColor1(g.c1); setGradColor2(g.c2); setGradAngle(g.angle); setGradOpacity(50); }}
+                    style={{ background: `linear-gradient(${g.angle}deg, ${g.c1}, ${g.c2})` }}
                     title={g.name}
                   />
                 ))}
               </div>
 
-              <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+              <div className="panel-subsection">
+                <div className="color-row">
                   <ColorPick label="Color 1" value={gradColor1} onChange={setGradColor1} />
                   <ColorPick label="Color 2" value={gradColor2} onChange={setGradColor2} />
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>Gradient Strength</div>
+                <div className="panel-hint" style={{ marginBottom: 4 }}>Gradient Strength</div>
                 <SliderRow value={gradOpacity} min={0} max={100} suffix="%" onChange={setGradOpacity} />
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, marginTop: 6 }}>Angle</div>
+                <div className="panel-hint" style={{ marginBottom: 4, marginTop: 6 }}>Angle</div>
                 <SliderRow value={gradAngle} min={0} max={360} suffix="°" onChange={setGradAngle} />
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, marginTop: 6 }}>White Overlay</div>
+                <div className="panel-hint" style={{ marginBottom: 4, marginTop: 6 }}>White Overlay</div>
                 <SliderRow value={overlayOpacity} min={0} max={60} suffix="%" onChange={setOverlayOpacity} />
               </div>
             </div>
@@ -999,46 +897,26 @@ export default function RoundsSheet() {
           {/* ── EXTRAS ── */}
           <SectionHeader title="Extras" icon="✏️" section="extras" active={activeSection} onToggle={toggleSection} />
           {activeSection === 'extras' && (
-            <div style={{ paddingBottom: 16 }}>
-              {/* Custom title */}
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 700 }}>Sheet Title</div>
-              <input type="text" value={customTitle} onChange={e => setCustomTitle(e.target.value)}
-                style={{
-                  width: '100%', padding: '6px 8px', fontSize: 11, borderRadius: 6,
-                  border: '1px solid rgba(128,216,208,0.2)', background: 'rgba(0,0,0,0.3)',
-                  color: '#fff', outline: 'none', marginBottom: 10,
-                  fontFamily: "'Playfair Display', serif", fontWeight: 700,
-                }} />
+            <div className="panel-section">
+              <div className="panel-hint">Sheet Title</div>
+              <input type="text" className="panel-input title-input" value={customTitle} onChange={e => setCustomTitle(e.target.value)} />
 
-              {/* Footer message */}
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 700 }}>Footer Message</div>
-              <input type="text" value={footerText} onChange={e => setFooterText(e.target.value)}
-                placeholder="Made with love by Lauren"
-                style={{
-                  width: '100%', padding: '6px 8px', fontSize: 10, borderRadius: 6,
-                  border: '1px solid rgba(128,216,208,0.2)', background: 'rgba(0,0,0,0.3)',
-                  color: '#fff', outline: 'none', marginBottom: 10,
-                }} />
+              <div className="panel-hint">Footer Message</div>
+              <input type="text" className="panel-input" value={footerText} onChange={e => setFooterText(e.target.value)}
+                placeholder="Made with love by Lauren" />
 
-              {/* Watermark */}
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, textTransform: 'uppercase', fontWeight: 700 }}>Watermark Emoji</div>
-              <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+              <div className="panel-hint">Watermark Emoji</div>
+              <div className="watermark-grid">
                 {['', '🧠', '🐾', '🌸', '💜', '✨', '🍄', '🐸', '☀️', '🦴'].map(e => (
-                  <button key={e} onClick={() => setWatermarkEmoji(e)}
-                    style={{
-                      width: 32, height: 32, borderRadius: 6, border: 'none', cursor: 'pointer',
-                      fontSize: e ? 18 : 11, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: watermarkEmoji === e ? 'rgba(128,216,208,0.2)' : 'rgba(255,255,255,0.05)',
-                      boxShadow: watermarkEmoji === e ? '0 0 0 2px #80D8D0' : 'none',
-                      color: e ? undefined : 'rgba(255,255,255,0.3)',
-                    }}>
+                  <button key={e} className="watermark-btn" data-active={String(watermarkEmoji === e)}
+                    onClick={() => setWatermarkEmoji(e)}
+                    style={{ fontSize: e ? 18 : 11, color: e ? undefined : 'rgba(255,255,255,0.3)' }}>
                     {e || '∅'}
                   </button>
                 ))}
               </div>
 
-              {/* Page border */}
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+              <label className="border-label">
                 <input type="checkbox" checked={pageBorder} onChange={e => setPageBorder(e.target.checked)} style={{ accentColor: '#80D8D0' }} />
                 Decorative page border
               </label>
@@ -1047,133 +925,54 @@ export default function RoundsSheet() {
 
         </div>
 
-        {/* Panel footer */}
-        <div style={{
-          padding: '12px 16px', borderTop: '1px solid rgba(128,216,208,0.08)',
-          background: 'rgba(0,0,0,0.15)',
-        }}>
-          <button onClick={handlePrint}
-            style={{
-              width: '100%', padding: '10px 0', border: 'none', borderRadius: 20, cursor: 'pointer',
-              fontWeight: 800, fontSize: 12, letterSpacing: '0.06em',
-              background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)', color: '#0f1c24',
-              boxShadow: '0 3px 15px rgba(128,216,208,0.25)',
-              transition: 'all 0.2s',
-            }}>
-            🖨️ Print / Export PDF
-          </button>
+        <div className="panel-footer">
+          <button className="panel-print-btn" onClick={handlePrint}>🖨️ Print / Export PDF</button>
         </div>
       </div>
       {/* ===== FLOATING STICKER DOCK ===== */}
-      <div className="no-print" style={{
-        position: 'fixed', bottom: 0, left: 0, right: panelOpen ? 300 : 0,
-        zIndex: 900, transition: 'right 0.3s',
-      }}>
-        {/* Category tabs */}
-        <div style={{
-          display: 'flex', justifyContent: 'center', gap: 2, paddingBottom: 0,
-        }}>
+      <div className="sticker-dock no-print" data-panel={String(panelOpen)}>
+        <div className="sticker-tabs">
           {Object.keys(STICKER_CATEGORIES).map(cat => {
-            const isActive = cat === activeStickerCat;
+            const isActive = cat === activeStickerCat && stickerDockOpen;
             const emoji = cat.split(' ')[0];
             return (
-              <button key={cat} onClick={() => { setActiveStickerCat(cat); setActiveEmoji(null); setStickerDockOpen(true); }}
-                style={{
-                  padding: '4px 8px', border: 'none', cursor: 'pointer',
-                  borderRadius: '8px 8px 0 0', fontSize: 14, transition: 'all 0.15s',
-                  background: isActive && stickerDockOpen
-                    ? 'rgba(26,46,58,0.95)'
-                    : 'rgba(26,46,58,0.6)',
-                  color: isActive ? '#80D8D0' : 'rgba(255,255,255,0.5)',
-                  transform: isActive && stickerDockOpen ? 'translateY(-2px)' : 'none',
-                }}
+              <button key={cat} className="sticker-tab" data-active={String(isActive)}
+                onClick={() => { setActiveStickerCat(cat); setActiveEmoji(null); setStickerDockOpen(true); }}
                 title={cat}>
                 {emoji}
               </button>
             );
           })}
-          <button onClick={scatterStickers} title="Scatter!"
-            style={{
-              padding: '4px 8px', border: 'none', cursor: 'pointer',
-              borderRadius: '8px 8px 0 0', fontSize: 14,
-              background: 'rgba(128,216,208,0.3)', color: '#80D8D0',
-              marginLeft: 4,
-            }}>
-            🎲
-          </button>
-          <button onClick={undoStickers}
-            title="Undo (Cmd+Z)"
-            style={{
-              padding: '4px 8px', border: 'none', cursor: 'pointer',
-              borderRadius: '8px 8px 0 0', fontSize: 12,
-              background: 'rgba(212,170,40,0.2)', color: '#D4AA28',
-            }}>
-            ↩
-          </button>
-          <button onClick={clearStickers} title="Clear all stickers"
-            style={{
-              padding: '4px 8px', border: 'none', cursor: 'pointer',
-              borderRadius: '8px 8px 0 0', fontSize: 12,
-              background: 'rgba(212,100,74,0.2)', color: '#D4644A',
-            }}>
-            ×
-          </button>
+          <button className="sticker-tab scatter" onClick={scatterStickers} title="Scatter!">🎲</button>
+          <button className="sticker-tab undo" onClick={undoStickers} title="Undo (Cmd+Z)">↩</button>
+          <button className="sticker-tab clear" onClick={clearStickers} title="Clear all stickers">×</button>
         </div>
 
-        {/* Emoji palette dock */}
-        <div style={{
-          background: 'rgba(26,46,58,0.95)', backdropFilter: 'blur(12px)',
-          borderTop: '1px solid rgba(128,216,208,0.15)',
-          padding: stickerDockOpen ? '8px 16px 10px' : '0 16px',
-          maxHeight: stickerDockOpen ? 80 : 0, overflow: 'hidden',
-          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
-          <div style={{
-            display: 'flex', gap: 4, overflowX: 'auto', alignItems: 'center',
-            scrollbarWidth: 'none',
-          }}>
+        <div className="sticker-palette" data-open={String(stickerDockOpen)}>
+          <div className="sticker-palette-inner">
             {(STICKER_CATEGORIES[activeStickerCat] || []).map(emoji => {
               const isSelected = activeEmoji === emoji;
               return (
-                <span key={emoji} onClick={() => {
-                  setActiveEmoji(isSelected ? null : emoji);
-                }}
-                  style={{
-                    fontSize: 28, cursor: 'pointer', padding: '4px 6px', borderRadius: 8,
-                    flexShrink: 0, lineHeight: 1, transition: 'all 0.15s',
-                    background: isSelected ? 'rgba(128,216,208,0.25)' : 'transparent',
-                    boxShadow: isSelected ? '0 0 0 2px #80D8D0, 0 0 12px rgba(128,216,208,0.3)' : 'none',
-                    transform: isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1)',
-                  }}>
+                <span key={emoji} className="sticker-emoji" data-selected={String(isSelected)}
+                  onClick={() => setActiveEmoji(isSelected ? null : emoji)}>
                   {emoji}
                 </span>
               );
             })}
-            {/* S / M / L / XL size toggle */}
-            <div style={{
-              display: 'flex', gap: 3, marginLeft: 12, flexShrink: 0,
-              background: 'rgba(255,255,255,0.06)', borderRadius: 6, padding: 2,
-            }}>
+            <div className="sticker-size-group">
               {([['S', 22], ['M', 36], ['L', 52], ['XL', 74]] as const).map(([label, sz]) => (
-                <button key={label} onClick={() => setStickerSize(sz)}
-                  style={{
-                    padding: '3px 10px', border: 'none', borderRadius: 4, cursor: 'pointer',
-                    fontSize: 11, fontWeight: 800, transition: 'all 0.15s',
-                    background: stickerSize === sz ? '#80D8D0' : 'transparent',
-                    color: stickerSize === sz ? '#0f1c24' : 'rgba(255,255,255,0.4)',
-                  }}>
+                <button key={label} className="sticker-size-btn" data-active={String(stickerSize === sz)}
+                  onClick={() => setStickerSize(sz)}>
                   {label}
                 </button>
               ))}
             </div>
             {/* Opacity slider */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, flexShrink: 0,
-            }}>
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>👻</span>
+            <div className="sticker-opacity-row">
+              <span className="sticker-opacity-label">👻</span>
               <input type="range" min={10} max={100} value={stickerOpacity}
                 onChange={e => setStickerOpacity(Number(e.target.value))}
-                style={{ width: 60, cursor: 'pointer', accentColor: '#80D8D0' }} />
+                className="sticker-opacity-slider" />
             </div>
           </div>
         </div>
@@ -1190,28 +989,16 @@ function SectionHeader({ title, icon, section, active, onToggle }: {
 }) {
   const isOpen = active === section;
   return (
-    <button onClick={() => onToggle(section)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-        padding: '12px 0', background: 'none', border: 'none',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        cursor: 'pointer', color: isOpen ? '#80D8D0' : 'rgba(255,255,255,0.55)',
-        fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-        transition: 'all 0.2s',
-      }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span style={{ flex: 1, textAlign: 'left' }}>{title}</span>
-      <span style={{
-        fontSize: 11, transition: 'transform 0.2s',
-        transform: isOpen ? 'rotate(90deg)' : 'rotate(0)',
-        opacity: 0.4,
-      }}>›</span>
+    <button onClick={() => onToggle(section)} className="section-header-btn" data-open={String(isOpen)}>
+      <span className="section-header-icon">{icon}</span>
+      <span className="section-header-title">{title}</span>
+      <span className="section-header-arrow">›</span>
     </button>
   );
 }
 
 function PanelLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <div style={{ fontSize: 10, color: '#99b', margin: '6px 0 2px', ...style }}>{children}</div>;
+  return <div className="panel-label" style={style}>{children}</div>;
 }
 
 function SliderRow({ value, min, max, suffix, onChange }: {
@@ -1219,23 +1006,20 @@ function SliderRow({ value, min, max, suffix, onChange }: {
   onChange: (v: number) => void;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div className="slider-row">
       <input type="range" min={min} max={max} value={value}
         onChange={e => onChange(Number(e.target.value))}
-        style={{ flex: 1, cursor: 'pointer', accentColor: '#80D8D0' }} />
-      <span style={{ minWidth: 32, textAlign: 'right', fontSize: 10, color: '#80D8D0' }}>
-        {value}{suffix}
-      </span>
+        className="slider-row-input" />
+      <span className="slider-row-value">{value}{suffix}</span>
     </div>
   );
 }
 
 function ColorPick({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div style={{ flex: 1 }}>
-      <div style={{ fontSize: 9, color: '#99b', marginBottom: 2 }}>{label}</div>
-      <input type="color" value={value} onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', height: 24, border: 'none', borderRadius: 3, cursor: 'pointer' }} />
+    <div className="color-pick">
+      <div className="color-pick-label">{label}</div>
+      <input type="color" value={value} onChange={e => onChange(e.target.value)} className="color-pick-input" />
     </div>
   );
 }
