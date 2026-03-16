@@ -50,11 +50,94 @@ export default function RoundsSheet() {
   const [editMode, setEditMode] = useState(false);
   const [editingCell, setEditingCell] = useState<{ pidx: number; field: string; value: string; rect: DOMRect } | null>(null);
 
+  // Session persistence state
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [savedSessions, setSavedSessions] = useState<{ id: string; name: string; patientCount: number; updatedAt: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const stickerLayerRef = useRef<HTMLDivElement>(null);
   const lastScatterCount = useRef(0);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+    // Load saved sessions list on mount
+    fetchSessions();
+  }, []);
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await fetch('/api/rounds-sessions');
+      if (res.ok) {
+        const data = await res.json();
+        setSavedSessions(data);
+      }
+    } catch { /* ignore fetch errors */ }
+    setLoadingSessions(false);
+  };
+
+  const saveSession = async (name?: string) => {
+    if (patients.length === 0) return;
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const res = await fetch('/api/rounds-sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: sessionId,
+          name: name || customTitle,
+          patients,
+          settings: { customTitle, activeTheme, footerText, watermarkEmoji, pageBorder },
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessionId(data.id);
+        setSaveStatus('Saved!');
+        fetchSessions();
+        setTimeout(() => setSaveStatus(null), 2000);
+      } else {
+        setSaveStatus('Save failed');
+      }
+    } catch {
+      setSaveStatus('Save failed');
+    }
+    setSaving(false);
+  };
+
+  const loadSession = async (id: string) => {
+    try {
+      const res = await fetch(`/api/rounds-sessions/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPatients(data.patients || []);
+        setSessionId(data.id);
+        if (data.settings) {
+          if (data.settings.customTitle) setCustomTitle(data.settings.customTitle);
+          if (data.settings.footerText) setFooterText(data.settings.footerText);
+          if (data.settings.watermarkEmoji) setWatermarkEmoji(data.settings.watermarkEmoji);
+          if (data.settings.pageBorder) setPageBorder(data.settings.pageBorder);
+          if (data.settings.activeTheme !== undefined) {
+            setActiveTheme(data.settings.activeTheme);
+            applyTheme(data.settings.activeTheme);
+          }
+        }
+        setPasteText('');
+      }
+    } catch { /* ignore */ }
+  };
+
+  const deleteSession = async (id: string) => {
+    try {
+      await fetch(`/api/rounds-sessions/${id}`, { method: 'DELETE' });
+      fetchSessions();
+      if (sessionId === id) setSessionId(null);
+    } catch { /* ignore */ }
+  };
 
   // Ctrl+Z / Cmd+Z to undo last sticker
   useEffect(() => {
@@ -453,6 +536,49 @@ export default function RoundsSheet() {
         <div className="content-wrap">
           <div dangerouslySetInnerHTML={{ __html: renderHeader(dateString).replace('Neurology Rounds', customTitle) }} />
           <div className="empty-state">
+            {/* Saved Sessions */}
+            {savedSessions.length > 0 && (
+              <div style={{ width: '100%', maxWidth: 600, marginBottom: 24 }}>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', fontWeight: 900, color: '#1B3A4B', marginBottom: 12 }}>
+                  Saved Rounds
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {savedSessions.map(s => (
+                    <div key={s.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', borderRadius: 10,
+                      background: 'rgba(255,255,255,0.8)',
+                      border: '1px solid rgba(128,216,208,0.3)',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                      onClick={() => loadSession(s.id)}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#80D8D0'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(128,216,208,0.3)'; (e.currentTarget as HTMLElement).style.transform = 'none'; }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#1B3A4B' }}>{s.name}</div>
+                        <div style={{ fontSize: 11, color: '#3A6B6B', marginTop: 2 }}>
+                          {s.patientCount} patients · Last updated {new Date(s.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                        </div>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); deleteSession(s.id); }}
+                        style={{
+                          padding: '4px 10px', border: 'none', borderRadius: 6,
+                          background: 'rgba(212,100,74,0.1)', color: '#D4644A',
+                          fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                        }}
+                        title="Delete session"
+                      >Delete</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', margin: '20px 0', position: 'relative' }}>
+                  <span style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', background: 'inherit', padding: '0 12px', fontSize: 11, color: '#8AAFAD', fontWeight: 700 }}>or paste new</span>
+                </div>
+              </div>
+            )}
+
             <h2>Paste Your Rounds</h2>
             <p>Paste the JSON patient array from Claude, or <strong>Cmd+V</strong> anywhere on this page to auto-load.</p>
             <textarea className="paste-area" value={pasteText} onChange={e => setPasteText(e.target.value)}
@@ -498,8 +624,12 @@ export default function RoundsSheet() {
           <span style={{ fontSize: 10, opacity: 0.6 }}>{patients.length} patients</span>
         </div>
         <div className="toolbar-actions">
-          <button className="toolbar-btn secondary" onClick={() => { setPatients([]); setPasteText(''); }}>New Sheet</button>
+          <button className="toolbar-btn secondary" onClick={() => { setPatients([]); setPasteText(''); setSessionId(null); }}>New Sheet</button>
           <button className="toolbar-btn secondary" onClick={toggleEdit}>{editMode ? '🔒 Lock' : '✏️ Edit'}</button>
+          <button className="toolbar-btn" onClick={() => saveSession()} disabled={saving}
+            style={{ background: saving ? 'rgba(255,255,255,0.2)' : 'linear-gradient(135deg, #5BC0BE, #3A8B8B)' }}>
+            {saving ? 'Saving...' : saveStatus || (sessionId ? '💾 Save' : '💾 Save to Site')}
+          </button>
           <button className="toolbar-btn" onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)' }}>🖨️ Print</button>
           <button className="toolbar-btn" onClick={() => setPanelOpen(!panelOpen)}
             style={{ background: panelOpen ? '#fff' : 'rgba(255,255,255,0.12)', color: panelOpen ? '#1a2e3a' : '#80D8D0' }}>
