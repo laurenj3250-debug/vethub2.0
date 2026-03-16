@@ -46,16 +46,16 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
         ? 'var(--row-even)'
         : 'var(--row-odd)';
 
-    html += `<tr style="background:${bg};${stubOpacity}">`;
+    html += `<tr style="background:${bg};${stubOpacity}" data-pidx="${i}">`;
 
     // Cell 1: Time
-    html += `<td class="time-cell" style="border-left:5px solid ${vc.stripe}">`;
+    html += `<td class="time-cell" style="border-left:5px solid ${vc.stripe}" data-field="time">`;
     html += `<input type="checkbox" class="time-cb no-print" onchange="this.closest('tr').classList.toggle('checked')">`;
     html += `<div class="time-pill"><span class="time-num">${timeParts[0]}</span><span class="time-ampm">${timeParts[1] || ''}</span></div>`;
     html += `</td>`;
 
     // Cell 2: Patient
-    html += `<td class="patient-cell">`;
+    html += `<td class="patient-cell" data-field="name">`;
     html += `<div class="patient-name">${p.name}`;
     if (overdue) {
       html += `<span class="overdue-dot" title="Overdue labs"></span>`;
@@ -66,7 +66,7 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     html += `</td>`;
 
     // Cell 3: Today's Plan (moved here for readability — "why are they here" is right next to the name)
-    html += `<td class="plan-cell">`;
+    html += `<td class="plan-cell" data-field="needsToday">`;
     html += `<div class="visit-badge" style="background:${vc.bg};border:1px solid ${vc.border}">`;
     html += `<div class="badge-line1" style="color:${vc.text}">${needsParts[0] || ''}</div>`;
     if (needsParts[1]) {
@@ -75,7 +75,7 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     html += `</div></td>`;
 
     // Cell 4: Case Profile (simplified — Dx + compact visit summary)
-    html += `<td>`;
+    html += `<td data-field="dx">`;
     if (p.isStub) {
       html += `<div class="dx-line">${ICONS.brain}<span class="dx-text">${p.dx || 'Chart Pending'}</span></div>`;
       html += `<div class="visit-text" style="color:#8AAFAD;font-style:italic;margin-top:4px">Chart Pending</div>`;
@@ -92,7 +92,7 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     html += `</td>`;
 
     // Cell 5: Imaging / Surgery (merged)
-    html += `<td>`;
+    html += `<td data-field="imaging">`;
     // Surgery info (if surgical case)
     if (isSurgical(p.surgery)) {
       html += `<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:5px">${ICONS.scissors}<span class="surgery-text">${p.surgery}</span></div>`;
@@ -136,8 +136,8 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     }
     html += `</td>`;
 
-    // Cell 5: Meds & Labs
-    html += `<td class="meds-cell">`;
+    // Cell 6: Meds & Labs
+    html += `<td class="meds-cell" data-field="meds">`;
     html += `<div class="meds-label">${ICONS.pill} MEDICATIONS</div>`;
     if (p.isStub) {
       html += `<div class="med-item" style="color:#8AAFAD">---</div>`;

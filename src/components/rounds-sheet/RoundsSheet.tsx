@@ -48,6 +48,7 @@ export default function RoundsSheet() {
 
   // Edit state
   const [editMode, setEditMode] = useState(false);
+  const [editingCell, setEditingCell] = useState<{ pidx: number; field: string; value: string; rect: DOMRect } | null>(null);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const stickerLayerRef = useRef<HTMLDivElement>(null);
@@ -327,14 +328,108 @@ export default function RoundsSheet() {
     }, 100);
   };
 
+  // Field label mapping for the editor
+  const FIELD_LABELS: Record<string, string> = {
+    time: 'Time',
+    name: 'Patient Info',
+    needsToday: "Today's Plan",
+    dx: 'Diagnosis / Case Profile',
+    imaging: 'Imaging / Surgery',
+    meds: 'Medications',
+  };
+
+  // Get the editable value for a field from a patient
+  const getFieldValue = (p: RoundsPatient, field: string): string => {
+    switch (field) {
+      case 'time': return p.time;
+      case 'name': return `${p.name}\n${p.owner}\n${p.species}`;
+      case 'needsToday': return p.needsToday || '';
+      case 'dx': return `${p.dx}\n---\n${p.lastVisit}`;
+      case 'imaging': return `${p.surgery ? p.surgery + '\n---\n' : ''}${p.imaging}`;
+      case 'meds': return p.meds || '';
+      default: return '';
+    }
+  };
+
+  // Save the edited value back to the patient
+  const saveFieldValue = (pidx: number, field: string, value: string) => {
+    setPatients(prev => {
+      const updated = [...prev];
+      const p = { ...updated[pidx] };
+      switch (field) {
+        case 'time':
+          p.time = value.trim();
+          break;
+        case 'name': {
+          const lines = value.split('\n').map(l => l.trim());
+          p.name = lines[0] || p.name;
+          p.owner = lines[1] ?? p.owner;
+          p.species = lines[2] ?? p.species;
+          break;
+        }
+        case 'needsToday':
+          p.needsToday = value.trim();
+          break;
+        case 'dx': {
+          const parts = value.split('---').map(s => s.trim());
+          p.dx = parts[0] || p.dx;
+          if (parts[1] !== undefined) p.lastVisit = parts[1];
+          break;
+        }
+        case 'imaging': {
+          const parts = value.split('---').map(s => s.trim());
+          if (parts.length > 1) {
+            p.surgery = parts[0] || '';
+            p.imaging = parts.slice(1).join('\n').trim();
+          } else {
+            p.imaging = value.trim();
+          }
+          break;
+        }
+        case 'meds':
+          p.meds = value.trim();
+          break;
+      }
+      updated[pidx] = p;
+      return updated;
+    });
+  };
+
   const toggleEdit = () => {
     const next = !editMode;
     setEditMode(next);
-    document.querySelectorAll('#roundsBody td').forEach(td => {
-      if (td.querySelector('input[type=checkbox]')) return;
-      (td as HTMLElement).contentEditable = String(next);
-    });
+    if (!next) setEditingCell(null);
   };
+
+  // Handle cell clicks in edit mode
+  const handleTableClick = useCallback((e: React.MouseEvent) => {
+    if (!editMode) return;
+    // Don't intercept checkbox clicks
+    if ((e.target as HTMLElement).tagName === 'INPUT') return;
+    // Find the closest td with a data-field
+    const td = (e.target as HTMLElement).closest('td[data-field]') as HTMLElement | null;
+    if (!td) return;
+    const tr = td.closest('tr[data-pidx]') as HTMLElement | null;
+    if (!tr) return;
+    const pidx = parseInt(tr.dataset.pidx || '', 10);
+    const field = td.dataset.field || '';
+    if (isNaN(pidx) || !field) return;
+    if (patients[pidx]?.isBlank) return;
+
+    const rect = td.getBoundingClientRect();
+    const value = getFieldValue(patients[pidx], field);
+    setEditingCell({ pidx, field, value, rect });
+  }, [editMode, patients]);
+
+  const handleEditorSave = useCallback(() => {
+    if (!editingCell) return;
+    saveFieldValue(editingCell.pidx, editingCell.field, editingCell.value);
+    setEditingCell(null);
+  }, [editingCell]);
+
+  const handleEditorCancel = useCallback(() => {
+    setEditingCell(null);
+  }, []);
 
   const toggleSection = (section: string) => {
     setActiveSection(activeSection === section ? null : section);
@@ -417,7 +512,7 @@ export default function RoundsSheet() {
       <div className="content-wrap" ref={contentRef} style={{ paddingRight: panelOpen ? 316 : 16, transition: 'padding-right 0.3s' }}>
         <div ref={stickerLayerRef} className="sticker-layer" />
         <div dangerouslySetInnerHTML={{ __html: renderHeader(dateString).replace('Neurology Rounds', customTitle) }} />
-        <table>
+        <table className={editMode ? 'edit-mode' : ''}>
           <thead><tr>
             <th style={{ width: 72, textAlign: 'center' }}>Time</th>
             <th style={{ width: 110 }}>Patient</th>
@@ -426,8 +521,61 @@ export default function RoundsSheet() {
             <th>Imaging / Surgery</th>
             <th style={{ width: 250 }}>Meds &amp; Labs</th>
           </tr></thead>
-          <tbody id="roundsBody" dangerouslySetInnerHTML={{ __html: tableHtml }} />
+          <tbody id="roundsBody" dangerouslySetInnerHTML={{ __html: tableHtml }} onClick={handleTableClick} />
         </table>
+
+        {/* Inline Cell Editor */}
+        {editingCell && (
+          <div className="cell-editor-overlay no-print" onClick={handleEditorSave}>
+            <div className="cell-editor" onClick={e => e.stopPropagation()}
+              style={{
+                top: Math.min(editingCell.rect.top, window.innerHeight - 280),
+                left: Math.max(8, editingCell.rect.left - 8),
+                minWidth: Math.max(editingCell.rect.width + 16, 200),
+                maxWidth: Math.min(editingCell.rect.width + 100, 500),
+              }}>
+              <div className="cell-editor-header">
+                <span className="cell-editor-label">
+                  {FIELD_LABELS[editingCell.field] || editingCell.field}
+                  <span className="cell-editor-patient"> — {patients[editingCell.pidx]?.name}</span>
+                </span>
+                <div className="cell-editor-actions">
+                  <button className="cell-editor-btn cancel" onClick={handleEditorCancel}>Cancel</button>
+                  <button className="cell-editor-btn save" onClick={handleEditorSave}>Save</button>
+                </div>
+              </div>
+              {editingCell.field === 'time' ? (
+                <input
+                  type="text"
+                  className="cell-editor-input"
+                  value={editingCell.value}
+                  onChange={e => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleEditorSave(); if (e.key === 'Escape') handleEditorCancel(); }}
+                  autoFocus
+                />
+              ) : (
+                <textarea
+                  className="cell-editor-textarea"
+                  value={editingCell.value}
+                  onChange={e => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                  onKeyDown={e => { if (e.key === 'Escape') handleEditorCancel(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleEditorSave(); }}
+                  autoFocus
+                  rows={editingCell.field === 'name' ? 3 : editingCell.field === 'meds' ? 6 : 4}
+                />
+              )}
+              {editingCell.field !== 'time' && (
+                <div className="cell-editor-hint">
+                  {editingCell.field === 'name' && 'Line 1: Name • Line 2: Owner • Line 3: Species'}
+                  {editingCell.field === 'dx' && 'Diagnosis on top • --- separator • Visit notes below'}
+                  {editingCell.field === 'imaging' && 'Surgery on top • --- separator • Imaging below'}
+                  {editingCell.field === 'needsToday' && 'Use " · " to separate plan lines'}
+                  {editingCell.field === 'meds' && 'One medication per line'}
+                  {' • Cmd+Enter to save • Esc to cancel'}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Footer message */}
         {footerText && (
