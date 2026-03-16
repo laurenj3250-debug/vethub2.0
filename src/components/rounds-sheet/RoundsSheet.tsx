@@ -129,24 +129,23 @@ export default function RoundsSheet() {
       setSessionId(data.id);
       if (data.settings) {
         const s = data.settings;
-        if (s.customTitle) setCustomTitle(s.customTitle);
+        if (s.customTitle !== undefined) setCustomTitle(s.customTitle);
         if (s.footerText !== undefined) setFooterText(s.footerText);
         if (s.watermarkEmoji !== undefined) setWatermarkEmoji(s.watermarkEmoji);
         if (s.pageBorder !== undefined) setPageBorder(s.pageBorder);
         if (s.rowOpacity !== undefined) setRowOpacity(s.rowOpacity);
         if (s.overlayOpacity !== undefined) setOverlayOpacity(s.overlayOpacity);
-        if (s.gradColor1) setGradColor1(s.gradColor1);
-        if (s.gradColor2) setGradColor2(s.gradColor2);
+        if (s.gradColor1 !== undefined) setGradColor1(s.gradColor1);
+        if (s.gradColor2 !== undefined) setGradColor2(s.gradColor2);
         if (s.gradAngle !== undefined) setGradAngle(s.gradAngle);
         if (s.gradOpacity !== undefined) setGradOpacity(s.gradOpacity);
-        if (s.customHeader) setCustomHeader(s.customHeader);
-        if (s.customLab) setCustomLab(s.customLab);
-        if (s.customConsult) setCustomConsult(s.customConsult);
+        if (s.customHeader !== undefined) setCustomHeader(s.customHeader);
+        if (s.customLab !== undefined) setCustomLab(s.customLab);
+        if (s.customConsult !== undefined) setCustomConsult(s.customConsult);
         if (s.bgTile !== undefined) setBgTile(s.bgTile);
         if (s.activeTheme !== undefined) {
           setActiveTheme(s.activeTheme);
-          // Defer theme application to after state settles
-          setTimeout(() => applyTheme(s.activeTheme, s.rowOpacity), 0);
+          if (s.rowOpacity !== undefined) setRowOpacity(s.rowOpacity);
         }
       }
       setPasteText('');
@@ -171,18 +170,47 @@ export default function RoundsSheet() {
     }
   };
 
+  const cleanupStickerEl = (el: Element) => {
+    (el as HTMLElement & { __cleanup?: () => void }).__cleanup?.();
+  };
+
+  const undoStickers = useCallback(() => {
+    const layer = stickerLayerRef.current;
+    if (!layer) return;
+    const count = lastScatterCount.current > 0 ? lastScatterCount.current : 1;
+    for (let i = 0; i < count; i++) {
+      const last = layer.lastElementChild;
+      if (last && !last.classList.contains('sticker-toolbar')) {
+        cleanupStickerEl(last);
+        last.remove();
+      }
+    }
+    lastScatterCount.current = 0;
+  }, []);
+
+  const clearStickers = useCallback(() => {
+    const layer = stickerLayerRef.current;
+    if (!layer) return;
+    layer.querySelectorAll('.sticker').forEach(cleanupStickerEl);
+    document.querySelectorAll('.sticker-toolbar').forEach(t => t.remove());
+    layer.innerHTML = '';
+  }, []);
+
   // Ctrl+Z / Cmd+Z to undo last sticker
   useEffect(() => {
     if (!mounted) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        // Don't hijack native undo in text fields
+        const el = document.activeElement;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).contentEditable === 'true')) return;
         e.preventDefault();
         undoStickers();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [mounted]);
+  }, [mounted, undoStickers]);
 
   // Paste preview — parse pasteText for preview before loading
   useEffect(() => {
@@ -433,31 +461,6 @@ export default function RoundsSheet() {
       const o = Math.min((stickerOpacity / 100) * 0.6 + Math.random() * (stickerOpacity / 100) * 0.5, 1);
       createStickerEl(emoji, x, y, s, o, r);
     }
-  };
-
-  const cleanupStickerEl = (el: Element) => {
-    (el as HTMLElement & { __cleanup?: () => void }).__cleanup?.();
-  };
-
-  const undoStickers = () => {
-    const layer = stickerLayerRef.current;
-    if (!layer) return;
-    const count = lastScatterCount.current > 0 ? lastScatterCount.current : 1;
-    for (let i = 0; i < count; i++) {
-      const last = layer.lastElementChild;
-      if (last && !last.classList.contains('sticker-toolbar')) {
-        cleanupStickerEl(last);
-        last.remove();
-      }
-    }
-    lastScatterCount.current = 0;
-  };
-
-  const clearStickers = () => {
-    const layer = stickerLayerRef.current;
-    if (!layer) return;
-    layer.querySelectorAll('.sticker').forEach(cleanupStickerEl);
-    layer.innerHTML = '';
   };
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1011,10 +1014,6 @@ function SectionHeader({ title, icon, section, active, onToggle }: {
       <span className="section-header-arrow">›</span>
     </button>
   );
-}
-
-function PanelLabel({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <div className="panel-label" style={style}>{children}</div>;
 }
 
 function SliderRow({ value, min, max, suffix, onChange }: {

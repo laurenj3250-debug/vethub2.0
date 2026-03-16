@@ -18,6 +18,7 @@ import {
   shouldShowPhenoRow,
   shouldShowBromideRow,
   parseMeds,
+  escapeHtml,
 } from './clinical-logic';
 
 export function renderTableRows(patients: RoundsPatient[], today: Date = new Date()): string {
@@ -26,7 +27,9 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
   patients.forEach((p, i) => {
     // Open slot
     if (p.isBlank) {
-      html += `<tr><td class="time-cell" style="border-left:5px solid transparent"><div class="time-pill" style="opacity:0.4"><span class="time-num">${p.time.split(' ')[0]}</span><span class="time-ampm">${p.time.split(' ')[1] || ''}</span></div></td><td colspan="5" style="text-align:center;font-style:italic;font-size:10px;text-transform:uppercase;opacity:0.4">— Open Slot —</td></tr>`;
+      const blankTime = escapeHtml(p.time.split(' ')[0]);
+      const blankAmpm = escapeHtml(p.time.split(' ')[1] || '');
+      html += `<tr><td class="time-cell" style="border-left:5px solid transparent"><div class="time-pill" style="opacity:0.4"><span class="time-num">${blankTime}</span><span class="time-ampm">${blankAmpm}</span></div></td><td colspan="5" style="text-align:center;font-style:italic;font-size:10px;text-transform:uppercase;opacity:0.4">— Open Slot —</td></tr>`;
       return;
     }
 
@@ -36,7 +39,6 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     const timeParts = p.time.split(' ');
     const needsParts = (p.needsToday || '').split(' · ');
     const vd = extractVisitDate(p.lastVisit);
-    const imgText = stripMriPrefix(p.imaging || '');
     const noImaging = isNoImaging(p.imaging || '');
     const stubOpacity = p.isStub ? 'opacity:0.55;' : '';
 
@@ -51,41 +53,41 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     // Cell 1: Time
     html += `<td class="time-cell" style="border-left:5px solid ${vc.stripe}" data-field="time">`;
     html += `<input type="checkbox" class="time-cb no-print" onchange="this.closest('tr').classList.toggle('checked')">`;
-    html += `<div class="time-pill"><span class="time-num">${timeParts[0]}</span><span class="time-ampm">${timeParts[1] || ''}</span></div>`;
+    html += `<div class="time-pill"><span class="time-num">${escapeHtml(timeParts[0])}</span><span class="time-ampm">${escapeHtml(timeParts[1] || '')}</span></div>`;
     html += `</td>`;
 
     // Cell 2: Patient
     html += `<td class="patient-cell" data-field="name">`;
-    html += `<div class="patient-name">${p.name}`;
+    html += `<div class="patient-name">${escapeHtml(p.name)}`;
     if (overdue) {
       html += `<span class="overdue-dot" title="Overdue labs"></span>`;
     }
     html += `</div>`;
-    html += `<div class="patient-owner">${p.owner}</div>`;
-    html += `<div class="patient-species">${p.species}</div>`;
+    html += `<div class="patient-owner">${escapeHtml(p.owner)}</div>`;
+    html += `<div class="patient-species">${escapeHtml(p.species)}</div>`;
     html += `</td>`;
 
-    // Cell 3: Today's Plan (moved here for readability — "why are they here" is right next to the name)
+    // Cell 3: Today's Plan
     html += `<td class="plan-cell" data-field="needsToday">`;
     html += `<div class="visit-badge" style="background:${vc.bg};border:1px solid ${vc.border}">`;
-    html += `<div class="badge-line1" style="color:${vc.text}">${needsParts[0] || ''}</div>`;
+    html += `<div class="badge-line1" style="color:${vc.text}">${escapeHtml(needsParts[0] || '')}</div>`;
     if (needsParts[1]) {
-      html += `<div class="badge-line2">${needsParts[1]}</div>`;
+      html += `<div class="badge-line2">${escapeHtml(needsParts[1])}</div>`;
     }
     html += `</div></td>`;
 
-    // Cell 4: Case Profile (simplified — Dx + compact visit summary)
+    // Cell 4: Case Profile
     html += `<td data-field="dx">`;
     if (p.isStub) {
-      html += `<div class="dx-line">${ICONS.brain}<span class="dx-text">${p.dx || 'Chart Pending'}</span></div>`;
+      html += `<div class="dx-line">${ICONS.brain}<span class="dx-text">${escapeHtml(p.dx || 'Chart Pending')}</span></div>`;
       html += `<div class="visit-text" style="color:#8AAFAD;font-style:italic;margin-top:4px">Chart Pending</div>`;
     } else {
-      html += `<div class="dx-line">${ICONS.brain}<span class="dx-text">${p.dx}</span></div>`;
+      html += `<div class="dx-line">${ICONS.brain}<span class="dx-text">${escapeHtml(p.dx)}</span></div>`;
       html += `<div class="visit-text" style="margin-top:4px">`;
       if (vd.dateHeader) {
-        html += `<span style="font-weight:800;font-size:10px;color:var(--text-secondary)">${vd.dateHeader}:</span> ${vd.summary}`;
+        html += `<span style="font-weight:800;font-size:10px;color:var(--text-secondary)">${escapeHtml(vd.dateHeader)}:</span> ${escapeHtml(vd.summary)}`;
       } else {
-        html += p.lastVisit;
+        html += escapeHtml(p.lastVisit);
       }
       html += `</div>`;
     }
@@ -93,14 +95,12 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
 
     // Cell 5: Imaging / Surgery (merged)
     html += `<td data-field="imaging">`;
-    // Surgery info (if surgical case)
     if (isSurgical(p.surgery)) {
-      html += `<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:5px">${ICONS.scissors}<span class="surgery-text">${p.surgery}</span></div>`;
+      html += `<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:5px">${ICONS.scissors}<span class="surgery-text">${escapeHtml(p.surgery)}</span></div>`;
     }
-    // Imaging
     html += `<div class="imaging-content">`;
     if (p.imagingLink) {
-      html += `<a href="${p.imagingLink}" target="_blank" rel="noopener" class="img-link">${ICONS.magnet}</a>`;
+      html += `<a href="${escapeHtml(p.imagingLink)}" target="_blank" rel="noopener" class="img-link">${ICONS.magnet}</a>`;
     } else {
       html += ICONS.magnet;
     }
@@ -109,17 +109,16 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     } else {
       const blocks = splitImagingByDate(p.imaging || '');
       if (blocks.length > 1) {
-        // Multi-date: render each block with date header
-        blocks.forEach((block, bi) => {
+        blocks.forEach((block) => {
           html += `<div class="imaging-block">`;
           if (block.dateLabel) {
-            html += `<div class="imaging-date-label">${block.dateLabel}</div>`;
+            html += `<div class="imaging-date-label">${escapeHtml(block.dateLabel)}</div>`;
           }
-          html += `<div class="imaging-text">${block.findings}</div>`;
+          html += `<div class="imaging-text">${escapeHtml(block.findings)}</div>`;
           html += `</div>`;
         });
       } else if (blocks.length === 1) {
-        html += `<div class="imaging-text">${blocks[0].findings}</div>`;
+        html += `<div class="imaging-text">${escapeHtml(blocks[0].findings)}</div>`;
       }
     }
     html += `</div>`;
@@ -128,9 +127,9 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
       html += `<div class="results-box">`;
       html += `<div class="results-header">RESULTS RETURNED</div>`;
       p.resultsBox.forEach(r => {
-        const flagHtml = r.flag ? ` <span style="font-weight:900;color:#D4644A">${r.flag}</span>` : '';
+        const flagHtml = r.flag ? ` <span style="font-weight:900;color:#D4644A">${escapeHtml(r.flag)}</span>` : '';
         const pendingStyle = r.isPending ? 'font-style:italic;color:#D4AA28;' : '';
-        html += `<div class="results-row" style="${pendingStyle}"><span class="results-label">${r.label}</span><span class="results-val">${r.val}${flagHtml}</span></div>`;
+        html += `<div class="results-row" style="${pendingStyle}"><span class="results-label">${escapeHtml(r.label)}</span><span class="results-val">${escapeHtml(r.val)}${flagHtml}</span></div>`;
       });
       html += `</div>`;
     }
@@ -143,7 +142,7 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
       html += `<div class="med-item" style="color:#8AAFAD">---</div>`;
     } else {
       parseMeds(p.meds).forEach(med => {
-        html += `<div class="med-item">${med}</div>`;
+        html += `<div class="med-item">${escapeHtml(med)}</div>`;
       });
     }
     // Lab box
@@ -151,23 +150,21 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     if (p.isStub) {
       html += `<div class="lab-row"><span class="lab-label">CBC/CHEM:</span><span class="lab-val" style="color:#8AAFAD">---</span></div>`;
     } else if (p.isCytosar && p.lastChem) {
-      // Cytosar split mode
       const cbcStatus = labStatus(p.lastCBC, 365, today);
       const chemStatus = labStatus(p.lastChem, 365, today);
-      html += `<div class="lab-row"><span class="lab-label">CBC:</span><span class="lab-val" style="color:${cbcStatus.color}">${p.lastCBC ? p.lastCBC + ' \u2022 ' + cbcStatus.text : '—'}</span></div>`;
-      html += `<div class="lab-row"><span class="lab-label">CHEM:</span><span class="lab-val" style="color:${chemStatus.color}">${p.lastChem ? p.lastChem + ' \u2022 ' + chemStatus.text : '—'}</span></div>`;
+      html += `<div class="lab-row"><span class="lab-label">CBC:</span><span class="lab-val" style="color:${cbcStatus.color}">${p.lastCBC ? escapeHtml(p.lastCBC) + ' \u2022 ' + cbcStatus.text : '—'}</span></div>`;
+      html += `<div class="lab-row"><span class="lab-label">CHEM:</span><span class="lab-val" style="color:${chemStatus.color}">${p.lastChem ? escapeHtml(p.lastChem) + ' \u2022 ' + chemStatus.text : '—'}</span></div>`;
       html += `<div class="lab-row"><span class="lab-label" style="color:#D4644A">CYTOSAR:</span><span class="lab-val" style="color:#D4644A;font-weight:900">CBC REQUIRED TODAY</span></div>`;
     } else {
-      // Standard mode
       const cbcStatus = labStatus(p.lastCBC, 365, today);
-      html += `<div class="lab-row"><span class="lab-label">CBC/CHEM:</span><span class="lab-val" style="color:${cbcStatus.color}">${p.lastCBC ? p.lastCBC + ' \u2022 ' + cbcStatus.text : '—'}</span></div>`;
+      html += `<div class="lab-row"><span class="lab-label">CBC/CHEM:</span><span class="lab-val" style="color:${cbcStatus.color}">${p.lastCBC ? escapeHtml(p.lastCBC) + ' \u2022 ' + cbcStatus.text : '—'}</span></div>`;
     }
 
     // Phenobarbital row
     if (shouldShowPhenoRow(p)) {
       if (p.lastPhenoDate) {
         const phenoStatus = labStatus(p.lastPhenoDate, 180, today);
-        html += `<div class="lab-row"><span class="lab-label">PHENO:</span><span class="lab-val" style="color:${phenoStatus.color}">${p.lastPhenoDate} (${p.lastPhenoVal || '?'}) \u2022 ${phenoStatus.text}</span></div>`;
+        html += `<div class="lab-row"><span class="lab-label">PHENO:</span><span class="lab-val" style="color:${phenoStatus.color}">${escapeHtml(p.lastPhenoDate)} (${escapeHtml(p.lastPhenoVal || '?')}) \u2022 ${phenoStatus.text}</span></div>`;
       } else {
         html += `<div class="lab-row"><span class="lab-label">PHENO:</span><span class="lab-val" style="color:#8AAFAD">NOT ON FILE</span></div>`;
       }
@@ -177,7 +174,7 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     if (shouldShowBromideRow(p)) {
       if (p.lastKBrDate) {
         const kbrStatus = labStatus(p.lastKBrDate, 180, today);
-        html += `<div class="lab-row"><span class="lab-label">BROMIDE:</span><span class="lab-val" style="color:${kbrStatus.color}">${p.lastKBrDate} (${p.lastKBrVal || '?'}) \u2022 ${kbrStatus.text}</span></div>`;
+        html += `<div class="lab-row"><span class="lab-label">BROMIDE:</span><span class="lab-val" style="color:${kbrStatus.color}">${escapeHtml(p.lastKBrDate)} (${escapeHtml(p.lastKBrVal || '?')}) \u2022 ${kbrStatus.text}</span></div>`;
       } else if (p.onKBr) {
         html += `<div class="lab-row"><span class="lab-label">BROMIDE:</span><span class="lab-val" style="color:#8AAFAD">NOT ON FILE</span></div>`;
       }
@@ -196,7 +193,7 @@ export function renderHeader(dateString: string): string {
     <div class="rounds-header">
       <div>
         <h1 class="rounds-title">Neurology Rounds</h1>
-        <div class="rounds-subtitle">Red Bank \u2022 ${dateString}</div>
+        <div class="rounds-subtitle">Red Bank \u2022 ${escapeHtml(dateString)}</div>
       </div>
       <div style="display:flex;align-items:center;gap:14px;">
         <div class="legend no-print">

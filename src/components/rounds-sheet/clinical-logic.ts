@@ -150,6 +150,20 @@ export function splitImagingByDate(imagingText: string): Array<{ dateLabel: stri
   return [{ dateLabel: null, findings: stripped }];
 }
 
+// ===== HTML SANITIZATION =====
+
+const HTML_ESCAPE_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
+
+export function escapeHtml(str: string): string {
+  return str.replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
+}
+
 export function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
