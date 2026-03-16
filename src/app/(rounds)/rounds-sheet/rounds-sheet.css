@@ -102,6 +102,133 @@ td[contenteditable=true] {
   background: rgba(128,216,208,0.08) !important;
 }
 
+/* Edit mode — clickable cells */
+table.edit-mode tbody td[data-field] {
+  cursor: pointer;
+  position: relative;
+  transition: outline 0.15s, background 0.15s;
+}
+table.edit-mode tbody td[data-field]:hover {
+  outline: 2px solid rgba(128,216,208,0.5);
+  outline-offset: -2px;
+  background: rgba(128,216,208,0.06) !important;
+}
+table.edit-mode tbody td[data-field]:hover::after {
+  content: '✏️';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 10px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Cell editor overlay */
+.cell-editor-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 2000;
+  background: rgba(15,28,36,0.4);
+  backdrop-filter: blur(2px);
+}
+.cell-editor {
+  position: fixed;
+  z-index: 2001;
+  background: linear-gradient(180deg, #1a2e3a 0%, #162430 100%);
+  border: 1px solid rgba(128,216,208,0.25);
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(128,216,208,0.1);
+  overflow: hidden;
+  animation: editorSlideIn 0.15s ease-out;
+}
+@keyframes editorSlideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cell-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(128,216,208,0.06);
+  border-bottom: 1px solid rgba(128,216,208,0.12);
+}
+.cell-editor-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #80D8D0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cell-editor-patient {
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+}
+.cell-editor-actions {
+  display: flex;
+  gap: 6px;
+}
+.cell-editor-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cell-editor-btn.cancel {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.5);
+}
+.cell-editor-btn.cancel:hover {
+  background: rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.8);
+}
+.cell-editor-btn.save {
+  background: #80D8D0;
+  color: #0f1c24;
+}
+.cell-editor-btn.save:hover {
+  filter: brightness(1.1);
+}
+.cell-editor-input,
+.cell-editor-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: rgba(0,0,0,0.2);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.cell-editor-input {
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+}
+.cell-editor-input:focus,
+.cell-editor-textarea:focus {
+  background: rgba(0,0,0,0.3);
+}
+.cell-editor-hint {
+  padding: 6px 12px;
+  font-size: 9px;
+  color: rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.15);
+  border-top: 1px solid rgba(128,216,208,0.08);
+  line-height: 1.4;
+}
+
 /* ===== TIME CELL ===== */
 .time-cell { width: 72px; text-align: center; }
 .time-pill {
@@ -306,5 +433,8 @@ td[contenteditable=true] {
   .bg-layer, .bg-overlay, .bg-gradient { position: absolute !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; }
   .sticker-layer { z-index: 50; }
   td[contenteditable] { outline: none !important; }
+  .cell-editor-overlay { display: none !important; }
+  table.edit-mode tbody td[data-field]::after { display: none !important; }
+  table.edit-mode tbody td[data-field] { cursor: default !important; outline: none !important; }
   table { background: rgba(255,255,255,0.65) !important; }
 }
