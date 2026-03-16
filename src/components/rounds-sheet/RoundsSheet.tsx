@@ -263,33 +263,44 @@ export default function RoundsSheet() {
 
   // Sticker placement — vanilla DOM for performance
   // Creates a sticker element with drag, click-to-select, and floating toolbar
+  // Stores cleanup function on element for proper listener removal
   const createStickerEl = useCallback((emoji: string, x: number, y: number, sz: number, op: number, rot: number) => {
     const layer = stickerLayerRef.current;
     if (!layer) return;
-    const el = document.createElement('span');
+    const el = document.createElement('span') as HTMLSpanElement & { __cleanup?: () => void };
     el.className = 'sticker';
     el.textContent = emoji;
     el.style.cssText = `font-size:${sz}px;opacity:${op};left:${x}px;top:${y}px;transform:rotate(${rot}deg)`;
     el.dataset.size = String(sz);
     el.dataset.opacity = String(op);
 
+    // Track document-level listeners for cleanup
+    let activeDeselect: ((e: MouseEvent) => void) | null = null;
+
+    const cleanupDeselect = () => {
+      if (activeDeselect) {
+        document.removeEventListener('click', activeDeselect);
+        activeDeselect = null;
+      }
+    };
+
     // Click to select → show floating toolbar
-    el.addEventListener('click', (ev) => {
+    const clickHandler = (ev: Event) => {
       ev.stopPropagation();
-      // Remove any existing toolbar
+      // Remove any existing toolbar and deselect listeners
       document.querySelectorAll('.sticker-toolbar').forEach(t => t.remove());
       document.querySelectorAll('.sticker.selected').forEach(s => s.classList.remove('selected'));
       el.classList.add('selected');
 
       const tb = document.createElement('div');
       tb.className = 'sticker-toolbar no-print';
-      tb.style.cssText = `position:absolute;left:${el.offsetLeft}px;top:${el.offsetTop - 36}px;z-index:60;display:flex;gap:4px;align-items:center;background:rgba(26,46,58,0.95);padding:4px 8px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.3);border:1px solid rgba(128,216,208,0.2);`;
+      tb.style.cssText = `position:absolute;left:${el.offsetLeft}px;top:${el.offsetTop - 36}px`;
 
       // Size buttons
-      const makeBtn = (text: string, onClick: () => void, color = '#80D8D0') => {
+      const makeBtn = (text: string, onClick: () => void, cls = '') => {
         const b = document.createElement('button');
         b.textContent = text;
-        b.style.cssText = `border:none;background:rgba(128,216,208,0.15);color:${color};cursor:pointer;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;`;
+        b.className = 'sticker-toolbar-btn' + (cls ? ' ' + cls : '');
         b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
         return b;
       };
@@ -299,7 +310,7 @@ export default function RoundsSheet() {
         el.style.fontSize = s + 'px'; el.dataset.size = String(s);
       }));
       const sizeLabel = document.createElement('span');
-      sizeLabel.style.cssText = 'font-size:10px;color:#80D8D0;min-width:20px;text-align:center;';
+      sizeLabel.className = 'sticker-toolbar-label';
       sizeLabel.textContent = Math.round(parseFloat(el.dataset.size || '28')) + '';
       tb.appendChild(sizeLabel);
       tb.appendChild(makeBtn('+', () => {
@@ -316,41 +327,66 @@ export default function RoundsSheet() {
         el.style.opacity = String(next); el.dataset.opacity = String(next);
       }));
 
-      // Delete
-      tb.appendChild(makeBtn('🗑', () => { el.remove(); tb.remove(); }, '#D4644A'));
+      // Delete — clean up listeners before removing
+      tb.appendChild(makeBtn('🗑', () => {
+        cleanupDeselect();
+        el.__cleanup = undefined;
+        el.remove();
+        tb.remove();
+      }, 'danger'));
 
       layer.appendChild(tb);
 
       // Click elsewhere to deselect
+      cleanupDeselect(); // Remove any prior deselect listener
       const deselect = (e2: MouseEvent) => {
         if (!(e2.target as HTMLElement).closest('.sticker-toolbar') && e2.target !== el) {
           el.classList.remove('selected');
           tb.remove();
-          document.removeEventListener('click', deselect);
+          cleanupDeselect();
         }
       };
-      setTimeout(() => document.addEventListener('click', deselect), 10);
-    });
+      activeDeselect = deselect;
+      setTimeout(() => {
+        if (activeDeselect === deselect) {
+          document.addEventListener('click', deselect);
+        }
+      }, 10);
+    };
+    el.addEventListener('click', clickHandler);
 
     // Drag
-    el.addEventListener('mousedown', (ev) => {
-      if (ev.button !== 0) return;
-      ev.preventDefault(); ev.stopPropagation();
+    const mousedownHandler = (ev: Event) => {
+      const mev = ev as MouseEvent;
+      if (mev.button !== 0) return;
+      mev.preventDefault(); mev.stopPropagation();
       el.classList.add('dragging');
       document.querySelectorAll('.sticker-toolbar').forEach(t => t.remove());
-      const ox = ev.clientX - el.offsetLeft, oy = ev.clientY - el.offsetTop;
+      cleanupDeselect();
+      const ox = mev.clientX - el.offsetLeft, oy = mev.clientY - el.offsetTop;
       const mv = (me: MouseEvent) => { el.style.left = (me.clientX - ox) + 'px'; el.style.top = (me.clientY - oy) + 'px'; };
       const up = () => { el.classList.remove('dragging'); document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); };
       document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
-    });
+    };
+    el.addEventListener('mousedown', mousedownHandler);
 
     // Scroll resize
-    el.addEventListener('wheel', (ev) => {
+    const wheelHandler = (ev: Event) => {
       ev.preventDefault();
+      const wev = ev as WheelEvent;
       let s = parseFloat(el.dataset.size || '28');
-      s = Math.max(10, Math.min(120, s + (ev.deltaY < 0 ? 4 : -4)));
+      s = Math.max(10, Math.min(120, s + (wev.deltaY < 0 ? 4 : -4)));
       el.style.fontSize = s + 'px'; el.dataset.size = String(s);
-    });
+    };
+    el.addEventListener('wheel', wheelHandler);
+
+    // Store cleanup function for proper teardown
+    el.__cleanup = () => {
+      cleanupDeselect();
+      el.removeEventListener('click', clickHandler);
+      el.removeEventListener('mousedown', mousedownHandler);
+      el.removeEventListener('wheel', wheelHandler);
+    };
 
     layer.appendChild(el);
   }, []);
@@ -395,21 +431,29 @@ export default function RoundsSheet() {
     }
   };
 
+  const cleanupStickerEl = (el: Element) => {
+    (el as HTMLElement & { __cleanup?: () => void }).__cleanup?.();
+  };
+
   const undoStickers = () => {
     const layer = stickerLayerRef.current;
     if (!layer) return;
-    // If last action was scatter, undo the whole batch
     const count = lastScatterCount.current > 0 ? lastScatterCount.current : 1;
     for (let i = 0; i < count; i++) {
-      if (layer.lastElementChild && !layer.lastElementChild.classList.contains('sticker-toolbar')) {
-        layer.lastElementChild.remove();
+      const last = layer.lastElementChild;
+      if (last && !last.classList.contains('sticker-toolbar')) {
+        cleanupStickerEl(last);
+        last.remove();
       }
     }
     lastScatterCount.current = 0;
   };
 
   const clearStickers = () => {
-    if (stickerLayerRef.current) stickerLayerRef.current.innerHTML = '';
+    const layer = stickerLayerRef.current;
+    if (!layer) return;
+    layer.querySelectorAll('.sticker').forEach(cleanupStickerEl);
+    layer.innerHTML = '';
   };
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
