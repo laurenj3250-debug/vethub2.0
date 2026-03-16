@@ -91,7 +91,11 @@ export default function RoundsSheet() {
           id: sessionId,
           name: name || customTitle,
           patients,
-          settings: { customTitle, activeTheme, footerText, watermarkEmoji, pageBorder },
+          settings: {
+            customTitle, activeTheme, footerText, watermarkEmoji, pageBorder,
+            rowOpacity, overlayOpacity, gradColor1, gradColor2, gradAngle, gradOpacity,
+            customHeader, customLab, customConsult, bgTile,
+          },
         }),
       });
       if (res.ok) {
@@ -102,9 +106,11 @@ export default function RoundsSheet() {
         setTimeout(() => setSaveStatus(null), 2000);
       } else {
         setSaveStatus('Save failed');
+        setTimeout(() => setSaveStatus(null), 3000);
       }
     } catch {
       setSaveStatus('Save failed');
+      setTimeout(() => setSaveStatus(null), 3000);
     }
     setSaving(false);
   };
@@ -112,31 +118,57 @@ export default function RoundsSheet() {
   const loadSession = async (id: string) => {
     try {
       const res = await fetch(`/api/rounds-sessions/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPatients(data.patients || []);
-        setSessionId(data.id);
-        if (data.settings) {
-          if (data.settings.customTitle) setCustomTitle(data.settings.customTitle);
-          if (data.settings.footerText) setFooterText(data.settings.footerText);
-          if (data.settings.watermarkEmoji) setWatermarkEmoji(data.settings.watermarkEmoji);
-          if (data.settings.pageBorder) setPageBorder(data.settings.pageBorder);
-          if (data.settings.activeTheme !== undefined) {
-            setActiveTheme(data.settings.activeTheme);
-            applyTheme(data.settings.activeTheme);
-          }
-        }
-        setPasteText('');
+      if (!res.ok) {
+        setSaveStatus(res.status === 404 ? 'Session not found' : 'Failed to load');
+        setTimeout(() => setSaveStatus(null), 3000);
+        return;
       }
-    } catch { /* ignore */ }
+      const data = await res.json();
+      const pts = Array.isArray(data.patients) ? data.patients : [];
+      setPatients(pts);
+      setSessionId(data.id);
+      if (data.settings) {
+        const s = data.settings;
+        if (s.customTitle) setCustomTitle(s.customTitle);
+        if (s.footerText !== undefined) setFooterText(s.footerText);
+        if (s.watermarkEmoji !== undefined) setWatermarkEmoji(s.watermarkEmoji);
+        if (s.pageBorder !== undefined) setPageBorder(s.pageBorder);
+        if (s.rowOpacity !== undefined) setRowOpacity(s.rowOpacity);
+        if (s.overlayOpacity !== undefined) setOverlayOpacity(s.overlayOpacity);
+        if (s.gradColor1) setGradColor1(s.gradColor1);
+        if (s.gradColor2) setGradColor2(s.gradColor2);
+        if (s.gradAngle !== undefined) setGradAngle(s.gradAngle);
+        if (s.gradOpacity !== undefined) setGradOpacity(s.gradOpacity);
+        if (s.customHeader) setCustomHeader(s.customHeader);
+        if (s.customLab) setCustomLab(s.customLab);
+        if (s.customConsult) setCustomConsult(s.customConsult);
+        if (s.bgTile !== undefined) setBgTile(s.bgTile);
+        if (s.activeTheme !== undefined) {
+          setActiveTheme(s.activeTheme);
+          // Defer theme application to after state settles
+          setTimeout(() => applyTheme(s.activeTheme, s.rowOpacity), 0);
+        }
+      }
+      setPasteText('');
+    } catch {
+      setSaveStatus('Failed to load session');
+      setTimeout(() => setSaveStatus(null), 3000);
+    }
   };
 
   const deleteSession = async (id: string) => {
+    if (!confirm('Delete this saved session?')) return;
     try {
       await fetch(`/api/rounds-sessions/${id}`, { method: 'DELETE' });
       fetchSessions();
-      if (sessionId === id) setSessionId(null);
-    } catch { /* ignore */ }
+      if (sessionId === id) {
+        setSessionId(null);
+        setPatients([]);
+      }
+    } catch {
+      setSaveStatus('Failed to delete');
+      setTimeout(() => setSaveStatus(null), 3000);
+    }
   };
 
   // Ctrl+Z / Cmd+Z to undo last sticker
@@ -424,11 +456,11 @@ export default function RoundsSheet() {
   // Get the editable value for a field from a patient
   const getFieldValue = (p: RoundsPatient, field: string): string => {
     switch (field) {
-      case 'time': return p.time;
-      case 'name': return `${p.name}\n${p.owner}\n${p.species}`;
+      case 'time': return p.time || '';
+      case 'name': return `${p.name || ''}\n${p.owner || ''}\n${p.species || ''}`;
       case 'needsToday': return p.needsToday || '';
-      case 'dx': return `${p.dx}\n---\n${p.lastVisit}`;
-      case 'imaging': return `${p.surgery ? p.surgery + '\n---\n' : ''}${p.imaging}`;
+      case 'dx': return `${p.dx || ''}\n---\n${p.lastVisit || ''}`;
+      case 'imaging': return `${p.surgery ? p.surgery + '\n---\n' : ''}${p.imaging || ''}`;
       case 'meds': return p.meds || '';
       default: return '';
     }
@@ -437,6 +469,7 @@ export default function RoundsSheet() {
   // Save the edited value back to the patient
   const saveFieldValue = (pidx: number, field: string, value: string) => {
     setPatients(prev => {
+      if (pidx < 0 || pidx >= prev.length) return prev;
       const updated = [...prev];
       const p = { ...updated[pidx] };
       switch (field) {
@@ -537,6 +570,9 @@ export default function RoundsSheet() {
           <div dangerouslySetInnerHTML={{ __html: renderHeader(dateString).replace('Neurology Rounds', customTitle) }} />
           <div className="empty-state">
             {/* Saved Sessions */}
+            {loadingSessions && savedSessions.length === 0 && (
+              <div style={{ fontSize: 12, color: '#8AAFAD', fontWeight: 600 }}>Loading saved rounds...</div>
+            )}
             {savedSessions.length > 0 && (
               <div style={{ width: '100%', maxWidth: 600, marginBottom: 24 }}>
                 <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.4rem', fontWeight: 900, color: '#1B3A4B', marginBottom: 12 }}>
@@ -573,8 +609,10 @@ export default function RoundsSheet() {
                     </div>
                   ))}
                 </div>
-                <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', margin: '20px 0', position: 'relative' }}>
-                  <span style={{ position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)', background: 'inherit', padding: '0 12px', fontSize: 11, color: '#8AAFAD', fontWeight: 700 }}>or paste new</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+                  <span style={{ fontSize: 11, color: '#8AAFAD', fontWeight: 700, flexShrink: 0 }}>or paste new</span>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
                 </div>
               </div>
             )}
@@ -593,6 +631,7 @@ export default function RoundsSheet() {
               </div>
             )}
             {error && <div className="error-msg">{error}</div>}
+            {saveStatus && <div className="error-msg">{saveStatus}</div>}
             <button className="load-btn" onClick={handleLoad} disabled={!pasteText.trim()}>Load Patients</button>
           </div>
         </div>
