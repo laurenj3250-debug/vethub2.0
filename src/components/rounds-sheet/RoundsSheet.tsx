@@ -53,9 +53,13 @@ export default function RoundsSheet() {
   // Emoji multi-select for sticker bomb
   const [bombEmojis, setBombEmojis] = useState<Set<string>>(new Set());
 
+  // Sticker persistence
+  const [savedStickers, setSavedStickers] = useState<Array<{ emoji: string; x: number; y: number; size: number; opacity: number; rotation: number }>>([]);
+
   // Save state
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const stickerLayerRef = useRef<HTMLDivElement>(null);
@@ -68,12 +72,10 @@ export default function RoundsSheet() {
     if (!mounted) return;
     const loadSaved = async () => {
       try {
-        // First try today's sheet, then fall back to most recent
         const todayDate = new Date().toISOString().split('T')[0];
         let res = await fetch(`/api/rounds-sheets?date=${todayDate}`);
         let data = res.ok ? await res.json() : null;
         if (!data || !data.patients) {
-          // Try most recent (no date param = returns latest within 48h)
           res = await fetch('/api/rounds-sheets');
           data = res.ok ? await res.json() : null;
         }
@@ -96,18 +98,35 @@ export default function RoundsSheet() {
             if (s.customHeader) setCustomHeader(s.customHeader);
             if (s.customLab) setCustomLab(s.customLab);
             if (s.customConsult) setCustomConsult(s.customConsult);
+            // Restore stickers
+            if (s.stickers && Array.isArray(s.stickers)) {
+              setSavedStickers(s.stickers);
+            }
           }
         }
-      } catch { /* No saved sheet, that's fine */ }
+      } catch { /* No saved sheet */ }
+      setIsLoading(false);
     };
     loadSaved();
   }, [mounted]);
+
+  // Restore stickers once createStickerEl is available and patients are loaded
+  useEffect(() => {
+    if (!mounted || patients.length === 0 || savedStickers.length === 0) return;
+    const timer = setTimeout(() => {
+      savedStickers.forEach(s => createStickerEl(s.emoji, s.x, s.y, s.size, s.opacity, s.rotation));
+      setSavedStickers([]); // Clear so we don't re-create on subsequent renders
+    }, 200);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, patients.length, savedStickers.length]);
 
   // Auto-save whenever patients change (debounced)
   useEffect(() => {
     if (!mounted || patients.length === 0) return;
     const timeout = setTimeout(() => {
       const todayDate = new Date().toISOString().split('T')[0];
+      const stickers = collectStickers();
       fetch('/api/rounds-sheets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,11 +137,19 @@ export default function RoundsSheet() {
             activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
             watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle,
             gradOpacity, customHeader, customLab, customConsult,
+            stickers,
           },
         }),
       }).then(res => {
-        if (res.ok) setLastSaved(new Date());
-      }).catch(() => {});
+        if (res.ok) {
+          setLastSaved(new Date());
+          setSaveStatus('idle');
+        } else {
+          setSaveStatus('error');
+        }
+      }).catch(() => {
+        setSaveStatus('error');
+      });
     }, 2000); // 2 second debounce
     return () => clearTimeout(timeout);
   }, [mounted, patients, activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
@@ -135,6 +162,7 @@ export default function RoundsSheet() {
     setSaveStatus('saving');
     try {
       const todayDate = new Date().toISOString().split('T')[0];
+      const stickers = collectStickers();
       const res = await fetch('/api/rounds-sheets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -145,6 +173,7 @@ export default function RoundsSheet() {
             activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
             watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle,
             gradOpacity, customHeader, customLab, customConsult,
+            stickers,
           },
         }),
       });
@@ -164,20 +193,36 @@ export default function RoundsSheet() {
       watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle, gradOpacity,
       customHeader, customLab, customConsult]);
 
-  // Row management
-  const deletePatient = (index: number) => {
-    setPatients(prev => prev.filter((_, i) => i !== index));
-  };
+  // Serialize stickers from DOM to state (for saving)
+  const collectStickers = useCallback(() => {
+    const layer = stickerLayerRef.current;
+    if (!layer) return [];
+    return Array.from(layer.querySelectorAll('.sticker')).map(el => {
+      const s = el as HTMLElement;
+      return {
+        emoji: s.textContent || '',
+        x: parseFloat(s.style.left) || 0,
+        y: parseFloat(s.style.top) || 0,
+        size: parseFloat(s.dataset.size || '28'),
+        opacity: parseFloat(s.dataset.opacity || '0.6'),
+        rotation: parseFloat((s.style.transform.match(/rotate\(([-\d.]+)deg\)/) || ['', '0'])[1]),
+      };
+    });
+  }, []);
 
-  const movePatient = (index: number, direction: -1 | 1) => {
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= patients.length) return;
+  // Row management — use refs so useEffect closures are never stale
+  const deletePatientRef = useRef((index: number) => {
+    setPatients(prev => prev.filter((_, i) => i !== index));
+  });
+  const movePatientRef = useRef((index: number, direction: -1 | 1) => {
     setPatients(prev => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
       const next = [...prev];
       [next[index], next[newIndex]] = [next[newIndex], next[index]];
       return next;
     });
-  };
+  });
 
   // Ctrl+Z / Cmd+Z to undo last sticker
   useEffect(() => {
@@ -565,15 +610,15 @@ export default function RoundsSheet() {
 
         btn.querySelector('.row-delete')?.addEventListener('click', (e) => {
           e.stopPropagation();
-          deletePatient(i);
+          deletePatientRef.current(i);
         });
         btn.querySelector('.row-move-up')?.addEventListener('click', (e) => {
           e.stopPropagation();
-          movePatient(i, -1);
+          movePatientRef.current(i, -1);
         });
         btn.querySelector('.row-move-down')?.addEventListener('click', (e) => {
           e.stopPropagation();
-          movePatient(i, 1);
+          movePatientRef.current(i, 1);
         });
       });
     }
@@ -617,6 +662,21 @@ export default function RoundsSheet() {
   const dateString = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   if (!mounted) return null;
+
+  // ===== LOADING STATE =====
+  if (isLoading) {
+    return (
+      <>
+        <div className="bg-layer" />
+        <div className="bg-overlay" style={{ background: 'rgba(255,255,255,0.15)' }} />
+        <div className="content-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+          <div style={{ textAlign: 'center', color: '#3A6B6B' }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>Loading rounds...</div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // ===== EMPTY STATE =====
   if (patients.length === 0) {
@@ -684,7 +744,7 @@ export default function RoundsSheet() {
               color: saveStatus === 'saved' || saveStatus === 'error' ? '#fff' : '#80D8D0',
               transition: 'all 0.3s',
             }}>
-            {saveStatus === 'saving' ? '...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✕ Error' : lastSaved ? '✓ Auto-saved' : '💾 Save'}
+            {saveStatus === 'saving' ? '...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✕ Save Failed — Tap to Retry' : lastSaved ? '✓ Auto-saved' : '💾 Save'}
           </button>
           <button className="toolbar-btn" onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)' }}>🖨️ Print</button>
           <button className="toolbar-btn" onClick={() => setPanelOpen(!panelOpen)}
@@ -798,7 +858,7 @@ export default function RoundsSheet() {
 
       {/* ===== CONTROL PANEL ===== */}
       <div className="panel no-print" style={{
-        position: 'fixed', top: 0, right: 0, width: 300, height: '100vh', zIndex: 1000,
+        position: 'fixed', top: 0, right: 0, width: 300, height: '100vh', zIndex: 400,
         background: 'linear-gradient(180deg, #0f1c24 0%, #162430 40%, #1a2e3a 100%)',
         color: '#fff', overflowY: 'auto', fontSize: 11,
         boxShadow: '-4px 0 30px rgba(0,0,0,0.4)',
@@ -1040,7 +1100,7 @@ export default function RoundsSheet() {
       {/* ===== FLOATING STICKER DOCK ===== */}
       <div className="no-print" style={{
         position: 'fixed', bottom: 0, left: 0, right: panelOpen ? 300 : 0,
-        zIndex: 1100, transition: 'right 0.3s',
+        zIndex: 500, transition: 'right 0.3s',
       }}>
         {/* Category tabs */}
         <div style={{
