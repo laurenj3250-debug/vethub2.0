@@ -1040,7 +1040,7 @@ export default function RoundsSheet() {
       {/* ===== FLOATING STICKER DOCK ===== */}
       <div className="no-print" style={{
         position: 'fixed', bottom: 0, left: 0, right: panelOpen ? 300 : 0,
-        zIndex: 900, transition: 'right 0.3s',
+        zIndex: 1100, transition: 'right 0.3s',
       }}>
         {/* Category tabs */}
         <div style={{
