@@ -50,11 +50,104 @@ export default function RoundsSheet() {
   const [editMode, setEditMode] = useState(false);
   const [editingCell, setEditingCell] = useState<{ pidx: number; field: string; value: string; rect: DOMRect } | null>(null);
 
+  // Emoji multi-select for sticker bomb
+  const [bombEmojis, setBombEmojis] = useState<Set<string>>(new Set());
+
+  // Save state
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const stickerLayerRef = useRef<HTMLDivElement>(null);
   const lastScatterCount = useRef(0);
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Auto-load saved sheet on mount
+  useEffect(() => {
+    if (!mounted) return;
+    const loadSaved = async () => {
+      try {
+        const todayDate = new Date().toISOString().split('T')[0];
+        const res = await fetch(`/api/rounds-sheets?date=${todayDate}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.patients && Array.isArray(data.patients) && data.patients.length > 0) {
+          setPatients(data.patients);
+          setLastSaved(new Date(data.updatedAt));
+          // Restore settings if saved
+          if (data.settings) {
+            const s = data.settings;
+            if (s.activeTheme !== undefined) setActiveTheme(s.activeTheme);
+            if (s.rowOpacity !== undefined) setRowOpacity(s.rowOpacity);
+            if (s.overlayOpacity !== undefined) setOverlayOpacity(s.overlayOpacity);
+            if (s.customTitle) setCustomTitle(s.customTitle);
+            if (s.footerText !== undefined) setFooterText(s.footerText);
+            if (s.watermarkEmoji !== undefined) setWatermarkEmoji(s.watermarkEmoji);
+            if (s.pageBorder !== undefined) setPageBorder(s.pageBorder);
+            if (s.gradColor1) setGradColor1(s.gradColor1);
+            if (s.gradColor2) setGradColor2(s.gradColor2);
+            if (s.gradAngle !== undefined) setGradAngle(s.gradAngle);
+            if (s.gradOpacity !== undefined) setGradOpacity(s.gradOpacity);
+            if (s.customHeader) setCustomHeader(s.customHeader);
+            if (s.customLab) setCustomLab(s.customLab);
+            if (s.customConsult) setCustomConsult(s.customConsult);
+          }
+        }
+      } catch { /* No saved sheet, that's fine */ }
+    };
+    loadSaved();
+  }, [mounted]);
+
+  // Save to server
+  const saveSheet = useCallback(async () => {
+    if (patients.length === 0) return;
+    setSaveStatus('saving');
+    try {
+      const todayDate = new Date().toISOString().split('T')[0];
+      const res = await fetch('/api/rounds-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: todayDate,
+          patients,
+          settings: {
+            activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
+            watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle,
+            gradOpacity, customHeader, customLab, customConsult,
+          },
+        }),
+      });
+      if (res.ok) {
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } else {
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 3000);
+      }
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
+  }, [patients, activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
+      watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle, gradOpacity,
+      customHeader, customLab, customConsult]);
+
+  // Row management
+  const deletePatient = (index: number) => {
+    setPatients(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const movePatient = (index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= patients.length) return;
+    setPatients(prev => {
+      const next = [...prev];
+      [next[index], next[newIndex]] = [next[newIndex], next[index]];
+      return next;
+    });
+  };
 
   // Ctrl+Z / Cmd+Z to undo last sticker
   useEffect(() => {
@@ -297,6 +390,25 @@ export default function RoundsSheet() {
     if (stickerLayerRef.current) stickerLayerRef.current.innerHTML = '';
   };
 
+  // Scatter stickers using only the selected bomb emojis
+  const bombWithSelected = () => {
+    const wrap = contentRef.current;
+    if (!wrap || bombEmojis.size === 0) return;
+    const emojiArr = Array.from(bombEmojis);
+    const w = wrap.scrollWidth - 60;
+    const h = wrap.scrollHeight - 40;
+    lastScatterCount.current = scatterCount;
+    for (let i = 0; i < scatterCount; i++) {
+      const emoji = emojiArr[Math.floor(Math.random() * emojiArr.length)];
+      const x = 20 + Math.random() * w;
+      const y = 20 + Math.random() * h;
+      const s = stickerSize * 0.6 + Math.random() * stickerSize * 0.8;
+      const r = Math.round(-40 + Math.random() * 80);
+      const o = Math.min((stickerOpacity / 100) * 0.6 + Math.random() * (stickerOpacity / 100) * 0.5, 1);
+      createStickerEl(emoji, x, y, s, o, r);
+    }
+  };
+
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -401,6 +513,42 @@ export default function RoundsSheet() {
     if (!next) setEditingCell(null);
   };
 
+  // Add row management buttons in edit mode
+  useEffect(() => {
+    if (!mounted) return;
+    // Clean up existing row actions
+    document.querySelectorAll('.row-actions').forEach(el => el.remove());
+    // Add row management buttons in edit mode (inside time cell)
+    if (editMode) {
+      document.querySelectorAll('#roundsBody tr').forEach((tr, i) => {
+        const timeCell = tr.querySelector('td:first-child') as HTMLElement;
+        if (!timeCell) return;
+        const btn = document.createElement('div');
+        btn.className = 'row-actions no-print';
+        btn.style.cssText = 'display:flex;gap:2px;justify-content:center;margin-top:4px;';
+        btn.innerHTML = `
+          <button class="row-act-btn row-move-up" title="Move up" style="border:none;cursor:pointer;padding:1px 4px;border-radius:3px;font-size:9px;background:rgba(128,216,208,0.2);color:#80D8D0;">▲</button>
+          <button class="row-act-btn row-delete" title="Remove patient" style="border:none;cursor:pointer;padding:1px 4px;border-radius:3px;font-size:9px;background:rgba(212,100,74,0.2);color:#D4644A;font-weight:700;">✕</button>
+          <button class="row-act-btn row-move-down" title="Move down" style="border:none;cursor:pointer;padding:1px 4px;border-radius:3px;font-size:9px;background:rgba(128,216,208,0.2);color:#80D8D0;">▼</button>
+        `;
+        timeCell.appendChild(btn);
+
+        btn.querySelector('.row-delete')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deletePatient(i);
+        });
+        btn.querySelector('.row-move-up')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          movePatient(i, -1);
+        });
+        btn.querySelector('.row-move-down')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          movePatient(i, 1);
+        });
+      });
+    }
+  }, [editMode, patients, mounted]);
+
   // Handle cell clicks in edit mode
   const handleTableClick = useCallback((e: React.MouseEvent) => {
     if (!editMode) return;
@@ -500,6 +648,14 @@ export default function RoundsSheet() {
         <div className="toolbar-actions">
           <button className="toolbar-btn secondary" onClick={() => { setPatients([]); setPasteText(''); }}>New Sheet</button>
           <button className="toolbar-btn secondary" onClick={toggleEdit}>{editMode ? '🔒 Lock' : '✏️ Edit'}</button>
+          <button className="toolbar-btn" onClick={saveSheet}
+            style={{
+              background: saveStatus === 'saved' ? '#5BC0BE' : saveStatus === 'error' ? '#D4644A' : 'rgba(255,255,255,0.12)',
+              color: saveStatus === 'saved' || saveStatus === 'error' ? '#fff' : '#80D8D0',
+              transition: 'all 0.3s',
+            }}>
+            {saveStatus === 'saving' ? '...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✕ Error' : '💾 Save'}
+          </button>
           <button className="toolbar-btn" onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)' }}>🖨️ Print</button>
           <button className="toolbar-btn" onClick={() => setPanelOpen(!panelOpen)}
             style={{ background: panelOpen ? '#fff' : 'rgba(255,255,255,0.12)', color: panelOpen ? '#1a2e3a' : '#80D8D0' }}>
@@ -879,7 +1035,7 @@ export default function RoundsSheet() {
               </button>
             );
           })}
-          <button onClick={scatterStickers} title="Scatter!"
+          <button onClick={scatterStickers} title="Scatter from full category"
             style={{
               padding: '4px 8px', border: 'none', cursor: 'pointer',
               borderRadius: '8px 8px 0 0', fontSize: 14,
@@ -888,6 +1044,29 @@ export default function RoundsSheet() {
             }}>
             🎲
           </button>
+          {bombEmojis.size > 0 && (
+            <button onClick={bombWithSelected}
+              title={`Bomb with ${bombEmojis.size} selected emoji${bombEmojis.size > 1 ? 's' : ''}`}
+              style={{
+                padding: '4px 8px', border: 'none', cursor: 'pointer',
+                borderRadius: '8px 8px 0 0', fontSize: 12, fontWeight: 700,
+                background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)',
+                color: '#0f1c24', animation: 'pulse 1.5s infinite',
+              }}>
+              💣 {bombEmojis.size}
+            </button>
+          )}
+          {bombEmojis.size > 0 && (
+            <button onClick={() => setBombEmojis(new Set())}
+              title="Clear emoji selection"
+              style={{
+                padding: '4px 8px', border: 'none', cursor: 'pointer',
+                borderRadius: '8px 8px 0 0', fontSize: 11,
+                background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)',
+              }}>
+              ✕
+            </button>
+          )}
           <button onClick={undoStickers}
             title="Undo (Cmd+Z)"
             style={{
@@ -920,19 +1099,47 @@ export default function RoundsSheet() {
             scrollbarWidth: 'none',
           }}>
             {(STICKER_CATEGORIES[activeStickerCat] || []).map(emoji => {
-              const isSelected = activeEmoji === emoji;
+              const isPlaceActive = activeEmoji === emoji;
+              const isInBomb = bombEmojis.has(emoji);
               return (
-                <span key={emoji} onClick={() => {
-                  setActiveEmoji(isSelected ? null : emoji);
-                }}
+                <span key={emoji}
+                  onClick={() => {
+                    setActiveEmoji(isPlaceActive ? null : emoji);
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setBombEmojis(prev => {
+                      const next = new Set(prev);
+                      if (next.has(emoji)) next.delete(emoji);
+                      else next.add(emoji);
+                      return next;
+                    });
+                  }}
                   style={{
                     fontSize: 28, cursor: 'pointer', padding: '4px 6px', borderRadius: 8,
                     flexShrink: 0, lineHeight: 1, transition: 'all 0.15s',
-                    background: isSelected ? 'rgba(128,216,208,0.25)' : 'transparent',
-                    boxShadow: isSelected ? '0 0 0 2px #80D8D0, 0 0 12px rgba(128,216,208,0.3)' : 'none',
-                    transform: isSelected ? 'scale(1.2) translateY(-4px)' : 'scale(1)',
+                    position: 'relative',
+                    background: isPlaceActive
+                      ? 'rgba(128,216,208,0.25)'
+                      : isInBomb
+                        ? 'rgba(255,180,50,0.2)'
+                        : 'transparent',
+                    boxShadow: isPlaceActive
+                      ? '0 0 0 2px #80D8D0, 0 0 12px rgba(128,216,208,0.3)'
+                      : isInBomb
+                        ? '0 0 0 2px #FFB432'
+                        : 'none',
+                    transform: isPlaceActive ? 'scale(1.2) translateY(-4px)' : 'scale(1)',
                   }}>
                   {emoji}
+                  {isInBomb && (
+                    <span style={{
+                      position: 'absolute', top: -2, right: -2, fontSize: 10,
+                      background: '#FFB432', color: '#0f1c24', borderRadius: '50%',
+                      width: 14, height: 14, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', fontWeight: 900, lineHeight: 1,
+                    }}>💣</span>
+                  )}
                 </span>
               );
             })}
