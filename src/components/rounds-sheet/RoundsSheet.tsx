@@ -63,19 +63,23 @@ export default function RoundsSheet() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  // Auto-load saved sheet on mount
+  // Auto-load saved sheet on mount (check today first, then most recent within 48h)
   useEffect(() => {
     if (!mounted) return;
     const loadSaved = async () => {
       try {
+        // First try today's sheet, then fall back to most recent
         const todayDate = new Date().toISOString().split('T')[0];
-        const res = await fetch(`/api/rounds-sheets?date=${todayDate}`);
-        if (!res.ok) return;
-        const data = await res.json();
+        let res = await fetch(`/api/rounds-sheets?date=${todayDate}`);
+        let data = res.ok ? await res.json() : null;
+        if (!data || !data.patients) {
+          // Try most recent (no date param = returns latest within 48h)
+          res = await fetch('/api/rounds-sheets');
+          data = res.ok ? await res.json() : null;
+        }
         if (data && data.patients && Array.isArray(data.patients) && data.patients.length > 0) {
           setPatients(data.patients);
           setLastSaved(new Date(data.updatedAt));
-          // Restore settings if saved
           if (data.settings) {
             const s = data.settings;
             if (s.activeTheme !== undefined) setActiveTheme(s.activeTheme);
@@ -98,6 +102,32 @@ export default function RoundsSheet() {
     };
     loadSaved();
   }, [mounted]);
+
+  // Auto-save whenever patients change (debounced)
+  useEffect(() => {
+    if (!mounted || patients.length === 0) return;
+    const timeout = setTimeout(() => {
+      const todayDate = new Date().toISOString().split('T')[0];
+      fetch('/api/rounds-sheets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: todayDate,
+          patients,
+          settings: {
+            activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
+            watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle,
+            gradOpacity, customHeader, customLab, customConsult,
+          },
+        }),
+      }).then(res => {
+        if (res.ok) setLastSaved(new Date());
+      }).catch(() => {});
+    }, 2000); // 2 second debounce
+    return () => clearTimeout(timeout);
+  }, [mounted, patients, activeTheme, rowOpacity, overlayOpacity, customTitle, footerText,
+      watermarkEmoji, pageBorder, gradColor1, gradColor2, gradAngle, gradOpacity,
+      customHeader, customLab, customConsult]);
 
   // Save to server
   const saveSheet = useCallback(async () => {
@@ -654,7 +684,7 @@ export default function RoundsSheet() {
               color: saveStatus === 'saved' || saveStatus === 'error' ? '#fff' : '#80D8D0',
               transition: 'all 0.3s',
             }}>
-            {saveStatus === 'saving' ? '...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✕ Error' : '💾 Save'}
+            {saveStatus === 'saving' ? '...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? '✕ Error' : lastSaved ? '✓ Auto-saved' : '💾 Save'}
           </button>
           <button className="toolbar-btn" onClick={handlePrint} style={{ background: 'linear-gradient(135deg, #80D8D0, #5BC0BE)' }}>🖨️ Print</button>
           <button className="toolbar-btn" onClick={() => setPanelOpen(!panelOpen)}
