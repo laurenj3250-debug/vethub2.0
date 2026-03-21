@@ -444,20 +444,48 @@ export function QuickAddTracker() {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            <span className={cn(
-              'text-sm font-bold',
-              isToday ? 'text-gray-900' : 'text-amber-700'
-            )}>
-              {displayDate}
-            </span>
+          <div className="flex items-center gap-2 relative">
+            {/* Clickable date — opens native date picker */}
+            <button
+              onClick={() => {
+                const input = document.getElementById('quick-add-date-picker') as HTMLInputElement;
+                input?.showPicker?.();
+                input?.click();
+              }}
+              className={cn(
+                'flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 border-black transition-all hover:bg-gray-50',
+                isToday ? 'bg-white' : 'bg-amber-50 border-amber-400'
+              )}
+            >
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <span className={cn(
+                'text-sm font-bold',
+                isToday ? 'text-gray-900' : 'text-amber-700'
+              )}>
+                {displayDate}
+              </span>
+            </button>
+            {/* Hidden native date input */}
+            <input
+              id="quick-add-date-picker"
+              type="date"
+              value={selectedDate}
+              max={today}
+              onChange={(e) => {
+                if (e.target.value && e.target.value <= today) {
+                  setSelectedDate(e.target.value);
+                }
+              }}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+              style={{ pointerEvents: 'none' }}
+            />
             {!isToday && (
               <button
                 onClick={goToToday}
-                className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                className={cn(neoButton, 'px-2 py-1 text-[10px]')}
+                style={{ backgroundColor: NEO_POP.colors.mint }}
               >
-                Back to today
+                Today
               </button>
             )}
           </div>
