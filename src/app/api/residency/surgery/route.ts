@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getTodayET } from '@/lib/timezone';
+import { requireAuth } from '@/lib/api-auth';
 
 const surgerySchema = z.object({
   dailyEntryId: z.string().optional(), // Optional now — auto-creates if missing
@@ -18,6 +19,9 @@ const surgerySchema = z.object({
 
 // GET - Fetch surgeries (optionally filtered)
 export async function GET(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const dailyEntryId = searchParams.get('dailyEntryId');
@@ -61,6 +65,9 @@ async function getResidencyYear(): Promise<number> {
 
 // POST - Create new surgery (also creates ACVIM case log entry with proper FK)
 export async function POST(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const validated = surgerySchema.parse(body);
@@ -185,8 +192,101 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PATCH - Edit surgery (and linked ACVIM case) by ID
+const surgeryPatchSchema = z.object({
+  id: z.string().min(1, 'Surgery ID is required'),
+  procedureName: z.string().min(1).optional(),
+  role: z.enum(['Primary', 'Assistant']).optional(),
+  patientOrigin: z.enum(['new', 'hospitalized']).optional(),
+  patientName: z.string().optional(),
+  notes: z.string().optional(),
+  certificateCategories: z.array(z.string()).optional(),
+});
+
+export async function PATCH(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
+  try {
+    const body = await request.json();
+    const validated = surgeryPatchSchema.parse(body);
+    const { id, ...updates } = validated;
+
+    // Remove undefined values so we only update provided fields
+    const surgeryUpdates: Record<string, unknown> = {};
+    if (updates.procedureName !== undefined) surgeryUpdates.procedureName = updates.procedureName;
+    if (updates.role !== undefined) surgeryUpdates.role = updates.role;
+    if (updates.patientOrigin !== undefined) surgeryUpdates.patientOrigin = updates.patientOrigin;
+    if (updates.patientName !== undefined) surgeryUpdates.patientName = updates.patientName;
+    if (updates.notes !== undefined) surgeryUpdates.notes = updates.notes;
+
+    if (Object.keys(surgeryUpdates).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
+    // Look up surgery to check for linked ACVIM case
+    const existing = await prisma.surgery.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Surgery not found' },
+        { status: 404 }
+      );
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Update the surgery
+      const surgery = await tx.surgery.update({
+        where: { id },
+        data: surgeryUpdates,
+        include: { dailyEntry: true, patient: true },
+      });
+
+      // If linked ACVIM case exists, mirror matching fields
+      if (existing.acvimCaseId) {
+        const acvimUpdates: Record<string, unknown> = {};
+        if (updates.procedureName !== undefined) acvimUpdates.procedureName = updates.procedureName;
+        if (updates.role !== undefined) acvimUpdates.role = updates.role;
+        if (updates.patientName !== undefined) acvimUpdates.patientName = updates.patientName;
+        if (updates.notes !== undefined) acvimUpdates.notes = updates.notes;
+        if (updates.certificateCategories !== undefined) acvimUpdates.certificateCategories = updates.certificateCategories;
+
+        if (Object.keys(acvimUpdates).length > 0) {
+          await tx.aCVIMNeurosurgeryCase.update({
+            where: { id: existing.acvimCaseId },
+            data: acvimUpdates,
+          }).catch(() => {
+            // ACVIM case may have been manually deleted — that's fine
+          });
+        }
+      }
+
+      return surgery;
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: error.errors },
+        { status: 400 }
+      );
+    }
+    console.error('Error updating surgery:', error);
+    return NextResponse.json(
+      { error: 'Failed to update surgery' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Remove surgery by ID (also removes linked ACVIM case via FK)
 export async function DELETE(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

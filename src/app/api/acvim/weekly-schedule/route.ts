@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateWeeklyScheduleFields } from '@/lib/acvim-validation';
+import { requireAuth } from '@/lib/api-auth';
 
 // Helper to generate all weeks for a residency year using actual calendar months
 function generateWeeksForYear(year: number, startDate: Date): Array<{
@@ -77,6 +78,9 @@ function generateWeeksForYear(year: number, startDate: Date): Array<{
 
 // GET - fetch weekly schedule entries (optionally filtered by year)
 export async function GET(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
@@ -122,6 +126,9 @@ export async function GET(request: NextRequest) {
 
 // POST - generate weeks for a year OR update a single entry
 export async function POST(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const data = await request.json();
 
@@ -217,6 +224,9 @@ export async function POST(request: NextRequest) {
 
 // DELETE - delete entry or clear year
 export async function DELETE(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/api-auth';
 
 const SINGLETON_ID = 'neurosurg_cert_status';
 
 // GET - fetch certificate status (upsert singleton if not exists)
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const status = await prisma.neurosurgeryCertStatus.upsert({
       where: { id: SINGLETON_ID },
@@ -21,6 +25,9 @@ export async function GET() {
 
 // PUT - update certificate status fields
 export async function PUT(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const data = await request.json();
 

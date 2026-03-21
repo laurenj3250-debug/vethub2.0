@@ -123,7 +123,7 @@ export function PatientQuickSelect({
   const dropdownContent = (
     <div
       ref={dropdownRef}
-      className="fixed z-[9999] bg-white dark:bg-slate-900 rounded-md border shadow-lg max-h-60 overflow-hidden"
+      className="fixed z-[9999] bg-white rounded-md border shadow-lg max-h-60 overflow-hidden"
       style={{
         top: position.top,
         left: position.left,
@@ -142,7 +142,7 @@ export function PatientQuickSelect({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search patients..."
             className={cn(
-              'w-full pl-7 pr-2 py-1.5 text-xs rounded border-0 bg-slate-50 dark:bg-slate-800',
+              'w-full pl-7 pr-2 py-1.5 text-xs rounded border-0 bg-slate-50',
               'focus:outline-none focus:ring-1 focus:ring-purple-500'
             )}
           />
@@ -171,9 +171,9 @@ export function PatientQuickSelect({
               type="button"
               onClick={() => handleSelect(patient)}
               className={cn(
-                'w-full text-left px-3 py-2.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-800',
+                'w-full text-left px-3 py-2.5 text-xs hover:bg-slate-50',
                 'transition-colors flex items-center gap-2 min-h-[44px]', // 44px touch target
-                value === patient.id && 'bg-purple-50 dark:bg-purple-900/20'
+                value === patient.id && 'bg-purple-50'
               )}
             >
               <User className="w-3 h-3 text-muted-foreground flex-shrink-0" />
@@ -195,8 +195,8 @@ export function PatientQuickSelect({
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         className={cn(
-          'w-full flex items-center justify-between rounded-md border bg-white dark:bg-slate-900',
-          'hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors',
+          'w-full flex items-center justify-between rounded-md border bg-white',
+          'hover:bg-slate-50 transition-colors',
           'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1',
           'min-h-[44px]', // 44px touch target
           sizeClasses[size]

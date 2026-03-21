@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { MILESTONE_THRESHOLDS } from '@/lib/residency-milestones';
+import { requireAuth } from '@/lib/api-auth';
 
 // GET - Check for new milestones and return uncelebrated ones
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     // Get current totals
     const entries = await prisma.dailyEntry.findMany();
@@ -67,6 +71,9 @@ export async function GET() {
 
 // POST - Mark milestone as celebrated
 export async function POST(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { milestoneId } = await request.json();
 

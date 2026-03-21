@@ -22,16 +22,6 @@ export const MILESTONE_CONFIG: Record<MilestoneType, {
   case: { label: 'Total Cases', emoji: '🎯', color: 'text-green-500', bgColor: 'bg-green-500' },
 };
 
-export const PARTICIPATION_LEVELS = {
-  S: { label: 'Surgeon', description: 'Primary surgeon', color: 'bg-green-500', textColor: 'text-green-700 dark:text-green-400' },
-  O: { label: 'Observer', description: 'Observing only', color: 'bg-gray-400', textColor: 'text-gray-600 dark:text-gray-400' },
-  C: { label: 'Circulator', description: 'Circulating/assisting', color: 'bg-blue-400', textColor: 'text-blue-700 dark:text-blue-400' },
-  D: { label: 'Dissector', description: 'Dissecting/exposing', color: 'bg-yellow-500', textColor: 'text-yellow-700 dark:text-yellow-400' },
-  K: { label: 'Knife', description: 'Cutting/suturing assistant', color: 'bg-orange-500', textColor: 'text-orange-700 dark:text-orange-400' },
-} as const;
-
-export type ParticipationLevel = keyof typeof PARTICIPATION_LEVELS;
-
 // Procedure names match CERT_CATEGORIES display names from certificate-logic.ts.
 // One canonical naming system — no translation layer needed.
 export const COMMON_PROCEDURES = [

@@ -214,11 +214,11 @@ export function SurgeryQuickForm({ dailyEntryId, date, variant, onSuccess, onCan
 
   if (variant === 'compact') {
     return (
-      <div className="space-y-2 p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+      <div className="space-y-2 p-2 bg-slate-50 rounded-lg">
         <select
           value={procedure}
           onChange={(e) => setProcedure(e.target.value)}
-          className="w-full text-xs p-1.5 rounded border bg-white dark:bg-slate-900"
+          className="w-full text-xs p-1.5 rounded border bg-white"
         >
           <option value="">Select procedure...</option>
           {COMMON_PROCEDURES.map((proc) => (

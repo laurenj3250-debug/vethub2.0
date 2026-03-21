@@ -24,20 +24,20 @@ export function ProfileSetupPrompt({ onSetupClick }: ProfileSetupPromptProps) {
 
         <div className="grid grid-cols-3 gap-4 py-4">
           <div className="flex flex-col items-center gap-2">
-            <div className="p-2 rounded-full bg-purple-100 dark:bg-purple-900/30">
-              <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 rounded-full bg-purple-100">
+              <Calendar className="h-5 w-5 text-purple-600" />
             </div>
             <span className="text-xs text-muted-foreground text-center">Days Until Freedom</span>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <div className="p-2 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+            <div className="p-2 rounded-full bg-yellow-100">
+              <Trophy className="h-5 w-5 text-yellow-600" />
             </div>
             <span className="text-xs text-muted-foreground text-center">Milestone Tracking</span>
           </div>
           <div className="flex flex-col items-center gap-2">
-            <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/30">
-              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <div className="p-2 rounded-full bg-green-100">
+              <TrendingUp className="h-5 w-5 text-green-600" />
             </div>
             <span className="text-xs text-muted-foreground text-center">Progress Charts</span>
           </div>

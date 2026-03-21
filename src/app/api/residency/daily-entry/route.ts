@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireAuth } from '@/lib/api-auth';
 
 // Validation schema for creating/updating daily entry
 const dailyEntrySchema = z.object({
@@ -13,6 +14,9 @@ const dailyEntrySchema = z.object({
 
 // GET - Fetch daily entries (optionally filtered by date range)
 export async function GET(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
@@ -61,6 +65,9 @@ export async function GET(request: NextRequest) {
 
 // POST - Create or update daily entry (upsert by date)
 export async function POST(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const validated = dailyEntrySchema.parse(body);

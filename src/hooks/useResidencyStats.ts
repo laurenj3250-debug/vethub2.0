@@ -102,6 +102,11 @@ export function useDailyEntry(date: string) {
   });
 }
 
+// NOTE: Dual-field situation — the DB has both `newCount` (legacy) and `newConsultCount`.
+// DailyEntryForm sends `newCount` which the POST route writes directly via Prisma spread.
+// QuickAddTracker uses `newConsultCount` via the quick-increment route.
+// Both refer to the same concept ("new consults"). A future migration should unify to
+// `newConsultCount` only, but for now both fields coexist.
 export function useSaveDailyEntry() {
   const queryClient = useQueryClient();
 
@@ -110,7 +115,7 @@ export function useSaveDailyEntry() {
       date: string;
       mriCount: number;
       recheckCount: number;
-      newCount: number;
+      newCount: number; // Maps to DB `newCount`; see note above re: dual-field
       notes?: string;
     }) => {
       const res = await fetch('/api/residency/daily-entry', {
@@ -275,6 +280,74 @@ export function useDeleteSurgery() {
     },
     onSettled: () => {
       // Always refetch after mutation settles
+      queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
+      queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
+    },
+  });
+}
+
+export function useEditSurgery() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      id: string;
+      procedureName?: string;
+      role?: 'Primary' | 'Assistant';
+      patientOrigin?: 'new' | 'hospitalized';
+      patientName?: string;
+      notes?: string;
+      certificateCategories?: string[];
+    }) => {
+      const res = await fetch('/api/residency/surgery', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to update surgery');
+      return res.json();
+    },
+    onMutate: async (updatedSurgery) => {
+      await queryClient.cancelQueries({ queryKey: ['daily-entry'] });
+      const previousEntries = queryClient.getQueriesData({ queryKey: ['daily-entry'] });
+
+      // Optimistically update the surgery in cache
+      queryClient.setQueriesData<DailyEntry | null>(
+        { queryKey: ['daily-entry'] },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            surgeries: old.surgeries.map((s) =>
+              s.id === updatedSurgery.id
+                ? { ...s, ...updatedSurgery }
+                : s
+            ),
+          };
+        }
+      );
+
+      return { previousEntries };
+    },
+    onError: (error, _, context) => {
+      if (context?.previousEntries) {
+        context.previousEntries.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+      toast({
+        title: 'Failed to update surgery',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: 'Surgery updated',
+        description: `${variables.procedureName || 'Surgery'} updated successfully.`,
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['daily-entry'] });
       queryClient.invalidateQueries({ queryKey: ['residency-stats'] });
     },

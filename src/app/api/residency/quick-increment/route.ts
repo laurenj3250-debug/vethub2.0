@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getTodayET, getCurrentTimeET } from '@/lib/timezone';
+import { requireAuth } from '@/lib/api-auth';
 
 // All trackable fields
 const COUNTER_FIELDS = [
@@ -38,6 +39,9 @@ const updateShiftTimesSchema = z.object({
 
 // POST - Atomically increment/decrement a field for today
 export async function POST(request: NextRequest) {
+  const authError = requireAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
 

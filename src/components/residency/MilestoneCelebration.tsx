@@ -38,12 +38,16 @@ export function MilestoneCelebration() {
   } | null>(null);
   const [message] = useState(() => getRandomCelebrationMessage());
   const [showConfetti, setShowConfetti] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (milestoneData?.uncelebrated?.length && milestoneData.uncelebrated.length > 0) {
-      setCurrentMilestone(milestoneData.uncelebrated[0]);
+    if (milestoneData?.uncelebrated?.length) {
+      const next = milestoneData.uncelebrated.find(m => !dismissedIds.has(m.id));
+      if (next && next.id !== currentMilestone?.id) {
+        setCurrentMilestone(next);
+      }
     }
-  }, [milestoneData]);
+  }, [milestoneData, dismissedIds]);
 
   useEffect(() => {
     if (currentMilestone) {
@@ -53,10 +57,18 @@ export function MilestoneCelebration() {
     }
   }, [currentMilestone]);
 
+  const handleDismiss = () => {
+    if (currentMilestone) {
+      setDismissedIds(prev => new Set(prev).add(currentMilestone.id));
+    }
+    setCurrentMilestone(null);
+  };
+
   const handleCelebrate = async () => {
     if (!currentMilestone) return;
     await celebrateMutation.mutateAsync(currentMilestone.id);
     setCurrentMilestone(null);
+    setDismissedIds(new Set());
     refetch();
   };
 
@@ -68,7 +80,7 @@ export function MilestoneCelebration() {
   return (
     <>
       <CSSConfetti active={showConfetti} duration={3000} />
-      <Dialog open={!!currentMilestone} onOpenChange={() => handleCelebrate()}>
+      <Dialog open={!!currentMilestone} onOpenChange={() => handleDismiss()}>
       <DialogContent className="sm:max-w-md text-center">
         <DialogHeader>
           <DialogTitle className="text-center">

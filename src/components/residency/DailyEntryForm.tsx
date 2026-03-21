@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDailyEntry, useSaveDailyEntry } from '@/hooks/useResidencyStats';
 import { Calendar, Stethoscope, Brain, Users, Loader2 } from 'lucide-react';
+import { getTodayET } from '@/lib/timezone';
 
 interface DailyEntryFormProps {
   selectedDate?: string;
@@ -16,7 +17,7 @@ interface DailyEntryFormProps {
 }
 
 export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = getTodayET();
   const date = selectedDate || today;
 
   const { data: existingEntry, isLoading } = useDailyEntry(date);
@@ -135,11 +136,13 @@ export function DailyEntryForm({ selectedDate, onSaved }: DailyEntryFormProps) {
           </div>
         </div>
 
-        {/* Appointments - New */}
+        {/* New Consults (form sends `newCount` to match API schema;
+            QuickAddTracker uses `newConsultCount` via quick-increment route.
+            Both map to the same concept — see daily-entry POST route) */}
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
             <Stethoscope className="h-4 w-4 text-green-500" />
-            New Appointments
+            New Consults
           </Label>
           <div className="flex items-center gap-3">
             <Button
