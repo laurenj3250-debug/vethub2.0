@@ -338,6 +338,10 @@ model ACVIMNeurosurgeryCase {
   patientName   String?
   patientInfo   String?  // Species/breed for reference
 
+  // Certificate tracking — explicit category tags (ACVS CERT pattern)
+  // Array of CertCategory keys, e.g. ["hemilaminectomy"] or ["spinal_tumor_approach", "dorsal_laminectomy_TL"]
+  certificateCategories String[] @default([])
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -552,6 +556,39 @@ model BingoSquare {
   completedAt DateTime?
 
   @@index([cardId])
+}
+
+// ==========================================
+// Neurosurgery Certificate of Training Status
+// Tracks non-case requirements (course, rotation, board cert)
+// Singleton record — one per user
+// ==========================================
+
+model NeurosurgeryCertStatus {
+  id                        String   @id @default("neurosurg_cert_status")
+
+  // Requirement 2: Board certification
+  boardCertified            Boolean  @default(false)
+  boardCertDate             String?  // ISO date
+
+  // Requirement 5: Course attendance
+  courseCompleted            Boolean  @default(false)
+  courseDate                 String?  // ISO date
+  courseType                 String?  // "ACVIM" | "ECVN" (both accepted)
+
+  // Requirement 6: Surgical rotation
+  rotationWeeksCompleted    Int      @default(0)  // 0-4
+  rotationSupervisor        String?  // Name of supervisor
+  rotationSupervisorType    String?  // "ACVS" | "ACVIM_Neurosurg" | "ECVN_Neurosurg"
+  rotationDeclarationSigned Boolean  @default(false)
+
+  // Application tracking
+  targetApplicationDate     String?  // "March 15" or "October 15" next deadline
+  applicationSubmitted      Boolean  @default(false)
+  applicationDate           String?
+
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }
 
 // ==========================================

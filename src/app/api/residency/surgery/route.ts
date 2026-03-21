@@ -13,6 +13,7 @@ const surgerySchema = z.object({
   patientId: z.number().optional(),
   notes: z.string().optional(),
   skipAcvim: z.boolean().optional(),
+  certificateCategories: z.array(z.string()).optional(), // Certificate tags
 });
 
 // GET - Fetch surgeries (optionally filtered)
@@ -142,6 +143,7 @@ export async function POST(request: NextRequest) {
             patientName,
             patientInfo,
             notes: validated.notes,
+            certificateCategories: validated.certificateCategories || [],
           },
         });
       }

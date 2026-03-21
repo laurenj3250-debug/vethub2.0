@@ -33,16 +33,28 @@ export const PARTICIPATION_LEVELS = {
 export type ParticipationLevel = keyof typeof PARTICIPATION_LEVELS;
 
 export const COMMON_PROCEDURES = [
+  // Bread & butter
   'Hemilaminectomy',
   'Ventral Slot',
-  'Craniotomy',
+  // Special procedures (all 12 certificate categories covered)
+  'Transfrontal Craniotomy',
+  'Lateral Craniotomy',
+  'Lateral Craniectomy',
   'Foramen Magnum Decompression',
-  'Atlantoaxial Stabilization',
-  'Lumbosacral Dorsal Laminectomy',
-  'Lateral Corpectomy',
   'VP Shunt',
-  'Peripheral Nerve Biopsy',
+  'Atlantoaxial Stabilization',
+  'Dorsal Cervical Laminectomy',
+  'Cervical Distraction-Stabilization',
+  'Dorsal Laminectomy (TL)',
+  'Vertebral Fracture-Luxation Repair',
+  'Spinal Tumor Approach',
+  'Lumbosacral Decompression',
   'Muscle Biopsy',
+  'Nerve Biopsy',
+  // Other common procedures
+  'Craniotomy',
+  'Lateral Corpectomy',
+  'Peripheral Nerve Biopsy',
 ] as const;
 
 export const CELEBRATION_MESSAGES = [

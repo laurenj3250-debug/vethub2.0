@@ -153,6 +153,7 @@ export function useAddSurgery() {
       patientName?: string;
       patientId?: number;
       notes?: string;
+      certificateCategories?: string[];
     }) => {
       const res = await fetch('/api/residency/surgery', {
         method: 'POST',

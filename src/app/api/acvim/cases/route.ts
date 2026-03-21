@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateCaseHours } from '@/lib/acvim-validation';
 
-// GET - fetch all cases (optionally filtered by year)
+// GET - fetch all cases (optionally filtered by year, or all for certificate tracking)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
+    const all = searchParams.get('all');
 
-    const where = year ? { residencyYear: parseInt(year) } : {};
+    // ?all=true returns all cases across all years (for certificate progress)
+    const where = all === 'true' ? {} : year ? { residencyYear: parseInt(year) } : {};
 
     const cases = await prisma.aCVIMNeurosurgeryCase.findMany({
       where,
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
         patientId: data.patientId,
         patientName: data.patientName,
         patientInfo: data.patientInfo,
+        certificateCategories: data.certificateCategories || [],
       },
     });
 
@@ -87,20 +90,16 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    const updateData: Record<string, unknown> = {};
+    const fields = ['procedureName', 'dateCompleted', 'caseIdNumber', 'role', 'hours',
+      'residencyYear', 'notes', 'patientId', 'patientName', 'patientInfo', 'certificateCategories'];
+    for (const field of fields) {
+      if (data[field] !== undefined) updateData[field] = data[field];
+    }
+
     const updated = await prisma.aCVIMNeurosurgeryCase.update({
       where: { id: data.id },
-      data: {
-        procedureName: data.procedureName,
-        dateCompleted: data.dateCompleted,
-        caseIdNumber: data.caseIdNumber,
-        role: data.role,
-        hours: data.hours,
-        residencyYear: data.residencyYear,
-        notes: data.notes,
-        patientId: data.patientId,
-        patientName: data.patientName,
-        patientInfo: data.patientInfo,
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updated);

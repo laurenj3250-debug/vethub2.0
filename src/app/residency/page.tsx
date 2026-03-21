@@ -47,10 +47,11 @@ import {
 } from '@/lib/residency-types';
 import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
 import { NEO_POP, neoCard, neoButton, neoInput } from '@/lib/neo-pop-styles';
+import { CertificateTracker } from '@/components/residency/CertificateTracker';
 
-type TabType = 'quickadd' | 'cases' | 'journal' | 'schedule' | 'summary' | 'stats';
+type TabType = 'quickadd' | 'cases' | 'journal' | 'schedule' | 'summary' | 'stats' | 'certificate';
 
-const VALID_TABS: TabType[] = ['quickadd', 'cases', 'journal', 'schedule', 'summary', 'stats'];
+const VALID_TABS: TabType[] = ['quickadd', 'cases', 'journal', 'schedule', 'summary', 'stats', 'certificate'];
 
 function parseTab(value: string | null): TabType {
   if (value && (VALID_TABS as string[]).includes(value)) return value as TabType;
@@ -757,6 +758,7 @@ function ACVIMResidencyTrackerPage() {
                 { id: 'schedule' as TabType, label: 'Schedule', icon: Calendar, color: NEO_POP.colors.yellow },
                 { id: 'summary' as TabType, label: 'Summary', icon: TrendingUp, color: NEO_POP.colors.pink },
                 { id: 'stats' as TabType, label: 'Stats', icon: BarChart3, color: '#a78bfa' },
+                { id: 'certificate' as TabType, label: 'Certificate', icon: Award, color: '#FBBF24' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -1415,6 +1417,11 @@ function ACVIMResidencyTrackerPage() {
         {/* Stats Tab - Gamification & Daily Tracking */}
         {activeTab === 'stats' && (
           <StatsTabContent />
+        )}
+
+        {/* Certificate Tab */}
+        {activeTab === 'certificate' && (
+          <CertificateTracker />
         )}
       </div>
 
