@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  FileText,
   Loader2,
   Plus,
   X,
@@ -501,6 +502,282 @@ function NeedsReviewBanner({ untaggedCases, onTag }: {
 }
 
 // ==========================================
+// Mass Import
+// ==========================================
+
+const MASS_IMPORT_PROMPT = `Paste your surgery list below. One per line, in any format like:
+
+Hemi L3-4, 15/01/2026, Primary
+Ventral slot C5-6, 20 Jan 2026, Assistant
+FMD, 2026-02-03, Primary
+Craniotomy (lateral), 3 March 2026, Primary
+
+I'll parse each line and show you what I found before importing.`;
+
+const MASS_IMPORT_EXAMPLE = `TL Hemilaminectomy, 2025-08-15, Primary
+TL Hemilaminectomy, 2025-09-03, Primary
+Ventral Slot, 2025-08-22, Assistant
+Foramen Magnum Decompression, 2025-10-01, Primary
+Atlantoaxial Stabilization, 2025-11-15, Assistant`;
+
+interface ParsedCase {
+  procedureName: string;
+  dateCompleted: string;
+  role: 'Primary' | 'Assistant';
+  certificateCategories: string[];
+  valid: boolean;
+  error?: string;
+}
+
+function parseMassImportLine(line: string): ParsedCase | null {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return null;
+
+  // Try to split by comma, tab, or pipe
+  const parts = trimmed.split(/[,\t|]/).map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) {
+    return { procedureName: trimmed, dateCompleted: '', role: 'Primary', certificateCategories: [], valid: false, error: 'Need at least procedure and date' };
+  }
+
+  const procedureName = parts[0];
+
+  // Parse date — try multiple formats
+  let dateCompleted = '';
+  const dateStr = parts[1];
+  // Try ISO (YYYY-MM-DD)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    dateCompleted = dateStr;
+  }
+  // Try DD/MM/YYYY or DD-MM-YYYY
+  else if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(dateStr)) {
+    const [d, m, y] = dateStr.split(/[/-]/);
+    dateCompleted = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  // Try "DD Mon YYYY" or "D Month YYYY"
+  else {
+    const parsed = new Date(dateStr);
+    if (!isNaN(parsed.getTime())) {
+      dateCompleted = parsed.toISOString().split('T')[0];
+    }
+  }
+
+  if (!dateCompleted) {
+    return { procedureName, dateCompleted: '', role: 'Primary', certificateCategories: [], valid: false, error: `Can't parse date: "${dateStr}"` };
+  }
+
+  // Parse role
+  let role: 'Primary' | 'Assistant' = 'Primary';
+  if (parts.length >= 3) {
+    const roleStr = parts[2].toLowerCase();
+    if (roleStr.includes('assist') || roleStr === 'a' || roleStr === 'secondary') {
+      role = 'Assistant';
+    }
+  }
+
+  const certificateCategories = suggestCertCategories(procedureName);
+
+  return { procedureName, dateCompleted, role, certificateCategories, valid: true };
+}
+
+function MassImportForm({ onSuccess }: { onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [parsed, setParsed] = useState<ParsedCase[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [imported, setImported] = useState(0);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  const handleParse = () => {
+    const lines = text.split('\n');
+    const results = lines.map(parseMassImportLine).filter((r): r is ParsedCase => r !== null);
+    setParsed(results);
+  };
+
+  const handleImport = async () => {
+    const validCases = parsed.filter((c) => c.valid);
+    if (validCases.length === 0) return;
+    setImporting(true);
+    setImported(0);
+
+    for (const c of validCases) {
+      try {
+        await fetch('/api/residency/surgery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: c.dateCompleted,
+            procedureName: c.procedureName,
+            role: c.role,
+            patientOrigin: 'hospitalized',
+            certificateCategories: c.certificateCategories,
+          }),
+        });
+        setImported((prev) => prev + 1);
+      } catch {
+        // Continue with remaining cases
+      }
+    }
+
+    setImporting(false);
+    setText('');
+    setParsed([]);
+    setOpen(false);
+    onSuccess();
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className={cn(neoButton, 'w-full py-3 text-sm flex items-center justify-center gap-2')}
+        style={{ backgroundColor: NEO_POP.colors.lavender }}
+      >
+        <FileText className="w-4 h-4" />
+        Mass Import
+      </button>
+    );
+  }
+
+  const validCount = parsed.filter((c) => c.valid).length;
+  const invalidCount = parsed.filter((c) => !c.valid).length;
+
+  return (
+    <div className={neoCard} style={{ backgroundColor: NEO_POP.colors.cream, padding: '16px' }}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-sm">Mass Import</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowPrompt(!showPrompt)}
+            className="text-xs text-amber-600 hover:text-amber-700"
+          >
+            {showPrompt ? 'Hide prompt' : 'Show Claude prompt'}
+          </button>
+          <button onClick={() => { setOpen(false); setParsed([]); setText(''); }} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Claude prompt helper */}
+      {showPrompt && (
+        <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-200 text-xs text-purple-800">
+          <p className="font-bold mb-1">Copy this prompt into Claude to format your surgery list:</p>
+          <pre className="whitespace-pre-wrap bg-white p-2 rounded border text-[11px] text-gray-700 mb-2">
+{`I need to format my surgery cases for import. Each line should be:
+Procedure Name, YYYY-MM-DD, Primary or Assistant
+
+Here are my cases:
+[paste your notes, spreadsheet, or however you have them]
+
+Output ONLY the formatted lines, nothing else. Use these exact procedure names:
+${Object.values(CERT_CATEGORIES).join(', ')}`}
+          </pre>
+          <p className="text-purple-600">Then paste Claude's output below.</p>
+        </div>
+      )}
+
+      {/* Text input */}
+      <div className="space-y-2">
+        <textarea
+          value={text}
+          onChange={(e) => { setText(e.target.value); setParsed([]); }}
+          placeholder={MASS_IMPORT_EXAMPLE}
+          rows={6}
+          className="w-full text-sm p-3 rounded-xl border-2 border-black bg-white font-mono resize-y"
+        />
+
+        {/* Parse button */}
+        {parsed.length === 0 && text.trim() && (
+          <button
+            onClick={handleParse}
+            className={cn(neoButton, 'w-full py-2 text-sm')}
+            style={{ backgroundColor: NEO_POP.colors.yellow }}
+          >
+            Preview ({text.split('\n').filter((l) => l.trim()).length} lines)
+          </button>
+        )}
+      </div>
+
+      {/* Preview results */}
+      {parsed.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs">
+            {validCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">
+                {validCount} valid
+              </span>
+            )}
+            {invalidCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                {invalidCount} errors
+              </span>
+            )}
+          </div>
+
+          <div className="max-h-48 overflow-y-auto space-y-1">
+            {parsed.map((c, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs',
+                  c.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  {c.valid ? (
+                    <Check className="w-3 h-3 text-green-600 shrink-0" />
+                  ) : (
+                    <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                  )}
+                  <span className="font-medium">{c.procedureName}</span>
+                  {c.dateCompleted && <span className="text-gray-500">{c.dateCompleted}</span>}
+                  {c.valid && (
+                    <span className={cn(
+                      'px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white',
+                      c.role === 'Primary' ? 'bg-green-500' : 'bg-blue-400'
+                    )}>
+                      {c.role}
+                    </span>
+                  )}
+                </div>
+                {c.error && <span className="text-red-500 text-[10px]">{c.error}</span>}
+                {c.valid && c.certificateCategories.length > 0 && (
+                  <span className="text-amber-600 text-[10px] font-medium">
+                    {CERT_CATEGORIES[c.certificateCategories[0] as CertCategory]}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Import button */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleImport}
+              disabled={validCount === 0 || importing}
+              className={cn(neoButton, 'flex-1 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-50')}
+              style={{ backgroundColor: validCount > 0 ? NEO_POP.colors.mint : NEO_POP.colors.gray200 }}
+            >
+              {importing ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Importing {imported}/{validCount}...</>
+              ) : (
+                <><Plus className="w-4 h-4" /> Import {validCount} cases</>
+              )}
+            </button>
+            <button
+              onClick={() => setParsed([])}
+              className="text-xs text-gray-500 hover:text-gray-700 px-3"
+            >
+              Edit
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
 // Quick Backfill Form
 // ==========================================
 
@@ -773,8 +1050,11 @@ export function CertificateTracker() {
         onUpdate={updateCertStatus}
       />
 
-      {/* Add Previous Case */}
-      <BackfillForm onSuccess={reload} />
+      {/* Add Cases */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <BackfillForm onSuccess={reload} />
+        <MassImportForm onSuccess={reload} />
+      </div>
 
       {/* Next Deadline */}
       <div
