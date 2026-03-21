@@ -12,8 +12,10 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Plus,
   X,
 } from 'lucide-react';
+import { COMMON_PROCEDURES } from '@/lib/residency-milestones';
 import {
   computeCertificateProgress,
   CERT_CATEGORIES,
@@ -432,6 +434,183 @@ function NeedsReviewBanner({ untaggedCases, onTag }: {
 }
 
 // ==========================================
+// Quick Backfill Form
+// ==========================================
+
+function BackfillForm({ onSuccess }: { onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    procedureName: '',
+    dateCompleted: new Date().toISOString().split('T')[0],
+    role: 'Primary' as 'Primary' | 'Assistant',
+    caseIdNumber: '',
+    certificateCategories: [] as string[],
+  });
+
+  const allCategories = Object.entries(CERT_CATEGORIES) as [CertCategory, string][];
+
+  // Auto-suggest when procedure changes
+  useEffect(() => {
+    if (form.procedureName) {
+      const suggested = suggestCertCategories(form.procedureName);
+      setForm((prev) => ({ ...prev, certificateCategories: suggested }));
+    }
+  }, [form.procedureName]);
+
+  const handleSubmit = async () => {
+    if (!form.procedureName || !form.dateCompleted) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/acvim/cases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          hours: 1.0,
+          residencyYear: 1,
+          caseIdNumber: form.caseIdNumber || 'BACKFILL',
+        }),
+      });
+      if (res.ok) {
+        setForm({
+          procedureName: '',
+          dateCompleted: new Date().toISOString().split('T')[0],
+          role: 'Primary',
+          caseIdNumber: '',
+          certificateCategories: [],
+        });
+        onSuccess();
+      }
+    } catch (err) {
+      console.error('Error adding case:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className={cn(neoButton, 'w-full py-3 text-sm flex items-center justify-center gap-2')}
+        style={{ backgroundColor: NEO_POP.colors.mint }}
+      >
+        <Plus className="w-4 h-4" />
+        Add Previous Case
+      </button>
+    );
+  }
+
+  return (
+    <div className={neoCard} style={{ backgroundColor: NEO_POP.colors.cream, padding: '16px' }}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-bold text-sm">Add Previous Case</h3>
+        <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {/* Procedure */}
+        <div>
+          <label className="text-xs font-bold text-gray-600 block mb-1">Procedure</label>
+          <select
+            value={form.procedureName}
+            onChange={(e) => setForm((prev) => ({ ...prev, procedureName: e.target.value }))}
+            className="w-full text-sm p-2.5 rounded-xl border-2 border-black bg-white font-medium"
+          >
+            <option value="">Select procedure...</option>
+            {COMMON_PROCEDURES.map((proc) => (
+              <option key={proc} value={proc}>{proc}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Date + Role side by side */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-gray-600 block mb-1">Date</label>
+            <input
+              type="date"
+              value={form.dateCompleted}
+              onChange={(e) => setForm((prev) => ({ ...prev, dateCompleted: e.target.value }))}
+              className="w-full text-sm p-2 rounded-xl border-2 border-black bg-white"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-600 block mb-1">Role</label>
+            <div className="flex gap-2">
+              {(['Primary', 'Assistant'] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setForm((prev) => ({ ...prev, role: r }))}
+                  className={cn(
+                    'flex-1 py-2 text-xs font-bold rounded-xl border-2 border-black transition-all',
+                    form.role === r
+                      ? r === 'Primary'
+                        ? 'bg-green-500 text-white shadow-[2px_2px_0_#000]'
+                        : 'bg-blue-400 text-white shadow-[2px_2px_0_#000]'
+                      : 'bg-gray-100 text-gray-600'
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Case ID (optional) */}
+        <div>
+          <label className="text-xs font-bold text-gray-600 block mb-1">Case ID (optional)</label>
+          <input
+            type="text"
+            value={form.caseIdNumber}
+            onChange={(e) => setForm((prev) => ({ ...prev, caseIdNumber: e.target.value }))}
+            placeholder="Medical record number"
+            className="w-full text-sm p-2 rounded-xl border-2 border-black bg-white"
+          />
+        </div>
+
+        {/* Certificate category — auto-filled */}
+        {form.certificateCategories.length > 0 && (
+          <div>
+            <label className="text-xs font-bold text-gray-600 block mb-1">Certificate Category</label>
+            <div className="flex flex-wrap gap-1.5">
+              {allCategories
+                .filter(([key]) => form.certificateCategories.includes(key))
+                .map(([key, label]) => (
+                  <span
+                    key={key}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg border-2 border-black bg-amber-400 shadow-[2px_2px_0_#000]"
+                  >
+                    {label}
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={handleSubmit}
+          disabled={!form.procedureName || !form.dateCompleted || saving}
+          className={cn(neoButton, 'w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50')}
+          style={{ backgroundColor: form.procedureName ? NEO_POP.colors.mint : NEO_POP.colors.gray200 }}
+        >
+          {saving ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+          ) : (
+            <><Plus className="w-4 h-4" /> Add Case</>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // Main Component
 // ==========================================
 
@@ -521,6 +700,9 @@ export function CertificateTracker() {
         progress={progress}
         onUpdate={updateCertStatus}
       />
+
+      {/* Add Previous Case */}
+      <BackfillForm onSuccess={reload} />
 
       {/* Next Deadline */}
       <div
