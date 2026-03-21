@@ -354,9 +354,15 @@ function ReviewCaseRow({ caseItem, onTag }: {
   onTag: (caseId: string, categories: string[]) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState<CertCategory[]>(() => suggestCertCategories(caseItem.procedureName));
   const suggested = suggestCertCategories(caseItem.procedureName);
   const allCategories = Object.entries(CERT_CATEGORIES) as [CertCategory, string][];
+
+  // Show suggested + selected first, expand to all on demand
+  const visibleCategories = showAll
+    ? allCategories
+    : allCategories.filter(([key]) => suggested.includes(key) || selected.includes(key));
 
   const toggleCategory = (cat: CertCategory) => {
     setSelected((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
@@ -401,11 +407,34 @@ function ReviewCaseRow({ caseItem, onTag }: {
         </div>
       </div>
 
-      {/* Category picker — shown when "Change" or "Pick category" is clicked */}
+      {/* Category picker — suggested first, "Show all" to expand */}
       {showPicker && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-500">
+              {showAll ? 'All categories' : 'Suggested'}
+            </span>
+            {!showAll && visibleCategories.length < allCategories.length && (
+              <button
+                type="button"
+                onClick={() => setShowAll(true)}
+                className="text-[10px] text-amber-600 hover:text-amber-700"
+              >
+                Show all
+              </button>
+            )}
+            {showAll && (
+              <button
+                type="button"
+                onClick={() => setShowAll(false)}
+                className="text-[10px] text-gray-500 hover:text-gray-600"
+              >
+                Show less
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-1.5">
-            {allCategories.map(([key, label]) => {
+            {visibleCategories.map(([key, label]) => {
               const isSelected = selected.includes(key);
               return (
                 <button
