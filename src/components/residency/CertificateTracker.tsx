@@ -462,14 +462,19 @@ function BackfillForm({ onSuccess }: { onSuccess: () => void }) {
     if (!form.procedureName || !form.dateCompleted) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/acvim/cases', {
+      // Route through /api/residency/surgery — same path as QuickAdd.
+      // This creates BOTH a Surgery record AND an ACVIMNeurosurgeryCase
+      // in a single transaction, with auto-created DailyEntry for the date.
+      // No orphan records, correct residencyYear calculation.
+      const res = await fetch('/api/residency/surgery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          hours: 1.0,
-          residencyYear: 1,
-          caseIdNumber: form.caseIdNumber || 'BACKFILL',
+          date: form.dateCompleted,
+          procedureName: form.procedureName,
+          role: form.role,
+          patientOrigin: 'hospitalized',
+          certificateCategories: form.certificateCategories,
         }),
       });
       if (res.ok) {
