@@ -348,6 +348,104 @@ function OtherRequirements({ progress, onUpdate }: {
   );
 }
 
+function ReviewCaseRow({ caseItem, onTag }: {
+  caseItem: CertificateProgress['untaggedCases'][0];
+  onTag: (caseId: string, categories: string[]) => void;
+}) {
+  const [showPicker, setShowPicker] = useState(false);
+  const [selected, setSelected] = useState<CertCategory[]>(() => suggestCertCategories(caseItem.procedureName));
+  const suggested = suggestCertCategories(caseItem.procedureName);
+  const allCategories = Object.entries(CERT_CATEGORIES) as [CertCategory, string][];
+
+  const toggleCategory = (cat: CertCategory) => {
+    setSelected((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
+  };
+
+  return (
+    <div className="p-3 bg-white rounded-lg border space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">{caseItem.procedureName}</p>
+          <p className="text-xs text-gray-500">{caseItem.dateCompleted}</p>
+        </div>
+        <div className="flex gap-1">
+          {/* Accept suggestion (if any) */}
+          {suggested.length > 0 && !showPicker && (
+            <button
+              onClick={() => onTag(caseItem.id, suggested)}
+              className={cn(neoButton, 'px-2 py-1 text-[10px]')}
+              style={{ backgroundColor: NEO_POP.colors.mint }}
+            >
+              Tag as {CERT_CATEGORIES[suggested[0]]}
+            </button>
+          )}
+          {/* Change / pick different category */}
+          {!showPicker && (
+            <button
+              onClick={() => setShowPicker(true)}
+              className={cn(neoButton, 'px-2 py-1 text-[10px]')}
+              style={{ backgroundColor: NEO_POP.colors.lavender }}
+            >
+              {suggested.length > 0 ? 'Change' : 'Pick category'}
+            </button>
+          )}
+          {/* Dismiss */}
+          <button
+            onClick={() => onTag(caseItem.id, [CERT_DISMISSED])}
+            className="text-gray-400 hover:text-gray-600 p-1"
+            title="Dismiss — not certificate-relevant"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Category picker — shown when "Change" or "Pick category" is clicked */}
+      {showPicker && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {allCategories.map(([key, label]) => {
+              const isSelected = selected.includes(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleCategory(key)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    'rounded-lg border-2 border-black transition-all px-2 py-0.5 text-[10px]',
+                    isSelected
+                      ? 'bg-amber-400 text-black font-bold shadow-[2px_2px_0_#000]'
+                      : 'bg-gray-50 text-gray-500 border-gray-300'
+                  )}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { onTag(caseItem.id, selected); setShowPicker(false); }}
+              disabled={selected.length === 0}
+              className={cn(neoButton, 'px-3 py-1 text-xs disabled:opacity-50')}
+              style={{ backgroundColor: selected.length > 0 ? NEO_POP.colors.mint : NEO_POP.colors.gray200 }}
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setShowPicker(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NeedsReviewBanner({ untaggedCases, onTag }: {
   untaggedCases: CertificateProgress['untaggedCases'];
   onTag: (caseId: string, categories: string[]) => void;
@@ -393,40 +491,9 @@ function NeedsReviewBanner({ untaggedCases, onTag }: {
 
       {expanded && (
         <div className="mt-3 space-y-2">
-          {untaggedCases.map((c) => {
-            const suggested = suggestCertCategories(c.procedureName);
-            return (
-              <div
-                key={c.id}
-                className="flex items-center justify-between p-2 bg-white rounded-lg border"
-              >
-                <div>
-                  <p className="text-sm font-medium">{c.procedureName}</p>
-                  <p className="text-xs text-gray-500">{c.dateCompleted}</p>
-                </div>
-                <div className="flex gap-1">
-                  {suggested.length > 0 ? (
-                    <button
-                      onClick={() => onTag(c.id, suggested)}
-                      className={cn(neoButton, 'px-2 py-1 text-[10px]')}
-                      style={{ backgroundColor: NEO_POP.colors.mint }}
-                    >
-                      Tag as {CERT_CATEGORIES[suggested[0]]}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-gray-400 italic">No suggestion</span>
-                  )}
-                  <button
-                    onClick={() => onTag(c.id, [CERT_DISMISSED])}
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                    title="Dismiss — not certificate-relevant"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+          {untaggedCases.map((c) => (
+            <ReviewCaseRow key={c.id} caseItem={c} onTag={onTag} />
+          ))}
         </div>
       )}
     </div>

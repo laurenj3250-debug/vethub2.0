@@ -32,29 +32,27 @@ export const PARTICIPATION_LEVELS = {
 
 export type ParticipationLevel = keyof typeof PARTICIPATION_LEVELS;
 
+// Procedure names match CERT_CATEGORIES display names from certificate-logic.ts.
+// One canonical naming system — no translation layer needed.
 export const COMMON_PROCEDURES = [
-  // Bread & butter
-  'Hemilaminectomy',
+  // Bread & butter (ACVIM certificate requirement 3)
+  'TL Hemilaminectomy',
   'Ventral Slot',
-  // Special procedures (all 12 certificate categories covered)
+  // Special procedures (ACVIM certificate requirement 4 — all 12)
   'Transfrontal Craniotomy',
-  'Lateral Craniotomy',
-  'Lateral Craniectomy',
+  'Lateral Craniotomy / Craniectomy',
   'Foramen Magnum Decompression',
-  'VP Shunt',
+  'Shunt Placement (Hydrocephalus)',
   'Atlantoaxial Stabilization',
-  'Dorsal Cervical Laminectomy',
-  'Cervical Distraction-Stabilization',
-  'Dorsal Laminectomy (TL)',
-  'Vertebral Fracture-Luxation Repair',
+  'Dorsal Cervical Decompression',
+  'Cervical Distraction / Stabilization',
+  'Dorsal Laminectomy (TL Region)',
+  'Vertebral Fracture / Luxation Repair',
   'Spinal Tumor Approach',
   'Lumbosacral Decompression',
-  'Muscle Biopsy',
-  'Nerve Biopsy',
-  // Other common procedures
-  'Craniotomy',
+  'Muscle / Nerve Biopsy',
+  // Other common procedures (not certificate categories)
   'Lateral Corpectomy',
-  'Peripheral Nerve Biopsy',
 ] as const;
 
 export const CELEBRATION_MESSAGES = [

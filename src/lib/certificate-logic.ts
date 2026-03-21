@@ -56,28 +56,40 @@ export const SPECIAL_PROCEDURE_CATEGORIES: CertCategory[] = [
 // Auto-Suggest Logic (suggestion only, not source of truth)
 // ==========================================
 
-/** Maps procedure dropdown values to suggested certificate categories */
+/** Maps procedure dropdown values to certificate categories.
+ *  Dropdown names now match CERT_CATEGORIES display names exactly,
+ *  so most map 1:1. This also handles legacy names for backward compat. */
 const CERT_CATEGORY_SUGGESTIONS: Record<string, CertCategory[]> = {
-  'Hemilaminectomy': ['hemilaminectomy'],
+  // Canonical names (match COMMON_PROCEDURES and CERT_CATEGORIES display names)
+  'TL Hemilaminectomy': ['hemilaminectomy'],
   'Ventral Slot': ['ventral_slot'],
   'Transfrontal Craniotomy': ['transfrontal_craniotomy'],
-  'Lateral Craniotomy': ['lateral_craniotomy'],
-  'Lateral Craniectomy': ['lateral_craniotomy'],
+  'Lateral Craniotomy / Craniectomy': ['lateral_craniotomy'],
   'Foramen Magnum Decompression': ['foramen_magnum_decompression'],
-  'VP Shunt': ['shunt_placement'],
+  'Shunt Placement (Hydrocephalus)': ['shunt_placement'],
   'Atlantoaxial Stabilization': ['atlantoaxial_stabilization'],
+  'Dorsal Cervical Decompression': ['dorsal_cervical_decompression'],
+  'Cervical Distraction / Stabilization': ['cervical_distraction_stabilization'],
+  'Dorsal Laminectomy (TL Region)': ['dorsal_laminectomy_TL'],
+  'Vertebral Fracture / Luxation Repair': ['vertebral_fracture_luxation'],
+  'Spinal Tumor Approach': ['spinal_tumor_approach', 'dorsal_laminectomy_TL'],
+  'Lumbosacral Decompression': ['lumbosacral_decompression'],
+  'Muscle / Nerve Biopsy': ['muscle_nerve_biopsy'],
+  'Lateral Corpectomy': [], // not a certificate category
+  // Legacy names (backward compat for previously logged cases)
+  'Hemilaminectomy': ['hemilaminectomy'],
+  'VP Shunt': ['shunt_placement'],
   'Dorsal Cervical Laminectomy': ['dorsal_cervical_decompression'],
   'Cervical Distraction-Stabilization': ['cervical_distraction_stabilization'],
   'Dorsal Laminectomy (TL)': ['dorsal_laminectomy_TL'],
   'Vertebral Fracture-Luxation Repair': ['vertebral_fracture_luxation'],
-  'Spinal Tumor Approach': ['spinal_tumor_approach', 'dorsal_laminectomy_TL'],
-  'Lumbosacral Decompression': ['lumbosacral_decompression'],
   'Lumbosacral Dorsal Laminectomy': ['lumbosacral_decompression'],
+  'Lateral Craniotomy': ['lateral_craniotomy'],
+  'Lateral Craniectomy': ['lateral_craniotomy'],
   'Muscle Biopsy': ['muscle_nerve_biopsy'],
   'Nerve Biopsy': ['muscle_nerve_biopsy'],
   'Peripheral Nerve Biopsy': ['muscle_nerve_biopsy'],
   'Craniotomy': [], // ambiguous — user should pick transfrontal or lateral
-  'Lateral Corpectomy': [], // not a certificate category
 };
 
 /** Fuzzy fallback for free-text entries */
