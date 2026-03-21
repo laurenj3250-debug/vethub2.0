@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getTodayET } from '@/lib/timezone';
-import { requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     // 1. Aggregate totals in the database instead of loading all entries

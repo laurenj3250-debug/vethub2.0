@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateJournalClubHours } from '@/lib/acvim-validation';
-import { requireAuth } from '@/lib/api-auth';
 
 // GET - fetch all journal club entries (optionally filtered by year)
 export async function GET(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -28,8 +25,6 @@ export async function GET(request: NextRequest) {
 
 // POST - create new entry
 export async function POST(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const data = await request.json();
@@ -66,8 +61,6 @@ export async function POST(request: NextRequest) {
 
 // PUT - update existing entry
 export async function PUT(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const data = await request.json();
@@ -106,8 +99,6 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - delete entry
 export async function DELETE(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);

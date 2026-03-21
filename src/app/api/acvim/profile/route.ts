@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
 
 // GET - fetch profile (returns null if none exists - does NOT auto-create)
 export async function GET(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const profile = await prisma.aCVIMProfile.findFirst();
@@ -24,8 +21,6 @@ export async function GET(request: NextRequest) {
 
 // POST - create new profile (use this for initial setup)
 export async function POST(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const data = await request.json();
@@ -59,8 +54,6 @@ export async function POST(request: NextRequest) {
 
 // PUT - update existing profile (or create if none exists - upsert behavior)
 export async function PUT(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const data = await request.json();

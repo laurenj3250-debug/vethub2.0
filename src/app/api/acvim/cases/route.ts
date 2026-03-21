@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { validateCaseHours } from '@/lib/acvim-validation';
-import { requireAuth } from '@/lib/api-auth';
 
 // GET - fetch all cases (optionally filtered by year, or all for certificate tracking)
 export async function GET(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -30,8 +27,6 @@ export async function GET(request: NextRequest) {
 
 // POST - create new case
 export async function POST(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const data = await request.json();
@@ -77,8 +72,6 @@ export async function POST(request: NextRequest) {
 
 // PUT - update existing case
 export async function PUT(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const data = await request.json();
@@ -121,8 +114,6 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - delete case
 export async function DELETE(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);

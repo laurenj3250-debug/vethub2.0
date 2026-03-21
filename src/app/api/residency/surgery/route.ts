@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { getTodayET } from '@/lib/timezone';
-import { requireAuth } from '@/lib/api-auth';
 
 const surgerySchema = z.object({
   dailyEntryId: z.string().optional(), // Optional now — auto-creates if missing
@@ -19,8 +18,6 @@ const surgerySchema = z.object({
 
 // GET - Fetch surgeries (optionally filtered)
 export async function GET(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -65,8 +62,6 @@ async function getResidencyYear(): Promise<number> {
 
 // POST - Create new surgery (also creates ACVIM case log entry with proper FK)
 export async function POST(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const body = await request.json();
@@ -204,8 +199,6 @@ const surgeryPatchSchema = z.object({
 });
 
 export async function PATCH(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const body = await request.json();
@@ -284,8 +277,6 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE - Remove surgery by ID (also removes linked ACVIM case via FK)
 export async function DELETE(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);

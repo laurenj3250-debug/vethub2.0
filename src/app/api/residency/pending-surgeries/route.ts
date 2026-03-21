@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/api-auth';
 
 // GET - Fetch surgery-type patients that don't have a Surgery record logged yet
 // Used to show "pending surgery" drafts in the residency tracker
 export async function GET(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     // Get all active surgery patients

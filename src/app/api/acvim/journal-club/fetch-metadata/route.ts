@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAuth } from '@/lib/api-auth';
 
 const fetchSchema = z.object({
   url: z.string().url('Please enter a valid URL'),
@@ -65,8 +64,6 @@ async function fetchFromCrossRef(doi: string): Promise<{ title: string } | null>
 
 // POST - Fetch article title from URL
 export async function POST(request: NextRequest) {
-  const authError = requireAuth(request);
-  if (authError) return authError;
 
   try {
     const body = await request.json();
