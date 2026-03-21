@@ -19,6 +19,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // If no API key configured, skip auth entirely
+  if (!process.env.RESIDENCY_API_KEY) {
+    return NextResponse.next();
+  }
+
   // Check for auth cookie
   const apiKey = request.cookies.get('residency-api-key')?.value;
 
