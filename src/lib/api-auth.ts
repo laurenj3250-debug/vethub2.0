@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Simple API key auth for single-user app
 // Set RESIDENCY_API_KEY in environment variables
 export function requireAuth(request: NextRequest): NextResponse | null {
-  // Skip auth in development
+  // Skip auth in development or when no API key is configured
   if (process.env.NODE_ENV === 'development') return null;
+  if (!process.env.RESIDENCY_API_KEY) return null;
 
   // Check for API key in cookie or Authorization header
   const apiKey = request.cookies.get('residency-api-key')?.value ||
