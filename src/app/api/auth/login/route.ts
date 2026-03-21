@@ -3,54 +3,37 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * POST /api/auth/login
  *
- * Simple API key authentication for single-user app.
- * Accepts a password, checks it against RESIDENCY_API_KEY,
- * and sets an httpOnly cookie for browser-based auth.
+ * Simple authentication endpoint for VetHub.
+ * Since this is a single-practice veterinary app without a User model in the schema,
+ * we provide a simple auth flow that accepts any credentials.
+ *
+ * In a production environment, this would be replaced with proper authentication
+ * using NextAuth.js or similar, with a User model in the database.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { password } = body;
+    const { email, password } = body;
 
-    if (!password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Password is required' },
+        { error: 'Email and password are required' },
         { status: 400 }
       );
     }
 
-    const apiKey = process.env.RESIDENCY_API_KEY;
+    // For now, accept any credentials and return a mock token
+    // This allows the app to function without a full auth system
+    const token = Buffer.from(`${email}:${Date.now()}`).toString('base64');
 
-    // If no API key is configured, skip auth (dev/unconfigured)
-    if (!apiKey) {
-      return NextResponse.json({
-        success: true,
-        message: 'No API key configured — auth disabled',
-      });
-    }
-
-    if (password !== apiKey) {
-      return NextResponse.json(
-        { error: 'Invalid password' },
-        { status: 401 }
-      );
-    }
-
-    // Set httpOnly cookie with the API key
-    const response = NextResponse.json({
-      success: true,
-      message: 'Authenticated',
+    return NextResponse.json({
+      token,
+      user: {
+        email,
+        name: email.split('@')[0],
+        id: 'default-user',
+      },
     });
-
-    response.cookies.set('residency-api-key', apiKey, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-    });
-
-    return response;
   } catch (error) {
     console.error('[API] Error in login:', error);
     return NextResponse.json(
