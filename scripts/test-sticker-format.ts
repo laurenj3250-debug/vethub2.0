@@ -25,6 +25,11 @@ const testPatient: UnifiedPatient = {
   },
   status: 'Active',
   type: 'Medical',
+  medicalHistory: {} as any,
+  soapNotes: [],
+  tasks: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
   roundingData: {} as any,
   stickerData: {
     isNewAdmit: true,

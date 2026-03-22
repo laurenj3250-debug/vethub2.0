@@ -11,6 +11,8 @@
  * 6. AI parsing accuracy
  */
 
+export {};
+
 const BASE_URL = process.env.TEST_URL || 'http://localhost:3000';
 
 interface AuditResult {

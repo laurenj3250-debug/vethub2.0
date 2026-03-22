@@ -10,6 +10,8 @@
  * Run: npx tsx scripts/test-unified-hub.ts
  */
 
+export {};
+
 const BASE_URL = 'http://localhost:3000';
 
 // Sample referral email text (realistic veterinary referral)
@@ -142,7 +144,7 @@ async function testOutputGeneration(parsedData: any) {
 
   // Validate rounding sheet has required fields
   const roundingRequired = ['signalment', 'location', 'code', 'problems'];
-  const roundingMissing = roundingRequired.filter(field => !outputs.roundingSheet[field]);
+  const roundingMissing = roundingRequired.filter(field => !(outputs.roundingSheet as Record<string, any>)[field]);
 
   if (roundingMissing.length > 0) {
     throw new Error(`Rounding sheet missing: ${roundingMissing.join(', ')}`);
@@ -150,7 +152,7 @@ async function testOutputGeneration(parsedData: any) {
 
   // Validate SOAP note structure
   const soapRequired = ['visitType', 'subjective', 'physicalExam', 'neuroExam', 'assessment', 'plan'];
-  const soapMissing = soapRequired.filter(field => !outputs.soapNote[field]);
+  const soapMissing = soapRequired.filter(field => !(outputs.soapNote as Record<string, any>)[field]);
 
   if (soapMissing.length > 0) {
     throw new Error(`SOAP note missing: ${soapMissing.join(', ')}`);

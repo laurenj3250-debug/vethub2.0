@@ -1,40 +1,34 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Brain, Zap, FileText, Loader2, ArrowLeft } from 'lucide-react';
+import { Brain, FileText, Loader2, ArrowLeft, Zap } from 'lucide-react';
 import { useNeuroExamState } from '@/components/neuro-exam/useNeuroExamState';
-import { SECTION_GROUPS } from '@/components/neuro-exam/constants';
-import { StepperProgress } from '@/components/neuro-exam/StepperProgress';
-import { SectionGroup } from '@/components/neuro-exam/SectionGroup';
-import { SectionRow } from '@/components/neuro-exam/SectionRow';
-import { SectionDetail } from '@/components/neuro-exam/SectionDetail';
-import { StepperNavigation } from '@/components/neuro-exam/StepperNavigation';
-import { TemplateSheet } from '@/components/neuro-exam/TemplateSheet';
+import { NeuroLocFilter } from '@/components/neuro-exam/NeuroLocFilter';
 import { ExamSummarySheet } from '@/components/neuro-exam/ExamSummarySheet';
+import { LocTemplateSheet } from '@/components/neuro-exam/LocTemplateSheet';
 
-export default function NeuroExamMobile() {
+export default function NeuroExamPage() {
   const {
-    sections,
+    examState,
     isLoading,
     isSaving,
-    appliedTemplate,
-    toggleSection,
-    setStatus,
+    setActiveLoc,
+    setSpecies,
     updateData,
-    markGroupNormal,
+    updateCheckbox,
+    setReportLocked,
+    setReport,
+    setDdxSelections,
+    resetToNormal,
     handleApplyTemplate,
-    handleClearTemplate,
     handleSaveDraft,
     handleComplete,
-    summary,
+    handleNewExam,
     copySummary,
-    completed,
-    total,
   } = useNeuroExamState();
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [showTemplateSheet, setShowTemplateSheet] = useState(false);
-  const [showSummarySheet, setShowSummarySheet] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   if (isLoading) {
     return (
@@ -47,184 +41,110 @@ export default function NeuroExamMobile() {
     );
   }
 
-  // Current step's group
-  const currentGroup = SECTION_GROUPS[currentStep - 1];
-
-  // Mobile: show only current step. Desktop: show all groups.
   return (
     <div className="min-h-screen bg-[#FFF8F0]">
-      {/* ─── Compact Header (~80px) ─── */}
+      {/* ─── Header ─── */}
       <div className="sticky top-0 z-20 bg-[#FFF8F0] border-b-2 border-black">
-        <div className="px-4 py-3">
-          {/* Top row: title + actions */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <a
-                href="/"
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:scale-95 transition-all"
-                aria-label="Back to dashboard"
-              >
-                <ArrowLeft size={20} className="text-gray-900" />
-              </a>
-              <Brain size={20} className="text-gray-900" />
-              <h1 className="text-lg font-black text-gray-900">Neuro Exam</h1>
-              {isSaving && (
-                <span className="text-xs font-semibold text-gray-400 ml-1">Saving...</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Template button */}
-              <button
-                onClick={() => setShowTemplateSheet(true)}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border-2 border-black bg-white shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all"
-                title="Templates"
-              >
-                <Zap size={18} className="text-gray-900" />
-              </button>
-
-              {/* Summary button */}
-              {completed > 0 && (
-                <button
-                  onClick={() => setShowSummarySheet(true)}
-                  className="min-h-[44px] px-3 flex items-center gap-1.5 rounded-lg border-2 border-black bg-white shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all"
-                >
-                  <FileText size={16} className="text-gray-900" />
-                  <span className="text-xs font-bold text-gray-900">Summary</span>
-                </button>
-              )}
-
-              {/* Save button */}
-              <button
-                onClick={handleSaveDraft}
-                disabled={isSaving}
-                className="min-h-[44px] px-3 flex items-center gap-1 rounded-lg border-2 border-black bg-[#B8E6D4] text-gray-900 font-bold text-xs shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all disabled:opacity-50"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <a
+              href="/"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg active:scale-95 transition-all"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft size={20} className="text-gray-900" />
+            </a>
+            <Brain size={20} className="text-gray-900" />
+            <h1 className="text-lg font-black text-gray-900">Neuro Localization</h1>
+            {isSaving && (
+              <span className="text-xs font-semibold text-gray-400 ml-1">Saving...</span>
+            )}
           </div>
+          <div className="flex items-center gap-2">
+            {/* New Exam button */}
+            <button
+              onClick={handleNewExam}
+              className="min-h-[44px] px-3 flex items-center gap-1 rounded-lg border-2 border-black bg-white text-gray-900 font-bold text-xs shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all"
+            >
+              New
+            </button>
 
-          {/* Stepper progress bar */}
-          <StepperProgress
-            currentStep={currentStep}
-            onStepClick={setCurrentStep}
-            sections={sections}
-          />
+            {/* Templates button */}
+            <button
+              onClick={() => setShowTemplates(true)}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border-2 border-black bg-white shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all"
+              title="Templates"
+            >
+              <Zap size={18} className="text-gray-900" />
+            </button>
 
-          {/* Progress text */}
-          <div className="flex items-center justify-between mt-1.5">
-            <span className="text-xs font-bold text-gray-400">{completed}/{total} sections</span>
-            {appliedTemplate && (
+            {/* Summary button */}
+            {examState.report && (
               <button
-                onClick={handleClearTemplate}
-                className="text-xs font-bold text-gray-500 underline"
+                onClick={() => setShowSummary(true)}
+                className="min-h-[44px] px-3 flex items-center gap-1.5 rounded-lg border-2 border-black bg-white shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all"
               >
-                Clear template
+                <FileText size={16} className="text-gray-900" />
+                <span className="text-xs font-bold text-gray-900">Summary</span>
               </button>
             )}
+
+            {/* Save button */}
+            <button
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+              className="min-h-[44px] px-3 flex items-center gap-1 rounded-lg border-2 border-black bg-[#B8E6D4] text-gray-900 font-bold text-xs shadow-[2px_2px_0_#000] active:scale-95 active:shadow-[1px_1px_0_#000] transition-all disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
           </div>
         </div>
       </div>
 
       {/* ─── Content ─── */}
-      <div className="relative z-0 px-4 py-4 pb-36">
-        {/* Mobile: show current step only */}
-        <div className="md:hidden">
-          <SectionGroup
-            group={currentGroup}
-            sections={sections}
-            onBulkNormal={(ids) => markGroupNormal(ids)}
-          >
-            {currentGroup.sectionIds.map(sectionId => (
-              <SectionRow
-                key={sectionId}
-                sectionId={sectionId}
-                section={sections[sectionId]}
-                onSetStatus={(status) => setStatus(sectionId, status)}
-                onToggleExpand={() => toggleSection(sectionId)}
-              >
-                <SectionDetail
-                  sectionId={sectionId}
-                  section={sections[sectionId]}
-                  updateData={(field, value) => updateData(sectionId, field, value)}
-                />
-              </SectionRow>
-            ))}
-          </SectionGroup>
-        </div>
-
-        {/* Desktop: show all groups in scrollable view */}
-        <div className="hidden md:block space-y-8 max-w-3xl mx-auto">
-          {SECTION_GROUPS.map(group => (
-            <SectionGroup
-              key={group.id}
-              group={group}
-              sections={sections}
-              onBulkNormal={(ids) => markGroupNormal(ids)}
-            >
-              {group.sectionIds.map(sectionId => (
-                <SectionRow
-                  key={sectionId}
-                  sectionId={sectionId}
-                  section={sections[sectionId]}
-                  onSetStatus={(status) => setStatus(sectionId, status)}
-                  onToggleExpand={() => toggleSection(sectionId)}
-                >
-                  <SectionDetail
-                    sectionId={sectionId}
-                    section={sections[sectionId]}
-                    updateData={(field, value) => updateData(sectionId, field, value)}
-                  />
-                </SectionRow>
-              ))}
-            </SectionGroup>
-          ))}
-        </div>
+      <div className="px-4 py-4 pb-24">
+        <NeuroLocFilter
+          examState={examState}
+          setActiveLoc={setActiveLoc}
+          setSpecies={setSpecies}
+          updateData={updateData}
+          updateCheckbox={updateCheckbox}
+          setReportLocked={setReportLocked}
+          setReport={setReport}
+          setDdxSelections={setDdxSelections}
+          resetToNormal={resetToNormal}
+        />
       </div>
 
       {/* ─── Sticky Footer ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-10 bg-[#FFF8F0] border-t-2 border-black px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {/* Stepper nav (mobile only) */}
-        <div className="mb-3">
-          <StepperNavigation
-            currentStep={currentStep}
-            onPrev={() => setCurrentStep(s => Math.max(1, s - 1))}
-            onNext={() => setCurrentStep(s => Math.min(SECTION_GROUPS.length, s + 1))}
-          />
-        </div>
-
-        {/* Complete button */}
         <button
           onClick={handleComplete}
           disabled={isSaving}
           className="w-full min-h-[52px] rounded-xl border-2 border-black bg-[#B8E6D4] text-gray-900 font-black text-base shadow-[4px_4px_0_#000] hover:shadow-[5px_5px_0_#000] hover:-translate-y-[1px] active:scale-[0.98] active:shadow-[2px_2px_0_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isSaving ? 'Saving...' : `Complete Exam (${completed}/${total})`}
+          {isSaving ? 'Saving...' : 'Complete Exam'}
         </button>
       </div>
 
-      {/* ─── Bottom Sheets ─── */}
-      <TemplateSheet
-        open={showTemplateSheet}
-        onClose={() => setShowTemplateSheet(false)}
-        onApply={(id) => {
-          handleApplyTemplate(id);
-          setShowTemplateSheet(false);
-        }}
-        appliedTemplate={appliedTemplate}
-        onClear={() => {
-          handleClearTemplate();
-          setShowTemplateSheet(false);
-        }}
+      {/* ─── Summary Sheet ─── */}
+      <ExamSummarySheet
+        open={showSummary}
+        onClose={() => setShowSummary(false)}
+        summary={examState.report}
+        onCopy={copySummary}
+        completed={examState.report ? 1 : 0}
+        total={1}
       />
 
-      <ExamSummarySheet
-        open={showSummarySheet}
-        onClose={() => setShowSummarySheet(false)}
-        summary={summary}
-        onCopy={copySummary}
-        completed={completed}
-        total={total}
+      {/* ─── Template Sheet ─── */}
+      <LocTemplateSheet
+        open={showTemplates}
+        onClose={() => setShowTemplates(false)}
+        onApply={(template) => {
+          handleApplyTemplate(template);
+          setShowTemplates(false);
+        }}
       />
     </div>
   );

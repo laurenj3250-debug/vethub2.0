@@ -36,14 +36,14 @@ async function checkPatientStickerCounts() {
     console.log('\n✅ Check complete!');
 
     // Summary
-    const needsUpdate = patients.filter(p => {
+    const needsUpdate = patients.filter((p: any) => {
       const count = p.stickerData?.tinySheetCount;
       return count === undefined || count === null || count === 1;
     });
 
     if (needsUpdate.length > 0) {
       console.log(`\n⚠️  ${needsUpdate.length} patients need tinySheetCount updated`);
-      console.log('   Patients:', needsUpdate.map(p => p.demographics?.name).join(', '));
+      console.log('   Patients:', needsUpdate.map((p: any) => p.demographics?.name).join(', '));
     }
 
   } catch (error) {

@@ -31,9 +31,7 @@ export const TASK_CONFIG = {
     ],
 
     // General team tasks (not tied to any patient)
-    general: [
-      // Removed per user request: 'Do All Rounding Summaries', 'Sticker on Daily Sheet'
-    ],
+    general: [] as TaskDefinition[],
 
     // Patient statuses that should NOT get daily recurring tasks
     // Discharging patients are leaving - no need for daily tasks
