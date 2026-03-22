@@ -1,4 +1,4 @@
-import { type LocExamState } from './types';
+import { type LocExamState, type NeuroExamData } from './types';
 
 // ─── Localization Display Names ──────────────────────────────────────────────
 
@@ -204,7 +204,7 @@ export function getDdx(loc: string, species: 'Dog' | 'Cat'): string[] {
 
 // ─── Default Data (Normal State) ─────────────────────────────────────────────
 
-export function getDefaultData(): Record<string, any> {
+export function getDefaultData(): NeuroExamData {
   return {
     // ── T3-L3 ──
     t3l3_gait: 'Normal',
@@ -328,6 +328,7 @@ export function getDefaultData(): Record<string, any> {
     bs_postural_pl_side: 'Bilateral',
 
     // ── Peripheral Vestibular ──
+    pv_gate: 'Abnormal',
     pv_tilt: 'Left',
     pv_nystagmusType: 'Horizontal',
     pv_nystagmusDir: 'Left',
@@ -340,6 +341,7 @@ export function getDefaultData(): Record<string, any> {
     pv_proprioception: 'Normal',
 
     // ── Cerebellum ──
+    cb_gate: 'Abnormal',
     cb_mentation: 'QAR',
     cb_gait: 'Hypermetric Ataxia',
     cb_side: 'Bilateral',

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { type LocId, type LocExamState, type LocTemplate } from './types';
+import { type LocId, type LocExamState, type LocTemplate, type NeuroExamData } from './types';
 import { INITIAL_LOC_STATE, getDefaultData } from './constants';
 
 function validateExamState(raw: unknown): LocExamState {
@@ -104,21 +104,19 @@ export function useNeuroExamState() {
     loadExam();
   }, [toast]);
 
-  // --- localStorage backup for offline resilience ---
+  // --- localStorage backup + auto-save with 1-second debounce ---
   useEffect(() => {
     if (!currentExamId || isLoading) return;
+
+    // Immediate localStorage backup (cheap, synchronous)
     try {
       localStorage.setItem(`neuro-exam-backup-${currentExamId}`, JSON.stringify(examState));
     } catch {
-      // localStorage full or unavailable — silently skip
+      // localStorage full or unavailable
     }
-  }, [examState, currentExamId, isLoading]);
 
-  // --- Auto-save with 1-second debounce ---
-  useEffect(() => {
-    if (!currentExamId || isLoading) return;
-
-    const saveToDatabase = async () => {
+    // Debounced DB save
+    const timeoutId = setTimeout(async () => {
       setIsSaving(true);
       try {
         const response = await fetch(`/api/neuro-exams/${currentExamId}`, {
@@ -135,9 +133,8 @@ export function useNeuroExamState() {
       } finally {
         setIsSaving(false);
       }
-    };
+    }, 1000);
 
-    const timeoutId = setTimeout(saveToDatabase, 1000);
     return () => clearTimeout(timeoutId);
   }, [examState, currentExamId, isLoading, toast]);
 
@@ -151,21 +148,24 @@ export function useNeuroExamState() {
     setExamState(prev => ({ ...prev, species }));
   }, []);
 
-  const updateData = useCallback((key: string, value: any) => {
+  const updateData = useCallback((key: string, value: NeuroExamData[keyof NeuroExamData]) => {
     setExamState(prev => ({
       ...prev,
       data: { ...prev.data, [key]: value },
     }));
   }, []);
 
-  const updateCheckbox = useCallback((group: string, key: string) => {
-    setExamState(prev => ({
-      ...prev,
-      data: {
-        ...prev.data,
-        [group]: { ...prev.data[group], [key]: !prev.data[group]?.[key] },
-      },
-    }));
+  const updateCheckbox = useCallback((group: 'pros_behavior' | 'mf_areas', key: string) => {
+    setExamState(prev => {
+      const current = prev.data[group] as unknown as Record<string, boolean>;
+      return {
+        ...prev,
+        data: {
+          ...prev.data,
+          [group]: { ...current, [key]: !current?.[key] },
+        },
+      };
+    });
   }, []);
 
   const setReportLocked = useCallback((locked: boolean) => {
@@ -204,14 +204,44 @@ export function useNeuroExamState() {
   }, [toast]);
 
   // --- New Exam ---
-  const handleNewExam = useCallback(() => {
+  const handleNewExam = useCallback(async () => {
     if (!confirm('Start a new exam? Current exam will be saved.')) return;
-    localStorage.removeItem('neuro-exam-draft-id');
+
+    // Save current exam first (don't rely on auto-save)
     if (currentExamId) {
-      localStorage.removeItem(`neuro-exam-backup-${currentExamId}`);
+      try {
+        await fetch(`/api/neuro-exams/${currentExamId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sections: examState }),
+        });
+      } catch {
+        // Best effort — exam was already auto-saved recently
+      }
     }
-    window.location.reload();
-  }, [currentExamId]);
+
+    // Create new exam, then clean up old backup
+    try {
+      const response = await fetch('/api/neuro-exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections: INITIAL_LOC_STATE() }),
+      });
+      if (response.ok) {
+        const exam = await response.json();
+        // Only clean up old backup after new exam is successfully created
+        if (currentExamId) {
+          localStorage.removeItem(`neuro-exam-backup-${currentExamId}`);
+        }
+        setCurrentExamId(exam.id);
+        localStorage.setItem('neuro-exam-draft-id', exam.id);
+        setExamState(INITIAL_LOC_STATE());
+        toast({ title: 'New exam started', description: 'Previous exam saved.' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Could not create new exam', variant: 'destructive' });
+    }
+  }, [currentExamId, examState, toast]);
 
   // --- Save / Complete ---
   const handleSaveDraft = useCallback(async () => {
@@ -235,25 +265,40 @@ export function useNeuroExamState() {
   }, [currentExamId, examState, toast]);
 
   const handleComplete = useCallback(async () => {
-    const proceed = confirm('Finalize and submit this exam?');
-    if (!proceed) return;
-
+    if (!confirm('Finalize and submit this exam?')) return;
     if (!currentExamId) {
       toast({ title: 'Error', description: 'No active exam to complete', variant: 'destructive' });
       return;
     }
     setIsSaving(true);
     try {
-      await fetch(`/api/neuro-exams/${currentExamId}`, {
+      const response = await fetch(`/api/neuro-exams/${currentExamId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sections: examState }),
       });
+      if (!response.ok) throw new Error(`Save returned ${response.status}`);
+
       localStorage.removeItem('neuro-exam-draft-id');
       localStorage.removeItem(`neuro-exam-backup-${currentExamId}`);
-      toast({ title: 'Exam completed!', description: 'Your neuro exam has been saved to the database' });
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (error) {
+      toast({ title: 'Exam completed!', description: 'Your neuro exam has been saved.' });
+
+      // Create a fresh exam
+      const newResponse = await fetch('/api/neuro-exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections: INITIAL_LOC_STATE() }),
+      });
+      if (newResponse.ok) {
+        const newExam = await newResponse.json();
+        setCurrentExamId(newExam.id);
+        localStorage.setItem('neuro-exam-draft-id', newExam.id);
+        setExamState(INITIAL_LOC_STATE());
+      } else {
+        // Exam was saved, but couldn't create a fresh draft — user can click "New"
+        setCurrentExamId(null);
+      }
+    } catch {
       toast({ title: 'Error', description: 'Failed to save exam', variant: 'destructive' });
     } finally {
       setIsSaving(false);

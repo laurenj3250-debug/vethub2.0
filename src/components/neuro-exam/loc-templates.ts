@@ -45,6 +45,7 @@ export const LOC_TEMPLATES: LocTemplate[] = [
     icon: '👂',
     localization: 'periph_vest',
     data: {
+      pv_gate: 'Abnormal',
       pv_tilt: 'Left',
       pv_nystagmusType: 'Horizontal',
       pv_nystagmusDir: 'Right',
@@ -95,6 +96,6 @@ export const LOC_TEMPLATES: LocTemplate[] = [
     description: 'All findings within normal limits',
     icon: '✅',
     localization: 't3l3',
-    data: {}, // Empty = all defaults = all normal
+    data: { pv_gate: 'Normal', cb_gate: 'Normal' }, // Gates normal, rest = defaults
   },
 ];
