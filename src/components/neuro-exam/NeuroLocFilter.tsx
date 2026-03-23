@@ -11,6 +11,7 @@ import { LocSideSelector } from './LocSideSelector';
 import { LocButton } from './LocButton';
 import { SectionDivider } from './SectionDivider';
 import { ReportPanel } from './ReportPanel';
+import { CascadeSummary } from './CascadeSummary';
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ interface NeuroLocFilterProps {
   setActiveLoc: (loc: LocId) => void;
   setSpecies: (species: 'Dog' | 'Cat') => void;
   updateData: (key: string, value: NeuroExamData[keyof NeuroExamData]) => void;
+  updateDataBatch: (updates: Record<string, NeuroExamData[keyof NeuroExamData]>) => void;
   updateCheckbox: (group: 'pros_behavior' | 'mf_areas', key: string) => void;
   setReportLocked: (locked: boolean) => void;
   setReport: (text: string) => void;
@@ -33,6 +35,7 @@ export function NeuroLocFilter({
   setActiveLoc,
   setSpecies,
   updateData,
+  updateDataBatch,
   updateCheckbox,
   setReportLocked,
   setReport,
@@ -40,6 +43,7 @@ export function NeuroLocFilter({
   resetToNormal,
 }: NeuroLocFilterProps) {
   const [copied, setCopied] = useState(false);
+  const [cascadeExpanded, setCascadeExpanded] = useState<Record<string, boolean>>({});
 
   const data = examState.data;
   const activeLoc = examState.activeLoc;
@@ -112,6 +116,165 @@ export function NeuroLocFilter({
     setDdxSelections(Object.fromEntries(ddxList.map((d: string) => [d, !allSelected])));
   }, [ddxList, examState.ddxSelections, setDdxSelections]);
 
+  // ─── Cascade Handlers ──────────────────────────────────────────────────
+
+  const toggleCascade = useCallback((key: string) => {
+    setCascadeExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const handleT3L3GaitChange = useCallback((v: string) => {
+    const updates: Record<string, NeuroExamData[keyof NeuroExamData]> = { t3l3_gait: v };
+    if (v === 'Normal') {
+      Object.assign(updates, {
+        t3l3_postural_tl: 'Normal',
+        t3l3_postural_pl: 'Normal',
+        t3l3_reflexes_gate: 'Normal',
+        t3l3_tone_pl: 'Normal/Increased',
+        t3l3_mass: 'Normal',
+      });
+    } else if (v === 'Ambulatory') {
+      Object.assign(updates, {
+        t3l3_postural_pl: 'Deficits',
+        t3l3_reflexes_gate: 'Normal',
+        t3l3_tone_pl: 'Normal/Increased',
+      });
+    } else if (v === 'Non-Ambulatory') {
+      Object.assign(updates, {
+        t3l3_postural_pl: 'Absent',
+        t3l3_reflexes_gate: 'Normal',
+        t3l3_tone_pl: 'Normal/Increased',
+      });
+    } else if (v === 'Paraplegic') {
+      Object.assign(updates, {
+        t3l3_postural_pl: 'Absent',
+        t3l3_reflexes_gate: 'Normal',
+        t3l3_tone_pl: 'Normal/Increased',
+      });
+    }
+    setCascadeExpanded(prev => ({ ...prev, t3l3: false }));
+    updateDataBatch(updates);
+  }, [updateDataBatch]);
+
+  const handleC6T2GaitChange = useCallback((v: string) => {
+    const updates: Record<string, NeuroExamData[keyof NeuroExamData]> = { c6t2_gait: v };
+    if (v !== 'Normal') {
+      Object.assign(updates, {
+        c6t2_postural_tl: 'Deficits',
+        c6t2_postural_pl: 'Deficits',
+        c6t2_reflexes_gate: 'Normal',
+      });
+    } else {
+      Object.assign(updates, {
+        c6t2_postural_tl: 'Normal',
+        c6t2_postural_pl: 'Normal',
+        c6t2_reflexes_gate: 'Normal',
+      });
+    }
+    setCascadeExpanded(prev => ({ ...prev, c6t2: false }));
+    updateDataBatch(updates);
+  }, [updateDataBatch]);
+
+  const handleC1C5GaitChange = useCallback((v: string) => {
+    const updates: Record<string, NeuroExamData[keyof NeuroExamData]> = { c1c5_gait: v };
+    if (v === 'Normal') {
+      Object.assign(updates, {
+        c1c5_postural_tl: 'Normal',
+        c1c5_postural_pl: 'Normal',
+        c1c5_reflexes: 'Normal/Increased',
+      });
+    } else if (v === 'Ambulatory Tetraparesis') {
+      Object.assign(updates, {
+        c1c5_postural_tl: 'Deficits',
+        c1c5_postural_pl: 'Deficits',
+        c1c5_reflexes: 'Normal/Increased',
+      });
+    } else if (v === 'Non-Amb Tetraparesis') {
+      Object.assign(updates, {
+        c1c5_postural_tl: 'Deficits',
+        c1c5_postural_pl: 'Deficits',
+        c1c5_reflexes: 'Normal/Increased',
+      });
+    } else if (v === 'Tetraplegic') {
+      Object.assign(updates, {
+        c1c5_postural_tl: 'Deficits',
+        c1c5_postural_pl: 'Deficits',
+        c1c5_reflexes: 'Normal/Increased',
+      });
+    }
+    setCascadeExpanded(prev => ({ ...prev, c1c5: false }));
+    updateDataBatch(updates);
+  }, [updateDataBatch]);
+
+  const handleL4S3GaitChange = useCallback((v: string) => {
+    const updates: Record<string, NeuroExamData[keyof NeuroExamData]> = { l4s3_gait: v };
+    if (v === 'Normal') {
+      Object.assign(updates, {
+        l4s3_postural_pl: 'Normal',
+        l4s3_reflexes_gate: 'Normal',
+        l4s3_tone: 'Normal',
+        l4s3_tail_tone: 'Normal',
+        l4s3_bladder: 'Normal',
+      });
+    } else if (v === 'Paraparesis') {
+      Object.assign(updates, {
+        l4s3_postural_pl: 'Deficits',
+        l4s3_reflexes_gate: 'Normal',
+        l4s3_tone: 'Reduced',
+      });
+    } else if (v === 'Non-Ambulatory') {
+      Object.assign(updates, {
+        l4s3_postural_pl: 'Absent',
+        l4s3_reflexes_gate: 'Normal',
+        l4s3_tone: 'Reduced',
+        l4s3_tail_tone: 'Reduced',
+      });
+    } else if (v === 'Paraplegic') {
+      Object.assign(updates, {
+        l4s3_postural_pl: 'Absent',
+        l4s3_reflexes_gate: 'Normal',
+        l4s3_tone: 'Flaccid',
+        l4s3_tail_tone: 'Flaccid',
+        l4s3_bladder: 'Large/Flaccid (LMN)',
+      });
+    }
+    setCascadeExpanded(prev => ({ ...prev, l4s3: false }));
+    updateDataBatch(updates);
+  }, [updateDataBatch]);
+
+  // ─── Cascade Summary Text Builders ──────────────────────────────────────
+
+  const t3l3CascadeSummary = useMemo(() => {
+    const parts: string[] = [];
+    parts.push(`Postural: TL ${data.t3l3_postural_tl?.toString().toLowerCase() ?? 'normal'}, PL ${data.t3l3_postural_pl?.toString().toLowerCase() ?? 'normal'}`);
+    parts.push(`Reflexes: ${data.t3l3_reflexes_gate === 'Normal' ? 'UMN (normal/increased)' : 'abnormal'}`);
+    parts.push(`Tone: ${data.t3l3_tone_pl}`);
+    return parts.join(' | ');
+  }, [data.t3l3_postural_tl, data.t3l3_postural_pl, data.t3l3_reflexes_gate, data.t3l3_tone_pl]);
+
+  const c6t2CascadeSummary = useMemo(() => {
+    const parts: string[] = [];
+    parts.push(`Postural: TL ${data.c6t2_postural_tl?.toString().toLowerCase() ?? 'normal'}, PL ${data.c6t2_postural_pl?.toString().toLowerCase() ?? 'normal'}`);
+    parts.push(`Reflexes: ${data.c6t2_reflexes_gate === 'Normal' ? 'LMN TL / UMN PL' : 'abnormal'}`);
+    return parts.join(' | ');
+  }, [data.c6t2_postural_tl, data.c6t2_postural_pl, data.c6t2_reflexes_gate]);
+
+  const c1c5CascadeSummary = useMemo(() => {
+    const parts: string[] = [];
+    parts.push(`Postural: TL ${data.c1c5_postural_tl?.toString().toLowerCase() ?? 'normal'}, PL ${data.c1c5_postural_pl?.toString().toLowerCase() ?? 'normal'}`);
+    parts.push(`Reflexes: ${data.c1c5_reflexes}`);
+    return parts.join(' | ');
+  }, [data.c1c5_postural_tl, data.c1c5_postural_pl, data.c1c5_reflexes]);
+
+  const l4s3CascadeSummary = useMemo(() => {
+    const parts: string[] = [];
+    parts.push(`Postural: PL ${data.l4s3_postural_pl?.toString().toLowerCase() ?? 'normal'}`);
+    parts.push(`Reflexes: ${data.l4s3_reflexes_gate === 'Normal' ? 'LMN' : 'abnormal'}`);
+    parts.push(`Tone: ${data.l4s3_tone}`);
+    if (data.l4s3_tail_tone !== 'Normal') parts.push(`Tail: ${data.l4s3_tail_tone}`);
+    if (data.l4s3_bladder !== 'Normal') parts.push(`Bladder: ${data.l4s3_bladder}`);
+    return parts.join(' | ');
+  }, [data.l4s3_postural_pl, data.l4s3_reflexes_gate, data.l4s3_tone, data.l4s3_tail_tone, data.l4s3_bladder]);
+
   // ─── JSX ─────────────────────────────────────────────────────────────────
 
   return (
@@ -166,7 +329,7 @@ export function NeuroLocFilter({
             {/* ═══ T3-L3 ═══ */}
             {activeLoc === 't3l3' && (
               <div className="space-y-5">
-                <LocToggle label="Pelvic Gait Status" options={['Normal', 'Ambulatory', 'Non-Ambulatory', 'Paraplegic']} value={data.t3l3_gait} onChange={(v) => updateData('t3l3_gait', v)} />
+                <LocToggle label="Pelvic Gait Status" options={['Normal', 'Ambulatory', 'Non-Ambulatory', 'Paraplegic']} value={data.t3l3_gait} onChange={handleT3L3GaitChange} />
                 {(data.t3l3_gait === 'Ambulatory' || data.t3l3_gait === 'Non-Ambulatory') && (
                   <LocToggle label="Ataxia Type" options={['Proprioceptive', 'None']} value={data.t3l3_ataxia} onChange={(v) => updateData('t3l3_ataxia', v)} />
                 )}
@@ -185,42 +348,49 @@ export function NeuroLocFilter({
                   <LocCheckButton checked={data.t3l3_schiff} onChange={() => updateData('t3l3_schiff', !data.t3l3_schiff)} label="Schiff-Sherrington Posture" />
                 )}
 
-                {data.t3l3_gait !== 'Normal' && (<>
-                  <SectionDivider label="Postural Reactions" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <LocToggle label="Thoracic Limbs" options={['Normal', 'Deficits']} value={data.t3l3_postural_tl} onChange={(v) => updateData('t3l3_postural_tl', v)} />
-                    <div>
-                      <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits', 'Absent']} value={data.t3l3_postural_pl} onChange={(v) => updateData('t3l3_postural_pl', v)} />
-
-                    </div>
-                  </div>
-
-                  <SectionDivider label="Spinal Reflexes" />
-                  <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.t3l3_reflexes_gate} onChange={(v) => updateData('t3l3_reflexes_gate', v)} />
-                  {data.t3l3_reflexes_gate === 'Abnormal' && (
-                    <div className="pl-4 border-l-2 border-gray-200 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <LocToggle label="Patellar Reflex" options={['Normal', 'Increased']} value={data.t3l3_patellar} onChange={(v) => updateData('t3l3_patellar', v)} />
-
-                        </div>
-                        <div>
-                          <LocToggle label="Withdrawal (Pelvic)" options={['Normal', 'Increased']} value={data.t3l3_withdrawal_pl} onChange={(v) => updateData('t3l3_withdrawal_pl', v)} />
-
-                        </div>
+                {data.t3l3_gait !== 'Normal' && (
+                  <CascadeSummary
+                    label="UMN pattern"
+                    summary={t3l3CascadeSummary}
+                    expanded={!!cascadeExpanded.t3l3}
+                    onToggle={() => toggleCascade('t3l3')}
+                  >
+                    <SectionDivider label="Postural Reactions" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <LocToggle label="Thoracic Limbs" options={['Normal', 'Deficits']} value={data.t3l3_postural_tl} onChange={(v) => updateData('t3l3_postural_tl', v)} />
+                      <div>
+                        <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits', 'Absent']} value={data.t3l3_postural_pl} onChange={(v) => updateData('t3l3_postural_pl', v)} />
                       </div>
                     </div>
-                  )}
-                  {data.t3l3_gait === 'Paraplegic' && (
-                    <div className="pl-4 border-l-2 border-gray-200 space-y-2 mt-2">
-                      <div className="bg-[#FFF3CD] border-2 border-black rounded-xl p-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <AlertTriangle size={16} />
-                        Myelomalacia Monitoring
+
+                    <SectionDivider label="Spinal Reflexes" />
+                    <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.t3l3_reflexes_gate} onChange={(v) => updateData('t3l3_reflexes_gate', v)} />
+                    {data.t3l3_reflexes_gate === 'Abnormal' && (
+                      <div className="pl-4 border-l-2 border-gray-200 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <LocToggle label="Patellar Reflex" options={['Normal', 'Increased']} value={data.t3l3_patellar} onChange={(v) => updateData('t3l3_patellar', v)} />
+                          </div>
+                          <div>
+                            <LocToggle label="Withdrawal (Pelvic)" options={['Normal', 'Increased']} value={data.t3l3_withdrawal_pl} onChange={(v) => updateData('t3l3_withdrawal_pl', v)} />
+                          </div>
+                        </div>
                       </div>
-                      <LocToggle label="Perineal Reflex" options={['Normal', 'Reduced', 'Absent']} value={data.t3l3_perineal} onChange={(v) => updateData('t3l3_perineal', v)} />
-                    </div>
-                  )}
-                </>)}
+                    )}
+                    {data.t3l3_gait === 'Paraplegic' && (
+                      <div className="pl-4 border-l-2 border-gray-200 space-y-2 mt-2">
+                        <div className="bg-[#FFF3CD] border-2 border-black rounded-xl p-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
+                          <AlertTriangle size={16} />
+                          Myelomalacia Monitoring
+                        </div>
+                        <LocToggle label="Perineal Reflex" options={['Normal', 'Reduced', 'Absent']} value={data.t3l3_perineal} onChange={(v) => updateData('t3l3_perineal', v)} />
+                      </div>
+                    )}
+
+                    <SectionDivider label="Tone" />
+                    <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Normal/Increased', 'Increased']} value={data.t3l3_tone_pl} onChange={(v) => updateData('t3l3_tone_pl', v)} />
+                  </CascadeSummary>
+                )}
 
                 <SectionDivider label="Nociception & Palpation" />
                 {data.t3l3_gait !== 'Normal' && (
@@ -245,12 +415,11 @@ export function NeuroLocFilter({
                 </div>
 
                 {data.t3l3_gait !== 'Normal' && (<>
-                  <SectionDivider label="Tone & Bladder" />
+                  <SectionDivider label="Bladder & Mass" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Normal/Increased', 'Increased']} value={data.t3l3_tone_pl} onChange={(v) => updateData('t3l3_tone_pl', v)} />
                     <LocToggle label="Bladder" options={['Normal', 'Large/Firm (UMN)']} value={data.t3l3_bladder} onChange={(v) => updateData('t3l3_bladder', v)} />
+                    <LocToggle label="Muscle Mass" options={['Normal', 'Disuse Atrophy', 'Neurogenic Atrophy']} value={data.t3l3_mass} onChange={(v) => updateData('t3l3_mass', v)} />
                   </div>
-                  <LocToggle label="Muscle Mass" options={['Normal', 'Disuse Atrophy', 'Neurogenic Atrophy']} value={data.t3l3_mass} onChange={(v) => updateData('t3l3_mass', v)} />
                 </>)}
               </div>
             )}
@@ -259,47 +428,50 @@ export function NeuroLocFilter({
             {activeLoc === 'c6t2' && (
               <div className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <LocToggle label="Gait Pattern" options={['Normal', 'Two-Engine Gait', 'Tetraparesis', 'Hemiparesis']} value={data.c6t2_gait} onChange={(v) => updateData('c6t2_gait', v)} />
+                  <LocToggle label="Gait Pattern" options={['Normal', 'Two-Engine Gait', 'Tetraparesis', 'Hemiparesis']} value={data.c6t2_gait} onChange={handleC6T2GaitChange} />
                   {data.c6t2_gait !== 'Normal' && <LocToggle label="Ambulatory Status" options={['Ambulatory', 'Non-Ambulatory']} value={data.c6t2_amb} onChange={(v) => updateData('c6t2_amb', v)} />}
                 </div>
+                {data.c6t2_gait !== 'Normal' && (
+                  <CascadeSummary
+                    label="LMN thoracic / UMN pelvic pattern"
+                    summary={c6t2CascadeSummary}
+                    expanded={!!cascadeExpanded.c6t2}
+                    onToggle={() => toggleCascade('c6t2')}
+                  >
+                    <SectionDivider label="Postural Reactions" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <LocToggle label="Thoracic Limbs" options={['Normal', 'Deficits']} value={data.c6t2_postural_tl} onChange={(v) => updateData('c6t2_postural_tl', v)} />
+                      </div>
+                      <div>
+                        <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits']} value={data.c6t2_postural_pl} onChange={(v) => updateData('c6t2_postural_pl', v)} />
+                      </div>
+                    </div>
+                    <SectionDivider label="Spinal Reflexes" />
+                    <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.c6t2_reflexes_gate} onChange={(v) => updateData('c6t2_reflexes_gate', v)} />
+                    {data.c6t2_reflexes_gate === 'Abnormal' && (
+                      <div className="pl-4 border-l-2 border-gray-200 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <LocToggle label="Thoracic Withdrawal" options={['Normal', 'Reduced', 'Absent']} value={data.c6t2_foreReflex} onChange={(v) => updateData('c6t2_foreReflex', v)} />
+                          </div>
+                          <LocToggle label="Pelvic Reflexes" options={['Normal/Increased', 'Increased']} value={data.c6t2_hindReflex} onChange={(v) => updateData('c6t2_hindReflex', v)} />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <LocToggle label="Biceps Reflex" options={['Normal', 'Reduced', 'Absent']} value={data.c6t2_biceps} onChange={(v) => updateData('c6t2_biceps', v)} />
+                          </div>
+                          <div>
+                            <LocToggle label="Triceps Reflex" options={['Normal', 'Reduced', 'Absent']} value={data.c6t2_triceps} onChange={(v) => updateData('c6t2_triceps', v)} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CascadeSummary>
+                )}
                 {data.c6t2_gait !== 'Normal' && (<>
-                  <SectionDivider label="Postural Reactions" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <LocToggle label="Thoracic Limbs" options={['Normal', 'Deficits']} value={data.c6t2_postural_tl} onChange={(v) => updateData('c6t2_postural_tl', v)} />
-
-                    </div>
-                    <div>
-                      <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits']} value={data.c6t2_postural_pl} onChange={(v) => updateData('c6t2_postural_pl', v)} />
-
-                    </div>
-                  </div>
-                  <SectionDivider label="Spinal Reflexes" />
-                  <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.c6t2_reflexes_gate} onChange={(v) => updateData('c6t2_reflexes_gate', v)} />
-                  {data.c6t2_reflexes_gate === 'Abnormal' && (
-                    <div className="pl-4 border-l-2 border-gray-200 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <LocToggle label="Thoracic Withdrawal" options={['Normal', 'Reduced', 'Absent']} value={data.c6t2_foreReflex} onChange={(v) => updateData('c6t2_foreReflex', v)} />
-
-                        </div>
-                        <LocToggle label="Pelvic Reflexes" options={['Normal/Increased', 'Increased']} value={data.c6t2_hindReflex} onChange={(v) => updateData('c6t2_hindReflex', v)} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <LocToggle label="Biceps Reflex" options={['Normal', 'Reduced', 'Absent']} value={data.c6t2_biceps} onChange={(v) => updateData('c6t2_biceps', v)} />
-
-                        </div>
-                        <div>
-                          <LocToggle label="Triceps Reflex" options={['Normal', 'Reduced', 'Absent']} value={data.c6t2_triceps} onChange={(v) => updateData('c6t2_triceps', v)} />
-
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <div className="flex flex-wrap gap-3 items-center">
                     <LocCheckButton checked={data.c6t2_atrophy} onChange={() => updateData('c6t2_atrophy', !data.c6t2_atrophy)} label="Neurogenic Atrophy (TL)" color="amber" />
-
                   </div>
                   <LocToggle label="Bladder" options={['Normal', 'Large/Firm (UMN)', 'Large/Flaccid (LMN)']} value={data.c6t2_bladder} onChange={(v) => updateData('c6t2_bladder', v)} />
                 </>)}
@@ -312,25 +484,30 @@ export function NeuroLocFilter({
             {/* ═══ C1-C5 ═══ */}
             {activeLoc === 'c1c5' && (
               <div className="space-y-5">
-                <LocToggle label="Gait" options={['Normal', 'Ambulatory Tetraparesis', 'Non-Amb Tetraparesis', 'Tetraplegic']} value={data.c1c5_gait} onChange={(v) => updateData('c1c5_gait', v)} />
+                <LocToggle label="Gait" options={['Normal', 'Ambulatory Tetraparesis', 'Non-Amb Tetraparesis', 'Tetraplegic']} value={data.c1c5_gait} onChange={handleC1C5GaitChange} />
                 {(data.c1c5_gait === 'Ambulatory Tetraparesis' || data.c1c5_gait === 'Non-Amb Tetraparesis') && (
                   <LocToggle label="Ataxia Type" options={['Proprioceptive', 'Proprioceptive + Vestibular']} value={data.c1c5_ataxia} onChange={(v) => updateData('c1c5_ataxia', v)} />
                 )}
-                {data.c1c5_gait !== 'Normal' && (<>
-                  <SectionDivider label="Postural Reactions" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <LocToggle label="Thoracic Limbs" options={['Normal', 'Deficits']} value={data.c1c5_postural_tl} onChange={(v) => updateData('c1c5_postural_tl', v)} />
-
+                {data.c1c5_gait !== 'Normal' && (
+                  <CascadeSummary
+                    label="UMN pattern"
+                    summary={c1c5CascadeSummary}
+                    expanded={!!cascadeExpanded.c1c5}
+                    onToggle={() => toggleCascade('c1c5')}
+                  >
+                    <SectionDivider label="Postural Reactions" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <LocToggle label="Thoracic Limbs" options={['Normal', 'Deficits']} value={data.c1c5_postural_tl} onChange={(v) => updateData('c1c5_postural_tl', v)} />
+                      </div>
+                      <div>
+                        <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits']} value={data.c1c5_postural_pl} onChange={(v) => updateData('c1c5_postural_pl', v)} />
+                      </div>
                     </div>
-                    <div>
-                      <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits']} value={data.c1c5_postural_pl} onChange={(v) => updateData('c1c5_postural_pl', v)} />
-
-                    </div>
-                  </div>
-                  <SectionDivider label="Reflexes" />
-                  <LocToggle label="Reflexes (All Limbs)" options={['Normal/Increased', 'Increased']} value={data.c1c5_reflexes} onChange={(v) => updateData('c1c5_reflexes', v)} />
-                </>)}
+                    <SectionDivider label="Reflexes" />
+                    <LocToggle label="Reflexes (All Limbs)" options={['Normal/Increased', 'Increased']} value={data.c1c5_reflexes} onChange={(v) => updateData('c1c5_reflexes', v)} />
+                  </CascadeSummary>
+                )}
                 <SectionDivider label="Palpation" />
                 <LocToggle label="Cervical Palpation" options={['None', 'Cervical Pain', 'Guarding/Rigid', 'Ventroflexion']} value={data.c1c5_palpation} onChange={(v) => updateData('c1c5_palpation', v)} />
                 <LocToggle label="Respiratory" options={['Normal', 'Dyspnea (Phrenic Nerve C5-7)', 'Irregular Pattern']} value={data.c1c5_respiratory} onChange={(v) => updateData('c1c5_respiratory', v)} />
@@ -340,7 +517,7 @@ export function NeuroLocFilter({
             {/* ═══ L4-S3 ═══ */}
             {activeLoc === 'l4s3' && (
               <div className="space-y-5">
-                <LocToggle label="Pelvic Gait" options={['Normal', 'Paraparesis', 'Non-Ambulatory', 'Paraplegic']} value={data.l4s3_gait} onChange={(v) => updateData('l4s3_gait', v)} />
+                <LocToggle label="Pelvic Gait" options={['Normal', 'Paraparesis', 'Non-Ambulatory', 'Paraplegic']} value={data.l4s3_gait} onChange={handleL4S3GaitChange} />
                 {data.l4s3_gait === 'Paraplegic' && (
                   <div className="bg-[#FFD6D6] border-2 border-black rounded-xl p-3 text-sm font-bold text-gray-900 flex items-center gap-2">
                     <ShieldAlert size={18} />
@@ -350,40 +527,45 @@ export function NeuroLocFilter({
                 {data.l4s3_gait === 'Paraplegic' && (
                   <LocToggle options={['Present', 'Absent']} value={data.l4s3_dpp} onChange={(v) => updateData('l4s3_dpp', v)} warning={data.l4s3_dpp === 'Absent'} />
                 )}
-                {data.l4s3_gait !== 'Normal' && (<>
-                  <SectionDivider label="Postural Reactions" />
-                  <div>
-                    <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits', 'Absent']} value={data.l4s3_postural_pl} onChange={(v) => updateData('l4s3_postural_pl', v)} />
-
-                  </div>
-                  <SectionDivider label="Spinal Reflexes" />
-                  <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.l4s3_reflexes_gate} onChange={(v) => updateData('l4s3_reflexes_gate', v)} />
-                  {data.l4s3_reflexes_gate === 'Abnormal' && (
-                    <div className="pl-4 border-l-2 border-gray-200 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <LocToggle label="Patellar (Femoral L4-6)" options={['Absent', 'Reduced', 'Normal', 'Increased']} value={data.l4s3_patellar} onChange={(v) => updateData('l4s3_patellar', v)} />
-
-                        </div>
-                        <div>
-                          <LocToggle label="Withdrawal (Sciatic L6-S2)" options={['Absent', 'Reduced', 'Normal']} value={data.l4s3_withdrawal} onChange={(v) => updateData('l4s3_withdrawal', v)} />
-
-                        </div>
-                      </div>
-                      <LocToggle label="Perineal Reflex (S1-S3)" options={['Normal', 'Reduced', 'Absent']} value={data.l4s3_perineal} onChange={(v) => updateData('l4s3_perineal', v)} />
+                {data.l4s3_gait !== 'Normal' && (
+                  <CascadeSummary
+                    label="LMN pattern"
+                    summary={l4s3CascadeSummary}
+                    expanded={!!cascadeExpanded.l4s3}
+                    onToggle={() => toggleCascade('l4s3')}
+                  >
+                    <SectionDivider label="Postural Reactions" />
+                    <div>
+                      <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits', 'Absent']} value={data.l4s3_postural_pl} onChange={(v) => updateData('l4s3_postural_pl', v)} />
                     </div>
-                  )}
-                  <SectionDivider label="Tone & Bladder" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Reduced', 'Flaccid']} value={data.l4s3_tone} onChange={(v) => updateData('l4s3_tone', v)} />
-                    <LocToggle label="Tail/Anal Tone" options={['Normal', 'Reduced', 'Flaccid']} value={data.l4s3_tail_tone} onChange={(v) => updateData('l4s3_tail_tone', v)} />
-                  </div>
-                  <LocToggle label="Bladder" options={['Normal', 'Large/Flaccid (LMN)']} value={data.l4s3_bladder} onChange={(v) => updateData('l4s3_bladder', v)} />
+                    <SectionDivider label="Spinal Reflexes" />
+                    <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.l4s3_reflexes_gate} onChange={(v) => updateData('l4s3_reflexes_gate', v)} />
+                    {data.l4s3_reflexes_gate === 'Abnormal' && (
+                      <div className="pl-4 border-l-2 border-gray-200 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <LocToggle label="Patellar (Femoral L4-6)" options={['Absent', 'Reduced', 'Normal', 'Increased']} value={data.l4s3_patellar} onChange={(v) => updateData('l4s3_patellar', v)} />
+                          </div>
+                          <div>
+                            <LocToggle label="Withdrawal (Sciatic L6-S2)" options={['Absent', 'Reduced', 'Normal']} value={data.l4s3_withdrawal} onChange={(v) => updateData('l4s3_withdrawal', v)} />
+                          </div>
+                        </div>
+                        <LocToggle label="Perineal Reflex (S1-S3)" options={['Normal', 'Reduced', 'Absent']} value={data.l4s3_perineal} onChange={(v) => updateData('l4s3_perineal', v)} />
+                      </div>
+                    )}
+                    <SectionDivider label="Tone" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Reduced', 'Flaccid']} value={data.l4s3_tone} onChange={(v) => updateData('l4s3_tone', v)} />
+                      <LocToggle label="Tail/Anal Tone" options={['Normal', 'Reduced', 'Flaccid']} value={data.l4s3_tail_tone} onChange={(v) => updateData('l4s3_tail_tone', v)} />
+                    </div>
+                    <LocToggle label="Bladder" options={['Normal', 'Large/Flaccid (LMN)']} value={data.l4s3_bladder} onChange={(v) => updateData('l4s3_bladder', v)} />
+                  </CascadeSummary>
+                )}
+                {data.l4s3_gait !== 'Normal' && (
                   <div className="flex flex-wrap gap-3 items-center">
                     <LocCheckButton checked={data.l4s3_atrophy} onChange={() => updateData('l4s3_atrophy', !data.l4s3_atrophy)} label="Neurogenic Atrophy (PL)" color="amber" />
-
                   </div>
-                </>)}
+                )}
                 <SectionDivider label="Palpation" />
                 <LocToggle label="Pain" options={['LS Pain', 'None']} value={data.l4s3_pain} onChange={(v) => updateData('l4s3_pain', v)} />
               </div>

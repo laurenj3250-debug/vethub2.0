@@ -155,6 +155,13 @@ export function useNeuroExamState() {
     }));
   }, []);
 
+  const updateDataBatch = useCallback((updates: Record<string, NeuroExamData[keyof NeuroExamData]>) => {
+    setExamState(prev => ({
+      ...prev,
+      data: { ...prev.data, ...updates },
+    }));
+  }, []);
+
   const updateCheckbox = useCallback((group: 'pros_behavior' | 'mf_areas', key: string) => {
     setExamState(prev => {
       const current = prev.data[group] as unknown as Record<string, boolean>;
@@ -336,6 +343,7 @@ export function useNeuroExamState() {
     setActiveLoc,
     setSpecies,
     updateData,
+    updateDataBatch,
     updateCheckbox,
     setReportLocked,
     setReport,

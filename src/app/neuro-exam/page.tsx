@@ -15,6 +15,7 @@ export default function NeuroExamPage() {
     setActiveLoc,
     setSpecies,
     updateData,
+    updateDataBatch,
     updateCheckbox,
     setReportLocked,
     setReport,
@@ -108,6 +109,7 @@ export default function NeuroExamPage() {
           setActiveLoc={setActiveLoc}
           setSpecies={setSpecies}
           updateData={updateData}
+          updateDataBatch={updateDataBatch}
           updateCheckbox={updateCheckbox}
           setReportLocked={setReportLocked}
           setReport={setReport}
