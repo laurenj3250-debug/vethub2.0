@@ -25,6 +25,7 @@ import {
   Pencil,
   BarChart3,
   Zap,
+  X,
 } from 'lucide-react';
 import { DailyEntryForm } from '@/components/residency/DailyEntryForm';
 import { SurgeryTracker } from '@/components/residency/SurgeryTracker';
@@ -47,7 +48,14 @@ import {
 } from '@/lib/residency-types';
 import { PatientCombobox, PatientOption } from '@/components/PatientCombobox';
 import { NEO_POP, neoCard, neoButton, neoInput } from '@/lib/neo-pop-styles';
+import { cn } from '@/lib/utils';
 import { CertificateTracker } from '@/components/residency/CertificateTracker';
+import { COMMON_PROCEDURES } from '@/lib/residency-milestones';
+import {
+  suggestCertCategories,
+  CERT_CATEGORIES,
+  type CertCategory,
+} from '@/lib/certificate-logic';
 
 type TabType = 'quickadd' | 'cases' | 'journal' | 'schedule' | 'summary' | 'stats' | 'certificate';
 
@@ -172,7 +180,13 @@ function ACVIMResidencyTrackerPage() {
     patientId: undefined as number | undefined,
     patientName: '',
     patientInfo: '',
+    certificateCategories: [] as string[],
   });
+
+  // Procedure combobox state
+  const [procedureDropdownOpen, setProcedureDropdownOpen] = useState(false);
+  const [procedureFilter, setProcedureFilter] = useState('');
+  const procedureRef = useRef<HTMLDivElement>(null);
 
   const [journalForm, setJournalForm] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -202,6 +216,17 @@ function ACVIMResidencyTrackerPage() {
   useEffect(() => {
     loadYearData(selectedYear);
   }, [selectedYear]);
+
+  // Close procedure dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (procedureRef.current && !procedureRef.current.contains(e.target as Node)) {
+        setProcedureDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   async function loadAllData() {
     setLoading(true);
@@ -313,42 +338,70 @@ function ACVIMResidencyTrackerPage() {
       patientId: c.patientId || undefined,
       patientName: c.patientName || '',
       patientInfo: c.patientInfo || '',
+      certificateCategories: c.certificateCategories || [],
     });
+    setProcedureFilter(c.procedureName);
     setEditingCaseId(c.id);
     setShowCaseDialog(true);
   }
 
-  // Add or update case
+  // Add or update case — routes through unified /api/residency/surgery
   async function handleSaveCase() {
-    if (!caseForm.procedureName || !caseForm.caseIdNumber) {
-      alert('Please fill in required fields');
+    if (!caseForm.procedureName) {
+      alert('Please fill in procedure name');
       return;
     }
     setSaving(true);
     try {
       const isEditing = editingCaseId !== null;
-      const res = await fetch('/api/acvim/cases', {
-        method: isEditing ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(isEditing ? { id: editingCaseId } : {}),
-          ...caseForm,
-          residencyYear: selectedYear,
-        }),
-      });
-      if (res.ok) {
-        const savedCase = await res.json();
-        if (isEditing) {
+
+      if (isEditing) {
+        // Edit uses PUT on /api/acvim/cases (updates the ACVIM record directly)
+        const res = await fetch('/api/acvim/cases', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingCaseId,
+            ...caseForm,
+            residencyYear: selectedYear,
+          }),
+        });
+        if (res.ok) {
+          const savedCase = await res.json();
           setCases(cases.map((c) => (c.id === savedCase.id ? savedCase : c)));
+          setShowCaseDialog(false);
+          setEditingCaseId(null);
+          resetCaseForm();
         } else {
-          setCases([savedCase, ...cases]);
+          const error = await res.json();
+          alert(error.error || 'Failed to save case');
         }
-        setShowCaseDialog(false);
-        setEditingCaseId(null);
-        resetCaseForm();
       } else {
-        const error = await res.json();
-        alert(error.error || 'Failed to save case');
+        // Create uses POST to /api/residency/surgery (creates Surgery + ACVIM case in transaction)
+        const res = await fetch('/api/residency/surgery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: caseForm.dateCompleted,
+            procedureName: caseForm.procedureName,
+            role: caseForm.role,
+            patientOrigin: 'hospitalized',
+            patientId: caseForm.patientId,
+            patientName: caseForm.patientName || undefined,
+            notes: caseForm.notes || undefined,
+            certificateCategories: caseForm.certificateCategories,
+          }),
+        });
+        if (res.ok) {
+          // Reload cases from API to get the ACVIM case record (surgery route returns Surgery, not ACVIM case)
+          await loadYearData(selectedYear);
+          setShowCaseDialog(false);
+          setEditingCaseId(null);
+          resetCaseForm();
+        } else {
+          const error = await res.json();
+          alert(error.error || 'Failed to save case');
+        }
       }
     } catch (error) {
       console.error('Error saving case:', error);
@@ -368,7 +421,98 @@ function ACVIMResidencyTrackerPage() {
       patientId: undefined,
       patientName: '',
       patientInfo: '',
+      certificateCategories: [],
     });
+    setProcedureFilter('');
+    setProcedureDropdownOpen(false);
+  }
+
+  // Mass import state
+  const [showMassImport, setShowMassImport] = useState(false);
+  const [massImportText, setMassImportText] = useState('');
+  const [massImportParsed, setMassImportParsed] = useState<Array<{
+    procedureName: string;
+    dateCompleted: string;
+    role: 'Primary' | 'Assistant';
+    certificateCategories: string[];
+    valid: boolean;
+    error?: string;
+  }>>([]);
+  const [massImporting, setMassImporting] = useState(false);
+  const [massImported, setMassImported] = useState(0);
+
+  function parseMassImportLine(line: string) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('//')) return null;
+    const parts = trimmed.split(/[,\t|]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length < 2) {
+      return { procedureName: trimmed, dateCompleted: '', role: 'Primary' as const, certificateCategories: [] as string[], valid: false, error: 'Need at least procedure and date' };
+    }
+    const procedureName = parts[0];
+    let dateCompleted = '';
+    const dateStr = parts[1];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      dateCompleted = dateStr;
+    } else if (/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(dateStr)) {
+      const [d, m, y] = dateStr.split(/[/-]/);
+      dateCompleted = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    } else {
+      const parsed = new Date(dateStr);
+      if (!isNaN(parsed.getTime())) {
+        dateCompleted = parsed.toISOString().split('T')[0];
+      }
+    }
+    if (!dateCompleted) {
+      return { procedureName, dateCompleted: '', role: 'Primary' as const, certificateCategories: [] as string[], valid: false, error: `Can't parse date: "${dateStr}"` };
+    }
+    let role: 'Primary' | 'Assistant' = 'Primary';
+    if (parts.length >= 3) {
+      const roleStr = parts[2].toLowerCase();
+      if (roleStr.includes('assist') || roleStr === 'a' || roleStr === 'secondary') {
+        role = 'Assistant';
+      }
+    }
+    const certificateCategories = suggestCertCategories(procedureName);
+    return { procedureName, dateCompleted, role, certificateCategories, valid: true };
+  }
+
+  function handleMassImportParse() {
+    const lines = massImportText.split('\n');
+    const results = lines.map(parseMassImportLine).filter((r): r is NonNullable<typeof r> => r !== null);
+    setMassImportParsed(results);
+  }
+
+  async function handleMassImportExecute() {
+    const validCases = massImportParsed.filter((c) => c.valid);
+    if (validCases.length === 0) return;
+    setMassImporting(true);
+    setMassImported(0);
+
+    for (const c of validCases) {
+      try {
+        await fetch('/api/residency/surgery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: c.dateCompleted,
+            procedureName: c.procedureName,
+            role: c.role,
+            patientOrigin: 'hospitalized',
+            certificateCategories: c.certificateCategories,
+          }),
+        });
+        setMassImported((prev) => prev + 1);
+      } catch {
+        // Continue with remaining cases
+      }
+    }
+
+    setMassImporting(false);
+    setMassImportText('');
+    setMassImportParsed([]);
+    setShowMassImport(false);
+    // Reload cases to pick up new entries
+    await loadYearData(selectedYear);
   }
 
   // Delete case
@@ -805,18 +949,130 @@ function ACVIMResidencyTrackerPage() {
               <h2 className="text-base sm:text-lg font-bold text-gray-900">
                 Neurosurgery Case Log - Year {selectedYear}
               </h2>
-              <button
-                onClick={() => {
-                  resetCaseForm();
-                  setEditingCaseId(null);
-                  setShowCaseDialog(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                <Plus size={16} />
-                Add Case
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowMassImport(!showMassImport)}
+                  className="flex items-center gap-2 px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm"
+                >
+                  <FileText size={16} />
+                  Mass Import
+                </button>
+                <button
+                  onClick={() => {
+                    resetCaseForm();
+                    setEditingCaseId(null);
+                    setShowCaseDialog(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <Plus size={16} />
+                  Add Case
+                </button>
+              </div>
             </div>
+
+            {/* Mass Import Panel */}
+            {showMassImport && (
+              <div className="mb-4 bg-white rounded-lg shadow p-4 border">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-bold text-sm">Mass Import Cases</h3>
+                  <button onClick={() => { setShowMassImport(false); setMassImportParsed([]); setMassImportText(''); }} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <textarea
+                    value={massImportText}
+                    onChange={(e) => { setMassImportText(e.target.value); setMassImportParsed([]); }}
+                    placeholder={`TL Hemilaminectomy, 2025-08-15, Primary\nVentral Slot, 2025-08-22, Assistant\nForamen Magnum Decompression, 2025-10-01, Primary`}
+                    rows={5}
+                    className="w-full text-sm p-3 rounded-lg border bg-white font-mono resize-y"
+                  />
+                  {massImportParsed.length === 0 && massImportText.trim() && (
+                    <button
+                      onClick={handleMassImportParse}
+                      className="w-full py-2 text-sm bg-yellow-100 text-yellow-800 font-medium rounded-lg hover:bg-yellow-200 transition"
+                    >
+                      Preview ({massImportText.split('\n').filter((l) => l.trim()).length} lines)
+                    </button>
+                  )}
+                </div>
+                {massImportParsed.length > 0 && (() => {
+                  const validCount = massImportParsed.filter((c) => c.valid).length;
+                  const invalidCount = massImportParsed.filter((c) => !c.valid).length;
+                  return (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        {validCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold">
+                            {validCount} valid
+                          </span>
+                        )}
+                        {invalidCount > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                            {invalidCount} errors
+                          </span>
+                        )}
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-1">
+                        {massImportParsed.map((c, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              'flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs',
+                              c.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              {c.valid ? (
+                                <Check className="w-3 h-3 text-green-600 shrink-0" />
+                              ) : (
+                                <AlertCircle className="w-3 h-3 text-red-500 shrink-0" />
+                              )}
+                              <span className="font-medium">{c.procedureName}</span>
+                              {c.dateCompleted && <span className="text-gray-500">{c.dateCompleted}</span>}
+                              {c.valid && (
+                                <span className={cn(
+                                  'px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white',
+                                  c.role === 'Primary' ? 'bg-green-500' : 'bg-blue-400'
+                                )}>
+                                  {c.role}
+                                </span>
+                              )}
+                            </div>
+                            {c.error && <span className="text-red-500 text-[10px]">{c.error}</span>}
+                            {c.valid && c.certificateCategories.length > 0 && (
+                              <span className="text-amber-600 text-[10px] font-medium">
+                                {CERT_CATEGORIES[c.certificateCategories[0] as CertCategory]}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={handleMassImportExecute}
+                          disabled={validCount === 0 || massImporting}
+                          className="flex-1 py-2 text-sm bg-green-100 text-green-800 font-medium rounded-lg hover:bg-green-200 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {massImporting ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Importing {massImported}/{validCount}...</>
+                          ) : (
+                            <><Plus className="w-4 h-4" /> Import {validCount} cases</>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setMassImportParsed([])}
+                          className="text-xs text-gray-500 hover:text-gray-700 px-3"
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Cases Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -1437,18 +1693,97 @@ function ACVIMResidencyTrackerPage() {
             </h3>
 
             <div className="space-y-3">
-              <div>
+              {/* Procedure Name — combobox: pick from list OR type custom */}
+              <div ref={procedureRef} className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
                   Procedure Name *
                 </label>
                 <input
                   type="text"
-                  value={caseForm.procedureName}
-                  onChange={(e) => setCaseForm({ ...caseForm, procedureName: e.target.value })}
-                  placeholder="e.g., Hemilaminectomy, Ventral slot"
+                  value={procedureFilter}
+                  onChange={(e) => {
+                    setProcedureFilter(e.target.value);
+                    setProcedureDropdownOpen(true);
+                    // Update caseForm with typed value
+                    const suggested = suggestCertCategories(e.target.value);
+                    setCaseForm({ ...caseForm, procedureName: e.target.value, certificateCategories: suggested });
+                  }}
+                  onFocus={() => setProcedureDropdownOpen(true)}
+                  placeholder="Search or type procedure name..."
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
+                {procedureDropdownOpen && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {COMMON_PROCEDURES
+                      .filter((p) => !procedureFilter || p.toLowerCase().includes(procedureFilter.toLowerCase()))
+                      .map((proc) => (
+                        <button
+                          key={proc}
+                          type="button"
+                          onClick={() => {
+                            const suggested = suggestCertCategories(proc);
+                            setCaseForm({ ...caseForm, procedureName: proc, certificateCategories: suggested });
+                            setProcedureFilter(proc);
+                            setProcedureDropdownOpen(false);
+                          }}
+                          className={cn(
+                            'w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition',
+                            caseForm.procedureName === proc ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-700'
+                          )}
+                        >
+                          {proc}
+                        </button>
+                      ))}
+                    {procedureFilter && !COMMON_PROCEDURES.some((p) => p.toLowerCase() === procedureFilter.toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const suggested = suggestCertCategories(procedureFilter);
+                          setCaseForm({ ...caseForm, procedureName: procedureFilter, certificateCategories: suggested });
+                          setProcedureDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 border-t"
+                      >
+                        Use custom: &quot;{procedureFilter}&quot;
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* Certificate Category Tags — auto-suggested, toggleable */}
+              {caseForm.procedureName && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Certificate Categories
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(Object.entries(CERT_CATEGORIES) as [CertCategory, string][]).map(([key, label]) => {
+                      const isSelected = caseForm.certificateCategories.includes(key);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => {
+                            const updated = isSelected
+                              ? caseForm.certificateCategories.filter((c) => c !== key)
+                              : [...caseForm.certificateCategories, key];
+                            setCaseForm({ ...caseForm, certificateCategories: updated });
+                          }}
+                          className={cn(
+                            'rounded-lg border transition px-2 py-0.5 text-[10px]',
+                            isSelected
+                              ? 'bg-amber-400 text-black font-bold border-amber-500'
+                              : 'bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-300'
+                          )}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -1464,13 +1799,13 @@ function ACVIMResidencyTrackerPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Case ID Number *
+                  Case ID Number
                 </label>
                 <input
                   type="text"
                   value={caseForm.caseIdNumber}
                   onChange={(e) => setCaseForm({ ...caseForm, caseIdNumber: e.target.value })}
-                  placeholder="Medical record number"
+                  placeholder="Medical record number (optional)"
                   className="w-full px-3 py-2 border rounded-lg text-sm"
                 />
               </div>

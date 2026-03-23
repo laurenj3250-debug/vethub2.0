@@ -19,6 +19,8 @@ export interface NeurosurgeryCase {
   patientId?: number;
   patientName?: string;
   patientInfo?: string; // Species/breed for reference
+  // Certificate tracking (auto-tagged at write time)
+  certificateCategories?: string[];
   createdAt: string;
   updatedAt: string;
 }
