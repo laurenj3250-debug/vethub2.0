@@ -14,13 +14,13 @@ describe('generateReport', () => {
     data.t3l3_gait = 'Normal';
     const result = generateReport('t3l3', data, allDdxSelected('t3l3'), 'Dog');
 
-    expect(result.text).toContain('MENTAL STATUS: Quiet, alert, responsive');
-    expect(result.text).toContain('GAIT & POSTURE: Normal ambulation, no ataxia');
-    expect(result.text).toContain('CRANIAL NERVES: No deficits noted');
-    expect(result.text).toContain('POSTURAL REACTIONS: Normal all four limbs');
-    expect(result.text).toContain('SPINAL REFLEXES: Normal all four limbs');
-    expect(result.text).toContain('TONE: Normal all four limbs');
-    expect(result.text).toContain('MUSCLE MASS: Normal, symmetric');
+    expect(result.text).toContain('**Mental Status**: Quiet Alert and Responsive');
+    expect(result.text).toContain('**Gait & posture**: Ambulatory x4, no ataxia');
+    expect(result.text).toContain('**Cranial nerves**: No CN deficits');
+    expect(result.text).toContain('**Postural reactions**: Normal x4');
+    expect(result.text).toContain('**Spinal reflexes**: All reflexes normal, no deficits');
+    expect(result.text).toContain('**Tone**: Normal tone in all 4 limbs');
+    expect(result.text).toContain('**Muscle mass**: Normal mass, no atrophy or excessive hypertrophy');
     expect(result.problems).toHaveLength(0);
     expect(result.locLabel).toBe('T3–L3 Myelopathy');
   });
@@ -34,10 +34,9 @@ describe('generateReport', () => {
     data.t3l3_kyphosis = true;
     const result = generateReport('t3l3', data, allDdxSelected('t3l3'), 'Dog');
 
-    expect(result.text).toContain('Non-ambulatory paraparesis with proprioceptive ataxia');
-    expect(result.text).toContain('Normal thoracic limb gait');
-    expect(result.text).toContain('Hyperpathia on palpation of thoracolumbar spine');
-    expect(result.text).toContain('Kyphosis noted');
+    expect(result.text).toContain('Non-ambulatory, UMN paraparesis, GP ataxia');
+    expect(result.text).toContain('hyperpathia on palpation of thoracolumbar spine');
+    expect(result.text).toContain('kyphosis noted');
     expect(result.problems).toContain('Non-ambulatory paraparesis pelvic limbs');
     expect(result.problems).toContain('Thoracolumbar spinal hyperpathia');
     expect(result.problems).toContain('Kyphosis');
@@ -51,7 +50,7 @@ describe('generateReport', () => {
     data.t3l3_schiff = true;
     const result = generateReport('t3l3', data, allDdxSelected('t3l3'), 'Dog');
 
-    expect(result.text).toContain('Paraplegic');
+    expect(result.text).toContain('Non-ambulatory, paraplegia');
     expect(result.text).toContain('Schiff-Sherrington posture present');
     expect(result.text).toContain('Deep pain perception ABSENT pelvic limbs');
     expect(result.problems).toContain('ABSENT deep pain perception pelvic limbs');
@@ -68,7 +67,7 @@ describe('generateReport', () => {
     data.pros_cp_side = 'Left';
     const result = generateReport('prosencephalon', data, allDdxSelected('prosencephalon'), 'Dog');
 
-    expect(result.text).toContain('MENTAL STATUS: Obtunded');
+    expect(result.text).toContain('**Mental Status**: Obtunded');
     expect(result.locLabel).toBe('Right prosencephalon'); // Contralateral
     expect(result.problems).toContain('Obtunded mentation');
   });
@@ -97,7 +96,7 @@ describe('generateReport', () => {
     data.pv_gate = 'Normal';
     const result = generateReport('periph_vest', data, allDdxSelected('periph_vest'), 'Dog');
 
-    expect(result.text).toContain('GAIT & POSTURE: Normal ambulation, no ataxia');
+    expect(result.text).toContain('**Gait & posture**: Ambulatory x4, no ataxia');
     expect(result.problems).toHaveLength(0);
   });
 
@@ -107,7 +106,7 @@ describe('generateReport', () => {
     data.cb_gate = 'Normal';
     const result = generateReport('cerebellum', data, allDdxSelected('cerebellum'), 'Dog');
 
-    expect(result.text).toContain('GAIT & POSTURE: Normal ambulation, no ataxia');
+    expect(result.text).toContain('**Gait & posture**: Ambulatory x4, no ataxia');
     expect(result.problems).toHaveLength(0);
   });
 
@@ -158,5 +157,88 @@ describe('generateReport', () => {
     expect(result.text).toContain('Absent menace (left)');
     expect(result.text).toContain('Resting vertical nystagmus');
     expect(result.problems.length).toBeGreaterThan(3);
+  });
+
+  // ─── Test Case 11: Report format uses bold markdown headers ─────────────
+  it('uses bold markdown header format', () => {
+    const data = getDefaultData();
+    data.t3l3_gait = 'Normal';
+    const result = generateReport('t3l3', data, {}, 'Dog');
+
+    expect(result.text).toContain('**NEUROLOGIC EXAM**');
+    expect(result.text).toContain('**Mental Status**:');
+    expect(result.text).toContain('**Gait & posture**:');
+    expect(result.text).toContain('**Cranial nerves**:');
+    expect(result.text).toContain('**Postural reactions**:');
+    expect(result.text).toContain('**Spinal reflexes**:');
+    expect(result.text).toContain('**Tone**:');
+    expect(result.text).toContain('**Muscle mass**:');
+    expect(result.text).toContain('**Nociception**:');
+    // Should NOT have ALL CAPS format
+    expect(result.text).not.toContain('MENTAL STATUS:');
+    expect(result.text).not.toContain('GAIT & POSTURE:');
+  });
+
+  // ─── Test Case 12: BAR outputs full text ────────────────────────────────
+  it('outputs Bright Alert and Responsive for BAR', () => {
+    const data = getDefaultData();
+    data.pros_mentation = 'BAR';
+    const result = generateReport('prosencephalon', data, {}, 'Dog');
+
+    expect(result.text).toContain('**Mental Status**: Bright Alert and Responsive');
+  });
+
+  // ─── Test Case 13: T3-L3 ambulatory uses GP ataxia shorthand ────────────
+  it('uses GP ataxia shorthand for proprioceptive ataxia', () => {
+    const data = getDefaultData();
+    data.t3l3_gait = 'Ambulatory';
+    data.t3l3_ataxia = 'Proprioceptive';
+    const result = generateReport('t3l3', data, {}, 'Dog');
+
+    expect(result.text).toContain('GP ataxia');
+    expect(result.text).not.toContain('proprioceptive ataxia');
+  });
+
+  // ─── Test Case 14: Myelopathy postural without side info ────────────────
+  it('does not include side info for myelopathy postural reactions', () => {
+    const data = getDefaultData();
+    data.t3l3_gait = 'Ambulatory';
+    data.t3l3_ataxia = 'Proprioceptive';
+    data.t3l3_postural_pl = 'Deficits';
+    const result = generateReport('t3l3', data, {}, 'Dog');
+
+    expect(result.text).toContain('Normal in thoracic limbs, deficits in pelvic limbs');
+    expect(result.text).not.toContain('(left)');
+    expect(result.text).not.toContain('(right)');
+    expect(result.text).not.toContain('(bilateral)');
+  });
+
+  // ─── Test Case 15: x4 shorthand ────────────────────────────────────────
+  it('uses x4 shorthand for normal all limbs', () => {
+    const data = getDefaultData();
+    data.t3l3_gait = 'Normal';
+    const result = generateReport('t3l3', data, {}, 'Dog');
+
+    expect(result.text).toContain('Normal x4');
+    expect(result.text).not.toContain('Normal all four limbs');
+  });
+
+  // ─── Test Case 16: Prosencephalon findings without side specified ──────
+  it('handles prosencephalon CN findings when side is not specified', () => {
+    const data = getDefaultData();
+    data.pros_mentation = 'Obtunded';
+    data.pros_menace = 'Absent';
+    // pros_menace_side defaults to '' (unspecified)
+    const result = generateReport('prosencephalon', data, allDdxSelected('prosencephalon'), 'Dog');
+
+    // CN finding without side prefix — just the finding
+    expect(result.text).toMatch(/Cranial nerves\*\*: absent menace/);
+    // Should NOT have "Left" or "Right" prefix on the finding
+    expect(result.text).not.toContain('Left absent');
+    expect(result.text).not.toContain('Right absent');
+    expect(result.text).not.toContain('()');
+    // No lateralization when side not specified
+    expect(result.locLabel).not.toContain('Right prosencephalon');
+    expect(result.locLabel).not.toContain('Left prosencephalon');
   });
 });

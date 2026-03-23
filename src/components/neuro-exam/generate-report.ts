@@ -4,26 +4,30 @@ import { LOC_NAMES, getDdx } from './constants';
 // ─── Format Helpers ──────────────────────────────────────────────────────────
 
 export function fmtReflex(status: string, side: string): string {
-  return (status === 'Normal' || status === 'Normal/Increased') ? status : `${status} (${side})`;
+  if (status === 'Normal' || status === 'Normal/Increased') return status;
+  return side ? `${status} (${side})` : status;
 }
 
 export function fmtSide(side: string): string {
+  if (!side) return '';
   return side === 'Bilateral' ? 'bilaterally' : `on the ${side.toLowerCase()}`;
 }
 
 export function fmtSideAdj(side: string): string {
+  if (!side) return '';
   return side === 'Bilateral' ? 'bilateral' : `${side.toLowerCase()}`;
 }
 
 export function fmtMentation(mentation: string, agent: string): string {
-  if (mentation === 'BAR') return 'BAR';
-  if (mentation === 'QAR') return 'Quiet, alert, responsive';
+  if (mentation === 'BAR') return 'Bright Alert and Responsive';
+  if (mentation === 'QAR') return 'Quiet Alert and Responsive';
   if (mentation === 'Sedated') return agent ? `Sedated (${agent}), unable to fully assess mentation` : 'Sedated, unable to fully assess mentation';
   return mentation;
 }
 
 export function fmtLimb(type: string, side: string): string {
-  return side === 'Bilateral' ? `${type} limbs` : `${type} limb`;
+  if (!side || side === 'Bilateral') return `${type} limbs`;
+  return `${type} limb`;
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -49,49 +53,59 @@ export interface ReportSections {
 
 function generateT3L3(data: NeuroExamData, s: ReportSections, prob: string[]): void {
   if (data.t3l3_gait === 'Normal') {
-    s.gait = 'Normal ambulation, no ataxia';
+    s.gait = 'Ambulatory x4, no ataxia';
   } else if (data.t3l3_gait === 'Ambulatory') {
-    const ataxStr = data.t3l3_ataxia !== 'None' ? ` with ${data.t3l3_ataxia.toLowerCase()} ataxia pelvic limbs` : '';
-    s.gait = `Ambulatory paraparesis${ataxStr}. Normal thoracic limb gait`;
+    const ataxStr = data.t3l3_ataxia !== 'None'
+      ? (data.t3l3_ataxia === 'Proprioceptive' ? ', GP ataxia' : `, ${data.t3l3_ataxia.toLowerCase()} ataxia`)
+      : '';
+    s.gait = `Ambulatory paraparesis, UMN pelvic limbs${ataxStr}`;
     prob.push('Ambulatory paraparesis pelvic limbs');
-    if (data.t3l3_ataxia !== 'None') prob.push(`${data.t3l3_ataxia} ataxia pelvic limbs`);
+    if (data.t3l3_ataxia !== 'None') prob.push(`${data.t3l3_ataxia === 'Proprioceptive' ? 'GP' : data.t3l3_ataxia} ataxia pelvic limbs`);
   } else if (data.t3l3_gait === 'Non-Ambulatory') {
-    const ataxStr = data.t3l3_ataxia !== 'None' ? ` with ${data.t3l3_ataxia.toLowerCase()} ataxia` : '';
-    s.gait = `Non-ambulatory paraparesis${ataxStr}. Normal thoracic limb gait`;
+    const ataxStr = data.t3l3_ataxia !== 'None'
+      ? (data.t3l3_ataxia === 'Proprioceptive' ? ', GP ataxia' : `, ${data.t3l3_ataxia.toLowerCase()} ataxia`)
+      : '';
+    s.gait = `Non-ambulatory, UMN paraparesis${ataxStr}`;
     prob.push('Non-ambulatory paraparesis pelvic limbs');
-    if (data.t3l3_ataxia !== 'None') prob.push(`${data.t3l3_ataxia} ataxia pelvic limbs`);
+    if (data.t3l3_ataxia !== 'None') prob.push(`${data.t3l3_ataxia === 'Proprioceptive' ? 'GP' : data.t3l3_ataxia} ataxia pelvic limbs`);
   } else if (data.t3l3_gait === 'Paraplegic') {
-    s.gait = 'Paraplegic. No voluntary motor pelvic limbs. Normal thoracic limb gait';
+    s.gait = 'Non-ambulatory, paraplegia';
     prob.push('Paraplegia');
     if (data.t3l3_schiff) { s.gait += '. Schiff-Sherrington posture present'; prob.push('Schiff-Sherrington posture'); }
   }
 
   if (data.t3l3_gait === 'Normal') {
-    s.postural = 'Normal all four limbs';
-    s.reflexes = 'Normal all four limbs';
-    s.tone = 'Normal all four limbs';
-    s.mass = 'Normal, symmetric';
+    s.postural = 'Normal x4';
+    s.reflexes = 'All reflexes normal, no deficits';
+    s.tone = 'Normal tone in all 4 limbs';
+    s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
   } else {
     if (data.t3l3_postural_tl === 'Normal' && data.t3l3_postural_pl === 'Normal') {
-      s.postural = 'Normal all four limbs';
+      s.postural = 'Normal x4';
     } else {
-      const postPL = data.t3l3_postural_pl === 'Normal' ? 'normal pelvic limbs' : `${data.t3l3_postural_pl.toLowerCase()} ${fmtLimb('pelvic', data.t3l3_postural_pl_side)} (${fmtSideAdj(data.t3l3_postural_pl_side)})`;
-      s.postural = `Normal thoracic limbs, ${postPL}`;
-      if (data.t3l3_postural_pl !== 'Normal') prob.push(`Postural reaction ${data.t3l3_postural_pl.toLowerCase()} ${fmtLimb('pelvic', data.t3l3_postural_pl_side)} (${fmtSideAdj(data.t3l3_postural_pl_side)})`);
+      const plStatus = data.t3l3_postural_pl.toLowerCase();
+      s.postural = `Normal in thoracic limbs, ${plStatus} in pelvic limbs`;
+      if (data.t3l3_postural_pl !== 'Normal') prob.push(`Postural reaction ${plStatus} pelvic limbs`);
     }
 
     // Reflexes - gated
     if (data.t3l3_reflexes_gate === 'Normal') {
-      s.reflexes = 'Normal to increased pelvic limbs (UMN). Thoracic limb reflexes normal';
+      s.reflexes = 'Normal reflexes in thoracic limbs, normal to increased in pelvic limbs';
     } else {
-      const reflexParts = [
-        `Patellar: ${fmtReflex(data.t3l3_patellar, data.t3l3_patellar_side)}`,
-        `Withdrawal pelvic: ${fmtReflex(data.t3l3_withdrawal_pl, data.t3l3_withdrawal_pl_side)}`,
-      ];
-      reflexParts.push('Thoracic limb reflexes normal');
-      s.reflexes = reflexParts.join('. ');
-      if (data.t3l3_patellar !== 'Normal') prob.push(`${data.t3l3_patellar} patellar reflex (${data.t3l3_patellar_side.toLowerCase()})`);
-      if (data.t3l3_withdrawal_pl !== 'Normal') prob.push(`${data.t3l3_withdrawal_pl} withdrawal reflex pelvic (${data.t3l3_withdrawal_pl_side.toLowerCase()})`);
+      const reflexParts: string[] = [];
+      if (data.t3l3_patellar !== 'Normal') {
+        reflexParts.push(`${data.t3l3_patellar} patellar reflex`);
+        prob.push(`${data.t3l3_patellar} patellar reflex`);
+      }
+      if (data.t3l3_withdrawal_pl !== 'Normal') {
+        reflexParts.push(`${data.t3l3_withdrawal_pl} withdrawal reflex pelvic limbs`);
+        prob.push(`${data.t3l3_withdrawal_pl} withdrawal reflex pelvic limbs`);
+      }
+      if (reflexParts.length > 0) {
+        s.reflexes = `Normal reflexes in thoracic limbs. ${reflexParts.join('. ')}`;
+      } else {
+        s.reflexes = 'Normal reflexes in thoracic limbs, normal to increased in pelvic limbs';
+      }
     }
     // Perineal -- myelomalacia monitoring (paraplegic only)
     if (data.t3l3_gait === 'Paraplegic') {
@@ -99,13 +113,13 @@ function generateT3L3(data: NeuroExamData, s: ReportSections, prob: string[]): v
       if (data.t3l3_perineal !== 'Normal') prob.push(`${data.t3l3_perineal} perineal reflex (ascending myelomalacia)`);
     }
 
-    s.tone = `Normal thoracic limbs. Pelvic limbs: ${data.t3l3_tone_pl === 'Normal/Increased' ? 'normal to increased (UMN)' : data.t3l3_tone_pl === 'Increased' ? 'increased (UMN)' : 'normal'}`;
+    s.tone = `Normal tone in thoracic limbs, ${data.t3l3_tone_pl === 'Normal/Increased' ? 'normal to increased tone' : data.t3l3_tone_pl === 'Increased' ? 'increased tone' : 'normal tone'} in pelvic limbs`;
     if (data.t3l3_bladder !== 'Normal') {
       s.tone += `. Bladder: large and firm, difficult to express (UMN pattern)`;
       prob.push('UMN bladder dysfunction');
     }
 
-    s.mass = data.t3l3_mass === 'Normal' ? 'Normal, symmetric' : data.t3l3_mass;
+    s.mass = data.t3l3_mass === 'Normal' ? 'Normal mass, no atrophy or excessive hypertrophy' : data.t3l3_mass;
     if (data.t3l3_mass !== 'Normal') prob.push(data.t3l3_mass);
   }
 
@@ -117,155 +131,204 @@ function generateT3L3(data: NeuroExamData, s: ReportSections, prob: string[]): v
   const palpFindings: string[] = [];
   if (data.t3l3_pain) { palpFindings.push('Hyperpathia on palpation of thoracolumbar spine'); prob.push('Thoracolumbar spinal hyperpathia'); }
   if (data.t3l3_kyphosis) { palpFindings.push('Kyphosis noted'); prob.push('Kyphosis'); }
-  nocParts.push(palpFindings.length > 0 ? palpFindings.join('. ') : 'No spinal hyperpathia');
+  if (palpFindings.length > 0) {
+    nocParts.push(`Pain perception intact, ${palpFindings.join('. ').toLowerCase()}`);
+  } else if (nocParts.length === 0) {
+    nocParts.push('Pain perception intact, no pain on palpation');
+  } else {
+    nocParts.push('no pain on palpation');
+  }
   if (data.t3l3_cutoff === 'Cutoff') { nocParts.push(`Cutaneous trunci cutoff at ${data.t3l3_cutoffLevel}`); prob.push(`Cutaneous trunci cutoff at ${data.t3l3_cutoffLevel}`); }
   s.nociception = nocParts.join('. ');
 }
 
 function generateC6T2(data: NeuroExamData, s: ReportSections, prob: string[]): void {
   if (data.c6t2_gait === 'Normal') {
-    s.gait = 'Normal ambulation, no ataxia';
+    s.gait = 'Ambulatory x4, no ataxia';
   } else {
     const gaitDesc = data.c6t2_gait === 'Two-Engine Gait'
       ? `${data.c6t2_amb} two-engine gait (short-strided thoracic, long-strided/ataxic pelvic)`
-      : `${data.c6t2_amb} ${data.c6t2_gait.toLowerCase()}`;
+      : data.c6t2_gait === 'Tetraparesis'
+        ? `${data.c6t2_amb === 'Non-Ambulatory' ? 'Non-ambulatory' : 'Ambulatory'}, LMN tetraparesis`
+        : `${data.c6t2_amb} ${data.c6t2_gait.toLowerCase()}`;
     s.gait = gaitDesc;
     prob.push(`${data.c6t2_amb} ${data.c6t2_gait.toLowerCase()}`);
   }
 
-  s.cn = data.c6t2_horner !== 'No' ? `Horner's syndrome (${data.c6t2_horner}). All other cranial nerves normal` : 'No deficits noted';
+  s.cn = data.c6t2_horner !== 'No' ? `Horner's syndrome (${data.c6t2_horner}). All other cranial nerves normal` : 'No CN deficits';
   if (data.c6t2_horner !== 'No') prob.push(`Horner's syndrome (${data.c6t2_horner})`);
 
   if (data.c6t2_gait === 'Normal') {
-    s.postural = 'Normal all four limbs';
-    s.reflexes = 'Normal all four limbs';
-    s.tone = 'Normal all four limbs';
-    s.mass = 'Normal, symmetric';
+    s.postural = 'Normal x4';
+    s.reflexes = 'All reflexes normal, no deficits';
+    s.tone = 'Normal tone in all 4 limbs';
+    s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
   } else {
     if (data.c6t2_postural_tl === 'Normal' && data.c6t2_postural_pl === 'Normal') {
-      s.postural = 'Normal all four limbs';
+      s.postural = 'Normal x4';
     } else {
-      const ptl = data.c6t2_postural_tl === 'Normal' ? 'Normal thoracic limbs' : `Deficits ${fmtLimb('thoracic', data.c6t2_postural_tl_side)} (${fmtSideAdj(data.c6t2_postural_tl_side)})`;
-      const ppl = data.c6t2_postural_pl === 'Normal' ? 'normal pelvic limbs' : `deficits ${fmtLimb('pelvic', data.c6t2_postural_pl_side)} (${fmtSideAdj(data.c6t2_postural_pl_side)})`;
+      const ptl = data.c6t2_postural_tl === 'Normal' ? 'Normal in thoracic limbs' : 'Delayed/absent in thoracic limbs';
+      const ppl = data.c6t2_postural_pl === 'Normal' ? 'normal in pelvic limbs' : 'delayed/absent in pelvic limbs';
       s.postural = `${ptl}, ${ppl}`;
-      if (data.c6t2_postural_tl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('thoracic', data.c6t2_postural_tl_side)} (${fmtSideAdj(data.c6t2_postural_tl_side)})`);
-      if (data.c6t2_postural_pl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('pelvic', data.c6t2_postural_pl_side)} (${fmtSideAdj(data.c6t2_postural_pl_side)})`);
+      if (data.c6t2_postural_tl === 'Deficits') prob.push('Postural reaction deficits thoracic limbs');
+      if (data.c6t2_postural_pl === 'Deficits') prob.push('Postural reaction deficits pelvic limbs');
     }
 
     if (data.c6t2_reflexes_gate === 'Normal') {
-      s.reflexes = 'Normal all four limbs';
+      s.reflexes = 'Decreased to absent reflexes in thoracic limbs, normal to increased in pelvic limbs';
     } else {
-      s.reflexes = `Thoracic — Withdrawal: ${fmtReflex(data.c6t2_foreReflex, data.c6t2_fore_side)}, Biceps: ${fmtReflex(data.c6t2_biceps, data.c6t2_biceps_side)}, Triceps: ${fmtReflex(data.c6t2_triceps, data.c6t2_triceps_side)} (LMN). Pelvic — reflexes ${data.c6t2_hindReflex} (UMN)`;
-      if (data.c6t2_foreReflex !== 'Normal') prob.push(`${data.c6t2_foreReflex} thoracic withdrawal (${data.c6t2_fore_side.toLowerCase()}) — LMN`);
+      const reflexParts: string[] = [];
+      if (data.c6t2_foreReflex !== 'Normal') {
+        reflexParts.push(`${data.c6t2_foreReflex} thoracic withdrawal`);
+        prob.push(`${data.c6t2_foreReflex} thoracic withdrawal -- LMN`);
+      }
+      if (data.c6t2_biceps !== 'Normal') {
+        reflexParts.push(`${data.c6t2_biceps} biceps reflex`);
+      }
+      if (data.c6t2_triceps !== 'Normal') {
+        reflexParts.push(`${data.c6t2_triceps} triceps reflex`);
+      }
+      s.reflexes = reflexParts.length > 0
+        ? `${reflexParts.join(', ')} in thoracic limbs (LMN). Pelvic limb reflexes ${data.c6t2_hindReflex.toLowerCase()} (UMN)`
+        : `Decreased to absent reflexes in thoracic limbs, normal to increased in pelvic limbs`;
     }
 
-    s.tone = 'Reduced thoracic limb tone (LMN), normal to increased pelvic limb tone (UMN)';
+    s.tone = 'Decreased tone in thoracic limbs, normal to increased tone in pelvic limbs';
     if (data.c6t2_bladder !== 'Normal') { s.tone += `. Bladder: ${data.c6t2_bladder}`; prob.push('Bladder dysfunction'); }
 
-    s.mass = data.c6t2_atrophy ? `Neurogenic atrophy ${fmtLimb('thoracic', data.c6t2_atrophy_side)} (${fmtSideAdj(data.c6t2_atrophy_side)})` : 'Normal, symmetric';
-    if (data.c6t2_atrophy) prob.push(`Neurogenic muscle atrophy ${fmtLimb('thoracic', data.c6t2_atrophy_side)} (${fmtSideAdj(data.c6t2_atrophy_side)})`);
+    s.mass = data.c6t2_atrophy ? 'Mild atrophy noted in thoracic limbs' : 'Normal mass, no atrophy or excessive hypertrophy';
+    if (data.c6t2_atrophy) prob.push('Neurogenic muscle atrophy thoracic limbs');
   }
-  s.nociception = data.c6t2_palpation === 'None' ? 'No spinal hyperpathia. Intact nociception all limbs' : `${data.c6t2_palpation}. Intact nociception all limbs`;
-  if (data.c6t2_palpation !== 'None') prob.push(data.c6t2_palpation);
+
+  if (data.c6t2_palpation === 'None') {
+    s.nociception = 'Pain perception intact, no pain on palpation';
+  } else {
+    s.nociception = `Pain perception intact, ${data.c6t2_palpation.toLowerCase()} on cervical palpation`;
+    prob.push(data.c6t2_palpation);
+  }
 }
 
 function generateC1C5(data: NeuroExamData, s: ReportSections, prob: string[]): void {
   if (data.c1c5_gait === 'Normal') {
-    s.gait = 'Normal ambulation, no ataxia';
+    s.gait = 'Ambulatory x4, no ataxia';
   } else if (data.c1c5_gait === 'Ambulatory Tetraparesis') {
-    s.gait = `Ambulatory tetraparesis with ${data.c1c5_ataxia.toLowerCase()} ataxia all four limbs`;
-    prob.push('Ambulatory tetraparesis', `${data.c1c5_ataxia} ataxia all four limbs`);
+    s.gait = `Ambulatory tetraparesis, UMN all 4 limbs, GP ataxia`;
+    prob.push('Ambulatory tetraparesis', 'GP ataxia all four limbs');
   } else if (data.c1c5_gait === 'Non-Amb Tetraparesis') {
-    s.gait = `Non-ambulatory tetraparesis with ${data.c1c5_ataxia.toLowerCase()} ataxia`;
-    prob.push('Non-ambulatory tetraparesis', `${data.c1c5_ataxia} ataxia all four limbs`);
+    s.gait = `Non-ambulatory, UMN tetraparesis and GP ataxia`;
+    prob.push('Non-ambulatory tetraparesis', 'GP ataxia all four limbs');
   } else {
-    s.gait = 'Tetraplegic. No voluntary motor all four limbs'; prob.push('Tetraplegia');
+    s.gait = 'Non-ambulatory, UMN tetraplegia'; prob.push('Tetraplegia');
   }
 
   if (data.c1c5_gait === 'Normal') {
-    s.postural = 'Normal all four limbs';
-    s.reflexes = 'Normal all four limbs';
-    s.tone = 'Normal all four limbs';
+    s.postural = 'Normal x4';
+    s.reflexes = 'All reflexes normal, no deficits';
+    s.tone = 'Normal tone in all 4 limbs';
   } else {
     if (data.c1c5_postural_tl === 'Normal' && data.c1c5_postural_pl === 'Normal') {
-      s.postural = 'Normal all four limbs';
+      s.postural = 'Normal x4';
     } else {
-      const ptlC = data.c1c5_postural_tl === 'Normal' ? 'Normal thoracic limbs' : `Deficits ${fmtLimb('thoracic', data.c1c5_postural_tl_side)} (${fmtSideAdj(data.c1c5_postural_tl_side)})`;
-      const pplC = data.c1c5_postural_pl === 'Normal' ? 'normal pelvic limbs' : `deficits ${fmtLimb('pelvic', data.c1c5_postural_pl_side)} (${fmtSideAdj(data.c1c5_postural_pl_side)})`;
-      s.postural = `${ptlC}, ${pplC}`;
-      if (data.c1c5_postural_tl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('thoracic', data.c1c5_postural_tl_side)} (${fmtSideAdj(data.c1c5_postural_tl_side)})`);
-      if (data.c1c5_postural_pl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('pelvic', data.c1c5_postural_pl_side)} (${fmtSideAdj(data.c1c5_postural_pl_side)})`);
+      // For C1-C5, deficits are typically x4
+      const tlStatus = data.c1c5_postural_tl === 'Deficits' ? 'delayed' : 'normal';
+      const plStatus = data.c1c5_postural_pl === 'Deficits' ? 'delayed' : 'normal';
+      if (tlStatus === 'delayed' && plStatus === 'delayed') {
+        s.postural = 'Delayed x4';
+      } else if (data.c1c5_gait === 'Tetraplegic') {
+        s.postural = 'Absent x4';
+      } else {
+        s.postural = `${tlStatus === 'delayed' ? 'Delayed' : 'Normal'} in thoracic limbs, ${plStatus} in pelvic limbs`;
+      }
+      if (data.c1c5_postural_tl === 'Deficits') prob.push('Postural reaction deficits thoracic limbs');
+      if (data.c1c5_postural_pl === 'Deficits') prob.push('Postural reaction deficits pelvic limbs');
     }
-    s.reflexes = `${data.c1c5_reflexes} all four limbs (UMN)`;
-    s.tone = 'Normal to increased all four limbs (UMN)';
+    s.reflexes = `All reflexes ${data.c1c5_reflexes.toLowerCase()}, no deficits`;
+    s.tone = 'Increased tone in all 4 limbs';
   }
-  s.mass = 'Normal, symmetric';
+  s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
 
   const nocC: string[] = [];
-  if (data.c1c5_palpation !== 'None') { nocC.push(data.c1c5_palpation); prob.push(data.c1c5_palpation); }
-  else nocC.push('No cervical hyperpathia');
+  if (data.c1c5_palpation !== 'None') { nocC.push(`Pain perception intact, ${data.c1c5_palpation.toLowerCase()} on cervical palpation`); prob.push(data.c1c5_palpation); }
+  else nocC.push('Pain perception intact, no pain on palpation');
   if (data.c1c5_respiratory !== 'Normal') { nocC.push(data.c1c5_respiratory); prob.push(data.c1c5_respiratory); }
   s.nociception = nocC.join('. ');
 }
 
 function generateL4S3(data: NeuroExamData, s: ReportSections, prob: string[]): void {
   if (data.l4s3_gait === 'Normal') {
-    s.gait = 'Normal ambulation, no ataxia';
+    s.gait = 'Ambulatory x4, no ataxia';
   } else if (data.l4s3_gait === 'Paraparesis') {
-    s.gait = 'Ambulatory paraparesis pelvic limbs with short-strided gait. Normal thoracic limb gait';
+    s.gait = 'Ambulatory paraparesis, LMN pelvic limbs';
     prob.push('Ambulatory paraparesis pelvic limbs (LMN)');
   } else if (data.l4s3_gait === 'Non-Ambulatory') {
-    s.gait = 'Non-ambulatory paraparesis. Normal thoracic limb gait';
+    s.gait = 'Non-ambulatory paraparesis, LMN pelvic limbs';
     prob.push('Non-ambulatory paraparesis pelvic limbs');
   } else {
-    s.gait = 'Paraplegic. No voluntary motor pelvic limbs. Normal thoracic limb gait';
+    s.gait = 'Non-ambulatory, paraplegia';
     prob.push('Paraplegia');
   }
 
   if (data.l4s3_gait === 'Normal') {
-    s.postural = 'Normal all four limbs';
-    s.reflexes = 'Normal all four limbs';
-    s.tone = 'Normal all four limbs';
-    s.mass = 'Normal, symmetric';
+    s.postural = 'Normal x4';
+    s.reflexes = 'All reflexes normal, no deficits';
+    s.tone = 'Normal tone in all 4 limbs';
+    s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
   } else {
     if (data.l4s3_postural_pl === 'Normal') {
-      s.postural = 'Normal all four limbs';
+      s.postural = 'Normal x4';
     } else {
-      const pplL = data.l4s3_postural_pl === 'Deficits' ? `deficits ${fmtLimb('pelvic', data.l4s3_postural_pl_side)} (${fmtSideAdj(data.l4s3_postural_pl_side)})` : 'absent pelvic limbs';
-      s.postural = `Normal thoracic limbs, ${pplL}`;
-      prob.push(`Postural reaction ${data.l4s3_postural_pl.toLowerCase()} ${fmtLimb('pelvic', data.l4s3_postural_pl_side)}`);
+      const plStatus = data.l4s3_postural_pl.toLowerCase();
+      s.postural = `Normal in thoracic limbs, ${plStatus === 'deficits' ? 'delayed/absent' : plStatus} in pelvic limbs`;
+      prob.push(`Postural reaction ${plStatus} pelvic limbs`);
     }
 
     if (data.l4s3_reflexes_gate === 'Normal') {
-      s.reflexes = 'Normal all four limbs';
+      s.reflexes = 'Normal reflexes in thoracic limbs, decreased to absent in pelvic limbs';
     } else {
-      const refParts = [
-        `Patellar: ${fmtReflex(data.l4s3_patellar, data.l4s3_patellar_side)}`,
-        `Withdrawal: ${fmtReflex(data.l4s3_withdrawal, data.l4s3_withdrawal_side)}`,
-        `Perineal: ${data.l4s3_perineal}`,
-      ];
-      refParts.push('Thoracic limb reflexes normal');
-      s.reflexes = refParts.join('. ');
-      if (data.l4s3_patellar !== 'Normal') prob.push(`${data.l4s3_patellar} patellar reflex (${data.l4s3_patellar_side.toLowerCase()})`);
-      if (data.l4s3_withdrawal !== 'Normal') prob.push(`${data.l4s3_withdrawal} withdrawal reflex (${data.l4s3_withdrawal_side.toLowerCase()})`);
-      if (data.l4s3_perineal !== 'Normal') prob.push(`${data.l4s3_perineal} perineal reflex`);
+      const refParts: string[] = [];
+      if (data.l4s3_patellar !== 'Normal') {
+        refParts.push(`${data.l4s3_patellar} patellar reflex`);
+        prob.push(`${data.l4s3_patellar} patellar reflex`);
+      }
+      if (data.l4s3_withdrawal !== 'Normal') {
+        refParts.push(`${data.l4s3_withdrawal} withdrawal reflex`);
+        prob.push(`${data.l4s3_withdrawal} withdrawal reflex`);
+      }
+      if (data.l4s3_perineal !== 'Normal') {
+        refParts.push(`${data.l4s3_perineal} perineal reflex`);
+        prob.push(`${data.l4s3_perineal} perineal reflex`);
+      }
+      if (refParts.length > 0) {
+        s.reflexes = `Normal reflexes in thoracic limbs. ${refParts.join('. ')} in pelvic limbs`;
+      } else {
+        s.reflexes = 'Normal reflexes in thoracic limbs, decreased to absent in pelvic limbs';
+      }
     }
 
-    let toneStr = `Pelvic limbs: ${data.l4s3_tone} (LMN). Tail/anal tone: ${data.l4s3_tail_tone}`;
+    let toneStr = `Normal tone in thoracic limbs, ${data.l4s3_tone.toLowerCase()} tone in pelvic limbs`;
+    if (data.l4s3_tail_tone !== 'Normal') {
+      toneStr += `. ${data.l4s3_tail_tone} tail/anal tone`;
+      prob.push(`${data.l4s3_tail_tone} tail/anal tone`);
+    }
     if (data.l4s3_bladder !== 'Normal') { toneStr += `. Bladder: large, flaccid, easily expressed (LMN pattern)`; prob.push('LMN bladder dysfunction'); }
-    if (data.l4s3_tail_tone !== 'Normal') prob.push(`${data.l4s3_tail_tone} tail/anal tone`);
-    s.tone = `Normal thoracic limbs. ${toneStr}`;
+    s.tone = toneStr;
 
-    s.mass = data.l4s3_atrophy ? `Neurogenic atrophy ${fmtLimb('pelvic', data.l4s3_atrophy_side)} (${fmtSideAdj(data.l4s3_atrophy_side)})` : (data.l4s3_mass === 'Normal' ? 'Normal, symmetric' : data.l4s3_mass);
-    if (data.l4s3_atrophy) prob.push(`Neurogenic muscle atrophy ${fmtLimb('pelvic', data.l4s3_atrophy_side)} (${fmtSideAdj(data.l4s3_atrophy_side)})`);
+    s.mass = data.l4s3_atrophy
+      ? 'Normal mass in thoracic limbs, mild atrophy noted in pelvic limbs'
+      : (data.l4s3_mass === 'Normal' ? 'Normal mass, no atrophy or excessive hypertrophy' : data.l4s3_mass);
+    if (data.l4s3_atrophy) prob.push('Neurogenic muscle atrophy pelvic limbs');
   }
   const nocL: string[] = [];
   if (data.l4s3_gait === 'Paraplegic') {
     nocL.push(`Deep pain perception ${data.l4s3_dpp === 'Present' ? 'PRESENT' : 'ABSENT'} pelvic limbs`);
     if (data.l4s3_dpp === 'Absent') prob.push('ABSENT deep pain perception pelvic limbs');
   }
-  if (data.l4s3_pain !== 'None') { nocL.push(data.l4s3_pain === 'LS Pain' ? 'Lumbosacral hyperpathia on palpation/tail jack' : data.l4s3_pain); prob.push('Lumbosacral hyperpathia'); }
-  else nocL.push('No spinal hyperpathia');
+  if (data.l4s3_pain !== 'None') {
+    nocL.push(data.l4s3_pain === 'LS Pain' ? 'Pain perception intact, lumbosacral hyperpathia on palpation/tail jack' : `Pain perception intact, ${data.l4s3_pain.toLowerCase()}`);
+    prob.push('Lumbosacral hyperpathia');
+  } else {
+    nocL.push('Pain perception intact, no pain on palpation');
+  }
   s.nociception = nocL.join('. ');
 }
 
@@ -287,49 +350,51 @@ function generateProsencephalon(data: NeuroExamData, s: ReportSections, prob: st
     s.gait = 'Non-ambulatory, recumbent';
     prob.push('Non-ambulatory');
   } else {
-    s.gait = data.pros_circle !== 'None' ? `Ambulatory, tends to circle to the ${data.pros_circle.toLowerCase()} in enclosure` : 'Ambulatory, no paresis or ataxia';
+    s.gait = data.pros_circle !== 'None' ? `Ambulatory, tends to circle to the ${data.pros_circle.toLowerCase()} in enclosure` : 'Ambulatory x4, no ataxia';
     if (data.pros_circle !== 'None') prob.push(`Circling to the ${data.pros_circle.toLowerCase()}`);
   }
 
   const cnFindings: string[] = [];
+  const sidePrefix = (side: string) => side ? `${side} ` : '';
   if (data.pros_facial !== 'Normal') {
-    cnFindings.push(`${data.pros_facial_side} ${data.pros_facial.toLowerCase()}`);
-    prob.push(`${data.pros_facial_side} facial ${data.pros_facial.toLowerCase()}`);
+    cnFindings.push(`${sidePrefix(data.pros_facial_side)}${data.pros_facial.toLowerCase()}`);
+    prob.push(`${sidePrefix(data.pros_facial_side)}facial ${data.pros_facial.toLowerCase()}`);
   }
   if (data.pros_menace !== 'Normal') {
-    cnFindings.push(`${data.pros_menace_side} ${data.pros_menace.toLowerCase()} menace`);
-    prob.push(`${data.pros_menace_side} ${data.pros_menace.toLowerCase()} menace`);
+    cnFindings.push(`${sidePrefix(data.pros_menace_side)}${data.pros_menace.toLowerCase()} menace`);
+    prob.push(`${sidePrefix(data.pros_menace_side)}${data.pros_menace.toLowerCase()} menace`);
   }
   if (data.pros_focal_sz !== 'None') {
-    cnFindings.push(`${data.pros_focal_sz_side} ${data.pros_focal_sz} seizures`);
-    prob.push(`${data.pros_focal_sz_side} ${data.pros_focal_sz} seizures`);
+    cnFindings.push(`${sidePrefix(data.pros_focal_sz_side)}${data.pros_focal_sz} seizures`);
+    prob.push(`${sidePrefix(data.pros_focal_sz_side)}${data.pros_focal_sz} seizures`);
   }
   if (data.pros_plr !== 'Normal') {
-    cnFindings.push(`${data.pros_plr_side} ${data.pros_plr.toLowerCase()} PLR`);
-    prob.push(`${data.pros_plr_side} ${data.pros_plr.toLowerCase()} PLR`);
+    cnFindings.push(`${sidePrefix(data.pros_plr_side)}${data.pros_plr.toLowerCase()} PLR`);
+    prob.push(`${sidePrefix(data.pros_plr_side)}${data.pros_plr.toLowerCase()} PLR`);
   }
-  s.cn = cnFindings.length > 0 ? cnFindings.join(', ') : 'No deficits';
+  s.cn = cnFindings.length > 0 ? cnFindings.join(', ') : 'No CN deficits';
 
   if (effectiveAmb === 'Non-Ambulatory') {
     s.postural = 'Unable to assess (non-ambulatory)';
   } else if (data.pros_cp === 'Normal') {
-    s.postural = 'Normal';
+    s.postural = 'Normal x4';
   } else {
-    s.postural = `${data.pros_cp_side} decreased hopping`;
-    prob.push(`${data.pros_cp_side} decreased hopping`);
+    const cpSide = sidePrefix(data.pros_cp_side);
+    s.postural = `${cpSide}decreased hopping`;
+    prob.push(`${cpSide}decreased hopping`);
   }
 
-  s.reflexes = 'Normal';
-  s.tone = 'Normal';
-  s.mass = 'Normal';
-  s.nociception = 'Intact, no reaction to palpation of the neck or back';
+  s.reflexes = 'All reflexes normal, no deficits';
+  s.tone = 'Normal tone in all 4 limbs';
+  s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
+  s.nociception = 'Pain perception intact, no pain on palpation';
 
   // Lateralize -- contralateral to deficits, ipsilateral to circling
   const deficitSides: string[] = [];
-  if (data.pros_cp === 'Decreased' && effectiveAmb === 'Ambulatory') deficitSides.push(data.pros_cp_side);
-  if (data.pros_menace !== 'Normal') deficitSides.push(data.pros_menace_side);
-  if (data.pros_facial !== 'Normal') deficitSides.push(data.pros_facial_side);
-  if (data.pros_focal_sz !== 'None') deficitSides.push(data.pros_focal_sz_side);
+  if (data.pros_cp === 'Decreased' && effectiveAmb === 'Ambulatory' && data.pros_cp_side) deficitSides.push(data.pros_cp_side);
+  if (data.pros_menace !== 'Normal' && data.pros_menace_side) deficitSides.push(data.pros_menace_side);
+  if (data.pros_facial !== 'Normal' && data.pros_facial_side) deficitSides.push(data.pros_facial_side);
+  if (data.pros_focal_sz !== 'None' && data.pros_focal_sz_side) deficitSides.push(data.pros_focal_sz_side);
   const uniqueDefSides = [...new Set(deficitSides)];
   if (uniqueDefSides.length > 1) {
     prob.push('Mixed lateralization (deficits on multiple sides) -- review');
@@ -358,9 +423,13 @@ function generateBrainstem(data: NeuroExamData, s: ReportSections, prob: string[
       prob.push(parStr);
     }
     if (data.bs_ataxia !== 'None') {
-      const atxStr = data.bs_ataxia === 'Vestibular + Proprioceptive' ? 'vestibular and proprioceptive ataxia' : `${data.bs_ataxia.toLowerCase()} ataxia`;
+      const atxStr = data.bs_ataxia === 'Vestibular + Proprioceptive' ? 'vestibular and GP ataxia'
+        : data.bs_ataxia === 'Proprioceptive' ? 'GP ataxia'
+        : `${data.bs_ataxia.toLowerCase()} ataxia`;
       gaitParts.push(atxStr);
-      prob.push(data.bs_ataxia === 'Vestibular + Proprioceptive' ? 'Vestibular and proprioceptive ataxia' : `${data.bs_ataxia} ataxia`);
+      prob.push(data.bs_ataxia === 'Vestibular + Proprioceptive' ? 'Vestibular and GP ataxia'
+        : data.bs_ataxia === 'Proprioceptive' ? 'GP ataxia'
+        : `${data.bs_ataxia} ataxia`);
     }
     s.gait = gaitParts.length > 0 ? gaitParts.join(' with ') : 'Abnormal gait';
   }
@@ -392,11 +461,11 @@ function generateBrainstem(data: NeuroExamData, s: ReportSections, prob: string[
     if (data.bs_cn_gag !== 'Normal') { cnItems.push(`${data.bs_cn_gag} gag reflex (CN IX/X)`); prob.push(`${data.bs_cn_gag} gag reflex (CN IX/X)`); }
     if (data.bs_cn_tongue !== 'Normal') { cnItems.push(`Tongue ${data.bs_cn_tongue.toLowerCase()} (CN XII)`); prob.push(`Tongue ${data.bs_cn_tongue.toLowerCase()} (CN XII)`); }
   }
-  s.cn = cnItems.length > 0 ? cnItems.join('. ') : 'No deficits noted';
+  s.cn = cnItems.length > 0 ? cnItems.join('. ') : 'No CN deficits';
 
   // Postural
   if (data.bs_postural_gate === 'Normal') {
-    s.postural = 'Normal all four limbs';
+    s.postural = 'Normal x4';
   } else {
     const bsPTL = data.bs_postural_tl === 'Normal' ? 'Normal thoracic limbs' : `Deficits ${fmtLimb('thoracic', data.bs_postural_tl_side)} (${fmtSideAdj(data.bs_postural_tl_side)})`;
     const bsPPL = data.bs_postural_pl === 'Normal' ? 'normal pelvic limbs' : `deficits ${fmtLimb('pelvic', data.bs_postural_pl_side)} (${fmtSideAdj(data.bs_postural_pl_side)})`;
@@ -405,16 +474,16 @@ function generateBrainstem(data: NeuroExamData, s: ReportSections, prob: string[
     if (data.bs_postural_pl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('pelvic', data.bs_postural_pl_side)} (${fmtSideAdj(data.bs_postural_pl_side)})`);
   }
 
-  s.reflexes = 'Normal all four limbs';
-  s.tone = 'Normal all four limbs';
-  s.mass = 'Normal, symmetric';
-  s.nociception = 'No spinal hyperpathia';
+  s.reflexes = 'All reflexes normal, no deficits';
+  s.tone = 'Normal tone in all 4 limbs';
+  s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
+  s.nociception = 'Pain perception intact, no pain on palpation';
 }
 
 function generatePeriphVest(data: NeuroExamData, s: ReportSections, prob: string[]): void {
-  s.mental = 'Quiet, alert, responsive';
+  s.mental = 'Bright Alert and Responsive';
 
-  s.gait = `Vestibular ataxia. Falling/leaning to the ${data.pv_tilt.toLowerCase()}`;
+  s.gait = `Ambulatory x4, moderate head tilt to the ${data.pv_tilt.toLowerCase()}, vestibular ataxia, falling/leaning to the ${data.pv_tilt.toLowerCase()}`;
   prob.push('Vestibular ataxia');
 
   const pvCN: string[] = [];
@@ -431,13 +500,13 @@ function generatePeriphVest(data: NeuroExamData, s: ReportSections, prob: string
   if (data.pv_facial !== 'Normal') { pvCN.push(`Facial ${data.pv_facial.toLowerCase()} (CN VII, ipsilateral)`); prob.push('Facial nerve deficit (CN VII)'); }
   s.cn = pvCN.join('. ');
 
-  s.postural = data.pv_proprioception === 'Normal' ? 'Normal all four limbs (proprioception intact)' : 'Deficits noted -- consider central vestibular disease';
+  s.postural = data.pv_proprioception === 'Normal' ? 'Normal x4' : 'Deficits noted -- consider central vestibular disease';
   if (data.pv_proprioception !== 'Normal') prob.push('Postural reaction deficits -- atypical for peripheral vestibular');
 
-  s.reflexes = 'Normal all four limbs';
-  s.tone = 'Normal all four limbs';
-  s.mass = 'Normal, symmetric';
-  s.nociception = 'No spinal hyperpathia';
+  s.reflexes = 'All reflexes normal, no deficits';
+  s.tone = 'Normal tone in all 4 limbs';
+  s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
+  s.nociception = 'Pain perception intact, no pain on palpation';
 }
 
 function generateCerebellum(data: NeuroExamData, s: ReportSections, prob: string[]): void {
@@ -453,14 +522,14 @@ function generateCerebellum(data: NeuroExamData, s: ReportSections, prob: string
   if (data.cb_tremor !== 'None') { cbCN.push(`${data.cb_tremor} (${sideText})`); prob.push(`${data.cb_tremor} (${sideText})`); }
   if (data.cb_anisocoria) { cbCN.push('Anisocoria'); prob.push('Anisocoria'); }
   if (data.cb_vestibular) { cbCN.push('Paradoxical vestibular signs (head tilt away from lesion)'); prob.push('Paradoxical vestibular signs'); }
-  s.cn = cbCN.length > 0 ? cbCN.join('. ') : 'No deficits noted. PLR intact';
+  s.cn = cbCN.length > 0 ? cbCN.join('. ') : 'No CN deficits';
 
   s.postural = `${data.cb_postural} (${sideText})`;
   if (data.cb_postural !== 'Normal') prob.push(`${data.cb_postural} postural reactions (${sideText})`);
-  s.reflexes = 'Normal all four limbs';
-  s.tone = 'Normal all four limbs';
-  s.mass = 'Normal, symmetric';
-  s.nociception = 'No spinal hyperpathia';
+  s.reflexes = 'All reflexes normal, no deficits';
+  s.tone = 'Normal tone in all 4 limbs';
+  s.mass = 'Normal mass, no atrophy or excessive hypertrophy';
+  s.nociception = 'Pain perception intact, no pain on palpation';
 }
 
 function generateMultifocal(data: NeuroExamData, s: ReportSections, prob: string[]): void {
@@ -505,10 +574,10 @@ function generateMultifocal(data: NeuroExamData, s: ReportSections, prob: string
       if (data.mf_cn_tongue !== 'Normal') { cnItems.push(`Tongue ${data.mf_cn_tongue.toLowerCase()} (CN XII)`); prob.push(`Tongue ${data.mf_cn_tongue.toLowerCase()} (CN XII)`); }
     }
     if (data.mf_cn_detail) cnItems.push(data.mf_cn_detail);
-    s.cn = cnItems.length > 0 ? cnItems.join('. ') : 'No deficits noted';
+    s.cn = cnItems.length > 0 ? cnItems.join('. ') : 'No CN deficits';
   } else {
     const mfSide = fmtSide(data.mf_cn_side);
-    s.cn = data.mf_cn === 'Abnormal' ? `Cranial nerve abnormalities ${mfSide}${data.mf_cn_detail ? ': ' + data.mf_cn_detail : ''}` : 'No deficits noted';
+    s.cn = data.mf_cn === 'Abnormal' ? `Cranial nerve abnormalities ${mfSide}${data.mf_cn_detail ? ': ' + data.mf_cn_detail : ''}` : 'No CN deficits';
     if (data.mf_cn === 'Abnormal') prob.push(`Cranial nerve deficits (${mfSide})`);
   }
 
@@ -516,11 +585,11 @@ function generateMultifocal(data: NeuroExamData, s: ReportSections, prob: string
   s.reflexes = data.mf_reflexes;
   if (data.mf_reflexes !== 'Normal') prob.push(`${data.mf_reflexes} reflexes`);
   s.tone = 'Variable';
-  s.mass = data.mf_mass === 'Normal' ? 'Normal, symmetric' : data.mf_mass;
+  s.mass = data.mf_mass === 'Normal' ? 'Normal mass, no atrophy or excessive hypertrophy' : data.mf_mass;
   if (data.mf_mass !== 'Normal') prob.push(data.mf_mass);
 
   if (data.mf_pain !== 'None') { s.nociception = `${data.mf_pain} pain`; prob.push(`${data.mf_pain} pain/hyperpathia`); }
-  else s.nociception = 'No spinal hyperpathia';
+  else s.nociception = 'Pain perception intact, no pain on palpation';
   if (data.mf_bladder !== 'Normal') { s.tone += `. Bladder: ${data.mf_bladder}`; prob.push('Bladder dysfunction'); }
 }
 
@@ -533,14 +602,14 @@ export function generateReport(
   species: 'Dog' | 'Cat',
 ): NeuroReport {
   const s: ReportSections = {
-    mental: 'Quiet, alert, responsive',
-    gait: 'Normal ambulation, no ataxia',
-    cn: 'No deficits noted',
-    postural: 'Normal all four limbs',
-    reflexes: 'Normal all four limbs',
-    tone: 'Normal all four limbs',
-    mass: 'Normal, symmetric',
-    nociception: 'No spinal hyperpathia. Intact nociception all limbs',
+    mental: 'Quiet Alert and Responsive',
+    gait: 'Ambulatory x4, no ataxia',
+    cn: 'No CN deficits',
+    postural: 'Normal x4',
+    reflexes: 'All reflexes normal, no deficits',
+    tone: 'Normal tone in all 4 limbs',
+    mass: 'Normal mass, no atrophy or excessive hypertrophy',
+    nociception: 'Pain perception intact, no pain on palpation',
   };
   const prob: string[] = [];
   let computedLocLabel = LOC_NAMES[activeLoc] || activeLoc;
@@ -580,19 +649,19 @@ export function generateReport(
   const chosenDdx = ddxList.filter((d: string) => ddxSelections[d]);
 
   const reportText =
-    `NEUROLOGIC EXAM\n` +
-    `MENTAL STATUS: ${s.mental}\n` +
-    `GAIT & POSTURE: ${s.gait}\n` +
-    `CRANIAL NERVES: ${s.cn}\n` +
-    `POSTURAL REACTIONS: ${s.postural}\n` +
-    `SPINAL REFLEXES: ${s.reflexes}\n` +
-    `TONE: ${s.tone}\n` +
-    `MUSCLE MASS: ${s.mass}\n` +
-    `NOCICEPTION: ${s.nociception}\n` +
-    `\nPROBLEM LIST\n` +
+    `**NEUROLOGIC EXAM**\n` +
+    `**Mental Status**: ${s.mental}\n` +
+    `**Gait & posture**: ${s.gait}\n` +
+    `**Cranial nerves**: ${s.cn}\n` +
+    `**Postural reactions**: ${s.postural}\n` +
+    `**Spinal reflexes**: ${s.reflexes}\n` +
+    `**Tone**: ${s.tone}\n` +
+    `**Muscle mass**: ${s.mass}\n` +
+    `**Nociception**: ${s.nociception}\n` +
+    `\n**Problem List**\n` +
     uniqueProb.map((p, i) => `${i + 1}. ${p}`).join('\n') +
-    `\n\nNEUROLOCALIZATION: ${computedLocLabel}` +
-    (chosenDdx.length > 0 ? `\n\nDIFFERENTIAL DIAGNOSES:\n` + chosenDdx.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n') : '');
+    `\n\n**Neurolocalization**: ${computedLocLabel}` +
+    (chosenDdx.length > 0 ? `\n\n**Differential Diagnoses**:\n` + chosenDdx.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n') : '');
 
   return {
     text: reportText,
