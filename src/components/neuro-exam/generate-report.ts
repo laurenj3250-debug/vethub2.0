@@ -226,16 +226,17 @@ function generateC1C5(data: NeuroExamData, s: ReportSections, prob: string[]): v
     s.reflexes = 'All reflexes normal, no deficits';
     s.tone = 'Normal tone in all 4 limbs';
   } else {
-    if (data.c1c5_postural_tl === 'Normal' && data.c1c5_postural_pl === 'Normal') {
+    // Tetraplegic patients ALWAYS have absent postural reactions
+    if (data.c1c5_gait === 'Tetraplegic') {
+      s.postural = 'Absent x4';
+      prob.push('Postural reaction deficits all four limbs');
+    } else if (data.c1c5_postural_tl === 'Normal' && data.c1c5_postural_pl === 'Normal') {
       s.postural = 'Normal x4';
     } else {
-      // For C1-C5, deficits are typically x4
       const tlStatus = data.c1c5_postural_tl === 'Deficits' ? 'delayed' : 'normal';
       const plStatus = data.c1c5_postural_pl === 'Deficits' ? 'delayed' : 'normal';
       if (tlStatus === 'delayed' && plStatus === 'delayed') {
         s.postural = 'Delayed x4';
-      } else if (data.c1c5_gait === 'Tetraplegic') {
-        s.postural = 'Absent x4';
       } else {
         s.postural = `${tlStatus === 'delayed' ? 'Delayed' : 'Normal'} in thoracic limbs, ${plStatus} in pelvic limbs`;
       }
@@ -350,8 +351,15 @@ function generateProsencephalon(data: NeuroExamData, s: ReportSections, prob: st
     s.gait = 'Non-ambulatory, recumbent';
     prob.push('Non-ambulatory');
   } else {
-    s.gait = data.pros_circle !== 'None' ? `Ambulatory, tends to circle to the ${data.pros_circle.toLowerCase()} in enclosure` : 'Ambulatory x4, no ataxia';
-    if (data.pros_circle !== 'None') prob.push(`Circling to the ${data.pros_circle.toLowerCase()}`);
+    if (data.pros_circle === 'Both') {
+      s.gait = 'Ambulatory, tends to circle in both directions in enclosure';
+      prob.push('Circling in both directions');
+    } else if (data.pros_circle !== 'None') {
+      s.gait = `Ambulatory, tends to circle to the ${data.pros_circle.toLowerCase()} in enclosure`;
+      prob.push(`Circling to the ${data.pros_circle.toLowerCase()}`);
+    } else {
+      s.gait = 'Ambulatory x4, no ataxia';
+    }
   }
 
   const cnFindings: string[] = [];
@@ -365,8 +373,8 @@ function generateProsencephalon(data: NeuroExamData, s: ReportSections, prob: st
     prob.push(`${sidePrefix(data.pros_menace_side)}${data.pros_menace.toLowerCase()} menace`);
   }
   if (data.pros_focal_sz !== 'None') {
-    cnFindings.push(`${sidePrefix(data.pros_focal_sz_side)}${data.pros_focal_sz} seizures`);
-    prob.push(`${sidePrefix(data.pros_focal_sz_side)}${data.pros_focal_sz} seizures`);
+    cnFindings.push(`${sidePrefix(data.pros_focal_sz_side)}${data.pros_focal_sz.toLowerCase()} seizures`);
+    prob.push(`${sidePrefix(data.pros_focal_sz_side)}${data.pros_focal_sz.toLowerCase()} seizures`);
   }
   if (data.pros_plr !== 'Normal') {
     cnFindings.push(`${sidePrefix(data.pros_plr_side)}${data.pros_plr.toLowerCase()} PLR`);
@@ -402,8 +410,8 @@ function generateProsencephalon(data: NeuroExamData, s: ReportSections, prob: st
   if (uniqueDefSides.length === 1 && uniqueDefSides[0] !== 'Bilateral') {
     const contralateral = uniqueDefSides[0] === 'Left' ? 'Right' : 'Left';
     return `${contralateral} prosencephalon`;
-  } else if (data.pros_circle !== 'None' && deficitSides.length === 0) {
-    // Circling is ipsilateral to lesion
+  } else if ((data.pros_circle === 'Left' || data.pros_circle === 'Right') && deficitSides.length === 0) {
+    // Circling is ipsilateral to lesion — only lateralize from unidirectional circling
     return `${data.pros_circle} prosencephalon`;
   }
   return undefined;
@@ -431,7 +439,16 @@ function generateBrainstem(data: NeuroExamData, s: ReportSections, prob: string[
         : data.bs_ataxia === 'Proprioceptive' ? 'GP ataxia'
         : `${data.bs_ataxia} ataxia`);
     }
-    s.gait = gaitParts.length > 0 ? gaitParts.join(' with ') : 'Abnormal gait';
+    if (gaitParts.length > 0) {
+      // If no paresis but ataxia present, prepend ambulatory status
+      if (data.bs_paresis === 'None' && data.bs_ataxia !== 'None') {
+        s.gait = `Ambulatory x4, ${gaitParts.join(' with ')}`;
+      } else {
+        s.gait = gaitParts.join(' with ');
+      }
+    } else {
+      s.gait = 'Abnormal gait';
+    }
   }
 
   // CN - per-group sides
@@ -467,11 +484,16 @@ function generateBrainstem(data: NeuroExamData, s: ReportSections, prob: string[
   if (data.bs_postural_gate === 'Normal') {
     s.postural = 'Normal x4';
   } else {
-    const bsPTL = data.bs_postural_tl === 'Normal' ? 'Normal thoracic limbs' : `Deficits ${fmtLimb('thoracic', data.bs_postural_tl_side)} (${fmtSideAdj(data.bs_postural_tl_side)})`;
-    const bsPPL = data.bs_postural_pl === 'Normal' ? 'normal pelvic limbs' : `deficits ${fmtLimb('pelvic', data.bs_postural_pl_side)} (${fmtSideAdj(data.bs_postural_pl_side)})`;
+    const fmtPosturalLimb = (limbType: string, side: string, capitalize: boolean) => {
+      const d = capitalize ? 'Deficits' : 'deficits';
+      if (!side || side === 'Bilateral') return `${d} in ${limbType} limbs`;
+      return `${fmtSideAdj(side)} ${limbType} limb ${d.toLowerCase()}`;
+    };
+    const bsPTL = data.bs_postural_tl === 'Normal' ? 'Normal thoracic limbs' : fmtPosturalLimb('thoracic', data.bs_postural_tl_side, true);
+    const bsPPL = data.bs_postural_pl === 'Normal' ? 'normal pelvic limbs' : fmtPosturalLimb('pelvic', data.bs_postural_pl_side, false);
     s.postural = `${bsPTL}, ${bsPPL}`;
-    if (data.bs_postural_tl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('thoracic', data.bs_postural_tl_side)} (${fmtSideAdj(data.bs_postural_tl_side)})`);
-    if (data.bs_postural_pl === 'Deficits') prob.push(`Postural reaction deficits ${fmtLimb('pelvic', data.bs_postural_pl_side)} (${fmtSideAdj(data.bs_postural_pl_side)})`);
+    if (data.bs_postural_tl === 'Deficits') prob.push(`Postural reaction ${fmtPosturalLimb('thoracic', data.bs_postural_tl_side, false)}`);
+    if (data.bs_postural_pl === 'Deficits') prob.push(`Postural reaction ${fmtPosturalLimb('pelvic', data.bs_postural_pl_side, false)}`);
   }
 
   s.reflexes = 'All reflexes normal, no deficits';
@@ -588,7 +610,12 @@ function generateMultifocal(data: NeuroExamData, s: ReportSections, prob: string
   s.mass = data.mf_mass === 'Normal' ? 'Normal mass, no atrophy or excessive hypertrophy' : data.mf_mass;
   if (data.mf_mass !== 'Normal') prob.push(data.mf_mass);
 
-  if (data.mf_pain !== 'None') { s.nociception = `${data.mf_pain} pain`; prob.push(`${data.mf_pain} pain/hyperpathia`); }
+  if (data.mf_pain !== 'None') {
+    const painText = data.mf_pain.toLowerCase().endsWith('pain') ? data.mf_pain : `${data.mf_pain} pain`;
+    s.nociception = painText;
+    const painProb = data.mf_pain.toLowerCase().endsWith('pain') ? `${data.mf_pain}/hyperpathia` : `${data.mf_pain} pain/hyperpathia`;
+    prob.push(painProb);
+  }
   else s.nociception = 'Pain perception intact, no pain on palpation';
   if (data.mf_bladder !== 'Normal') { s.tone += `. Bladder: ${data.mf_bladder}`; prob.push('Bladder dysfunction'); }
 }
@@ -659,7 +686,9 @@ export function generateReport(
     `**Muscle mass**: ${s.mass}\n` +
     `**Nociception**: ${s.nociception}\n` +
     `\n**Problem List**\n` +
-    uniqueProb.map((p, i) => `${i + 1}. ${p}`).join('\n') +
+    (uniqueProb.length > 0
+      ? uniqueProb.map((p, i) => `${i + 1}. ${p}`).join('\n')
+      : 'No neurologic deficits identified') +
     `\n\n**Neurolocalization**: ${computedLocLabel}` +
     (chosenDdx.length > 0 ? `\n\n**Differential Diagnoses**:\n` + chosenDdx.map((d: string, i: number) => `${i + 1}. ${d}`).join('\n') : '');
 

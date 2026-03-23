@@ -422,7 +422,7 @@ export function NeuroLocFilter({
                   onChange={(v) => updateData('pros_amb', v)}
                 />
                 {effectiveAmb === 'Ambulatory' && (
-                  <LocToggle label="Circling" options={['None', 'Left', 'Right']} value={data.pros_circle} onChange={(v) => updateData('pros_circle', v)} />
+                  <LocToggle label="Circling" options={['None', 'Left', 'Right', 'Both']} value={data.pros_circle} onChange={(v) => updateData('pros_circle', v)} />
                 )}
                 <SectionDivider label="Cranial Nerves" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

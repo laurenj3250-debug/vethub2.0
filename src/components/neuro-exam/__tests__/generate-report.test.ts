@@ -241,4 +241,98 @@ describe('generateReport', () => {
     expect(result.locLabel).not.toContain('Right prosencephalon');
     expect(result.locLabel).not.toContain('Left prosencephalon');
   });
+
+  // ─── Bug Fix: Brainstem ataxia without paresis shows ambulatory prefix ──
+  it('brainstem with ataxia but no paresis outputs "Ambulatory x4, vestibular ataxia"', () => {
+    const data = getDefaultData();
+    data.bs_gait = 'Abnormal';
+    data.bs_paresis = 'None';
+    data.bs_ataxia = 'Vestibular';
+    const result = generateReport('brainstem', data, {}, 'Dog');
+
+    expect(result.text).toContain('Ambulatory x4, vestibular ataxia');
+    expect(result.text).not.toMatch(/\*\*Gait & posture\*\*: vestibular ataxia$/m);
+  });
+
+  // ─── Bug Fix: C1-C5 tetraplegic always outputs "Absent x4" for postural ──
+  it('C1-C5 tetraplegic always outputs "Absent x4" for postural reactions', () => {
+    const data = getDefaultData();
+    data.c1c5_gait = 'Tetraplegic';
+    data.c1c5_postural_tl = 'Deficits';
+    data.c1c5_postural_pl = 'Deficits';
+    const result = generateReport('c1c5', data, {}, 'Dog');
+
+    expect(result.text).toContain('**Postural reactions**: Absent x4');
+    expect(result.text).not.toContain('Delayed x4');
+  });
+
+  // ─── Bug Fix: C1-C5 tetraplegic with normal postural fields still absent ──
+  it('C1-C5 tetraplegic with normal postural fields still shows "Absent x4"', () => {
+    const data = getDefaultData();
+    data.c1c5_gait = 'Tetraplegic';
+    data.c1c5_postural_tl = 'Normal';
+    data.c1c5_postural_pl = 'Normal';
+    const result = generateReport('c1c5', data, {}, 'Dog');
+
+    expect(result.text).toContain('**Postural reactions**: Absent x4');
+  });
+
+  // ─── Bug Fix: Empty problem list shows "No neurologic deficits identified" ──
+  it('shows "No neurologic deficits identified" when problem list is empty', () => {
+    const data = getDefaultData();
+    data.t3l3_gait = 'Normal';
+    const result = generateReport('t3l3', data, {}, 'Dog');
+
+    expect(result.text).toContain('**Problem List**\nNo neurologic deficits identified');
+    expect(result.problems).toHaveLength(0);
+  });
+
+  // ─── Bug Fix: Prosencephalon seizure type is lowercase ──
+  it('prosencephalon seizure type is lowercase in output', () => {
+    const data = getDefaultData();
+    data.pros_focal_sz = 'Focal';
+    data.pros_focal_sz_side = 'Left';
+    const result = generateReport('prosencephalon', data, {}, 'Dog');
+
+    expect(result.text).toContain('Left focal seizures');
+    expect(result.text).not.toContain('Left Focal seizures');
+  });
+
+  // ─── Bug Fix: Multifocal nociception does not double "pain" ──
+  it('multifocal nociception does not double "pain" when value already ends with pain', () => {
+    const data = getDefaultData();
+    data.mf_pain = 'Thoracic limb pain on forced flexion pain';
+    const result = generateReport('multifocal', data, {}, 'Dog');
+
+    expect(result.text).not.toContain('pain pain');
+  });
+
+  // ─── Bug Fix: Prosencephalon bilateral circling does not lateralize ──
+  it('prosencephalon with "Both" circling does not lateralize', () => {
+    const data = getDefaultData();
+    data.pros_circle = 'Both';
+    data.pros_mentation = 'Obtunded';
+    const result = generateReport('prosencephalon', data, {}, 'Dog');
+
+    expect(result.text).toContain('circle in both directions');
+    expect(result.locLabel).not.toContain('Left prosencephalon');
+    expect(result.locLabel).not.toContain('Right prosencephalon');
+    expect(result.locLabel).not.toContain('Both prosencephalon');
+  });
+
+  // ─── Bug Fix: Brainstem postural side formatting reads naturally ──
+  it('brainstem postural reactions use natural side formatting', () => {
+    const data = getDefaultData();
+    data.bs_gait = 'Abnormal';
+    data.bs_paresis = 'Hemiparesis';
+    data.bs_paresis_side = 'Left';
+    data.bs_postural_gate = 'Abnormal';
+    data.bs_postural_tl = 'Normal';
+    data.bs_postural_pl = 'Deficits';
+    data.bs_postural_pl_side = 'Left';
+    const result = generateReport('brainstem', data, {}, 'Dog');
+
+    expect(result.text).toContain('left pelvic limb deficits');
+    expect(result.text).not.toContain('deficits pelvic limb (left)');
+  });
 });
