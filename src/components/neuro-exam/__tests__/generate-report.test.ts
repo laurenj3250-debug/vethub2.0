@@ -14,7 +14,8 @@ describe('generateReport', () => {
     data.t3l3_gait = 'Normal';
     const result = generateReport('t3l3', data, allDdxSelected('t3l3'), 'Dog');
 
-    expect(result.text).toContain('**Mental Status**: Quiet Alert and Responsive');
+    // Spinal localizations should NOT have Mental Status line
+    expect(result.text).not.toContain('**Mental Status**');
     expect(result.text).toContain('**Gait & posture**: Ambulatory x4, no ataxia');
     expect(result.text).toContain('**Cranial nerves**: No CN deficits');
     expect(result.text).toContain('**Postural reactions**: Normal x4');
@@ -111,17 +112,17 @@ describe('generateReport', () => {
   });
 
   // ─── Test Case 8: Cerebellum Abnormal ──────────────────────────────────
-  it('generates cerebellar report with hypermetria and tremor', () => {
+  it('generates cerebellar report with ataxia and tremor', () => {
     const data = getDefaultData();
     data.cb_gate = 'Abnormal';
-    data.cb_gait = 'Hypermetric Ataxia';
+    data.cb_gait = 'Cerebellar Ataxia';
     data.cb_side = 'Bilateral';
     data.cb_tremor = 'Intention Tremor';
     data.cb_menace = 'Absent';
     data.cb_menace_side = 'Bilateral';
     const result = generateReport('cerebellum', data, allDdxSelected('cerebellum'), 'Dog');
 
-    expect(result.text).toContain('Hypermetric Ataxia (bilateral)');
+    expect(result.text).toContain('Cerebellar Ataxia (bilateral)');
     expect(result.text).toContain('Intention Tremor');
     expect(result.text).toContain('Absent menace');
     expect(result.text).toContain('cerebellar');
@@ -161,9 +162,10 @@ describe('generateReport', () => {
 
   // ─── Test Case 11: Report format uses bold markdown headers ─────────────
   it('uses bold markdown header format', () => {
+    // Use prosencephalon to test all headers including Mental Status
     const data = getDefaultData();
-    data.t3l3_gait = 'Normal';
-    const result = generateReport('t3l3', data, {}, 'Dog');
+    data.pros_mentation = 'QAR';
+    const result = generateReport('prosencephalon', data, {}, 'Dog');
 
     expect(result.text).toContain('**NEUROLOGIC EXAM**');
     expect(result.text).toContain('**Mental Status**:');
@@ -174,9 +176,13 @@ describe('generateReport', () => {
     expect(result.text).toContain('**Tone**:');
     expect(result.text).toContain('**Muscle mass**:');
     expect(result.text).toContain('**Nociception**:');
-    // Should NOT have ALL CAPS format
-    expect(result.text).not.toContain('MENTAL STATUS:');
-    expect(result.text).not.toContain('GAIT & POSTURE:');
+
+    // Spinal localizations should NOT have Mental Status
+    const spinalData = getDefaultData();
+    spinalData.t3l3_gait = 'Normal';
+    const spinalResult = generateReport('t3l3', spinalData, {}, 'Dog');
+    expect(spinalResult.text).not.toContain('**Mental Status**');
+    expect(spinalResult.text).toContain('**Gait & posture**:');
   });
 
   // ─── Test Case 12: BAR outputs full text ────────────────────────────────

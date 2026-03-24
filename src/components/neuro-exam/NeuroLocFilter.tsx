@@ -775,7 +775,7 @@ export function NeuroLocFilter({
                       </div>
                     )}
                     <div>
-                      <LocToggle label="Gait" options={['Hypermetric Ataxia', 'Truncal Ataxia', 'Broad-Based Stance']} value={data.cb_gait} onChange={(v) => updateData('cb_gait', v)} />
+                      <LocToggle label="Gait" options={['Cerebellar Ataxia', 'Truncal Ataxia', 'Broad-Based Stance']} value={data.cb_gait} onChange={(v) => updateData('cb_gait', v)} />
                       <LocSideSelector value={data.cb_side} onChange={(v) => updateData('cb_side', v)} />
                     </div>
                     <SectionDivider label="Cranial Nerves" />

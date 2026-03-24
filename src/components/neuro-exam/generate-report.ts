@@ -676,9 +676,12 @@ export function generateReport(
   const ddxList = getDdx(activeLoc, species);
   const chosenDdx = ddxList.filter((d: string) => ddxSelections[d]);
 
+  // Spinal localizations don't have a mental status line — spinal cord lesions don't affect mentation
+  const isSpinal = activeLoc === 't3l3' || activeLoc === 'c6t2' || activeLoc === 'c1c5' || activeLoc === 'l4s3';
+
   const reportText =
     `**NEUROLOGIC EXAM**\n` +
-    `**Mental Status**: ${s.mental}\n` +
+    (isSpinal ? '' : `**Mental Status**: ${s.mental}\n`) +
     `**Gait & posture**: ${s.gait}\n` +
     `**Cranial nerves**: ${s.cn}\n` +
     `**Postural reactions**: ${s.postural}\n` +

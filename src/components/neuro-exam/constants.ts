@@ -343,7 +343,7 @@ export function getDefaultData(): NeuroExamData {
     // ── Cerebellum ──
     cb_gate: 'Abnormal',
     cb_mentation: 'QAR',
-    cb_gait: 'Hypermetric Ataxia',
+    cb_gait: 'Cerebellar Ataxia',
     cb_side: 'Bilateral',
     cb_tremor: 'None',
     cb_menace: 'Normal',
