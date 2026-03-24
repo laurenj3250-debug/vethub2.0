@@ -219,14 +219,14 @@ export function NeuroLocFilter({
       Object.assign(updates, {
         l4s3_postural_pl: 'Deficits',
         l4s3_reflexes_gate: 'Normal',
-        l4s3_tone: 'Reduced',
+        l4s3_tone: 'Decreased',
       });
     } else if (v === 'Non-Ambulatory') {
       Object.assign(updates, {
         l4s3_postural_pl: 'Absent',
         l4s3_reflexes_gate: 'Normal',
-        l4s3_tone: 'Reduced',
-        l4s3_tail_tone: 'Reduced',
+        l4s3_tone: 'Decreased',
+        l4s3_tail_tone: 'Decreased',
       });
     } else if (v === 'Paraplegic') {
       Object.assign(updates, {
@@ -537,6 +537,7 @@ export function NeuroLocFilter({
                     <SectionDivider label="Postural Reactions" />
                     <div>
                       <LocToggle label="Pelvic Limbs" options={['Normal', 'Deficits', 'Absent']} value={data.l4s3_postural_pl} onChange={(v) => updateData('l4s3_postural_pl', v)} />
+                      {data.l4s3_postural_pl !== 'Normal' && <LocSideSelector value={data.l4s3_postural_pl_side} onChange={(v) => updateData('l4s3_postural_pl_side', v)} />}
                     </div>
                     <SectionDivider label="Spinal Reflexes" />
                     <LocToggle label="Spinal Reflexes" options={['Normal', 'Abnormal']} value={data.l4s3_reflexes_gate} onChange={(v) => updateData('l4s3_reflexes_gate', v)} />
@@ -544,19 +545,21 @@ export function NeuroLocFilter({
                       <div className="pl-4 border-l-2 border-gray-200 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <LocToggle label="Patellar (Femoral L4-6)" options={['Absent', 'Reduced', 'Normal', 'Increased']} value={data.l4s3_patellar} onChange={(v) => updateData('l4s3_patellar', v)} />
+                            <LocToggle label="Patellar (Femoral L4-6)" options={['Absent', 'Decreased', 'Normal', 'Increased']} value={data.l4s3_patellar} onChange={(v) => updateData('l4s3_patellar', v)} />
+                            {data.l4s3_patellar !== 'Normal' && <LocSideSelector value={data.l4s3_patellar_side} onChange={(v) => updateData('l4s3_patellar_side', v)} />}
                           </div>
                           <div>
-                            <LocToggle label="Withdrawal (Sciatic L6-S2)" options={['Absent', 'Reduced', 'Normal']} value={data.l4s3_withdrawal} onChange={(v) => updateData('l4s3_withdrawal', v)} />
+                            <LocToggle label="Withdrawal (Sciatic L6-S2)" options={['Absent', 'Decreased', 'Normal']} value={data.l4s3_withdrawal} onChange={(v) => updateData('l4s3_withdrawal', v)} />
+                            {data.l4s3_withdrawal !== 'Normal' && <LocSideSelector value={data.l4s3_withdrawal_side} onChange={(v) => updateData('l4s3_withdrawal_side', v)} />}
                           </div>
                         </div>
-                        <LocToggle label="Perineal Reflex (S1-S3)" options={['Normal', 'Reduced', 'Absent']} value={data.l4s3_perineal} onChange={(v) => updateData('l4s3_perineal', v)} />
+                        <LocToggle label="Perineal Reflex (S1-S3)" options={['Normal', 'Decreased', 'Absent']} value={data.l4s3_perineal} onChange={(v) => updateData('l4s3_perineal', v)} />
                       </div>
                     )}
                     <SectionDivider label="Tone" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Reduced', 'Flaccid']} value={data.l4s3_tone} onChange={(v) => updateData('l4s3_tone', v)} />
-                      <LocToggle label="Tail/Anal Tone" options={['Normal', 'Reduced', 'Flaccid']} value={data.l4s3_tail_tone} onChange={(v) => updateData('l4s3_tail_tone', v)} />
+                      <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Decreased', 'Flaccid']} value={data.l4s3_tone} onChange={(v) => updateData('l4s3_tone', v)} />
+                      <LocToggle label="Tail/Anal Tone" options={['Normal', 'Decreased', 'Flaccid']} value={data.l4s3_tail_tone} onChange={(v) => updateData('l4s3_tail_tone', v)} />
                     </div>
                     <LocToggle label="Bladder" options={['Normal', 'Large/Flaccid (LMN)']} value={data.l4s3_bladder} onChange={(v) => updateData('l4s3_bladder', v)} />
                   </CascadeSummary>
@@ -645,7 +648,7 @@ export function NeuroLocFilter({
                 {data.bs_gait === 'Abnormal' && (<>
                   <LocToggle label="Paresis" options={['Ambulatory Tetraparesis', 'Non-Amb Tetraparesis', 'Hemiparesis', 'Tetraplegic', 'None']} value={data.bs_paresis} onChange={(v) => updateData('bs_paresis', v)} />
                   {data.bs_paresis === 'Hemiparesis' && <LocSideSelector value={data.bs_paresis_side} onChange={(v) => updateData('bs_paresis_side', v)} />}
-                  <LocToggle label="Ataxia" options={['Vestibular', 'Proprioceptive', 'Dysmetria', 'Vestibular + Proprioceptive', 'None']} value={data.bs_ataxia} onChange={(v) => updateData('bs_ataxia', v)} />
+                  <LocToggle label="Ataxia" options={['Vestibular', 'Proprioceptive', 'Vestibular + Proprioceptive', 'None']} value={data.bs_ataxia} onChange={(v) => updateData('bs_ataxia', v)} />
                 </>)}
 
                 <SectionDivider label="Cranial Nerves" />

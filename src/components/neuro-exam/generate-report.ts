@@ -279,8 +279,9 @@ function generateL4S3(data: NeuroExamData, s: ReportSections, prob: string[]): v
       s.postural = 'Normal x4';
     } else {
       const plStatus = data.l4s3_postural_pl.toLowerCase();
-      s.postural = `Normal in thoracic limbs, ${plStatus === 'deficits' ? 'delayed/absent' : plStatus} in pelvic limbs`;
-      prob.push(`Postural reaction ${plStatus} pelvic limbs`);
+      const plSide = fmtSideAdj(data.l4s3_postural_pl_side || 'Bilateral');
+      s.postural = `Normal in thoracic limbs, ${plStatus === 'deficits' ? 'delayed/absent' : plStatus} in ${plSide} pelvic limb${data.l4s3_postural_pl_side === 'Bilateral' || !data.l4s3_postural_pl_side ? 's' : ''}`;
+      prob.push(`Postural reaction ${plStatus} ${plSide} pelvic limbs`);
     }
 
     if (data.l4s3_reflexes_gate === 'Normal') {
@@ -288,19 +289,21 @@ function generateL4S3(data: NeuroExamData, s: ReportSections, prob: string[]): v
     } else {
       const refParts: string[] = [];
       if (data.l4s3_patellar !== 'Normal') {
-        refParts.push(`${data.l4s3_patellar} patellar reflex`);
-        prob.push(`${data.l4s3_patellar} patellar reflex`);
+        const patSide = fmtSideAdj(data.l4s3_patellar_side || 'Bilateral');
+        refParts.push(`${data.l4s3_patellar} patellar reflex (${patSide})`);
+        prob.push(`${data.l4s3_patellar} patellar reflex (${patSide})`);
       }
       if (data.l4s3_withdrawal !== 'Normal') {
-        refParts.push(`${data.l4s3_withdrawal} withdrawal reflex`);
-        prob.push(`${data.l4s3_withdrawal} withdrawal reflex`);
+        const wdSide = fmtSideAdj(data.l4s3_withdrawal_side || 'Bilateral');
+        refParts.push(`${data.l4s3_withdrawal} withdrawal reflex (${wdSide})`);
+        prob.push(`${data.l4s3_withdrawal} withdrawal reflex (${wdSide})`);
       }
       if (data.l4s3_perineal !== 'Normal') {
         refParts.push(`${data.l4s3_perineal} perineal reflex`);
         prob.push(`${data.l4s3_perineal} perineal reflex`);
       }
       if (refParts.length > 0) {
-        s.reflexes = `Normal reflexes in thoracic limbs. ${refParts.join('. ')} in pelvic limbs`;
+        s.reflexes = `Normal reflexes in thoracic limbs. ${refParts.join('. ')}`;
       } else {
         s.reflexes = 'Normal reflexes in thoracic limbs, decreased to absent in pelvic limbs';
       }
@@ -315,7 +318,7 @@ function generateL4S3(data: NeuroExamData, s: ReportSections, prob: string[]): v
     s.tone = toneStr;
 
     s.mass = data.l4s3_atrophy
-      ? 'Normal mass in thoracic limbs, mild atrophy noted in pelvic limbs'
+      ? 'Neurogenic atrophy in pelvic limbs'
       : (data.l4s3_mass === 'Normal' ? 'Normal mass, no atrophy or excessive hypertrophy' : data.l4s3_mass);
     if (data.l4s3_atrophy) prob.push('Neurogenic muscle atrophy pelvic limbs');
   }
