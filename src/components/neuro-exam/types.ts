@@ -179,6 +179,7 @@ export interface NeuroExamData {
   cb_menace_side: string;
   cb_anisocoria: boolean;
   cb_postural: string;
+  cb_postural_side: string;
   cb_vestibular: boolean;
 
   // ── Multifocal ──

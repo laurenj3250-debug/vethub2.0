@@ -103,7 +103,7 @@ export default function NeuroExamPage() {
       </div>
 
       {/* ─── Content ─── */}
-      <div className="px-4 py-4 pb-24">
+      <div className="px-4 py-4 pb-28">
         <NeuroLocFilter
           examState={examState}
           setActiveLoc={setActiveLoc}

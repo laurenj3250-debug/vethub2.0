@@ -350,6 +350,7 @@ export function getDefaultData(): NeuroExamData {
     cb_menace_side: 'Bilateral',
     cb_anisocoria: false,
     cb_postural: 'Normal',
+    cb_postural_side: 'Bilateral',
     cb_vestibular: false,
 
     // ── Multifocal ──

@@ -546,8 +546,9 @@ function generateCerebellum(data: NeuroExamData, s: ReportSections, prob: string
   if (data.cb_vestibular) { cbCN.push('Paradoxical vestibular signs (head tilt away from lesion)'); prob.push('Paradoxical vestibular signs'); }
   s.cn = cbCN.length > 0 ? cbCN.join('. ') : 'No CN deficits';
 
-  s.postural = `${data.cb_postural} (${sideText})`;
-  if (data.cb_postural !== 'Normal') prob.push(`${data.cb_postural} postural reactions (${sideText})`);
+  const cbPosturalSide = fmtSideAdj(data.cb_postural_side || 'Bilateral');
+  s.postural = data.cb_postural === 'Normal' ? 'Normal x4' : `${data.cb_postural} (${cbPosturalSide})`;
+  if (data.cb_postural !== 'Normal') prob.push(`${data.cb_postural} postural reactions (${cbPosturalSide})`);
   s.reflexes = 'All reflexes normal, no deficits';
   s.tone = 'Normal tone in all 4 limbs';
   s.mass = 'Normal mass, no atrophy or excessive hypertrophy';

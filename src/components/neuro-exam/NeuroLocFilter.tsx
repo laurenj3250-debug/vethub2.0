@@ -369,10 +369,10 @@ export function NeuroLocFilter({
                       <div className="pl-4 border-l-2 border-gray-200 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <LocToggle label="Patellar Reflex" options={['Normal', 'Increased']} value={data.t3l3_patellar} onChange={(v) => updateData('t3l3_patellar', v)} />
+                            <LocToggle label="Patellar Reflex" options={['Normal', 'Increased', 'Reduced']} value={data.t3l3_patellar} onChange={(v) => updateData('t3l3_patellar', v)} />
                           </div>
                           <div>
-                            <LocToggle label="Withdrawal (Pelvic)" options={['Normal', 'Increased']} value={data.t3l3_withdrawal_pl} onChange={(v) => updateData('t3l3_withdrawal_pl', v)} />
+                            <LocToggle label="Withdrawal (Pelvic)" options={['Normal', 'Increased', 'Reduced']} value={data.t3l3_withdrawal_pl} onChange={(v) => updateData('t3l3_withdrawal_pl', v)} />
                           </div>
                         </div>
                       </div>
@@ -784,14 +784,17 @@ export function NeuroLocFilter({
                         <LocToggle label="Menace Response" options={['Normal', 'Absent']} value={data.cb_menace} onChange={(v) => updateData('cb_menace', v)} />
                         {data.cb_menace === 'Absent' && <LocSideSelector value={data.cb_menace_side} onChange={(v) => updateData('cb_menace_side', v)} />}
                       </div>
-                      <LocToggle label="Tremor" options={['None', 'Intention Tremor', 'Head Bobbing']} value={data.cb_tremor} onChange={(v) => updateData('cb_tremor', v)} />
+                      <LocToggle label="Tremor" options={['None', 'Intention Tremor', 'Action Tremor']} value={data.cb_tremor} onChange={(v) => updateData('cb_tremor', v)} />
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <LocCheckButton checked={data.cb_anisocoria} onChange={() => updateData('cb_anisocoria', !data.cb_anisocoria)} label="Anisocoria" color="amber" />
                       <LocCheckButton checked={data.cb_vestibular} onChange={() => updateData('cb_vestibular', !data.cb_vestibular)} label="Paradoxical Vestibular Signs" color="amber" />
                     </div>
                     <SectionDivider label="Postural Reactions" />
-                    <LocToggle label="Postural Reactions" options={['Normal', 'Delayed/Exaggerated', 'Absent']} value={data.cb_postural} onChange={(v) => updateData('cb_postural', v)} />
+                    <div>
+                      <LocToggle label="Postural Reactions" options={['Normal', 'Delayed/Exaggerated', 'Absent']} value={data.cb_postural} onChange={(v) => updateData('cb_postural', v)} />
+                      {data.cb_postural !== 'Normal' && <LocSideSelector value={data.cb_postural_side} onChange={(v) => updateData('cb_postural_side', v)} />}
+                    </div>
                   </>
                 )}
               </div>
@@ -930,10 +933,10 @@ export function NeuroLocFilter({
         </div>
       </div>
 
-      {/* Mobile: floating jump-to-report button */}
+      {/* Mobile: floating jump-to-report button — small pill, avoids blocking form */}
       <button
         onClick={() => document.getElementById('report-panel')?.scrollIntoView({ behavior: 'smooth' })}
-        className="fixed bottom-20 right-4 z-10 lg:hidden bg-[#B8E6D4] border-2 border-black rounded-full px-4 py-2.5 shadow-[3px_3px_0_#000] text-xs font-black text-gray-900 active:scale-95 active:shadow-[1px_1px_0_#000] transition-all flex items-center gap-1.5"
+        className="fixed bottom-[5.5rem] right-3 z-10 lg:hidden bg-[#B8E6D4] border-2 border-black rounded-full px-3 py-2 shadow-[2px_2px_0_#000] text-[11px] font-black text-gray-900 active:scale-95 active:shadow-[1px_1px_0_#000] transition-all flex items-center gap-1 opacity-80 hover:opacity-100"
       >
         <span>↓</span> Report
       </button>
