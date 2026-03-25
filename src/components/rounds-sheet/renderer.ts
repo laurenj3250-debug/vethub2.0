@@ -82,10 +82,18 @@ export function renderTableRows(patients: RoundsPatient[], today: Date = new Dat
     } else {
       html += `<div class="dx-line">${ICONS.brain}<span class="dx-text">${p.dx}</span></div>`;
       html += `<div class="visit-text" style="margin-top:4px">`;
-      if (vd.dateHeader) {
-        html += `<span style="font-weight:800;font-size:10px;color:var(--text-secondary)">${vd.dateHeader}:</span> ${vd.summary}`;
+      const visitContent = vd.dateHeader ? `${vd.dateHeader}: ${vd.summary}` : (p.lastVisit || '');
+      // Split on sentence boundaries, periods followed by space, semicolons, or existing bullet chars
+      const bullets = visitContent
+        .split(/(?<=[.;])\s+|(?:^|\n)\s*[-•]\s*|\n+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      if (bullets.length > 1) {
+        html += `<ul class="visit-bullets">`;
+        bullets.forEach(b => { html += `<li>${b}</li>`; });
+        html += `</ul>`;
       } else {
-        html += p.lastVisit;
+        html += visitContent;
       }
       html += `</div>`;
     }

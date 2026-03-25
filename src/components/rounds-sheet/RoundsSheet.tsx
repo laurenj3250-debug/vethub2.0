@@ -47,6 +47,10 @@ export default function RoundsSheet() {
   const [randomRotation, setRandomRotation] = useState(true);
   const [scatterCount, setScatterCount] = useState(30);
 
+  // Layout state
+  const [tableFontSize, setTableFontSize] = useState(100); // percentage scale
+  const [colWidths, setColWidths] = useState({ time: 72, patient: 110, plan: 160, meds: 250 });
+
   // Edit state
   const [editMode, setEditMode] = useState(false);
   const [editingCell, setEditingCell] = useState<{ pidx: number; field: string; value: string; rect: DOMRect } | null>(null);
@@ -759,14 +763,14 @@ export default function RoundsSheet() {
       <div className="content-wrap" ref={contentRef} style={{ paddingRight: panelOpen ? 316 : 16, transition: 'padding-right 0.3s' }}>
         <div ref={stickerLayerRef} className="sticker-layer" />
         <div dangerouslySetInnerHTML={{ __html: renderHeader(dateString).replace('Neurology Rounds', customTitle) }} />
-        <table className={editMode ? 'edit-mode' : ''}>
+        <table className={editMode ? 'edit-mode' : ''} style={{ fontSize: `${tableFontSize}%` }}>
           <thead><tr>
-            <th style={{ width: 72, textAlign: 'center' }}>Time</th>
-            <th style={{ width: 110 }}>Patient</th>
-            <th style={{ width: 160 }}>Today&apos;s Plan</th>
+            <th style={{ width: colWidths.time, textAlign: 'center' }}>Time</th>
+            <th style={{ width: colWidths.patient }}>Patient</th>
+            <th style={{ width: colWidths.plan }}>Today&apos;s Plan</th>
             <th>Case Profile</th>
             <th>Imaging / Surgery</th>
-            <th style={{ width: 250 }}>Meds &amp; Labs</th>
+            <th style={{ width: colWidths.meds }}>Meds &amp; Labs</th>
           </tr></thead>
           <tbody id="roundsBody" dangerouslySetInnerHTML={{ __html: tableHtml }} onClick={handleTableClick} />
         </table>
@@ -1039,6 +1043,50 @@ export default function RoundsSheet() {
                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', marginBottom: 4, marginTop: 6 }}>White Overlay</div>
                 <SliderRow value={overlayOpacity} min={0} max={60} suffix="%" onChange={setOverlayOpacity} />
               </div>
+            </div>
+          )}
+
+          {/* ── LAYOUT ── */}
+          <SectionHeader title="Layout" icon="📐" section="layout" active={activeSection} onToggle={toggleSection} />
+          {activeSection === 'layout' && (
+            <div style={{ paddingBottom: 16 }}>
+              {/* Font size */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Text Size</span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{tableFontSize}%</span>
+              </div>
+              <input type="range" min={70} max={150} value={tableFontSize} onChange={e => setTableFontSize(Number(e.target.value))}
+                style={{ width: '100%', accentColor: '#80D8D0', marginBottom: 12 }} />
+
+              {/* Column widths */}
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Column Widths</div>
+              {([
+                { key: 'time' as const, label: 'Time', min: 50, max: 120 },
+                { key: 'patient' as const, label: 'Patient', min: 80, max: 200 },
+                { key: 'plan' as const, label: "Today's Plan", min: 100, max: 300 },
+                { key: 'meds' as const, label: 'Meds & Labs', min: 150, max: 400 },
+              ]).map(col => (
+                <div key={col.key} style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{col.label}</span>
+                    <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>{colWidths[col.key]}px</span>
+                  </div>
+                  <input type="range" min={col.min} max={col.max} value={colWidths[col.key]}
+                    onChange={e => setColWidths(prev => ({ ...prev, [col.key]: Number(e.target.value) }))}
+                    style={{ width: '100%', accentColor: '#80D8D0' }} />
+                </div>
+              ))}
+
+              {/* Reset button */}
+              <button onClick={() => { setTableFontSize(100); setColWidths({ time: 72, patient: 110, plan: 160, meds: 250 }); }}
+                style={{
+                  width: '100%', padding: '5px 0', border: 'none', borderRadius: 6, cursor: 'pointer',
+                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                  background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)',
+                  marginTop: 4,
+                }}>
+                Reset to Defaults
+              </button>
             </div>
           )}
 
