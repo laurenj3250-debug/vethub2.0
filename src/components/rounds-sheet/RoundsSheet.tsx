@@ -981,7 +981,7 @@ export default function RoundsSheet() {
 
               {/* Tile vs Cover toggle */}
               {bgImage && (
-                <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 4, marginBottom: bgTile ? 6 : 10 }}>
                   {(['cover', 'tile'] as const).map(mode => (
                     <button key={mode} onClick={() => setBgTile(mode === 'tile')}
                       style={{
@@ -1001,10 +1001,11 @@ export default function RoundsSheet() {
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tile Size</span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{bgTileSize}px</span>
+                    <span style={{ fontSize: 10, color: '#80D8D0', fontWeight: 600 }}>{bgTileSize}px</span>
                   </div>
-                  <input type="range" min={50} max={500} value={bgTileSize} onChange={e => setBgTileSize(Number(e.target.value))}
-                    style={{ width: '100%', accentColor: '#80D8D0' }} />
+                  <input type="range" min={30} max={500} value={bgTileSize}
+                    onChange={e => setBgTileSize(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: '#80D8D0', height: 4 }} />
                 </div>
               )}
 
