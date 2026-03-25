@@ -20,6 +20,7 @@ export default function RoundsSheet() {
   const [overlayOpacity, setOverlayOpacity] = useState(10);
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [bgTile, setBgTile] = useState(false);
+  const [bgTileSize, setBgTileSize] = useState(150);
   const [bgUrlInput, setBgUrlInput] = useState('');
   const [customTitle, setCustomTitle] = useState('Neurology Rounds');
   const [footerText, setFooterText] = useState('');
@@ -684,7 +685,7 @@ export default function RoundsSheet() {
       <>
         <div className="bg-layer" style={bgImage ? {
         backgroundImage: `url(${bgImage})`,
-        backgroundSize: bgTile ? '150px' : 'cover',
+        backgroundSize: bgTile ? `${bgTileSize}px` : 'cover',
         backgroundRepeat: bgTile ? 'repeat' : 'no-repeat',
       } : {}} />
         <div className="bg-overlay" style={{ background: `rgba(255,255,255,${overlayOpacity / 100})` }} />
@@ -720,7 +721,7 @@ export default function RoundsSheet() {
       {/* Background layers */}
       <div className="bg-layer" style={bgImage ? {
         backgroundImage: `url(${bgImage})`,
-        backgroundSize: bgTile ? '150px' : 'cover',
+        backgroundSize: bgTile ? `${bgTileSize}px` : 'cover',
         backgroundRepeat: bgTile ? 'repeat' : 'no-repeat',
       } : {}} />
       <div className="bg-gradient" style={{
@@ -988,6 +989,18 @@ export default function RoundsSheet() {
                       {mode === 'cover' ? '🖼 Cover' : '🔲 Tile'}
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Tile size slider */}
+              {bgImage && bgTile && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tile Size</span>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{bgTileSize}px</span>
+                  </div>
+                  <input type="range" min={50} max={500} value={bgTileSize} onChange={e => setBgTileSize(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: '#80D8D0' }} />
                 </div>
               )}
 
