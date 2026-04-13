@@ -564,7 +564,7 @@ export default function VetHub() {
         const result = await response.json();
         parsed = result.data;
       } else {
-        // Manual entry — bypass AI entirely
+        // Manual entry — bypass AI entirely; mirror full shape from /api/parse-ezyvet
         parsed = {
           demographics: {
             name: manualForm.patientName,
@@ -581,12 +581,20 @@ export default function VetHub() {
             dateOfBirth: '',
             color: '',
             microchip: '',
+            insurance: '',
           },
+          status: { current: '', location: '' },
           consultations: manualForm.chiefComplaint
-            ? [{ chiefComplaint: manualForm.chiefComplaint, plan: '', consultNumber: '' }]
+            ? [{ consultNumber: '', date: '', chiefComplaint: manualForm.chiefComplaint, assessment: '', plan: '' }]
             : [],
-          diagnostics: {},
+          vitals: { weight: manualForm.weight, temp: '', hr: '', rr: '', painScore: '', mm: '', crt: '', attitude: '', pulseQuality: '', respiratoryEffort: '' },
           medications: [],
+          labResults: {
+            cbc: { rbc: '', hgb: '', hct: '', wbc: '', platelets: '' },
+            chemistry: { glucose: '', bun: '', creatinine: '', alt: '', alp: '', lipase: '' },
+          },
+          diagnostics: { radiographs: '', other: '' },
+          referringVet: { clinic: '', doctor: '', phone: '' },
         };
       }
 
