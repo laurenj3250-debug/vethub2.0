@@ -558,48 +558,10 @@ function mergePatientRoundingData(
   };
 }
 
-// Column config for resizable columns (Google Sheets-style drag-to-resize)
-const ROUNDING_COLUMNS = [
-  { key: 'patient', label: 'Patient', defaultWidth: 180, minWidth: 150 },
-  { key: 'signalment', label: 'Signalment', defaultWidth: 150, minWidth: 120 },
-  { key: 'location', label: 'Loc', defaultWidth: 65, minWidth: 40 },
-  { key: 'icuCriteria', label: 'ICU', defaultWidth: 60, minWidth: 40 },
-  { key: 'code', label: 'Code', defaultWidth: 65, minWidth: 40 },
-  { key: 'problems', label: 'Problems', defaultWidth: 130, minWidth: 60 },
-  { key: 'diagnosticFindings', label: 'Dx Findings', defaultWidth: 180, minWidth: 80 },
-  { key: 'therapeutics', label: 'Tx', defaultWidth: 180, minWidth: 80 },
-  { key: 'ivc', label: 'IVC', defaultWidth: 50, minWidth: 30 },
-  { key: 'fluids', label: 'Fluids', defaultWidth: 60, minWidth: 35 },
-  { key: 'cri', label: 'CRI', defaultWidth: 60, minWidth: 35 },
-  { key: 'overnightDx', label: 'O/N Dx', defaultWidth: 150, minWidth: 70 },
-  { key: 'concerns', label: 'O/N Concerns', defaultWidth: 160, minWidth: 80 },
-  { key: 'comments', label: 'Extra Notes', defaultWidth: 150, minWidth: 70 },
-  { key: 'actions', label: 'Actions', defaultWidth: 70, minWidth: 50 },
-];
-// Key bumped to v2 to invalidate any stale stored widths from the previous
-// column config (pre-2026-04-13). Old narrow values would otherwise pass the
-// clamp check silently and leave Patient/Signalment columns too narrow.
-const COL_WIDTHS_KEY = 'rounding-column-widths-v2';
-const DEFAULT_COL_WIDTHS = ROUNDING_COLUMNS.map(c => c.defaultWidth);
-
-function loadColumnWidths(): number[] {
-  if (typeof window === 'undefined') return DEFAULT_COL_WIDTHS;
-  try {
-    const stored = localStorage.getItem(COL_WIDTHS_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length === ROUNDING_COLUMNS.length) {
-        // Clamp any stored widths below current minWidth (protects against stale
-        // localStorage from earlier versions or accidental under-drags).
-        return parsed.map((w, i) => {
-          const min = ROUNDING_COLUMNS[i].minWidth;
-          return typeof w === 'number' && w >= min ? w : Math.max(min, ROUNDING_COLUMNS[i].defaultWidth);
-        });
-      }
-    }
-  } catch {}
-  return DEFAULT_COL_WIDTHS;
-}
+// Legacy column-widths localStorage keys — removed 2026-04-13 when we went
+// back to CSS min-widths (content-driven sizing via tableLayout:auto). If any
+// user still has stored widths, clear them on mount via clearLegacyColumnWidths.
+const LEGACY_COL_WIDTHS_KEYS = ['rounding-column-widths', 'rounding-column-widths-v2'];
 
 export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingSheetProps) {
   const [editingData, setEditingData] = useState<Record<number, RoundingData>>(() => {
@@ -628,55 +590,13 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
   const [autoFilledFields, setAutoFilledFields] = useState<Record<number, Set<string>>>({});
   const autoFillInitialized = useRef(false);
 
-  // === Column resize (Google Sheets-style drag handles) ===
-  const [colWidths, setColWidths] = useState<number[]>(loadColumnWidths);
-  const resizeRef = useRef<{ colIdx: number; startX: number; startW: number } | null>(null);
-  const colWidthsRef = useRef(colWidths);
-  colWidthsRef.current = colWidths;
-
-  const handleResizeStart = useCallback((colIdx: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    resizeRef.current = { colIdx, startX: e.clientX, startW: colWidthsRef.current[colIdx] };
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
-
+  // Clear any legacy localStorage column-widths from the (now-removed)
+  // resizable-columns feature. One-shot on mount.
   useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!resizeRef.current) return;
-      const { colIdx, startX, startW } = resizeRef.current;
-      const delta = e.clientX - startX;
-      const minW = ROUNDING_COLUMNS[colIdx].minWidth;
-      const newW = Math.max(minW, startW + delta);
-      setColWidths(prev => {
-        const next = [...prev];
-        next[colIdx] = newW;
-        return next;
-      });
-    };
-    const onMouseUp = () => {
-      if (!resizeRef.current) return;
-      resizeRef.current = null;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      // Persist to localStorage
-      try { localStorage.setItem(COL_WIDTHS_KEY, JSON.stringify(colWidthsRef.current)); } catch {}
-    };
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
+    try {
+      LEGACY_COL_WIDTHS_KEYS.forEach(k => localStorage.removeItem(k));
+    } catch {}
   }, []);
-
-  const resetColumnWidths = useCallback(() => {
-    setColWidths(DEFAULT_COL_WIDTHS);
-    try { localStorage.removeItem(COL_WIDTHS_KEY); } catch {}
-  }, []);
-
-  const totalTableWidth = useMemo(() => colWidths.reduce((a, b) => a + b, 0), [colWidths]);
 
   // Mobile responsive handling
   const isMobile = useIsMobile();
@@ -1571,17 +1491,6 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
             <span>/</span>
             Shortcuts
           </Link>
-          {JSON.stringify(colWidths) !== JSON.stringify(DEFAULT_COL_WIDTHS) && (
-            <button
-              onClick={resetColumnWidths}
-              className="px-3 py-2 rounded-xl font-medium text-gray-500 transition hover:-translate-y-0.5 hover:text-gray-900 text-xs flex items-center gap-1"
-              style={{ backgroundColor: '#F3F4F6', border: '1px solid #D1D5DB' }}
-              title="Reset column widths to defaults"
-            >
-              <RotateCcw size={12} />
-              Reset Columns
-            </button>
-          )}
           <div>
             <h2 className="text-xl font-black text-gray-900">Rounding Sheet</h2>
             <p className="text-sm font-medium text-gray-500">{activePatients.length} active patients</p>
@@ -1879,45 +1788,24 @@ export function RoundingSheet({ patients, toast, onPatientUpdate }: RoundingShee
           className="overflow-x-auto rounded-2xl"
           style={{ border: NEO_BORDER, boxShadow: NEO_SHADOW }}
         >
-        <table className="border-collapse bg-white overflow-hidden" style={{ tableLayout: 'fixed', width: totalTableWidth }}>
-          <colgroup>
-            {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
-          </colgroup>
+        <table className="w-full border-collapse bg-white overflow-hidden">
           <thead>
             <tr className="text-gray-900 text-[10px] font-bold" style={{ backgroundColor: COLORS.mint }}>
-              {ROUNDING_COLUMNS.map((col, i) => {
-                const isFirst = i === 0;
-                const isLast = i === ROUNDING_COLUMNS.length - 1;
-                const stickyLeft = isFirst ? { position: 'sticky' as const, left: 0, zIndex: 10, backgroundColor: COLORS.mint } : {};
-                const stickyRight = isLast ? { position: 'sticky' as const, right: 0, zIndex: 10, backgroundColor: COLORS.mint } : {};
-                return (
-                  <th key={col.key}
-                    className={`p-1 ${isLast ? 'text-center' : 'text-left'}`}
-                    style={{
-                      ...stickyLeft, ...stickyRight,
-                      borderRight: isLast ? undefined : '1px solid #000',
-                      borderLeft: isLast ? '1px solid #000' : undefined,
-                      borderBottom: NEO_BORDER,
-                      position: (isFirst || isLast) ? (stickyLeft.position || stickyRight.position) : 'relative',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {col.label}
-                    {/* Resize handle — not on the last column (Actions) */}
-                    {!isLast && (
-                      <div
-                        onMouseDown={(e) => handleResizeStart(i, e)}
-                        style={{
-                          position: 'absolute', top: 0, right: -2, width: 5, height: '100%',
-                          cursor: 'col-resize', zIndex: 20,
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(91,192,190,0.5)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                      />
-                    )}
-                  </th>
-                );
-              })}
+              <th className="p-1 text-left sticky left-0 z-10 min-w-[140px]" style={{ backgroundColor: COLORS.mint, borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Patient</th>
+              <th className="p-1 text-left min-w-[130px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Signalment</th>
+              <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Loc</th>
+              <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>ICU</th>
+              <th className="p-1 text-left min-w-[55px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Code</th>
+              <th className="p-1 text-left min-w-[120px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Problems</th>
+              <th className="p-1 text-left min-w-[150px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Dx Findings</th>
+              <th className="p-1 text-left min-w-[150px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Tx</th>
+              <th className="p-1 text-left min-w-[40px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>IVC</th>
+              <th className="p-1 text-left min-w-[50px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Fluids</th>
+              <th className="p-1 text-left min-w-[50px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>CRI</th>
+              <th className="p-1 text-left min-w-[120px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Dx</th>
+              <th className="p-1 text-left min-w-[130px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>O/N Concerns</th>
+              <th className="p-1 text-left min-w-[130px]" style={{ borderRight: '1px solid #000', borderBottom: NEO_BORDER }}>Extra Notes</th>
+              <th className="p-1 text-center sticky right-0 z-10 min-w-[60px]" style={{ backgroundColor: COLORS.mint, borderLeft: '1px solid #000', borderBottom: NEO_BORDER }}>Actions</th>
             </tr>
           </thead>
           <tbody>
