@@ -388,7 +388,7 @@ export function NeuroLocFilter({
                     )}
 
                     <SectionDivider label="Tone" />
-                    <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Normal/Increased', 'Increased']} value={data.t3l3_tone_pl} onChange={(v) => updateData('t3l3_tone_pl', v)} />
+                    <LocToggle label="Pelvic Limb Tone" options={['Normal', 'Normal/Increased', 'Increased', 'Decreased']} value={data.t3l3_tone_pl} onChange={(v) => updateData('t3l3_tone_pl', v)} />
                   </CascadeSummary>
                 )}
 

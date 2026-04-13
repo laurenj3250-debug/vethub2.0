@@ -113,7 +113,7 @@ function generateT3L3(data: NeuroExamData, s: ReportSections, prob: string[]): v
       if (data.t3l3_perineal !== 'Normal') prob.push(`${data.t3l3_perineal} perineal reflex (ascending myelomalacia)`);
     }
 
-    s.tone = `Normal tone in thoracic limbs, ${data.t3l3_tone_pl === 'Normal/Increased' ? 'normal to increased tone' : data.t3l3_tone_pl === 'Increased' ? 'increased tone' : 'normal tone'} in pelvic limbs`;
+    s.tone = `Normal tone in thoracic limbs, ${data.t3l3_tone_pl === 'Normal/Increased' ? 'normal to increased tone' : data.t3l3_tone_pl === 'Increased' ? 'increased tone' : data.t3l3_tone_pl === 'Decreased' ? 'decreased tone' : 'normal tone'} in pelvic limbs`;
     if (data.t3l3_bladder !== 'Normal') {
       s.tone += `. Bladder: large and firm, difficult to express (UMN pattern)`;
       prob.push('UMN bladder dysfunction');
@@ -683,7 +683,17 @@ export function generateReport(
   const isSpinal = activeLoc === 't3l3' || activeLoc === 'c6t2' || activeLoc === 'c1c5' || activeLoc === 'l4s3';
 
   const reportText =
-    `**NEUROLOGIC EXAM**\n` +
+    `**Physical Exam**:\n` +
+    `**EENT**: clear OU/AU, no nasal discharge\n` +
+    `**Oral**: pink/moist mm, CRT<2, no oral masses or foreign bodies noted\n` +
+    `**PLN**: wnl\n` +
+    `**CV**: no heart murmur noted, regular rhythm, strong/synchronous pulses\n` +
+    `**Resp**: eupneic, clear bronchovesicular sounds\n` +
+    `**Abd**: soft/non-painful, no masses noted\n` +
+    `**Rectal**: unremarkable externally\n` +
+    `**MS**: no joint/long bone pain noted\n` +
+    `**Integ**: coat wnl\n` +
+    `\n**NEUROLOGIC EXAM**\n` +
     (isSpinal ? '' : `**Mental Status**: ${s.mental}\n`) +
     `**Gait & posture**: ${s.gait}\n` +
     `**Cranial nerves**: ${s.cn}\n` +

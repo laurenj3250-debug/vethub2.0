@@ -167,6 +167,19 @@ describe('generateReport', () => {
     data.pros_mentation = 'QAR';
     const result = generateReport('prosencephalon', data, {}, 'Dog');
 
+    // Physical Exam section
+    expect(result.text).toContain('**Physical Exam**:');
+    expect(result.text).toContain('**EENT**:');
+    expect(result.text).toContain('**Oral**:');
+    expect(result.text).toContain('**PLN**:');
+    expect(result.text).toContain('**CV**:');
+    expect(result.text).toContain('**Resp**:');
+    expect(result.text).toContain('**Abd**:');
+    expect(result.text).toContain('**Rectal**:');
+    expect(result.text).toContain('**MS**:');
+    expect(result.text).toContain('**Integ**:');
+
+    // Neurologic Exam section
     expect(result.text).toContain('**NEUROLOGIC EXAM**');
     expect(result.text).toContain('**Mental Status**:');
     expect(result.text).toContain('**Gait & posture**:');
