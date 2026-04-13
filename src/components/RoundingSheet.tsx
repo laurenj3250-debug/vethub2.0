@@ -560,23 +560,26 @@ function mergePatientRoundingData(
 
 // Column config for resizable columns (Google Sheets-style drag-to-resize)
 const ROUNDING_COLUMNS = [
-  { key: 'patient', label: 'Patient', defaultWidth: 140, minWidth: 110 },
-  { key: 'signalment', label: 'Signalment', defaultWidth: 110, minWidth: 60 },
+  { key: 'patient', label: 'Patient', defaultWidth: 180, minWidth: 150 },
+  { key: 'signalment', label: 'Signalment', defaultWidth: 150, minWidth: 120 },
   { key: 'location', label: 'Loc', defaultWidth: 65, minWidth: 40 },
   { key: 'icuCriteria', label: 'ICU', defaultWidth: 60, minWidth: 40 },
-  { key: 'code', label: 'Code', defaultWidth: 65, minWidth: 40 },
-  { key: 'problems', label: 'Problems', defaultWidth: 130, minWidth: 60 },
-  { key: 'diagnosticFindings', label: 'Dx Findings', defaultWidth: 180, minWidth: 80 },
-  { key: 'therapeutics', label: 'Tx', defaultWidth: 180, minWidth: 80 },
-  { key: 'ivc', label: 'IVC', defaultWidth: 50, minWidth: 30 },
-  { key: 'fluids', label: 'Fluids', defaultWidth: 60, minWidth: 35 },
-  { key: 'cri', label: 'CRI', defaultWidth: 60, minWidth: 35 },
-  { key: 'overnightDx', label: 'O/N Dx', defaultWidth: 150, minWidth: 70 },
-  { key: 'concerns', label: 'O/N Concerns', defaultWidth: 160, minWidth: 80 },
-  { key: 'comments', label: 'Extra Notes', defaultWidth: 150, minWidth: 70 },
-  { key: 'actions', label: 'Actions', defaultWidth: 70, minWidth: 50 },
+  { key: 'code', label: 'Code', defaultWidth: 70, minWidth: 50 },
+  { key: 'problems', label: 'Problems', defaultWidth: 150, minWidth: 90 },
+  { key: 'diagnosticFindings', label: 'Dx Findings', defaultWidth: 180, minWidth: 100 },
+  { key: 'therapeutics', label: 'Tx', defaultWidth: 180, minWidth: 100 },
+  { key: 'ivc', label: 'IVC', defaultWidth: 55, minWidth: 40 },
+  { key: 'fluids', label: 'Fluids', defaultWidth: 65, minWidth: 45 },
+  { key: 'cri', label: 'CRI', defaultWidth: 65, minWidth: 45 },
+  { key: 'overnightDx', label: 'O/N Dx', defaultWidth: 150, minWidth: 90 },
+  { key: 'concerns', label: 'O/N Concerns', defaultWidth: 160, minWidth: 100 },
+  { key: 'comments', label: 'Extra Notes', defaultWidth: 160, minWidth: 100 },
+  { key: 'actions', label: 'Actions', defaultWidth: 80, minWidth: 60 },
 ];
-const COL_WIDTHS_KEY = 'rounding-column-widths';
+// Key bumped to v2 to invalidate any stale stored widths from the previous
+// column config (pre-2026-04-13). Old narrow values would otherwise pass the
+// clamp check silently and leave Patient/Signalment columns too narrow.
+const COL_WIDTHS_KEY = 'rounding-column-widths-v2';
 const DEFAULT_COL_WIDTHS = ROUNDING_COLUMNS.map(c => c.defaultWidth);
 
 function loadColumnWidths(): number[] {
