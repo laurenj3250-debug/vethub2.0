@@ -34,14 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: `Parse this EzyVet patient record and extract ALL information into a structured format.
+    const prompt = `Parse this EzyVet patient record and extract ALL information into a structured format.
 
 CRITICAL - EXTRACT ALL STICKER INFORMATION:
 - Patient ID (after "Patient ID:" or "TF_")
@@ -147,10 +140,37 @@ Return ONLY a JSON object with this structure:
   }
 }
 
-Extract MAXIMUM data. Use empty string "" for missing fields. Return ONLY JSON.`
-        }
-      ]
-    });
+Extract MAXIMUM data. Use empty string "" for missing fields. Return ONLY JSON.`;
+
+    const maxAttempts = 3;
+    let response: Anthropic.Messages.Message | undefined;
+    let lastErr: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        response = await anthropic.messages.create({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4096,
+          temperature: 0,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        break;
+      } catch (err: any) {
+        lastErr = err;
+        const status = err?.status ?? err?.response?.status;
+        const type = err?.error?.error?.type ?? err?.error?.type ?? err?.type;
+        const retriable =
+          status === 529 ||
+          status === 429 ||
+          status === 503 ||
+          type === 'overloaded_error' ||
+          type === 'rate_limit_error';
+        if (!retriable || attempt === maxAttempts) throw err;
+        const backoffMs = 1000 * Math.pow(2, attempt - 1);
+        console.warn(`[API] Anthropic ${status ?? type} on attempt ${attempt}, retrying in ${backoffMs}ms`);
+        await new Promise((r) => setTimeout(r, backoffMs));
+      }
+    }
+    if (!response) throw lastErr ?? new Error('No response from Anthropic');
 
     const content = response.content[0];
     if (content.type !== 'text') {
@@ -171,8 +191,26 @@ Extract MAXIMUM data. Use empty string "" for missing fields. Return ONLY JSON.`
       data: parsed,
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API] Error parsing EzyVet data:', error);
+    const status = error?.status ?? error?.response?.status;
+    const type = error?.error?.error?.type ?? error?.error?.type ?? error?.type;
+    const isOverload =
+      status === 529 ||
+      status === 429 ||
+      status === 503 ||
+      type === 'overloaded_error' ||
+      type === 'rate_limit_error';
+    if (isOverload) {
+      return NextResponse.json(
+        {
+          error: 'Claude is overloaded — try again in a moment.',
+          retryable: true,
+          details: error instanceof Error ? error.message : 'Upstream AI overloaded',
+        },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       {
         error: 'Failed to parse EzyVet data',
