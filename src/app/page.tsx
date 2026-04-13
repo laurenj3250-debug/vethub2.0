@@ -88,6 +88,17 @@ export default function VetHub() {
   const [isAlreadyHospitalized, setIsAlreadyHospitalized] = useState(false);
   const [needsMRIPrep, setNeedsMRIPrep] = useState(false);
   const [needsSurgeryPrep, setNeedsSurgeryPrep] = useState(false);
+  const [useAIParser, setUseAIParser] = useState(true);
+  const [manualForm, setManualForm] = useState({
+    patientName: '',
+    ownerLastName: '',
+    species: '',
+    breed: '',
+    age: '',
+    sex: '',
+    weight: '',
+    chiefComplaint: '',
+  });
   const [quickAddMenuPatient, setQuickAddMenuPatient] = useState<number | null>(null);
   const [customTaskName, setCustomTaskName] = useState('');
   const [roundingSheetPatient, setRoundingSheetPatient] = useState<number | null>(null);
@@ -520,26 +531,64 @@ export default function VetHub() {
   };
 
   const handleAddPatient = async () => {
-    if (!patientBlurb.trim()) {
+    if (useAIParser && !patientBlurb.trim()) {
       toast({ variant: 'destructive', title: 'Error', description: 'Please paste patient information' });
+      return;
+    }
+    if (!useAIParser && !manualForm.patientName.trim()) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Patient name is required' });
       return;
     }
 
     setIsAddingPatient(true);
     try {
-      // Use the same comprehensive parser as Magic Paste
-      const response = await fetch('/api/parse-ezyvet', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: patientBlurb }),
-      });
+      let parsed: any;
 
-      if (!response.ok) {
-        throw new Error('Failed to parse patient data');
+      if (useAIParser) {
+        // AI-powered parse via Claude
+        const response = await fetch('/api/parse-ezyvet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: patientBlurb }),
+        });
+
+        if (!response.ok) {
+          let body: any = {};
+          try { body = await response.json(); } catch {}
+          if (body?.retryable) {
+            throw new Error('Claude is overloaded. Switch to Manual entry or try again in a moment.');
+          }
+          throw new Error(body?.error || 'Failed to parse patient data');
+        }
+
+        const result = await response.json();
+        parsed = result.data;
+      } else {
+        // Manual entry — bypass AI entirely
+        parsed = {
+          demographics: {
+            name: manualForm.patientName,
+            patientId: '',
+            clientId: '',
+            ownerName: manualForm.ownerLastName,
+            ownerPhone: '',
+            ownerEmail: '',
+            species: manualForm.species,
+            breed: manualForm.breed,
+            age: manualForm.age,
+            sex: manualForm.sex,
+            weight: manualForm.weight,
+            dateOfBirth: '',
+            color: '',
+            microchip: '',
+          },
+          consultations: manualForm.chiefComplaint
+            ? [{ chiefComplaint: manualForm.chiefComplaint, plan: '', consultNumber: '' }]
+            : [],
+          diagnostics: {},
+          medications: [],
+        };
       }
-
-      const result = await response.json();
-      const parsed = result.data;
 
       // Extract patient name from demographics
       const patientName = parsed.demographics?.name?.replace(/^Patient\s/i, '') || 'Unnamed';
@@ -4043,37 +4092,96 @@ export default function VetHub() {
                   </label>
                 )}
 
-                <textarea
-                  value={patientBlurb}
-                  onChange={(e) => setPatientBlurb(e.target.value)}
-                  placeholder="Paste patient info... Claude AI will extract everything!"
-                  className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none resize-none font-medium"
-                  style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
-                  rows={6}
-                />
+                {/* AI / Manual mode toggle */}
+                <div className="flex gap-2 p-1 rounded-2xl" style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000', backgroundColor: '#FFF8E7' }}>
+                  <button
+                    type="button"
+                    onClick={() => setUseAIParser(true)}
+                    className={`flex-1 py-2 px-3 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 ${useAIParser ? 'bg-emerald-200 text-gray-900' : 'text-gray-600 hover:bg-white/50'}`}
+                    style={useAIParser ? { border: '2px solid #000' } : {}}
+                  >
+                    <Zap size={16} /> AI Parse
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUseAIParser(false)}
+                    className={`flex-1 py-2 px-3 rounded-xl font-bold text-sm transition ${!useAIParser ? 'bg-emerald-200 text-gray-900' : 'text-gray-600 hover:bg-white/50'}`}
+                    style={!useAIParser ? { border: '2px solid #000' } : {}}
+                  >
+                    Manual Entry
+                  </button>
+                </div>
+
+                {useAIParser ? (
+                  <textarea
+                    value={patientBlurb}
+                    onChange={(e) => setPatientBlurb(e.target.value)}
+                    placeholder="Paste patient info... Claude AI will extract everything!"
+                    className="w-full px-4 py-3 rounded-2xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none resize-none font-medium"
+                    style={{ border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
+                    rows={6}
+                  />
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <input type="text" placeholder="Patient name *" value={manualForm.patientName}
+                      onChange={(e) => setManualForm({ ...manualForm, patientName: e.target.value })}
+                      className="col-span-2 px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <input type="text" placeholder="Owner last name" value={manualForm.ownerLastName}
+                      onChange={(e) => setManualForm({ ...manualForm, ownerLastName: e.target.value })}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <input type="text" placeholder="Species (Dog/Cat)" value={manualForm.species}
+                      onChange={(e) => setManualForm({ ...manualForm, species: e.target.value })}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <input type="text" placeholder="Breed" value={manualForm.breed}
+                      onChange={(e) => setManualForm({ ...manualForm, breed: e.target.value })}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <input type="text" placeholder="Age (e.g. 8y)" value={manualForm.age}
+                      onChange={(e) => setManualForm({ ...manualForm, age: e.target.value })}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <input type="text" placeholder="Sex (MN/FS/M/F)" value={manualForm.sex}
+                      onChange={(e) => setManualForm({ ...manualForm, sex: e.target.value })}
+                      className="px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <input type="text" placeholder="Weight (e.g. 25 kg)" value={manualForm.weight}
+                      onChange={(e) => setManualForm({ ...manualForm, weight: e.target.value })}
+                      className="col-span-2 px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                    <textarea placeholder="Chief complaint / problem (optional)" value={manualForm.chiefComplaint}
+                      onChange={(e) => setManualForm({ ...manualForm, chiefComplaint: e.target.value })}
+                      rows={2}
+                      className="col-span-2 px-3 py-2 rounded-xl bg-white text-gray-900 placeholder-gray-400 focus:outline-none resize-none font-medium"
+                      style={{ border: '2px solid #000', boxShadow: '3px 3px 0 #000' }} />
+                  </div>
+                )}
 
                 <button
                   onClick={() => {
                     handleAddPatient();
                     setShowAddPatientModal(false);
                     setPatientBlurb('');
+                    setManualForm({ patientName: '', ownerLastName: '', species: '', breed: '', age: '', sex: '', weight: '', chiefComplaint: '' });
                     setIsAlreadyHospitalized(false);
                     setNeedsMRIPrep(false);
                     setNeedsSurgeryPrep(false);
                   }}
-                  disabled={isAddingPatient || !patientBlurb.trim()}
+                  disabled={isAddingPatient || (useAIParser ? !patientBlurb.trim() : !manualForm.patientName.trim())}
                   className="w-full py-3 rounded-2xl font-black hover:-translate-y-1 transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 text-gray-900"
                   style={{ backgroundColor: '#B8E6D4', border: '2px solid #000', boxShadow: '4px 4px 0 #000' }}
                 >
                   {isAddingPatient ? (
                     <>
                       <Loader2 className="animate-spin" size={20} />
-                      Claude is analyzing...
+                      {useAIParser ? 'Claude is analyzing...' : 'Adding patient...'}
                     </>
                   ) : (
                     <>
                       <Zap size={20} />
-                      Add Patient with Claude AI
+                      {useAIParser ? 'Add Patient with Claude AI' : 'Add Patient'}
                     </>
                   )}
                 </button>
