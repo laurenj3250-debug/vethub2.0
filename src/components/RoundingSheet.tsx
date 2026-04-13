@@ -560,7 +560,7 @@ function mergePatientRoundingData(
 
 // Column config for resizable columns (Google Sheets-style drag-to-resize)
 const ROUNDING_COLUMNS = [
-  { key: 'patient', label: 'Patient', defaultWidth: 120, minWidth: 70 },
+  { key: 'patient', label: 'Patient', defaultWidth: 140, minWidth: 110 },
   { key: 'signalment', label: 'Signalment', defaultWidth: 110, minWidth: 60 },
   { key: 'location', label: 'Loc', defaultWidth: 65, minWidth: 40 },
   { key: 'icuCriteria', label: 'ICU', defaultWidth: 60, minWidth: 40 },
@@ -585,7 +585,14 @@ function loadColumnWidths(): number[] {
     const stored = localStorage.getItem(COL_WIDTHS_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length === ROUNDING_COLUMNS.length) return parsed;
+      if (Array.isArray(parsed) && parsed.length === ROUNDING_COLUMNS.length) {
+        // Clamp any stored widths below current minWidth (protects against stale
+        // localStorage from earlier versions or accidental under-drags).
+        return parsed.map((w, i) => {
+          const min = ROUNDING_COLUMNS[i].minWidth;
+          return typeof w === 'number' && w >= min ? w : Math.max(min, ROUNDING_COLUMNS[i].defaultWidth);
+        });
+      }
     }
   } catch {}
   return DEFAULT_COL_WIDTHS;
