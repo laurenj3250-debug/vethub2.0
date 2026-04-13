@@ -148,7 +148,7 @@ Extract MAXIMUM data. Use empty string "" for missing fields. Return ONLY JSON.`
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         response = await anthropic.messages.create({
-          model: 'claude-sonnet-4-5',
+          model: 'claude-sonnet-4-6',
           max_tokens: 4096,
           temperature: 0,
           messages: [{ role: 'user', content: prompt }],
