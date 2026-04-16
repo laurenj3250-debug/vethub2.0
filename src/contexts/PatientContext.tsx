@@ -209,7 +209,7 @@ export interface MRICalculatedDoses {
 }
 
 export interface MRIData {
-  scanType?: 'Brain' | 'C-Spine' | 'T-Spine' | 'LS';
+  scanType?: 'Brain' | 'C-Spine' | 'TL' | 'LS';
   scheduledTime?: Date;
   weight?: string;
   preMedDose?: string;

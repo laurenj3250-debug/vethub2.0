@@ -7,7 +7,7 @@ import { apiClient } from '@/lib/api-client';
 import { NEO_SHADOW, NEO_SHADOW_SM, NEO_BORDER, NEO_COLORS } from '@/lib/neo-styles';
 import { downloadCombinedMRISheetPDF } from '@/lib/pdf-generators/mri-anesthesia-sheet';
 
-const MRI_SCAN_OPTIONS = ['Brain', 'C-Spine', 'T-Spine', 'LS'] as const;
+const MRI_SCAN_OPTIONS = ['Brain', 'C-Spine', 'TL', 'LS'] as const;
 
 interface Patient {
   id: number;
@@ -53,7 +53,7 @@ function ScanTypeMultiSelect({ value, onChange }: { value: string; onChange: (v:
               ...(isActive ? {
                 backgroundColor: option === 'Brain' ? '#8B5CF6' :
                   option === 'C-Spine' ? '#3B82F6' :
-                  option === 'T-Spine' ? '#10B981' : '#F59E0B'
+                  option === 'TL' ? '#10B981' : '#F59E0B'
               } : {}),
             }}
           >
@@ -287,7 +287,7 @@ export function MRISchedule({
           patientId: p.demographics?.patientId,
         },
         mriData: {
-          scanType: (mriInputValues[`${p.id}-scanType`] || p.mriData?.scanType || 'Brain') as 'Brain' | 'C-Spine' | 'T-Spine' | 'LS',
+          scanType: (mriInputValues[`${p.id}-scanType`] || p.mriData?.scanType || 'Brain') as 'Brain' | 'C-Spine' | 'TL' | 'LS',
         },
         mrn: p.demographics?.patientId,
       }));

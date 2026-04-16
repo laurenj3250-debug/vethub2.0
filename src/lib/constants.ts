@@ -103,26 +103,14 @@ export const ROUNDING_MULTISELECT_OPTIONS = {
     'EMG: completed',
   ] as const,
 
-  // Common extra notes/comments — includes both admin phrases and protocol
-  // rescue/pain/monitoring comments pulled from rounding-templates.ts so the
-  // dropdown matches what templates apply.
+  // Extra notes — pulled from rounding-templates.ts so dropdown matches templates.
   comments: [
-    // Protocol (from rounding templates)
     'If has a seizure, give 0.2mL IV (straight) of diazepam. If has two, start a diazepam CRI at .5mg/kg/hr and load phenobarbital at 4mg/kg q4-6hr and load bromide at 100mg/kg qdh',
     'gaba tram prn, traz prn, if severely painful can start fentanyl CRI',
     'If decompensates, give 1g/kg of Mannitol and .2mg/kg of Dex SP and Call AS/LJ',
     'fentanyl assess at midnight then PRN, ketamine d/c when finished',
-    // Admin / status
-    'Discussed with owner',
-    'Owner updated',
-    'Awaiting owner decision',
-    'Transfer from rDVM',
-    'Referral case',
-    'Recheck patient',
-    'Discharge pending',
-    'Surgery scheduled',
-    'MRI scheduled',
-    'Consult requested',
+    'if frenchies, can dexmed',
+    'if regurgitates give one bolus of metocopramide, if 2x can start CRI',
   ] as const,
 
   // Common therapeutics/medications
@@ -170,18 +158,9 @@ export const ROUNDING_MULTISELECT_OPTIONS = {
     'Call if changes',
   ] as const,
 
-  // Overnight concerns
+  // Overnight concerns — pulled from rounding-templates.ts so dropdown matches templates.
   concerns: [
-    'Monitor resp effort',
-    'Aspiration risk',
-    'Seizure precautions',
-    'Call if neuro declines',
-    'Call if temp >103',
-    'Call if vomiting',
-    'Call if not eating',
-    'Watch for regurg',
-    'Fall risk',
-    'May need catheter',
+    'NPO from 8pm',
   ] as const,
 } as const;
 

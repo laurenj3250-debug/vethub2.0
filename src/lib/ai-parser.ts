@@ -404,10 +404,10 @@ export async function determineScanType(problemText: string): Promise<string> {
       return 'C-Spine';
     }
 
-    // T-Spine indicators
-    const tspineKeywords = ['thoracic', 't-spine', 'thoracolumbar', 'mid-back'];
-    if (tspineKeywords.some(kw => text.includes(kw))) {
-      return 'T-Spine';
+    // TL (thoracolumbar) indicators
+    const tlKeywords = ['thoracic', 't-spine', 'thoracolumbar', 'tl', 'mid-back'];
+    if (tlKeywords.some(kw => text.includes(kw))) {
+      return 'TL';
     }
 
     // LS (lumbar/lumbosacral) indicators

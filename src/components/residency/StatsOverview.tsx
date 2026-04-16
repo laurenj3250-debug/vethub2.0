@@ -77,7 +77,7 @@ export function StatsOverview() {
                         'px-2 py-0.5 rounded-full text-xs font-medium',
                         type === 'Brain' ? 'bg-purple-100 text-purple-700' :
                         type === 'C-Spine' ? 'bg-blue-100 text-blue-700' :
-                        type === 'T-Spine' ? 'bg-emerald-100 text-emerald-700' :
+                        type === 'TL' ? 'bg-emerald-100 text-emerald-700' :
                         type === 'LS' ? 'bg-amber-100 text-amber-700' :
                         'bg-gray-100 text-gray-600'
                       )}

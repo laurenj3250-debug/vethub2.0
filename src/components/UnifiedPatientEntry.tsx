@@ -324,7 +324,7 @@ export function UnifiedPatientEntry({ patient, onUpdate, onSave }: UnifiedPatien
                   <option value="">Select region...</option>
                   <option value="Brain">Brain</option>
                   <option value="C-Spine">C-Spine (Cervical)</option>
-                  <option value="T-Spine">T-Spine (Thoracic)</option>
+                  <option value="TL">TL (Thoracolumbar)</option>
                   <option value="LS">LS (Lumbosacral)</option>
                 </select>
               </div>

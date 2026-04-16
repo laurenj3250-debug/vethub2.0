@@ -76,7 +76,7 @@ export interface MRIPatientData {
   name: string;
   patientId: string;
   weightKg: number;
-  scanType: 'Brain' | 'C-Spine' | 'T-Spine' | 'LS' | string;
+  scanType: 'Brain' | 'C-Spine' | 'TL' | 'LS' | string;
 }
 
 /**

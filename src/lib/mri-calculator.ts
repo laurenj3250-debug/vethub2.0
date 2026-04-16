@@ -7,7 +7,7 @@
  *
  * Protocol:
  * - Brain MRI: Butorphanol + Valium + Contrast
- * - Spine MRI (C-Spine, T-Spine, LS): Methadone + Valium + Contrast
+ * - Spine MRI (C-Spine, TL, LS): Methadone + Valium + Contrast
  */
 
 import { MRICalculatedDoses, MRIData } from '@/contexts/PatientContext';
@@ -52,7 +52,7 @@ export function lbsToKg(lbs: number): number {
  *
  * @param weightKg - Patient weight in kilograms
  * @param weightLbs - Patient weight in pounds (optional, will be calculated if not provided)
- * @param scanType - Type of MRI scan (Brain, C-Spine, T-Spine, LS)
+ * @param scanType - Type of MRI scan (Brain, C-Spine, TL, LS)
  * @returns Calculated doses for opioid, valium, and contrast
  */
 export function calculateMRIDoses(
@@ -65,7 +65,7 @@ export function calculateMRIDoses(
 
   // Determine opioid based on scan type
   // Brain (or any scan including Brain) → Butorphanol
-  // Spine only (C-Spine, T-Spine, LS without Brain) → Methadone
+  // Spine only (C-Spine, TL, LS without Brain) → Methadone
   const scanTypeLower = (scanType || '').toLowerCase();
   const useButorphanol = scanTypeLower.includes('brain');
   const opioidName = useButorphanol ? 'Butorphanol' : 'Methadone';
