@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getTodayET, formatDateET } from '@/lib/timezone';
+import { getTodayET } from '@/lib/timezone';
 import { getStatusTriggeredTasks } from '@/lib/task-config';
 
 /**
@@ -46,6 +46,8 @@ export async function GET(
       id: patient.id,
       status: patient.status,
       type: patient.type || 'Medical', // Patient type: Medical/MRI/Surgery (default if null)
+      mriCancelled: patient.mriCancelled,
+      mriCancelledAt: patient.mriCancelledAt,
       demographics: patient.demographics,
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
@@ -233,6 +235,8 @@ export async function PATCH(
       id: patient.id,
       status: patient.status,
       type: patient.type || 'Medical', // Patient type: Medical/MRI/Surgery (default if null)
+      mriCancelled: patient.mriCancelled,
+      mriCancelledAt: patient.mriCancelledAt,
       demographics: patient.demographics,
       medicalHistory: patient.medicalHistory,
       currentStay: patient.currentStay ? {
@@ -306,37 +310,9 @@ export async function DELETE(
       );
     }
 
-    // If MRI patient, decrement tomorrow's MRI count (reverses auto-increment from admission)
-    const patient = await prisma.patient.findUnique({
-      where: { id: patientId },
-      select: { type: true, createdAt: true },
-    });
-
-    if (patient?.type === 'MRI') {
-      try {
-        // The MRI was auto-counted for the day after admission (in ET)
-        const admitDateET = formatDateET(patient.createdAt);
-        const nextDay = new Date(admitDateET + 'T12:00:00Z');
-        nextDay.setDate(nextDay.getDate() + 1);
-        const mriDate = nextDay.toISOString().split('T')[0];
-
-        await prisma.dailyEntry.updateMany({
-          where: {
-            date: mriDate,
-            mriCount: { gt: 0 },
-          },
-          data: {
-            mriCount: { decrement: 1 },
-            totalCases: { decrement: 1 },
-          },
-        });
-        console.log(`[API] Decremented MRI count for ${mriDate} (deleted patient ${patientId})`);
-      } catch (mriError) {
-        console.error('[API] Error decrementing MRI count:', mriError);
-        // Don't fail deletion if decrement fails
-      }
-    }
-
+    // MRI counts are intentionally NOT decremented on patient delete — the scheduled MRI
+    // still happened (or is happening) and the residency tally must persist. To reverse a
+    // scheduled MRI, use POST /api/patients/[id]/cancel-mri before deleting the patient.
     await prisma.patient.delete({
       where: { id: patientId },
     });

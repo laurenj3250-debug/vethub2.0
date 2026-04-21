@@ -42,6 +42,8 @@ export async function GET(request: NextRequest) {
       id: patient.id,
       status: patient.status,
       type: patient.type || 'Medical', // Patient type: Medical/MRI/Surgery (default if null)
+      mriCancelled: patient.mriCancelled,
+      mriCancelledAt: patient.mriCancelledAt,
       demographics: patient.demographics as any,
       medicalHistory: patient.medicalHistory as any,
       currentStay: patient.currentStay ? {
@@ -247,6 +249,8 @@ export async function POST(request: NextRequest) {
         id: patient.id,
         status: patient.status,
         type: patient.type || 'Medical', // Patient type: Medical/MRI/Surgery (default if null)
+        mriCancelled: patient.mriCancelled,
+        mriCancelledAt: patient.mriCancelledAt,
         demographics: patient.demographics,
         medicalHistory: patient.medicalHistory,
         currentStay: patient.currentStay,

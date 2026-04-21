@@ -31,6 +31,10 @@ model Patient {
   // MRI data (JSON field, nullable)
   mriData Json?
 
+  // MRI cancellation audit (set when clinician explicitly cancels a scheduled MRI)
+  mriCancelled   Boolean   @default(false)
+  mriCancelledAt DateTime?
+
   // Sticker data (JSON field, nullable)
   stickerData Json?
 
