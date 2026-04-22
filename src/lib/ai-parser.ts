@@ -53,48 +53,39 @@ export async function parsePatientBlurb(blurb: string): Promise<ParsedPatientDat
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929', // Use Sonnet for better accuracy with complex VetRadar exports
-      max_tokens: 512, // Reduced from 2048 - JSON responses are typically <500 tokens
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
       temperature: 0,
       messages: [
         {
           role: 'user',
-          content: `Extract structured data from this veterinary patient text (which may be a VetRadar/EzyVet export or a simple patient description) and return ONLY a JSON object with no other text or explanation.
+          content: `Extract ONLY patient + owner demographics from this veterinary text. Skip meds, bloodwork, plan, problem — those are entered manually.
 
-CRITICAL INSTRUCTIONS:
-- Read the ENTIRE text carefully to find patient demographics, owner info, and medical data
-- For age: extract the actual age from the text (e.g., "12 years 1 month" or "12 y 1 m 1 d")
-- For ownerName: extract owner's LAST NAME only (surname). "Russell Bennett" → "Bennett"
-- For patientId: look for "Consult #", "Patient ID:", or similar
-- For clientId: look for "Client ID", "Code", or owner reference number
-- For problem: extract the presenting complaint or reason for visit
-- For medications: extract all current medications mentioned
-- DO NOT make up or hallucinate data - use null if not found in the text
+Rules:
+- ownerName must be LAST NAME only. "Russell Bennett" becomes "Bennett".
+- patientName: pet's first name only, strip any "Patient" prefix.
+- Use null for fields not present in the text. Do not invent data.
 
-Return this exact structure (use null for missing fields):
+Return ONLY this JSON:
 {
-  "patientName": "pet name only, remove any 'Patient' prefix",
-  "ownerName": "owner LAST NAME only (surname)",
-  "ownerPhone": "phone number (primary contact)",
+  "patientName": "pet first name",
+  "ownerName": "owner surname only",
+  "ownerPhone": "primary phone",
   "species": "dog/cat/etc",
   "breed": "breed",
-  "age": "age with units (e.g., '12 years 1 month 1 day')",
+  "age": "age with units",
   "sex": "MN/FS/etc",
   "weight": "weight with units",
-  "dateOfBirth": "DOB in MM-DD-YYYY format",
-  "colorMarkings": "color/markings description",
-  "patientId": "Patient ID number (look for 'Patient ID:')",
-  "clientId": "Consult/Case number (look for 'Consult #')",
-  "problem": "presenting complaint",
-  "bloodwork": "CBC/Chemistry abnormal values",
-  "medications": ["list", "of", "all", "medications"],
-  "plan": "treatment plan/outcome"
+  "dateOfBirth": "MM-DD-YYYY",
+  "colorMarkings": "color/markings",
+  "patientId": "Patient ID (look for 'Patient ID:')",
+  "clientId": "Consult # / Case #"
 }
 
 Patient text:
 ${blurb}
 
-Return ONLY the JSON object, no other text:`
+Return ONLY the JSON object:`
         }
       ]
     });

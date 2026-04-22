@@ -161,12 +161,12 @@ export function VetRadarImageUpload({ onDataExtracted }: VetRadarImageUploadProp
               <div className="text-center">
                 <p className="text-lg font-semibold text-white">
                   {isUploading ? 'Uploading...' :
-                   isParsing ? 'Analyzing VetRadar sheet with AI...' :
+                   isParsing ? 'Reading patient info...' :
                    error ? 'Upload failed' :
                    'Upload VetRadar Screenshot'}
                 </p>
                 <p className="text-sm text-slate-400 mt-2">
-                  {isParsing ? 'Reading medications, vitals, fluids, and all clinical data...' :
+                  {isParsing ? 'Pulling name, owner, signalment, IDs. Clinical fields stay empty — you enter those manually.' :
                    'Click to browse or paste (Ctrl+V) a screenshot'}
                 </p>
               </div>
@@ -196,15 +196,15 @@ export function VetRadarImageUpload({ onDataExtracted }: VetRadarImageUploadProp
         <div className="bg-emerald-900/20 border border-emerald-500 rounded-lg p-4">
           <p className="text-emerald-400 text-sm flex items-center gap-2">
             <CheckCircle size={16} />
-            VetRadar data extracted successfully! Review the populated fields below.
+            Demographics extracted. Review the populated fields below and fill clinical ones yourself.
           </p>
         </div>
       )}
 
       <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
         <p className="text-blue-300 text-sm">
-          <strong>💡 Tip:</strong> Take a screenshot of the entire VetRadar treatment sheet
-          including medications, vitals, and nursing care sections for best results.
+          <strong>Tip:</strong> The patient info header is enough — you don't need the treatment grid.
+          Clinical fields (meds, fluids, concerns) stay empty so you can enter them the way you want.
         </p>
       </div>
     </div>

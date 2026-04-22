@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     const base64Image = image.replace(/^data:image\/\w+;base64,/, '');
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
       temperature: 0,
       messages: [
         {
@@ -49,80 +49,24 @@ export async function POST(request: NextRequest) {
             },
             {
               type: 'text',
-              text: `Analyze this VetRadar treatment sheet image and extract ALL clinical data for a veterinary rounding sheet.
+              text: `Extract ONLY patient + owner demographics from this VetRadar sheet. Skip meds, vitals, PE, fluids, CRI, procedures, nursing, diagnostics, concerns — those are entered manually.
 
-CRITICAL INSTRUCTIONS FOR STICKER DATA:
-- FIND patient ID, client ID, consult number (usually in header or sidebar)
-- FIND owner name and phone number (check patient info section)
-- FIND date of birth (DOB) and color/markings if visible
-- These fields are ESSENTIAL for label printing - look carefully!
-
-CRITICAL INSTRUCTIONS FOR TREATMENT DATA:
-- Read EVERY medication, dose, route, frequency from the treatment grid
-- Extract ALL vital signs with timestamps (Temp, HR, RR, Pain scores)
-- Capture physical exam findings (MM, CRT, attitude, etc.)
-- Read fluid orders (type, rate, additives)
-- Note any CRI medications with doses
-- Identify IV catheter information
-- Extract nursing care tasks and procedures
-- Note any clinical concerns or alerts
-
-Return ONLY a JSON object with this exact structure:
+Return ONLY this JSON (use empty string "" when not visible):
 
 {
-  "patientName": "patient name from header",
-  "patientId": "patient ID number if visible (e.g., 674131)",
-  "clientId": "client/owner ID number if visible",
-  "consultNumber": "consult number if visible (e.g., 5877395)",
-  "ownerName": "owner full name if visible",
-  "ownerPhone": "owner phone number if visible",
-  "dateOfBirth": "patient date of birth if visible",
-  "color": "patient color/markings if visible",
-  "signalment": "age sex species breed weight",
-  "location": "ward/kennel/cage location",
-  "problems": "NEUROLOCALIZATION + clinical status + plan. Examples: 'T3-L3 myelopathy, non-ambulatory, +/- MRI tomorrow' or 'Seizure disorder, cluster seizures, AED loading'. NOT patient name - actual clinical problems only.",
-  "medications": [
-    {
-      "name": "medication name",
-      "dose": "dose amount",
-      "route": "PO/IV/SQ/etc",
-      "frequency": "q8h/BID/TID/etc",
-      "times": ["scheduled times like 8am, 4pm, etc"]
-    }
-  ],
-  "vitals": {
-    "latestTemp": "most recent temp with unit",
-    "latestHR": "most recent HR",
-    "latestRR": "most recent RR",
-    "painScore": "pain score if visible",
-    "trends": "any notable trends like increasing HR, declining temp"
-  },
-  "physicalExam": {
-    "mm": "mucous membrane color",
-    "crt": "CRT in seconds",
-    "attitude": "BAR/QAR/depressed/etc",
-    "other": "any other PE findings"
-  },
-  "fluids": {
-    "type": "LRS/Normosol/etc",
-    "rate": "ml/hr or ml/kg/day",
-    "additives": "KCl, etc if visible"
-  },
-  "cri": {
-    "medications": "fentanyl, ketamine, etc with doses",
-    "rates": "mcg/kg/hr or mcg/kg/min"
-  },
-  "ivc": {
-    "location": "left cephalic, right saphenous, etc",
-    "status": "patent, needs replacement, etc"
-  },
-  "procedures": ["list of scheduled procedures"],
-  "nursingCare": ["list of nursing tasks"],
-  "diagnosticFindings": "any lab results, imaging findings visible",
-  "concerns": "clinical concerns, monitoring needs, alerts"
+  "patientName": "pet's first name only",
+  "patientId": "patient ID (e.g., 674131)",
+  "clientId": "client/owner ID",
+  "consultNumber": "consult # (e.g., 5877395)",
+  "ownerName": "owner LAST NAME only (surname). 'Russell Bennett' becomes 'Bennett'",
+  "ownerPhone": "primary phone",
+  "dateOfBirth": "DOB",
+  "color": "color/markings",
+  "signalment": "age sex species breed weight in one string",
+  "location": "ward/kennel/cage"
 }
 
-Extract MAXIMUM data. If something is not visible in the image, use empty string "". Return ONLY the JSON, no other text.`
+Return ONLY the JSON, no other text.`
             }
           ]
         }
@@ -143,60 +87,28 @@ Extract MAXIMUM data. If something is not visible in the image, use empty string
 
     const parsed = JSON.parse(jsonText);
 
-    // Validate problems field - don't allow patient name or single words
-    let validatedProblems = parsed.problems || '';
-    const patientName = (parsed.patientName || '').toLowerCase().trim();
-    const problemsLower = validatedProblems.toLowerCase().trim();
-
-    // Clear problems if it's just the patient name
-    if (patientName && problemsLower === patientName) {
-      validatedProblems = '';
-    }
-    // Clear if problems contains the patient name as a substring (e.g., "Wibbly needs care")
-    if (patientName && patientName.length > 2 && problemsLower.includes(patientName)) {
-      validatedProblems = '';
-    }
-    // Clear if it's a single word (likely a name, not a clinical problem)
-    if (validatedProblems && !validatedProblems.includes(' ') && validatedProblems.length < 20) {
-      validatedProblems = '';
-    }
-
-    // Transform to rounding sheet format
+    // Demographics-only mode: clinical fields (meds, vitals, PE, fluids, CRI, diagnostics,
+    // concerns, comments) are left empty intentionally — Lauren enters those manually.
+    // The signalment + location come through for the MRI sheet / main board / rounding row.
     const roundingData = {
       signalment: parsed.signalment || '',
       location: parsed.location || '',
-      icuCriteria: '', // Manual entry
-      code: '', // Manual entry (Green/Yellow/Orange/Red)
-      problems: validatedProblems,
-      diagnosticFindings: parsed.diagnosticFindings || '',
-
-      // Format medications as names only (no doses, routes, or frequencies)
-      therapeutics: parsed.medications?.map((med: any) => med.name)
-        .filter(Boolean)
-        .join(', ') || '',
-
-      // IVC/Fluids
-      ivc: parsed.ivc?.location || (parsed.fluids?.type ? 'IVC present' : ''),
-      fluids: parsed.fluids?.type ? `${parsed.fluids.type} ${parsed.fluids.rate}` : '',
-      cri: parsed.cri?.medications || '',
-
-      // Concerns
-      overnightDx: '', // Manual entry
-      concerns: [
-        parsed.concerns,
-        parsed.vitals?.trends,
-        parsed.ivc?.status?.includes('replacement') ? 'Replace IVC' : '',
-      ].filter(Boolean).join('; '),
-
-      comments: [
-        parsed.physicalExam?.attitude ? `Attitude: ${parsed.physicalExam.attitude}` : '',
-        parsed.physicalExam?.mm ? `MM: ${parsed.physicalExam.mm}` : '',
-        parsed.vitals?.painScore ? `Pain: ${parsed.vitals.painScore}` : '',
-      ].filter(Boolean).join('; '),
+      icuCriteria: '',
+      code: '',
+      problems: '',
+      diagnosticFindings: '',
+      therapeutics: '',
+      ivc: '',
+      fluids: '',
+      cri: '',
+      overnightDx: '',
+      concerns: '',
+      comments: '',
     };
 
-    // Include demographics for sticker printing
+    // Sticker + main board + MRI sheet fields
     const demographics = {
+      patientName: parsed.patientName || '',
       patientId: parsed.patientId || '',
       clientId: parsed.clientId || '',
       consultNumber: parsed.consultNumber || '',
